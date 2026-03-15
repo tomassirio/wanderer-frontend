@@ -944,16 +944,26 @@ class _HomeScreenState extends State<HomeScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.explore_outlined, size: 64, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4)),
+            Icon(
+              Icons.explore_outlined,
+              size: 64,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+            ),
             const SizedBox(height: 16),
             Text(
               'No trips yet',
-              style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+              style: TextStyle(
+                fontSize: 18,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               'Create your first trip to get started!',
-              style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              ),
             ),
           ],
         ),
@@ -1045,16 +1055,26 @@ class _HomeScreenState extends State<HomeScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.people_outline, size: 64, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4)),
+            Icon(
+              Icons.people_outline,
+              size: 64,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+            ),
             const SizedBox(height: 16),
             Text(
               'No trips in your feed',
-              style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+              style: TextStyle(
+                fontSize: 18,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               'Follow users or add friends to see their trips!',
-              style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -1129,16 +1149,26 @@ class _HomeScreenState extends State<HomeScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.explore_outlined, size: 64, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4)),
+            Icon(
+              Icons.explore_outlined,
+              size: 64,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+            ),
             const SizedBox(height: 16),
             Text(
               'No public trips found',
-              style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+              style: TextStyle(
+                fontSize: 18,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               'Check back later for new adventures!',
-              style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              ),
             ),
           ],
         ),
@@ -1200,16 +1230,32 @@ class _HomeScreenState extends State<HomeScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.explore_outlined, size: 64, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4)),
+              Icon(
+                Icons.explore_outlined,
+                size: 64,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+              ),
               const SizedBox(height: 16),
               Text(
                 'No public trips found',
-                style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withOpacity(0.6),
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Check back later for new adventures!',
-                style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withOpacity(0.5),
+                ),
               ),
             ],
           ),
@@ -1351,12 +1397,24 @@ class _HomeScreenState extends State<HomeScreen>
                       const SizedBox(height: 16),
                       Text(
                         'Error loading trips',
-                        style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withOpacity(0.6),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         _error!,
-                        style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withOpacity(0.5),
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
@@ -1381,9 +1439,13 @@ class _HomeScreenState extends State<HomeScreen>
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  Theme.of(context).colorScheme.primary
+                                  Theme.of(context)
+                                      .colorScheme
+                                      .primary
                                       .withOpacity(0.1),
-                                  Theme.of(context).colorScheme.primary
+                                  Theme.of(context)
+                                      .colorScheme
+                                      .primary
                                       .withOpacity(0.05),
                                 ],
                               ),
@@ -1394,7 +1456,9 @@ class _HomeScreenState extends State<HomeScreen>
                                   width: 120,
                                   height: 120,
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.surface,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .surface,
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
@@ -1424,7 +1488,10 @@ class _HomeScreenState extends State<HomeScreen>
                                   'Track your adventures, share your journeys',
                                   style: TextStyle(
                                     fontSize: 16,
-                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.6),
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -1463,13 +1530,17 @@ class _HomeScreenState extends State<HomeScreen>
                                     Container(
                                       padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.primary
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary
                                             .withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Icon(
                                         Icons.public,
-                                        color: Theme.of(context).colorScheme.primary,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
                                         size: 24,
                                       ),
                                     ),
@@ -1492,7 +1563,10 @@ class _HomeScreenState extends State<HomeScreen>
                                             'Discover adventures from the community',
                                             style: TextStyle(
                                               fontSize: 14,
-                                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withOpacity(0.6),
                                             ),
                                           ),
                                         ],

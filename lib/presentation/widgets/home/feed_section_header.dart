@@ -19,13 +19,14 @@ class FeedSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).colorScheme.primary;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Theme.of(context).primaryColor.withOpacity(0.1),
-            Theme.of(context).primaryColor.withOpacity(0.05),
+            primaryColor.withOpacity(0.1),
+            primaryColor.withOpacity(0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -37,13 +38,13 @@ class FeedSectionHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withOpacity(0.2),
+              color: primaryColor.withOpacity(0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               icon,
               size: 20,
-              color: Theme.of(context).primaryColor,
+              color: primaryColor,
             ),
           ),
           const SizedBox(width: 12),
@@ -58,7 +59,7 @@ class FeedSectionHeader extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
+                        color: primaryColor,
                       ),
                     ),
                     if (count != null) ...[
@@ -69,7 +70,7 @@ class FeedSectionHeader extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor,
+                          color: primaryColor,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -90,7 +91,10 @@ class FeedSectionHeader extends StatelessWidget {
                     subtitle!,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Theme.of(context).textTheme.bodySmall?.color,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.6),
                     ),
                   ),
                 ],

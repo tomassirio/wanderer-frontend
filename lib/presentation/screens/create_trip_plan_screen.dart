@@ -380,7 +380,11 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
               subtitle: Text(
                 'Tap the map to set a new position',
                 style:
-                    TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45)),
+                    TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurface
+                          .withOpacity(0.45),
+                    ),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -916,7 +920,8 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                       vertical: 12,
                     ),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface.withOpacity(0.4),
+                      color: Theme.of(context).colorScheme.surface
+                          .withOpacity(0.4),
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(WandererTheme.glassRadius),
                         topRight: Radius.circular(WandererTheme.glassRadius),
@@ -948,14 +953,16 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                         ),
                         Container(
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+                            color: Theme.of(context).colorScheme.surface
+                                .withOpacity(0.5),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: IconButton(
                             icon: Icon(
                               Icons.remove,
                               size: 18,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                              color: Theme.of(context).colorScheme.onSurface
+                                  .withOpacity(0.6),
                             ),
                             onPressed: () =>
                                 setState(() => _isPanelCollapsed = true),
@@ -1053,7 +1060,9 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: WandererTheme.primaryOrange,
                                   foregroundColor: Colors.white,
-                                  disabledBackgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.12),
+                                  disabledBackgroundColor:
+                                      Theme.of(context).colorScheme.onSurface
+                                          .withOpacity(0.12),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(14),
                                   ),
@@ -1354,7 +1363,8 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
             Icon(
               isSet ? Icons.check_circle : icon,
               size: 14,
-              color: isActive || isSet ? color : Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              color: isActive || isSet ? color
+                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
             ),
             const SizedBox(width: 4),
             Text(
@@ -1362,7 +1372,8 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive || isSet ? color : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: isActive || isSet ? color
+                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               ),
             ),
           ],
@@ -1408,7 +1419,8 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                   'Drag to reorder',
                   style: TextStyle(
                     fontSize: 11,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
+                    color: Theme.of(context).colorScheme.onSurface
+                        .withOpacity(0.45),
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -1416,7 +1428,8 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                   icon: Icon(
                     Icons.close_rounded,
                     size: 20,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
+                    color: Theme.of(context).colorScheme.onSurface
+                        .withOpacity(0.45),
                   ),
                   onPressed: () => setState(() => _showWaypointsList = false),
                   padding: EdgeInsets.zero,
@@ -1489,7 +1502,10 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
         ),
         subtitle: Text(
           '${waypoint.latitude.toStringAsFixed(4)}, ${waypoint.longitude.toStringAsFixed(4)}',
-          style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45)),
+          style: TextStyle(
+            fontSize: 11,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
+          ),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1684,7 +1700,9 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: WandererTheme.primaryOrange,
                                 foregroundColor: Colors.white,
-                                disabledBackgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.12),
+                                disabledBackgroundColor:
+                                    Theme.of(context).colorScheme.onSurface
+                                        .withOpacity(0.12),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),
                                 ),
@@ -1737,7 +1755,9 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+        ),
       ),
       padding: const EdgeInsets.all(4),
       child: Row(
@@ -1768,7 +1788,8 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                       size: 20,
                       color: isSelected
                           ? WandererTheme.primaryOrange
-                          : Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
+                          : Theme.of(context).colorScheme.onSurface
+                              .withOpacity(0.45),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -1778,7 +1799,8 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                         fontWeight: FontWeight.w600,
                         color: isSelected
                             ? WandererTheme.primaryOrange
-                            : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            : Theme.of(context).colorScheme.onSurface
+                                .withOpacity(0.6),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -1830,7 +1852,8 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                     label,
                     style: TextStyle(
                       fontSize: 11,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
+                      color: Theme.of(context).colorScheme.onSurface
+                          .withOpacity(0.45),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -1841,7 +1864,8 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                       fontWeight: hasDate ? FontWeight.w600 : FontWeight.w400,
                       color: hasDate
                           ? Theme.of(context).colorScheme.onSurface
-                          : Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
+                          : Theme.of(context).colorScheme.onSurface
+                              .withOpacity(0.45),
                     ),
                   ),
                 ],
@@ -1919,16 +1943,22 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4)),
+      hintStyle: TextStyle(
+        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+      ),
       filled: true,
       fillColor: Theme.of(context).colorScheme.surface,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
+        borderSide: BorderSide(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+        ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
+        borderSide: BorderSide(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
