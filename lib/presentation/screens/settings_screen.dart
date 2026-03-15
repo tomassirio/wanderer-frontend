@@ -361,7 +361,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildSectionHeader('Appearance'),
                 _buildSwitchTile(
                   icon: Icons.dark_mode_outlined,
-                  iconColor: WandererTheme.textSecondary,
+                  iconColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                   title: 'Dark Mode',
                   subtitle: 'Switch between light and dark theme',
                   value: _isDarkMode,
@@ -438,7 +438,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildSectionHeader('About'),
                 _buildSettingsTile(
                   icon: Icons.info_outline,
-                  iconColor: WandererTheme.textSecondary,
+                  iconColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                   title: 'App Version',
                   subtitle: '1.2.8-SNAPSHOT',
                   onTap: null,

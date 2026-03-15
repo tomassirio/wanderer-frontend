@@ -141,7 +141,10 @@ class HomeContent extends StatelessWidget {
                   'Explore public trips from the community',
                   style: TextStyle(
                     fontSize: 13,
-                    color: WandererTheme.textTertiary,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.45),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -179,7 +182,7 @@ class HomeContent extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
@@ -192,7 +195,7 @@ class HomeContent extends StatelessWidget {
             child: Icon(
               Icons.login,
               size: 32,
-              color: WandererTheme.textTertiary,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
             ),
           ),
           const SizedBox(height: 16),
@@ -202,7 +205,6 @@ class HomeContent extends StatelessWidget {
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: WandererTheme.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
@@ -210,7 +212,8 @@ class HomeContent extends StatelessWidget {
             'Please log in to see personalized content',
             style: TextStyle(
               fontSize: 14,
-              color: WandererTheme.textSecondary,
+              color:
+                  Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
             ),
             textAlign: TextAlign.center,
           ),
@@ -244,7 +247,8 @@ class HomeContent extends StatelessWidget {
             'Or explore public trips:',
             style: TextStyle(
               fontSize: 13,
-              color: WandererTheme.textTertiary,
+              color:
+                  Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
             ),
           ),
         ],
@@ -275,10 +279,10 @@ class HomeContent extends StatelessWidget {
         const SizedBox(width: 12),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: WandererTheme.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(width: 10),

@@ -44,7 +44,7 @@ class EmptyTripsView extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
@@ -64,10 +64,10 @@ class EmptyTripsView extends StatelessWidget {
             // Title
             Text(
               isLoggedIn ? 'No trips yet' : 'No public trips available',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: WandererTheme.textPrimary,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 12),
@@ -80,7 +80,8 @@ class EmptyTripsView extends StatelessWidget {
                     : 'Check back later or log in to create your own trips',
                 style: TextStyle(
                   fontSize: 15,
-                  color: WandererTheme.textSecondary,
+                  color:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
