@@ -290,6 +290,7 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
     final isMobile = screenWidth < 600;
 
     if (isMobile) {
+      final onSurface = Theme.of(context).colorScheme.onSurface;
       // Mobile: compact 2-row layout (title + username/metadata row)
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -338,15 +339,19 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                   ),
                 ),
               ),
-              Icon(Icons.access_time, size: 11, color: Colors.grey[500]),
+              Icon(Icons.access_time,
+                  size: 11, color: onSurface.withOpacity(0.5)),
               const SizedBox(width: 3),
               Text(_formatDate(widget.trip.createdAt),
-                  style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                  style: TextStyle(
+                      fontSize: 11, color: onSurface.withOpacity(0.5))),
               const SizedBox(width: 8),
-              Icon(Icons.comment_outlined, size: 11, color: Colors.grey[500]),
+              Icon(Icons.comment_outlined,
+                  size: 11, color: onSurface.withOpacity(0.5)),
               const SizedBox(width: 3),
               Text('${widget.trip.commentsCount}',
-                  style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                  style: TextStyle(
+                      fontSize: 11, color: onSurface.withOpacity(0.5))),
             ],
           ),
         ],
@@ -354,6 +359,7 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
     }
 
     // Web/desktop: original 3-row layout matching production
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -406,24 +412,26 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
         // Metadata row
         Row(
           children: [
-            Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+            Icon(Icons.access_time,
+                size: 14, color: onSurface.withOpacity(0.5)),
             const SizedBox(width: 4),
             Text(
               _formatDate(widget.trip.createdAt),
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey[600],
+                color: onSurface.withOpacity(0.5),
                 fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(width: 12),
-            Icon(Icons.comment_outlined, size: 14, color: Colors.grey[600]),
+            Icon(Icons.comment_outlined,
+                size: 14, color: onSurface.withOpacity(0.5)),
             const SizedBox(width: 4),
             Text(
               '${widget.trip.commentsCount}',
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey[600],
+                color: onSurface.withOpacity(0.5),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -468,8 +476,10 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                Colors.grey[200]!,
-                                Colors.grey[300]!,
+                                Theme.of(context).colorScheme.surface,
+                                Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
                               ],
                             ),
                           ),
@@ -490,8 +500,10 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                Colors.grey[200]!,
-                                Colors.grey[300]!,
+                                Theme.of(context).colorScheme.surface,
+                                Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
                               ],
                             ),
                           ),
@@ -499,7 +511,10 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                             child: Icon(
                               Icons.map,
                               size: 48,
-                              color: Colors.grey[400],
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.4),
                             ),
                           ),
                         );
@@ -512,8 +527,8 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            Colors.grey[200]!,
-                            Colors.grey[300]!,
+                            Theme.of(context).colorScheme.surface,
+                            Theme.of(context).colorScheme.surfaceContainerHighest,
                           ],
                         ),
                       ),
@@ -521,7 +536,10 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                         child: Icon(
                           Icons.map_outlined,
                           size: 48,
-                          color: Colors.grey[400],
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.4),
                         ),
                       ),
                     ),
@@ -714,10 +732,10 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 border: Border(
                   top: BorderSide(
-                    color: Colors.grey[200]!,
+                    color: Theme.of(context).dividerColor,
                     width: 1,
                   ),
                 ),
