@@ -59,6 +59,20 @@ class WandererTheme {
   static Color glassBorderColor = Colors.white.withOpacity(0.4);
   static Color glassHighlight = Colors.white.withOpacity(0.6);
 
+  /// Returns glass panel background color adaptive to the current theme.
+  static Color glassBackgroundFor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF1E1E1E).withOpacity(0.9)
+        : glassBackground;
+  }
+
+  /// Returns glass panel border color adaptive to the current theme.
+  static Color glassBorderColorFor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? Colors.white.withOpacity(0.12)
+        : glassBorderColor;
+  }
+
   // Glass Blur Amount
   static const double glassBlurSigma = 20.0;
   static const double glassBlurSigmaLight = 12.0;

@@ -68,13 +68,13 @@ class CommentsSection extends StatelessWidget {
       alignment: Alignment.topLeft,
       crossFadeState:
           isCollapsed ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-      firstChild: _buildCollapsedBubble(),
+      firstChild: _buildCollapsedBubble(context),
       secondChild: _buildExpandedSection(context),
     );
   }
 
   /// Collapsed state - floating bubble with comment icon and count badge
-  Widget _buildCollapsedBubble() {
+  Widget _buildCollapsedBubble(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(left: 16, bottom: 16),
       decoration: BoxDecoration(
@@ -88,10 +88,10 @@ class CommentsSection extends StatelessWidget {
             sigmaY: WandererTheme.glassBlurSigma,
           ),
           child: Material(
-            color: WandererTheme.glassBackground,
+            color: WandererTheme.glassBackgroundFor(context),
             shape: CircleBorder(
               side: BorderSide(
-                color: WandererTheme.glassBorderColor,
+                color: WandererTheme.glassBorderColorFor(context),
                 width: 1,
               ),
             ),
@@ -165,10 +165,10 @@ class CommentsSection extends StatelessWidget {
           ),
           child: Container(
             decoration: BoxDecoration(
-              color: WandererTheme.glassBackground,
+              color: WandererTheme.glassBackgroundFor(context),
               borderRadius: BorderRadius.circular(WandererTheme.glassRadius),
               border: Border.all(
-                color: WandererTheme.glassBorderColor,
+                color: WandererTheme.glassBorderColorFor(context),
                 width: 1,
               ),
             ),
@@ -180,14 +180,14 @@ class CommentsSection extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.4),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(WandererTheme.glassRadius),
                       topRight: Radius.circular(WandererTheme.glassRadius),
                     ),
                     border: Border(
                       bottom: BorderSide(
-                        color: WandererTheme.glassBorderColor,
+                        color: WandererTheme.glassBorderColorFor(context),
                         width: 0.5,
                       ),
                     ),
@@ -202,10 +202,10 @@ class CommentsSection extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         '${comments.length} Comments',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: WandererTheme.textPrimary,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const Spacer(),
@@ -213,7 +213,7 @@ class CommentsSection extends StatelessWidget {
                         icon: Icon(
                           Icons.sort,
                           size: 20,
-                          color: WandererTheme.textSecondary,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                         ),
                         onSelected: onSortChanged,
                         itemBuilder: (context) => [
@@ -238,14 +238,14 @@ class CommentsSection extends StatelessWidget {
                       const SizedBox(width: 4),
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.5),
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: IconButton(
                           icon: Icon(
                             Icons.remove,
                             size: 18,
-                            color: WandererTheme.textSecondary,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                           ),
                           onPressed: onToggleCollapse,
                           tooltip: 'Minimize',
@@ -271,7 +271,7 @@ class CommentsSection extends StatelessWidget {
                           ),
                         )
                       : comments.isEmpty
-                          ? _buildEmptyCommentsState()
+                          ? _buildEmptyCommentsState(context)
                           : ListView.builder(
                               controller: scrollController,
                               shrinkWrap: true,
@@ -314,10 +314,10 @@ class CommentsSection extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.4),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
                       border: Border(
                         top: BorderSide(
-                          color: WandererTheme.glassBorderColor,
+                          color: WandererTheme.glassBorderColorFor(context),
                           width: 0.5,
                         ),
                       ),
@@ -361,7 +361,7 @@ class CommentsSection extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyCommentsState() {
+  Widget _buildEmptyCommentsState(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -371,14 +371,14 @@ class CommentsSection extends StatelessWidget {
             Icon(
               Icons.comment_outlined,
               size: 64,
-              color: WandererTheme.textTertiary,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
             ),
             const SizedBox(height: 16),
             Text(
               'No comments yet',
               style: TextStyle(
                 fontSize: 18,
-                color: WandererTheme.textSecondary,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               ),
             ),
             const SizedBox(height: 8),
@@ -388,7 +388,7 @@ class CommentsSection extends StatelessWidget {
                   : 'Log in to add a comment',
               style: TextStyle(
                 fontSize: 14,
-                color: WandererTheme.textTertiary,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
               ),
             ),
           ],

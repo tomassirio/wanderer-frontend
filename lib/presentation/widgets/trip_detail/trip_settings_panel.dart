@@ -257,10 +257,10 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
             sigmaY: WandererTheme.glassBlurSigma,
           ),
           child: Material(
-            color: WandererTheme.glassBackground,
+            color: WandererTheme.glassBackgroundFor(context),
             shape: CircleBorder(
               side: BorderSide(
-                color: WandererTheme.glassBorderColor,
+                color: WandererTheme.glassBorderColorFor(context),
                 width: 1,
               ),
             ),
@@ -301,10 +301,10 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: WandererTheme.glassBackground,
+              color: WandererTheme.glassBackgroundFor(context),
               borderRadius: BorderRadius.circular(WandererTheme.glassRadius),
               border: Border.all(
-                color: WandererTheme.glassBorderColor,
+                color: WandererTheme.glassBorderColorFor(context),
                 width: 1,
               ),
             ),
@@ -327,7 +327,6 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: WandererTheme.textPrimary,
                         ),
                       ),
                     ),
@@ -335,14 +334,14 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
                       width: 28,
                       height: 28,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.5),
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: IconButton(
                         icon: Icon(
                           Icons.remove,
                           size: 16,
-                          color: WandererTheme.textSecondary,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                         ),
                         onPressed: widget.onToggleCollapse,
                         tooltip: 'Minimize',
@@ -392,18 +391,18 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
                   if (!effectiveIsWeb) ...[
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.update,
                           size: 16,
-                          color: WandererTheme.textSecondary,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                         ),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           'Automatic Updates',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: WandererTheme.textPrimary,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         const Spacer(),
@@ -433,11 +432,11 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
                     ),
                     if (!_isTripInProgress && _automaticUpdates) ...[
                       const SizedBox(height: 4),
-                      const Text(
+                      Text(
                         'Will activate when the trip is started',
                         style: TextStyle(
                           fontSize: 11,
-                          color: WandererTheme.textSecondary,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -482,11 +481,11 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         'Location will be automatically updated at this interval when trip is active',
                         style: TextStyle(
                           fontSize: 11,
-                          color: WandererTheme.textSecondary,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                         ),
                       ),
                     ] else if (!_automaticUpdates) ...[
@@ -520,12 +519,12 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
                           ),
                         ),
                       ),
-                      const Text(
+                      Text(
                         'Fires a one-off WorkManager task immediately '
                         '(same code path as periodic, no 15 min wait)',
                         style: TextStyle(
                           fontSize: 10,
-                          color: WandererTheme.textTertiary,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -594,7 +593,7 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: WandererTheme.textSecondary,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               ),
             ),
           ),
@@ -615,14 +614,14 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
   Widget _buildSectionLabel(IconData icon, String label) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: WandererTheme.textSecondary),
+        Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
         const SizedBox(width: 8),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: WandererTheme.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ],
@@ -661,11 +660,11 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
             isSelected ? WandererTheme.primaryOrange.withOpacity(0.4) : null,
         disabledForegroundColor: isSelected
             ? Colors.white.withOpacity(0.7)
-            : WandererTheme.textTertiary,
+            : Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
         side: BorderSide(
           color: isSelected
               ? WandererTheme.primaryOrange.withOpacity(_isMultiDay ? 0.4 : 1.0)
-              : WandererTheme.glassBorderColor,
+              : WandererTheme.glassBorderColorFor(context),
         ),
         padding: const EdgeInsets.symmetric(vertical: 8),
         minimumSize: const Size(0, 32),

@@ -50,13 +50,13 @@ class TripInfoCard extends StatelessWidget {
       alignment: Alignment.topLeft,
       crossFadeState:
           isCollapsed ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-      firstChild: _buildCollapsedBubble(),
+      firstChild: _buildCollapsedBubble(context),
       secondChild: _buildExpandedCard(context),
     );
   }
 
   /// Collapsed state - floating bubble with info icon
-  Widget _buildCollapsedBubble() {
+  Widget _buildCollapsedBubble(BuildContext context) {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -70,10 +70,10 @@ class TripInfoCard extends StatelessWidget {
             sigmaY: WandererTheme.glassBlurSigma,
           ),
           child: Material(
-            color: WandererTheme.glassBackground,
+            color: WandererTheme.glassBackgroundFor(context),
             shape: CircleBorder(
               side: BorderSide(
-                color: WandererTheme.glassBorderColor,
+                color: WandererTheme.glassBorderColorFor(context),
                 width: 1,
               ),
             ),
@@ -117,10 +117,10 @@ class TripInfoCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: WandererTheme.glassBackground,
+              color: WandererTheme.glassBackgroundFor(context),
               borderRadius: BorderRadius.circular(WandererTheme.glassRadius),
               border: Border.all(
-                color: WandererTheme.glassBorderColor,
+                color: WandererTheme.glassBorderColorFor(context),
                 width: 1,
               ),
             ),
@@ -135,10 +135,10 @@ class TripInfoCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         trip.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: WandererTheme.textPrimary,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -165,7 +165,7 @@ class TripInfoCard extends StatelessWidget {
                       width: 28,
                       height: 28,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.5),
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: IconButton(
@@ -189,14 +189,14 @@ class TripInfoCard extends StatelessWidget {
                       width: 28,
                       height: 28,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.5),
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: IconButton(
                         icon: Icon(
                           Icons.remove,
                           size: 16,
-                          color: WandererTheme.textSecondary,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                         ),
                         onPressed: onToggleCollapse,
                         tooltip: 'Minimize',
@@ -299,9 +299,9 @@ class TripInfoCard extends StatelessWidget {
                         Container(
                           height: 28,
                           decoration: BoxDecoration(
-                            color: isFollowing
+                             color: isFollowing
                                 ? Colors.blue.withOpacity(0.7)
-                                : Colors.white.withOpacity(0.5),
+                                : Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: IconButton(
@@ -327,7 +327,7 @@ class TripInfoCard extends StatelessWidget {
                                 ? Colors.green.withOpacity(0.7)
                                 : hasSentFriendRequest
                                     ? Colors.orange.withOpacity(0.7)
-                                    : Colors.white.withOpacity(0.5),
+                                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: isAlreadyFriends
@@ -390,6 +390,7 @@ class TripInfoCard extends StatelessWidget {
                   children: [
                     // Comments
                     _buildStatChip(
+                      context,
                       Icons.comment_outlined,
                       '${trip.commentsCount} comments',
                     ),
@@ -399,6 +400,7 @@ class TripInfoCard extends StatelessWidget {
                       _buildTappableVisibilityItem(context)
                     else
                       _buildStatChip(
+                        context,
                         _getVisibilityIcon(trip.visibility.toJson()),
                         trip.visibility.toJson(),
                       ),
@@ -436,10 +438,10 @@ class TripInfoCard extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.5),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: WandererTheme.glassBorderColor,
+                        color: WandererTheme.glassBorderColorFor(context),
                         width: 0.5,
                       ),
                     ),
@@ -447,7 +449,7 @@ class TripInfoCard extends StatelessWidget {
                       trip.description!,
                       style: TextStyle(
                         fontSize: 13,
-                        color: WandererTheme.textSecondary,
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                         height: 1.3,
                       ),
                     ),
@@ -460,10 +462,10 @@ class TripInfoCard extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.5),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: WandererTheme.glassBorderColor,
+                        color: WandererTheme.glassBorderColorFor(context),
                         width: 0.5,
                       ),
                     ),
@@ -483,7 +485,7 @@ class TripInfoCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: WandererTheme.textSecondary,
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                               ),
                             ),
                           ],
@@ -610,7 +612,7 @@ class TripInfoCard extends StatelessWidget {
           userAchievement.achievement.description,
           style: TextStyle(
             fontSize: 14,
-            color: WandererTheme.textSecondary,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
             height: 1.4,
           ),
         ),
@@ -716,14 +718,14 @@ class TripInfoCard extends StatelessWidget {
     });
   }
 
-  Widget _buildStatChip(IconData icon, String value) {
+  Widget _buildStatChip(BuildContext context, IconData icon, String value) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
           icon,
           size: 14,
-          color: WandererTheme.textSecondary,
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
         ),
         const SizedBox(width: 4),
         Text(
@@ -731,7 +733,7 @@ class TripInfoCard extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: WandererTheme.textSecondary,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
           ),
         ),
       ],

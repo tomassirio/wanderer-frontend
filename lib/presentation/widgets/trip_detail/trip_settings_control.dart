@@ -188,10 +188,10 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: WandererTheme.glassBackground,
+        color: WandererTheme.glassBackgroundFor(context),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: WandererTheme.glassBorderColor,
+          color: WandererTheme.glassBorderColorFor(context),
           width: 1,
         ),
       ),
@@ -202,18 +202,18 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
           if (widget.tripModality != TripModality.multiDay) ...[
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.route,
                   size: 16,
-                  color: WandererTheme.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 ),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Trip Type',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: WandererTheme.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -242,18 +242,18 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
           ],
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.settings,
                 size: 16,
-                color: WandererTheme.textSecondary,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               ),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'Automatic Updates',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: WandererTheme.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const Spacer(),
@@ -281,11 +281,11 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
           ),
           if (!isTripInProgress && _automaticUpdates) ...[
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Will activate when the trip is started',
               style: TextStyle(
                 fontSize: 11,
-                color: WandererTheme.textSecondary,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -363,11 +363,11 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Location will be automatically updated at this interval when trip is active',
               style: TextStyle(
                 fontSize: 11,
-                color: WandererTheme.textSecondary,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               ),
             ),
           ],
@@ -396,12 +396,12 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
                 ),
               ),
             ),
-            const Text(
+            Text(
               'Fires a one-off WorkManager task immediately '
               '(same code path as periodic, no 15 min wait)',
               style: TextStyle(
                 fontSize: 10,
-                color: WandererTheme.textTertiary,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -431,7 +431,7 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
         side: BorderSide(
           color: isSelected
               ? WandererTheme.primaryOrange
-              : WandererTheme.glassBorderColor,
+              : WandererTheme.glassBorderColorFor(context),
         ),
         padding: const EdgeInsets.symmetric(vertical: 8),
         minimumSize: const Size(0, 32),
