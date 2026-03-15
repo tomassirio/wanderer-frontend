@@ -35,13 +35,13 @@ class TimelinePanel extends StatelessWidget {
       alignment: Alignment.topRight,
       crossFadeState:
           isCollapsed ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-      firstChild: _buildCollapsedBubble(),
-      secondChild: _buildExpandedPanel(),
+      firstChild: _buildCollapsedBubble(context),
+      secondChild: _buildExpandedPanel(context),
     );
   }
 
   /// Collapsed state - floating bubble with timeline icon and count badge
-  Widget _buildCollapsedBubble() {
+  Widget _buildCollapsedBubble(BuildContext context) {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -55,10 +55,10 @@ class TimelinePanel extends StatelessWidget {
             sigmaY: WandererTheme.glassBlurSigma,
           ),
           child: Material(
-            color: WandererTheme.glassBackground,
+            color: WandererTheme.glassBackgroundFor(context),
             shape: CircleBorder(
               side: BorderSide(
-                color: WandererTheme.glassBorderColor,
+                color: WandererTheme.glassBorderColorFor(context),
                 width: 1,
               ),
             ),
@@ -116,7 +116,7 @@ class TimelinePanel extends StatelessWidget {
   }
 
   /// Expanded state - floating detached card
-  Widget _buildExpandedPanel() {
+  Widget _buildExpandedPanel(BuildContext context) {
     return Container(
       margin: const EdgeInsets.all(16),
       width: 320,
@@ -133,10 +133,10 @@ class TimelinePanel extends StatelessWidget {
           ),
           child: Container(
             decoration: BoxDecoration(
-              color: WandererTheme.glassBackground,
+              color: WandererTheme.glassBackgroundFor(context),
               borderRadius: BorderRadius.circular(WandererTheme.glassRadius),
               border: Border.all(
-                color: WandererTheme.glassBorderColor,
+                color: WandererTheme.glassBorderColorFor(context),
                 width: 1,
               ),
             ),
@@ -148,14 +148,14 @@ class TimelinePanel extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.4),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(WandererTheme.glassRadius),
                       topRight: Radius.circular(WandererTheme.glassRadius),
                     ),
                     border: Border(
                       bottom: BorderSide(
-                        color: WandererTheme.glassBorderColor,
+                        color: WandererTheme.glassBorderColorFor(context),
                         width: 0.5,
                       ),
                     ),
@@ -175,26 +175,26 @@ class TimelinePanel extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Timeline',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: WandererTheme.textPrimary,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ),
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.5),
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: IconButton(
                           icon: Icon(
                             Icons.remove,
                             size: 18,
-                            color: WandererTheme.textSecondary,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                           ),
                           onPressed: onToggleCollapse,
                           tooltip: 'Minimize',

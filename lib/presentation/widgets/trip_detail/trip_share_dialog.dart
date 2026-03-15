@@ -114,7 +114,7 @@ class _TripShareDialogState extends State<TripShareDialog> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: WandererTheme.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -131,7 +131,8 @@ class _TripShareDialogState extends State<TripShareDialog> {
                       widget.tripName,
                       style: TextStyle(
                         fontSize: 14,
-                        color: WandererTheme.textSecondary,
+                        color:
+                            Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 2,
@@ -145,7 +146,7 @@ class _TripShareDialogState extends State<TripShareDialog> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: WandererTheme.glassBorderColor,
+                          color: WandererTheme.glassBorderColorFor(context),
                           width: 1,
                         ),
                       ),
@@ -202,20 +203,24 @@ class _TripShareDialogState extends State<TripShareDialog> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: WandererTheme.textSecondary),
+          Icon(icon,
+              size: 16,
+              color:
+                  Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               url,
               style: TextStyle(
                 fontSize: 12,
-                color: WandererTheme.textSecondary,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -239,13 +244,17 @@ class _TripShareDialogState extends State<TripShareDialog> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(
+              color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
         ),
         child: Row(
           children: [
-            Icon(Icons.compress, size: 16, color: WandererTheme.textSecondary),
+            Icon(Icons.compress,
+                size: 16,
+                color:
+                    Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
             const SizedBox(width: 6),
             const Expanded(
               child: SizedBox(

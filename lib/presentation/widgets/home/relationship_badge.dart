@@ -18,7 +18,7 @@ class RelationshipBadge extends StatelessWidget {
           ? const EdgeInsets.symmetric(horizontal: 8, vertical: 4)
           : const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _getBorderColor(), width: 1.5),
         boxShadow: [

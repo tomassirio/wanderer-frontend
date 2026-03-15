@@ -59,6 +59,20 @@ class WandererTheme {
   static Color glassBorderColor = Colors.white.withOpacity(0.4);
   static Color glassHighlight = Colors.white.withOpacity(0.6);
 
+  /// Returns glass panel background color adaptive to the current theme.
+  static Color glassBackgroundFor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF1E1E1E).withOpacity(0.9)
+        : glassBackground;
+  }
+
+  /// Returns glass panel border color adaptive to the current theme.
+  static Color glassBorderColorFor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? Colors.white.withOpacity(0.12)
+        : glassBorderColor;
+  }
+
   // Glass Blur Amount
   static const double glassBlurSigma = 20.0;
   static const double glassBlurSigmaLight = 12.0;
@@ -279,6 +293,112 @@ class WandererTheme {
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: primaryOrange,
         foregroundColor: textOnPrimary,
+      ),
+    );
+  }
+
+  /// Get the dark theme
+  static ThemeData darkTheme() {
+    const Color darkBackground = Color(0xFF121212);
+    const Color darkCard = Color(0xFF1E1E1E);
+    const Color darkTextPrimary = Color(0xFFEFEFEF);
+    const Color darkTextSecondary = Color(0xFFB0B0B0);
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primaryOrange,
+        brightness: Brightness.dark,
+        primary: primaryOrange,
+        secondary: primaryOrangeLight,
+        surface: darkCard,
+        onPrimary: textOnPrimary,
+        onSecondary: textOnPrimary,
+        onSurface: darkTextPrimary,
+      ),
+      scaffoldBackgroundColor: darkBackground,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: darkCard,
+        foregroundColor: darkTextPrimary,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: TextStyle(
+          color: darkTextPrimary,
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryOrange,
+          foregroundColor: textOnPrimary,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: primaryOrange,
+          side: const BorderSide(color: primaryOrange),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: primaryOrange,
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: darkCard,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF3A3A3A)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF3A3A3A)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: primaryOrange, width: 2),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        labelStyle: const TextStyle(color: darkTextSecondary),
+        hintStyle: const TextStyle(color: darkTextSecondary),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: darkCard,
+        selectedColor: primaryOrange.withOpacity(0.3),
+        labelStyle: const TextStyle(fontSize: 12, color: darkTextPrimary),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+      dividerTheme: const DividerThemeData(
+        color: Color(0xFF3A3A3A),
+        thickness: 1,
+      ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: primaryOrange,
+        foregroundColor: textOnPrimary,
+      ),
+      listTileTheme: const ListTileThemeData(
+        textColor: darkTextPrimary,
+        iconColor: darkTextSecondary,
       ),
     );
   }

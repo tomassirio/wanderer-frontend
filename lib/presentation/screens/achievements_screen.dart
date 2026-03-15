@@ -355,8 +355,10 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 8,
-                backgroundColor: Colors.grey[200],
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.amber),
+                backgroundColor:
+                    Theme.of(context).colorScheme.surfaceContainerHighest,
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(Colors.amber),
               ),
             ),
           ],
@@ -427,7 +429,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
             ),
             itemCount: achievements.length,
             itemBuilder: (context, index) =>
-                _buildAchievementTile(achievements[index]),
+                _buildAchievementTile(context, achievements[index]),
           );
         }),
         const SizedBox(height: 16),
@@ -435,19 +437,23 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     );
   }
 
-  Widget _buildAchievementTile(Achievement achievement) {
+  Widget _buildAchievementTile(BuildContext context, Achievement achievement) {
     final unlocked = _isUnlocked(achievement);
     final userAchievement = _getUnlockedAchievement(achievement);
     final categoryColor = _getCategoryColor(achievement.type.category);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return GestureDetector(
       onTap: () => _showAchievementDetail(achievement, userAchievement),
       child: Container(
         decoration: BoxDecoration(
-          color: unlocked ? categoryColor.withOpacity(0.1) : Colors.grey[100],
+          color: unlocked
+              ? categoryColor.withOpacity(0.1)
+              : colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: unlocked ? categoryColor : Colors.grey[300]!,
+            color:
+                unlocked ? categoryColor : colorScheme.outline.withOpacity(0.5),
             width: unlocked ? 2 : 1,
           ),
         ),
@@ -460,12 +466,16 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: unlocked ? categoryColor : Colors.grey[300],
+                color: unlocked
+                    ? categoryColor
+                    : colorScheme.outline.withOpacity(0.4),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 unlocked ? Icons.emoji_events : Icons.lock_outline,
-                color: unlocked ? Colors.white : Colors.grey[500],
+                color: unlocked
+                    ? Colors.white
+                    : colorScheme.onSurface.withOpacity(0.4),
                 size: 18,
               ),
             ),
@@ -480,7 +490,9 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: unlocked ? categoryColor : Colors.grey[500],
+                  color: unlocked
+                      ? categoryColor
+                      : colorScheme.onSurface.withOpacity(0.6),
                 ),
               ),
             ),
@@ -495,7 +507,9 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 8,
-                color: unlocked ? categoryColor : Colors.grey[400],
+                color: unlocked
+                    ? categoryColor
+                    : colorScheme.onSurface.withOpacity(0.45),
               ),
             ),
           ],
@@ -516,67 +530,80 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: unlocked ? categoryColor : Colors.grey[300],
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                unlocked ? Icons.emoji_events : Icons.lock_outline,
-                color: unlocked ? Colors.white : Colors.grey[500],
-                size: 36,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              achievement.name,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: unlocked ? categoryColor : Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              achievement.description,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: unlocked ? null : Colors.grey[500],
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (userAchievement != null) ...[
-              Text(
-                'Achieved: ${_formatValue(achievement, userAchievement.valueAchieved)}',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: categoryColor,
+      builder: (context) {
+        final colorScheme = Theme.of(context).colorScheme;
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: unlocked
+                      ? categoryColor
+                      : colorScheme.outline.withOpacity(0.4),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  unlocked ? Icons.emoji_events : Icons.lock_outline,
+                  color: unlocked
+                      ? Colors.white
+                      : colorScheme.onSurface.withOpacity(0.4),
+                  size: 36,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 16),
               Text(
-                'Unlocked on ${_formatDate(userAchievement.unlockedAt)}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                achievement.name,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: unlocked
+                      ? categoryColor
+                      : colorScheme.onSurface.withOpacity(0.6),
+                ),
               ),
-            ] else ...[
+              const SizedBox(height: 8),
               Text(
-                'Goal: ${_formatThreshold(achievement)}',
-                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                achievement.description,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: unlocked ? null : colorScheme.onSurface.withOpacity(0.5),
+                ),
               ),
+              const SizedBox(height: 12),
+              if (userAchievement != null) ...[
+                Text(
+                  'Achieved: ${_formatValue(achievement, userAchievement.valueAchieved)}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: categoryColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Unlocked on ${_formatDate(userAchievement.unlockedAt)}',
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: colorScheme.onSurface.withOpacity(0.6)),
+                ),
+              ] else ...[
+                Text(
+                  'Goal: ${_formatThreshold(achievement)}',
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: colorScheme.onSurface.withOpacity(0.5)),
+                ),
+              ],
+              const SizedBox(height: 16),
             ],
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

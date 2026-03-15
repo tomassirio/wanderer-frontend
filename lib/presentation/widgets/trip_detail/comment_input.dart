@@ -23,10 +23,10 @@ class CommentInput extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.5),
+        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
         border: Border(
           top: BorderSide(
-            color: WandererTheme.glassBorderColor,
+            color: WandererTheme.glassBorderColorFor(context),
             width: 0.5,
           ),
         ),
@@ -44,7 +44,7 @@ class CommentInput extends StatelessWidget {
                 Icon(
                   Icons.reply,
                   size: 16,
-                  color: WandererTheme.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -52,7 +52,7 @@ class CommentInput extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontStyle: FontStyle.italic,
-                    color: WandererTheme.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                   ),
                 ),
                 const Spacer(),
@@ -60,7 +60,7 @@ class CommentInput extends StatelessWidget {
                   icon: Icon(
                     Icons.close,
                     size: 16,
-                    color: WandererTheme.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                   ),
                   onPressed: onCancelReply,
                   tooltip: 'Cancel reply',
@@ -78,22 +78,22 @@ class CommentInput extends StatelessWidget {
                     hintText:
                         isReplyMode ? 'Write a reply...' : 'Write a comment...',
                     hintStyle: TextStyle(
-                      color: WandererTheme.textTertiary,
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
                     ),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.7),
+                    fillColor: Theme.of(context).colorScheme.surface,
                     border: OutlineInputBorder(
                       borderRadius:
                           BorderRadius.circular(WandererTheme.glassRadiusSmall),
                       borderSide: BorderSide(
-                        color: WandererTheme.glassBorderColor,
+                        color: WandererTheme.glassBorderColorFor(context),
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius:
                           BorderRadius.circular(WandererTheme.glassRadiusSmall),
                       borderSide: BorderSide(
-                        color: WandererTheme.glassBorderColor,
+                        color: WandererTheme.glassBorderColorFor(context),
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(

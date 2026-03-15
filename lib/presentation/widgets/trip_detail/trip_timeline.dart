@@ -35,7 +35,7 @@ class TripTimeline extends StatelessWidget {
             Text(
               'Loading timeline...',
               style: TextStyle(
-                color: WandererTheme.textSecondary,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 fontSize: 14,
               ),
             ),
@@ -69,7 +69,7 @@ class TripTimeline extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: WandererTheme.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
@@ -77,7 +77,8 @@ class TripTimeline extends StatelessWidget {
                 'Trip updates will appear here',
                 style: TextStyle(
                   fontSize: 14,
-                  color: WandererTheme.textSecondary,
+                  color:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 ),
               ),
               const SizedBox(height: 16),
@@ -112,10 +113,11 @@ class TripTimeline extends StatelessWidget {
 
           if (isDayMarker) {
             final dayNumber = _computeDayNumber(index);
-            return _buildDayMarkerEntry(update, isFirst, isLast, dayNumber);
+            return _buildDayMarkerEntry(
+                context, update, isFirst, isLast, dayNumber);
           }
 
-          return _buildRegularEntry(update, isFirst, isLast);
+          return _buildRegularEntry(context, update, isFirst, isLast);
         },
       ),
     );
@@ -140,7 +142,8 @@ class TripTimeline extends StatelessWidget {
   }
 
   /// Build a regular timeline entry (location update)
-  Widget _buildRegularEntry(TripLocation update, bool isFirst, bool isLast) {
+  Widget _buildRegularEntry(
+      BuildContext context, TripLocation update, bool isFirst, bool isLast) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -196,14 +199,14 @@ class TripTimeline extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isFirst
-                    ? Colors.white.withOpacity(0.8)
-                    : Colors.white.withOpacity(0.5),
+                    ? Theme.of(context).colorScheme.surface
+                    : Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius:
                     BorderRadius.circular(WandererTheme.glassRadiusSmall),
                 border: Border.all(
                   color: isFirst
                       ? WandererTheme.primaryOrange.withOpacity(0.3)
-                      : WandererTheme.glassBorderColor,
+                      : WandererTheme.glassBorderColorFor(context),
                 ),
               ),
               child: Column(
@@ -219,14 +222,17 @@ class TripTimeline extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                           color: isFirst
                               ? WandererTheme.primaryOrange
-                              : WandererTheme.textSecondary,
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.6),
                         ),
                       ),
                       Expanded(
                         child: (update.temperatureCelsius != null ||
                                 update.weatherCondition != null)
                             ? Center(
-                                child: _buildWeatherBadge(update),
+                                child: _buildWeatherBadge(context, update),
                               )
                             : const SizedBox.shrink(),
                       ),
@@ -282,7 +288,7 @@ class TripTimeline extends StatelessWidget {
                           update.displayLocation,
                           style: TextStyle(
                             fontSize: 13,
-                            color: WandererTheme.textPrimary,
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: update.city != null
                                 ? FontWeight.w500
                                 : FontWeight.normal,
@@ -298,14 +304,19 @@ class TripTimeline extends StatelessWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: WandererTheme.backgroundLight,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         update.message!,
                         style: TextStyle(
                           fontSize: 12,
-                          color: WandererTheme.textSecondary,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.6),
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -327,7 +338,10 @@ class TripTimeline extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: WandererTheme.textSecondary,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.6),
                           ),
                         ),
                       ],
@@ -343,8 +357,8 @@ class TripTimeline extends StatelessWidget {
   }
 
   /// Build a day/trip marker timeline entry (Day Start / Day End / Trip Started / Trip Ended)
-  Widget _buildDayMarkerEntry(
-      TripLocation update, bool isFirst, bool isLast, int dayNumber) {
+  Widget _buildDayMarkerEntry(BuildContext context, TripLocation update,
+      bool isFirst, bool isLast, int dayNumber) {
     final Color markerColor;
     final IconData markerIcon;
     final String label;
@@ -368,7 +382,7 @@ class TripTimeline extends StatelessWidget {
         label = 'Trip Ended';
       case TripUpdateType.regular:
         // Should not reach here; fall back to neutral styling
-        markerColor = WandererTheme.textSecondary;
+        markerColor = Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
         markerIcon = Icons.location_on;
         label = 'Update';
     }
@@ -466,7 +480,10 @@ class TripTimeline extends StatelessWidget {
                           update.message!,
                           style: TextStyle(
                             fontSize: 12,
-                            color: WandererTheme.textSecondary,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.6),
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -501,7 +518,7 @@ class TripTimeline extends StatelessWidget {
     );
   }
 
-  Widget _buildWeatherBadge(TripLocation update) {
+  Widget _buildWeatherBadge(BuildContext context, TripLocation update) {
     final condition = update.weatherCondition;
     final temp = update.temperatureCelsius;
     final weatherColor =
@@ -523,7 +540,8 @@ class TripTimeline extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: weatherColor ?? WandererTheme.textSecondary,
+              color: weatherColor ??
+                  Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
             ),
           ),
         ],

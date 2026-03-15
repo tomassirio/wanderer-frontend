@@ -77,10 +77,10 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
             sigmaY: WandererTheme.glassBlurSigma,
           ),
           child: Material(
-            color: WandererTheme.glassBackground,
+            color: WandererTheme.glassBackgroundFor(context),
             shape: CircleBorder(
               side: BorderSide(
-                color: WandererTheme.glassBorderColor,
+                color: WandererTheme.glassBorderColorFor(context),
                 width: 1,
               ),
             ),
@@ -124,10 +124,10 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
           ),
           child: Container(
             decoration: BoxDecoration(
-              color: WandererTheme.glassBackground,
+              color: WandererTheme.glassBackgroundFor(context),
               borderRadius: BorderRadius.circular(WandererTheme.glassRadius),
               border: Border.all(
-                color: WandererTheme.glassBorderColor,
+                color: WandererTheme.glassBorderColorFor(context),
                 width: 1,
               ),
             ),
@@ -139,14 +139,14 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.4),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(WandererTheme.glassRadius),
                       topRight: Radius.circular(WandererTheme.glassRadius),
                     ),
                     border: Border(
                       bottom: BorderSide(
-                        color: WandererTheme.glassBorderColor,
+                        color: WandererTheme.glassBorderColorFor(context),
                         width: 0.5,
                       ),
                     ),
@@ -162,10 +162,10 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
                       Expanded(
                         child: Text(
                           'Send Update',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: WandererTheme.textPrimary,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -174,7 +174,7 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                         onPressed: widget.onToggleCollapse,
-                        color: WandererTheme.textSecondary,
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                       ),
                     ],
                   ),
@@ -192,7 +192,7 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
                           Icon(
                             Icons.info_outline,
                             size: 14,
-                            color: WandererTheme.textSecondary,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                           ),
                           const SizedBox(width: 6),
                           Expanded(
@@ -200,7 +200,7 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
                               'Your location and battery level will be shared',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: WandererTheme.textSecondary,
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                               ),
                             ),
                           ),
@@ -214,21 +214,21 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
                         decoration: InputDecoration(
                           hintText: 'Add a message (optional)',
                           hintStyle: TextStyle(
-                            color: WandererTheme.textTertiary,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
                             fontSize: 14,
                           ),
                           filled: true,
-                          fillColor: Colors.white.withOpacity(0.5),
+                          fillColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                              color: WandererTheme.glassBorderColor,
+                              color: WandererTheme.glassBorderColorFor(context),
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                              color: WandererTheme.glassBorderColor,
+                              color: WandererTheme.glassBorderColorFor(context),
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(

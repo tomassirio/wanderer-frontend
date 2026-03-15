@@ -128,7 +128,7 @@ class CreateTripForm extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? colorScheme.primary : Colors.grey.shade300,
+            color: isSelected ? colorScheme.primary : colorScheme.outline,
             width: isSelected ? 2 : 1,
           ),
           color: isSelected
@@ -151,7 +151,8 @@ class CreateTripForm extends StatelessWidget {
               subtitle,
               style: TextStyle(
                 fontSize: 11,
-                color: Colors.grey.shade600,
+                color:
+                    Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               ),
             ),
           ],

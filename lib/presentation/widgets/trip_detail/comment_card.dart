@@ -45,11 +45,11 @@ class CommentCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: isAuthor
             ? WandererTheme.primaryOrange.withOpacity(0.08)
-            : Colors.white.withOpacity(0.5),
+            : Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
         border: Border.all(
           color: isAuthor
               ? WandererTheme.primaryOrange.withOpacity(0.3)
-              : WandererTheme.glassBorderColor,
+              : WandererTheme.glassBorderColorFor(context),
         ),
         borderRadius: BorderRadius.circular(WandererTheme.glassRadiusSmall),
       ),
@@ -83,7 +83,7 @@ class CommentCard extends StatelessWidget {
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
-                              color: WandererTheme.textPrimary,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ),
@@ -114,7 +114,8 @@ class CommentCard extends StatelessWidget {
                     Text(
                       _formatTimestamp(comment.createdAt),
                       style: TextStyle(
-                          fontSize: 11, color: WandererTheme.textSecondary),
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
                     ),
                   ],
                 ),

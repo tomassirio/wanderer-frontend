@@ -161,6 +161,7 @@ class _TripPlanCardState extends State<TripPlanCard> {
   }
 
   Widget _buildInfoContent(BuildContext context) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -180,12 +181,14 @@ class _TripPlanCardState extends State<TripPlanCard> {
         if (widget.plan.startDate != null && widget.plan.endDate != null)
           Row(
             children: [
-              Icon(Icons.calendar_today, size: 12, color: Colors.grey[500]),
+              Icon(Icons.calendar_today,
+                  size: 12, color: onSurface.withOpacity(0.5)),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   '${_formatDate(widget.plan.startDate!)} - ${_formatDate(widget.plan.endDate!)}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                  style: TextStyle(
+                      fontSize: 12, color: onSurface.withOpacity(0.5)),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -197,7 +200,7 @@ class _TripPlanCardState extends State<TripPlanCard> {
             'No dates set',
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[500],
+              color: onSurface.withOpacity(0.5),
               fontStyle: FontStyle.italic,
             ),
           ),
@@ -236,8 +239,10 @@ class _TripPlanCardState extends State<TripPlanCard> {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                Colors.grey[200]!,
-                                Colors.grey[300]!,
+                                Theme.of(context).colorScheme.surface,
+                                Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
                               ],
                             ),
                           ),
@@ -363,10 +368,10 @@ class _TripPlanCardState extends State<TripPlanCard> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 border: Border(
                   top: BorderSide(
-                    color: Colors.grey[200]!,
+                    color: Theme.of(context).dividerColor,
                     width: 1,
                   ),
                 ),
@@ -380,14 +385,15 @@ class _TripPlanCardState extends State<TripPlanCard> {
   }
 
   Widget _buildPlaceholderMap() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.grey[200]!,
-            Colors.grey[300]!,
+            colorScheme.surface,
+            colorScheme.surfaceContainerHighest,
           ],
         ),
       ),
@@ -398,14 +404,14 @@ class _TripPlanCardState extends State<TripPlanCard> {
             Icon(
               Icons.map_outlined,
               size: 40,
-              color: Colors.grey[400],
+              color: colorScheme.onSurface.withOpacity(0.4),
             ),
             const SizedBox(height: 4),
             Text(
               'No route set',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[500],
+                color: colorScheme.onSurface.withOpacity(0.5),
               ),
             ),
           ],

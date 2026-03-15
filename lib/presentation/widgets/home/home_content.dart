@@ -101,12 +101,13 @@ class HomeContent extends StatelessWidget {
             children: [
               // Welcome header for guests
               if (!isLoggedIn) ...[
-                _buildGuestWelcomeHeader(),
+                _buildGuestWelcomeHeader(context),
                 const SizedBox(height: 24),
               ],
               // My Trips Section
               if (myTrips.isNotEmpty) ...[
                 _buildSectionHeader(
+                  context,
                   'My Trips',
                   myTrips.length,
                   Icons.person_outline,
@@ -119,6 +120,7 @@ class HomeContent extends StatelessWidget {
               // Friends Trips Section
               if (friendsTrips.isNotEmpty) ...[
                 _buildSectionHeader(
+                  context,
                   'Friends Trips',
                   friendsTrips.length,
                   Icons.people_outline,
@@ -131,6 +133,7 @@ class HomeContent extends StatelessWidget {
               // Public/Discover Trips Section
               if (publicTrips.isNotEmpty) ...[
                 _buildSectionHeader(
+                  context,
                   isLoggedIn ? 'Discover' : 'Discover',
                   publicTrips.length,
                   Icons.explore,
@@ -141,7 +144,10 @@ class HomeContent extends StatelessWidget {
                   'Explore public trips from the community',
                   style: TextStyle(
                     fontSize: 13,
-                    color: WandererTheme.textTertiary,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.45),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -155,7 +161,7 @@ class HomeContent extends StatelessWidget {
   }
 
   /// Build a welcoming header for guest users
-  Widget _buildGuestWelcomeHeader() {
+  Widget _buildGuestWelcomeHeader(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -179,7 +185,7 @@ class HomeContent extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
@@ -192,7 +198,7 @@ class HomeContent extends StatelessWidget {
             child: Icon(
               Icons.login,
               size: 32,
-              color: WandererTheme.textTertiary,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
             ),
           ),
           const SizedBox(height: 16),
@@ -202,7 +208,6 @@ class HomeContent extends StatelessWidget {
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: WandererTheme.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
@@ -210,7 +215,8 @@ class HomeContent extends StatelessWidget {
             'Please log in to see personalized content',
             style: TextStyle(
               fontSize: 14,
-              color: WandererTheme.textSecondary,
+              color:
+                  Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
             ),
             textAlign: TextAlign.center,
           ),
@@ -244,7 +250,8 @@ class HomeContent extends StatelessWidget {
             'Or explore public trips:',
             style: TextStyle(
               fontSize: 13,
-              color: WandererTheme.textTertiary,
+              color:
+                  Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
             ),
           ),
         ],
@@ -253,6 +260,7 @@ class HomeContent extends StatelessWidget {
   }
 
   Widget _buildSectionHeader(
+    BuildContext context,
     String title,
     int count,
     IconData icon,
@@ -275,10 +283,10 @@ class HomeContent extends StatelessWidget {
         const SizedBox(width: 12),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: WandererTheme.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(width: 10),

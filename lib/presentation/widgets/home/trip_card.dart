@@ -218,7 +218,7 @@ class _TripCardState extends State<TripCard> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Material(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           child: InkWell(
             onTap: widget.onTap,
             child: Column(
@@ -285,7 +285,7 @@ class _TripCardState extends State<TripCard> {
                             if (widget.trip.currentDay != null &&
                                 widget.trip.tripModality ==
                                     TripModality.multiDay)
-                              _buildDayBadge(widget.trip.currentDay!),
+                              _buildDayBadge(context, widget.trip.currentDay!),
                           ],
                         ),
                       ),
@@ -324,6 +324,7 @@ class _TripCardState extends State<TripCard> {
   Widget _buildInfoContent(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
 
     if (isMobile) {
       // Mobile: compact 2-row layout
@@ -333,10 +334,10 @@ class _TripCardState extends State<TripCard> {
         children: [
           Text(
             widget.trip.name,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: WandererTheme.textPrimary,
+              color: onSurface,
               letterSpacing: -0.3,
             ),
             maxLines: 1,
@@ -365,7 +366,7 @@ class _TripCardState extends State<TripCard> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: WandererTheme.textSecondary,
+                            color: onSurface.withOpacity(0.7),
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -375,18 +376,18 @@ class _TripCardState extends State<TripCard> {
                 ),
               ),
               Icon(Icons.access_time,
-                  size: 11, color: WandererTheme.textTertiary),
+                  size: 11, color: onSurface.withOpacity(0.5)),
               const SizedBox(width: 3),
               Text(_formatDate(widget.trip.createdAt),
                   style: TextStyle(
-                      fontSize: 11, color: WandererTheme.textTertiary)),
+                      fontSize: 11, color: onSurface.withOpacity(0.5))),
               const SizedBox(width: 8),
               Icon(Icons.chat_bubble_outline,
-                  size: 11, color: WandererTheme.textTertiary),
+                  size: 11, color: onSurface.withOpacity(0.5)),
               const SizedBox(width: 3),
               Text('${widget.trip.commentsCount}',
                   style: TextStyle(
-                      fontSize: 11, color: WandererTheme.textTertiary)),
+                      fontSize: 11, color: onSurface.withOpacity(0.5))),
             ],
           ),
         ],
@@ -400,10 +401,10 @@ class _TripCardState extends State<TripCard> {
       children: [
         Text(
           widget.trip.name,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w700,
-            color: WandererTheme.textPrimary,
+            color: onSurface,
             letterSpacing: -0.3,
           ),
           maxLines: 1,
@@ -431,7 +432,7 @@ class _TripCardState extends State<TripCard> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: WandererTheme.textSecondary,
+                      color: onSurface.withOpacity(0.7),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -444,19 +445,21 @@ class _TripCardState extends State<TripCard> {
         Row(
           children: [
             Icon(Icons.access_time,
-                size: 12, color: WandererTheme.textTertiary),
+                size: 12, color: onSurface.withOpacity(0.5)),
             const SizedBox(width: 4),
             Text(
               _formatDate(widget.trip.createdAt),
-              style: TextStyle(fontSize: 11, color: WandererTheme.textTertiary),
+              style:
+                  TextStyle(fontSize: 11, color: onSurface.withOpacity(0.5)),
             ),
             const SizedBox(width: 12),
             Icon(Icons.chat_bubble_outline,
-                size: 12, color: WandererTheme.textTertiary),
+                size: 12, color: onSurface.withOpacity(0.5)),
             const SizedBox(width: 4),
             Text(
               '${widget.trip.commentsCount}',
-              style: TextStyle(fontSize: 11, color: WandererTheme.textTertiary),
+              style:
+                  TextStyle(fontSize: 11, color: onSurface.withOpacity(0.5)),
             ),
           ],
         ),
@@ -466,16 +469,14 @@ class _TripCardState extends State<TripCard> {
 
   /// Build a loading placeholder with shimmer effect
   Widget _buildLoadingPlaceholder() {
+    final surface = Theme.of(context).colorScheme.surface;
+    final surfaceHigh = Theme.of(context).colorScheme.surfaceContainerHighest;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.grey[200]!,
-            Colors.grey[300]!,
-            Colors.grey[200]!,
-          ],
+          colors: [surface, surfaceHigh, surface],
         ),
       ),
       child: Center(
@@ -491,15 +492,14 @@ class _TripCardState extends State<TripCard> {
 
   /// Build a stylish placeholder for trips without map data
   Widget _buildNoMapPlaceholder() {
+    final surface = Theme.of(context).colorScheme.surface;
+    final surfaceHigh = Theme.of(context).colorScheme.surfaceContainerHighest;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Colors.grey[100]!,
-            Colors.grey[200]!,
-          ],
+          colors: [surfaceHigh, surface],
         ),
       ),
       child: Stack(
@@ -515,7 +515,7 @@ class _TripCardState extends State<TripCard> {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.8),
+                color: Theme.of(context).colorScheme.surface.withOpacity(0.8),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -613,11 +613,11 @@ class _TripCardState extends State<TripCard> {
   }
 
   /// Build day badge for multi-day trips
-  Widget _buildDayBadge(int day) {
+  Widget _buildDayBadge(BuildContext context, int day) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: WandererTheme.primaryOrange.withOpacity(0.4),
