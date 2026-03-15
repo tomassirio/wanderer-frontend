@@ -941,7 +941,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                           color: WandererTheme.primaryOrange,
                         ),
                         const SizedBox(width: 8),
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'New Trip Plan',
                             style: TextStyle(

@@ -101,12 +101,13 @@ class HomeContent extends StatelessWidget {
             children: [
               // Welcome header for guests
               if (!isLoggedIn) ...[
-                _buildGuestWelcomeHeader(),
+                _buildGuestWelcomeHeader(context),
                 const SizedBox(height: 24),
               ],
               // My Trips Section
               if (myTrips.isNotEmpty) ...[
                 _buildSectionHeader(
+                  context,
                   'My Trips',
                   myTrips.length,
                   Icons.person_outline,
@@ -119,6 +120,7 @@ class HomeContent extends StatelessWidget {
               // Friends Trips Section
               if (friendsTrips.isNotEmpty) ...[
                 _buildSectionHeader(
+                  context,
                   'Friends Trips',
                   friendsTrips.length,
                   Icons.people_outline,
@@ -131,6 +133,7 @@ class HomeContent extends StatelessWidget {
               // Public/Discover Trips Section
               if (publicTrips.isNotEmpty) ...[
                 _buildSectionHeader(
+                  context,
                   isLoggedIn ? 'Discover' : 'Discover',
                   publicTrips.length,
                   Icons.explore,
@@ -158,7 +161,7 @@ class HomeContent extends StatelessWidget {
   }
 
   /// Build a welcoming header for guest users
-  Widget _buildGuestWelcomeHeader() {
+  Widget _buildGuestWelcomeHeader(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -257,6 +260,7 @@ class HomeContent extends StatelessWidget {
   }
 
   Widget _buildSectionHeader(
+    BuildContext context,
     String title,
     int count,
     IconData icon,
