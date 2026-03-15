@@ -42,8 +42,9 @@ class WebSocketService {
     _messageSubscription = _client!.messages.listen(_handleMessage);
 
     // Listen for connection state changes to resubscribe when reconnected
-    _connectionStateSubscription =
-        _client!.connectionState.listen(_handleConnectionStateChange);
+    _connectionStateSubscription = _client!.connectionState.listen(
+      _handleConnectionStateChange,
+    );
 
     _isInitialized = true;
     debugPrint('WebSocketService: Initialized');
@@ -92,9 +93,11 @@ class WebSocketService {
   Stream<WebSocketEvent> subscribeToTrip(String tripId) {
     debugPrint('WebSocketService: subscribeToTrip called for $tripId');
     debugPrint(
-        'WebSocketService: Controller exists? ${_tripEventControllers.containsKey(tripId)}');
+      'WebSocketService: Controller exists? ${_tripEventControllers.containsKey(tripId)}',
+    );
     debugPrint(
-        'WebSocketService: Already subscribed? ${_subscribedTrips.contains(tripId)}');
+      'WebSocketService: Already subscribed? ${_subscribedTrips.contains(tripId)}',
+    );
 
     if (!_tripEventControllers.containsKey(tripId)) {
       _tripEventControllers[tripId] =
@@ -109,11 +112,13 @@ class WebSocketService {
         debugPrint('WebSocketService: Subscribed to trip $tripId');
       } else {
         debugPrint(
-            'WebSocketService: NOT connected, cannot subscribe to trip $tripId');
+          'WebSocketService: NOT connected, cannot subscribe to trip $tripId',
+        );
       }
     } else {
       debugPrint(
-          'WebSocketService: Trip $tripId already in subscribed set, skipping subscribe');
+        'WebSocketService: Trip $tripId already in subscribed set, skipping subscribe',
+      );
     }
 
     return _tripEventControllers[tripId]!.stream;
@@ -123,7 +128,8 @@ class WebSocketService {
   void unsubscribeFromTrip(String tripId) {
     debugPrint('WebSocketService: unsubscribeFromTrip called for $tripId');
     debugPrint(
-        'WebSocketService: Was subscribed? ${_subscribedTrips.contains(tripId)}');
+      'WebSocketService: Was subscribed? ${_subscribedTrips.contains(tripId)}',
+    );
 
     if (_subscribedTrips.contains(tripId)) {
       _subscribedTrips.remove(tripId);
@@ -138,7 +144,8 @@ class WebSocketService {
       _tripEventControllers[tripId]?.close();
       _tripEventControllers.remove(tripId);
       debugPrint(
-          'WebSocketService: Closed and removed controller for trip $tripId');
+        'WebSocketService: Closed and removed controller for trip $tripId',
+      );
     }
   }
 
@@ -220,10 +227,13 @@ class WebSocketService {
         // Send to both sender and receiver
         _emitToUserStream(event.senderId, event);
         _emitToUserStream(event.receiverId, event);
+      } else if (event is NotificationCreatedEvent) {
+        _emitToUserStream(event.recipientId, event);
       }
 
       debugPrint(
-          'WebSocketService: Processed event ${event.type} for trip ${event.tripId}');
+        'WebSocketService: Processed event ${event.type} for trip ${event.tripId}',
+      );
     } catch (e) {
       debugPrint('WebSocketService: Error handling message: $e');
     }
@@ -288,6 +298,10 @@ class WebSocketService {
         return UserFollowedEvent.fromJson(data);
       case WebSocketEventType.friendRequestSent:
         return FriendRequestSentEvent.fromJson(data);
+
+      // Notification events
+      case WebSocketEventType.notificationCreated:
+        return NotificationCreatedEvent.fromJson(data);
 
       default:
         return WebSocketEvent.fromJson(data);

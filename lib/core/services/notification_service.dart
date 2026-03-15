@@ -26,8 +26,18 @@ class NotificationService {
   static const String _channelDescription =
       'Notifications for automatic trip update results';
 
+  /// Notification channel for in-app notifications (social, achievements, etc.)
+  static const String _inAppChannelId = 'in_app_notifications';
+  static const String _inAppChannelName = 'Notifications';
+  static const String _inAppChannelDescription =
+      'Friend requests, comments, achievements, and other activity';
+
   /// Notification IDs — using fixed IDs so each update replaces the previous
   static const int _updateResultId = 1001;
+
+  /// Base ID for in-app notifications (incremented for each new notification)
+  static const int _inAppBaseId = 2000;
+  int _inAppIdCounter = 0;
 
   /// Initialize the notification plugin.
   /// Call once at app startup and again inside the WorkManager isolate.
@@ -35,8 +45,9 @@ class NotificationService {
     if (!_isSupported || _isInitialized) return;
 
     try {
-      const androidSettings =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const androidSettings = AndroidInitializationSettings(
+        '@mipmap/ic_launcher',
+      );
 
       const initSettings = InitializationSettings(android: androidSettings);
 
@@ -59,7 +70,8 @@ class NotificationService {
       if (androidPlugin != null) {
         final granted = await androidPlugin.requestNotificationsPermission();
         debugPrint(
-            'NotificationService: Permission ${granted == true ? 'granted' : 'denied'}');
+          'NotificationService: Permission ${granted == true ? 'granted' : 'denied'}',
+        );
         return granted ?? false;
       }
       return true; // Pre-Android 13, permission is granted by default
@@ -104,6 +116,28 @@ class NotificationService {
     );
   }
 
+  /// Show a push notification for an in-app notification (social activity).
+  ///
+  /// Each call uses a unique ID so notifications stack in the system tray.
+  Future<void> showInAppNotification({
+    required String title,
+    required String body,
+  }) async {
+    if (!_isSupported) return;
+    if (!_isInitialized) await initialize();
+
+    final id = _inAppBaseId + (_inAppIdCounter++ % 500);
+
+    await _showNotification(
+      id: id,
+      title: title,
+      body: body,
+      channelId: _inAppChannelId,
+      channelName: _inAppChannelName,
+      channelDescription: _inAppChannelDescription,
+    );
+  }
+
   /// Internal helper to display a local notification.
   Future<void> _showNotification({
     required int id,
@@ -111,12 +145,13 @@ class NotificationService {
     required String body,
     String? channelId,
     String? channelName,
+    String? channelDescription,
   }) async {
     try {
       final androidDetails = AndroidNotificationDetails(
         channelId ?? _channelId,
         channelName ?? _channelName,
-        channelDescription: _channelDescription,
+        channelDescription: channelDescription ?? _channelDescription,
         importance: Importance.high,
         priority: Priority.high,
         showWhen: true,

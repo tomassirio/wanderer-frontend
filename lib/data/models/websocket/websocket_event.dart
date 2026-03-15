@@ -36,6 +36,9 @@ enum WebSocketEventType {
   // Trip settings events
   tripSettingsUpdated,
 
+  // Notification events
+  notificationCreated,
+
   // Legacy events for backwards compatibility
   commentReactionAdded,
   commentReactionRemoved,
@@ -118,6 +121,10 @@ class WebSocketEvent {
       case 'FRIENDSHIP_REMOVED':
         return WebSocketEventType.friendshipRemoved;
 
+      // Notification events
+      case 'NOTIFICATION_CREATED':
+        return WebSocketEventType.notificationCreated;
+
       default:
         return WebSocketEventType.unknown;
     }
@@ -159,18 +166,16 @@ class TripStatusChangedEvent extends WebSocketEvent {
     this.currentDay,
     required super.payload,
     super.timestamp,
-  }) : super(
-          type: WebSocketEventType.tripStatusChanged,
-          tripId: tripId,
-        );
+  }) : super(type: WebSocketEventType.tripStatusChanged, tripId: tripId);
 
   factory TripStatusChangedEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
 
     return TripStatusChangedEvent(
       tripId: json['tripId'] as String? ?? payload['tripId'] as String? ?? '',
-      newStatus:
-          TripStatus.fromJson(payload['newStatus'] as String? ?? 'CREATED'),
+      newStatus: TripStatus.fromJson(
+        payload['newStatus'] as String? ?? 'CREATED',
+      ),
       previousStatus: payload['previousStatus'] != null
           ? TripStatus.fromJson(payload['previousStatus'] as String)
           : null,
@@ -208,10 +213,7 @@ class TripUpdatedEvent extends WebSocketEvent {
     this.updateType,
     required super.payload,
     super.timestamp,
-  }) : super(
-          type: WebSocketEventType.tripUpdated,
-          tripId: tripId,
-        );
+  }) : super(type: WebSocketEventType.tripUpdated, tripId: tripId);
 
   factory TripUpdatedEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
@@ -244,10 +246,7 @@ class PolylineUpdatedEvent extends WebSocketEvent {
     required this.encodedPolyline,
     required super.payload,
     super.timestamp,
-  }) : super(
-          type: WebSocketEventType.polylineUpdated,
-          tripId: tripId,
-        );
+  }) : super(type: WebSocketEventType.polylineUpdated, tripId: tripId);
 
   factory PolylineUpdatedEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
@@ -280,10 +279,7 @@ class CommentAddedEvent extends WebSocketEvent {
     this.parentCommentId,
     required super.payload,
     super.timestamp,
-  }) : super(
-          type: WebSocketEventType.commentAdded,
-          tripId: tripId,
-        );
+  }) : super(type: WebSocketEventType.commentAdded, tripId: tripId);
 
   factory CommentAddedEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
@@ -330,8 +326,10 @@ class CommentReactionEvent extends WebSocketEvent {
           tripId: tripId,
         );
 
-  factory CommentReactionEvent.fromJson(Map<String, dynamic> json,
-      {bool isRemoval = false}) {
+  factory CommentReactionEvent.fromJson(
+    Map<String, dynamic> json, {
+    bool isRemoval = false,
+  }) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
 
     return CommentReactionEvent(
@@ -362,10 +360,7 @@ class TripCreatedEvent extends WebSocketEvent {
     required this.visibility,
     required super.payload,
     super.timestamp,
-  }) : super(
-          type: WebSocketEventType.tripCreated,
-          tripId: tripId,
-        );
+  }) : super(type: WebSocketEventType.tripCreated, tripId: tripId);
 
   factory TripCreatedEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
@@ -389,10 +384,7 @@ class TripDeletedEvent extends WebSocketEvent {
     required String tripId,
     required super.payload,
     super.timestamp,
-  }) : super(
-          type: WebSocketEventType.tripDeleted,
-          tripId: tripId,
-        );
+  }) : super(type: WebSocketEventType.tripDeleted, tripId: tripId);
 
   factory TripDeletedEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
@@ -418,10 +410,7 @@ class TripVisibilityChangedEvent extends WebSocketEvent {
     this.previousVisibility,
     required super.payload,
     super.timestamp,
-  }) : super(
-          type: WebSocketEventType.tripVisibilityChanged,
-          tripId: tripId,
-        );
+  }) : super(type: WebSocketEventType.tripVisibilityChanged, tripId: tripId);
 
   factory TripVisibilityChangedEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
@@ -449,10 +438,7 @@ class TripSettingsUpdatedEvent extends WebSocketEvent {
     this.updateRefresh,
     required super.payload,
     super.timestamp,
-  }) : super(
-          type: WebSocketEventType.tripSettingsUpdated,
-          tripId: tripId,
-        );
+  }) : super(type: WebSocketEventType.tripSettingsUpdated, tripId: tripId);
 
   factory TripSettingsUpdatedEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
@@ -486,10 +472,7 @@ class TripUpdateCreatedEvent extends WebSocketEvent {
     this.message,
     required super.payload,
     super.timestamp,
-  }) : super(
-          type: WebSocketEventType.tripUpdateCreated,
-          tripId: tripId,
-        );
+  }) : super(type: WebSocketEventType.tripUpdateCreated, tripId: tripId);
 
   factory TripUpdateCreatedEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
@@ -526,9 +509,7 @@ class TripPlanCreatedEvent extends WebSocketEvent {
     required this.ownerId,
     required super.payload,
     super.timestamp,
-  }) : super(
-          type: WebSocketEventType.tripPlanCreated,
-        );
+  }) : super(type: WebSocketEventType.tripPlanCreated);
 
   factory TripPlanCreatedEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
@@ -554,9 +535,7 @@ class TripPlanUpdatedEvent extends WebSocketEvent {
     required this.tripPlanId,
     required super.payload,
     super.timestamp,
-  }) : super(
-          type: WebSocketEventType.tripPlanUpdated,
-        );
+  }) : super(type: WebSocketEventType.tripPlanUpdated);
 
   factory TripPlanUpdatedEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
@@ -580,9 +559,7 @@ class TripPlanDeletedEvent extends WebSocketEvent {
     required this.tripPlanId,
     required super.payload,
     super.timestamp,
-  }) : super(
-          type: WebSocketEventType.tripPlanDeleted,
-        );
+  }) : super(type: WebSocketEventType.tripPlanDeleted);
 
   factory TripPlanDeletedEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
@@ -608,9 +585,7 @@ class UserFollowedEvent extends WebSocketEvent {
     required this.followedId,
     required super.payload,
     super.timestamp,
-  }) : super(
-          type: WebSocketEventType.userFollowed,
-        );
+  }) : super(type: WebSocketEventType.userFollowed);
 
   factory UserFollowedEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
@@ -639,9 +614,7 @@ class FriendRequestSentEvent extends WebSocketEvent {
     required this.receiverId,
     required super.payload,
     super.timestamp,
-  }) : super(
-          type: WebSocketEventType.friendRequestSent,
-        );
+  }) : super(type: WebSocketEventType.friendRequestSent);
 
   factory FriendRequestSentEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
@@ -669,9 +642,7 @@ class UserUnfollowedEvent extends WebSocketEvent {
     required this.followedId,
     required super.payload,
     super.timestamp,
-  }) : super(
-          type: WebSocketEventType.userUnfollowed,
-        );
+  }) : super(type: WebSocketEventType.userUnfollowed);
 
   factory UserUnfollowedEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
@@ -700,9 +671,7 @@ class FriendRequestAcceptedEvent extends WebSocketEvent {
     required this.receiverId,
     required super.payload,
     super.timestamp,
-  }) : super(
-          type: WebSocketEventType.friendRequestAccepted,
-        );
+  }) : super(type: WebSocketEventType.friendRequestAccepted);
 
   factory FriendRequestAcceptedEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
@@ -732,9 +701,7 @@ class FriendRequestDeclinedEvent extends WebSocketEvent {
     required this.receiverId,
     required super.payload,
     super.timestamp,
-  }) : super(
-          type: WebSocketEventType.friendRequestDeclined,
-        );
+  }) : super(type: WebSocketEventType.friendRequestDeclined);
 
   factory FriendRequestDeclinedEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
@@ -744,6 +711,46 @@ class FriendRequestDeclinedEvent extends WebSocketEvent {
           payload['requestId'] as String? ?? payload['id'] as String? ?? '',
       senderId: payload['senderId'] as String? ?? '',
       receiverId: payload['receiverId'] as String? ?? '',
+      payload: payload,
+      timestamp: json['timestamp'] != null
+          ? DateTime.tryParse(json['timestamp'] as String)
+          : null,
+    );
+  }
+}
+
+/// Event for a new in-app notification created by the backend
+class NotificationCreatedEvent extends WebSocketEvent {
+  final String notificationId;
+  final String recipientId;
+  final String? actorId;
+  final String notificationType;
+  final String? referenceId;
+  final String message;
+
+  NotificationCreatedEvent({
+    required this.notificationId,
+    required this.recipientId,
+    this.actorId,
+    required this.notificationType,
+    this.referenceId,
+    required this.message,
+    required super.payload,
+    super.timestamp,
+  }) : super(type: WebSocketEventType.notificationCreated);
+
+  factory NotificationCreatedEvent.fromJson(Map<String, dynamic> json) {
+    final payload = json['payload'] as Map<String, dynamic>? ?? json;
+
+    return NotificationCreatedEvent(
+      notificationId: payload['id'] as String? ??
+          payload['notificationId'] as String? ??
+          '',
+      recipientId: payload['recipientId'] as String? ?? '',
+      actorId: payload['actorId'] as String?,
+      notificationType: payload['type'] as String? ?? '',
+      referenceId: payload['referenceId'] as String?,
+      message: payload['message'] as String? ?? '',
       payload: payload,
       timestamp: json['timestamp'] != null
           ? DateTime.tryParse(json['timestamp'] as String)

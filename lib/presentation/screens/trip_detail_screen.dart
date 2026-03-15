@@ -301,10 +301,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
           // If the backend returns false/null but we already know the user
           // enabled automatic updates, keep the local value.
           _trip = updatedTrip.copyWith(
-            automaticUpdates: updatedTrip.automaticUpdates ||
-                _trip.automaticUpdates,
-            updateRefresh:
-                updatedTrip.updateRefresh ?? _trip.updateRefresh,
+            automaticUpdates:
+                updatedTrip.automaticUpdates || _trip.automaticUpdates,
+            updateRefresh: updatedTrip.updateRefresh ?? _trip.updateRefresh,
           );
         });
         _updateMapData();

@@ -20,7 +20,6 @@ class ApiClient {
   final TokenStorage _tokenStorage;
   final String baseUrl;
 
-
   ApiClient({
     required this.baseUrl,
     http.Client? httpClient,

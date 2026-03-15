@@ -163,14 +163,12 @@ void main() {
         automaticUpdates: true,
       ));
 
-      final switchWidget =
-          tester.widget<Switch>(find.byType(Switch));
+      final switchWidget = tester.widget<Switch>(find.byType(Switch));
       expect(switchWidget.value, true);
       expect(switchWidget.onChanged, isNull);
     });
 
-    testWidgets(
-        'automatic updates switch is enabled when trip is in progress',
+    testWidgets('automatic updates switch is enabled when trip is in progress',
         (WidgetTester tester) async {
       await tester.pumpWidget(buildPanel(
         tripStatus: TripStatus.inProgress,
@@ -179,8 +177,7 @@ void main() {
         automaticUpdates: true,
       ));
 
-      final switchWidget =
-          tester.widget<Switch>(find.byType(Switch));
+      final switchWidget = tester.widget<Switch>(find.byType(Switch));
       expect(switchWidget.value, true);
       expect(switchWidget.onChanged, isNotNull);
     });
@@ -201,8 +198,7 @@ void main() {
       );
     });
 
-    testWidgets(
-        'hides hint message when trip is in progress',
+    testWidgets('hides hint message when trip is in progress',
         (WidgetTester tester) async {
       await tester.pumpWidget(buildPanel(
         tripStatus: TripStatus.inProgress,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/data/services/auth_service.dart';
@@ -22,8 +23,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final AuthService _authService = AuthService();
   final UserService _userService = UserService();
   final HomeRepository _homeRepository = HomeRepository();
+  final PushNotificationManager _pushNotificationManager =
+      PushNotificationManager();
 
   bool _isLoading = false;
+  bool _pushEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPushPreference();
+  }
+
+  Future<void> _loadPushPreference() async {
+    final enabled = await _pushNotificationManager.loadEnabled();
+    if (mounted) {
+      setState(() {
+        _pushEnabled = enabled;
+      });
+    }
+  }
+
+  Future<void> _togglePushNotifications(bool value) async {
+    final previousValue = _pushEnabled;
+    setState(() {
+      _pushEnabled = value;
+    });
+    try {
+      await _pushNotificationManager.setEnabled(value);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _pushEnabled = previousValue;
+        });
+        UiHelpers.showErrorMessage(
+          context,
+          'Failed to update notification preference',
+        );
+      }
+    }
+  }
 
   // --- Account Actions ---
 
@@ -194,10 +233,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(
-          context,
-          'Failed to send reset link: $e',
-        );
+        UiHelpers.showErrorMessage(context, 'Failed to send reset link: $e');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -210,18 +246,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final uri = Uri(
       scheme: 'mailto',
       path: 'support@wanderer.app',
-      queryParameters: {
-        'subject': 'Wanderer App Support Request',
-      },
+      queryParameters: {'subject': 'Wanderer App Support Request'},
     );
 
     try {
       final launched = await launchUrl(uri);
       if (!launched && mounted) {
-        UiHelpers.showErrorMessage(
-          context,
-          'Could not open email client',
-        );
+        UiHelpers.showErrorMessage(context, 'Could not open email client');
       }
     } catch (e) {
       if (mounted) {
@@ -299,10 +330,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (secondConfirm != true || typedValue != 'DELETE' || !mounted) {
       if (secondConfirm == true && typedValue != 'DELETE' && mounted) {
-        UiHelpers.showErrorMessage(
-          context,
-          'You must type DELETE to confirm',
-        );
+        UiHelpers.showErrorMessage(context, 'You must type DELETE to confirm');
       }
       return;
     }
@@ -358,17 +386,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 8),
                 _buildSectionHeader('Notifications'),
-                _buildSettingsTile(
+                _buildSwitchTile(
                   icon: Icons.notifications_outlined,
                   iconColor: WandererTheme.primaryOrange,
                   title: 'Push Notifications',
-                  subtitle: 'Manage notification preferences',
-                  onTap: () {
-                    UiHelpers.showInfoMessage(
-                      context,
-                      'Notification settings coming soon',
-                    );
-                  },
+                  subtitle: 'Receive alerts for friend requests, comments, '
+                      'achievements, and other activity',
+                  value: _pushEnabled,
+                  onChanged: _togglePushNotifications,
                 ),
                 const SizedBox(height: 8),
                 _buildSectionHeader('Support'),
@@ -488,6 +513,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
             )
           : null,
       onTap: onTap,
+    );
+  }
+
+  Widget _buildSwitchTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return SwitchListTile(
+      secondary: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: iconColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: iconColor, size: 22),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: WandererTheme.textPrimary,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(fontSize: 13, color: WandererTheme.textSecondary),
+      ),
+      value: value,
+      activeColor: WandererTheme.primaryOrange,
+      onChanged: onChanged,
     );
   }
 }

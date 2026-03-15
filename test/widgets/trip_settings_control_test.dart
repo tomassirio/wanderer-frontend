@@ -64,8 +64,7 @@ void main() {
       expect(find.text('Automatic Updates'), findsOneWidget);
     });
 
-    testWidgets(
-        'switch is disabled when trip is in created status',
+    testWidgets('switch is disabled when trip is in created status',
         (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -82,8 +81,7 @@ void main() {
         ),
       );
 
-      final switchWidget =
-          tester.widget<Switch>(find.byType(Switch));
+      final switchWidget = tester.widget<Switch>(find.byType(Switch));
       expect(switchWidget.value, true);
       expect(switchWidget.onChanged, isNull);
     });
@@ -438,6 +436,39 @@ void main() {
       await tester.pump();
 
       expect(find.byType(TextField), findsOneWidget);
+    });
+
+    testWidgets('auto-saves when toggling automaticUpdates on',
+        (WidgetTester tester) async {
+      bool? capturedAutomaticUpdates;
+      int? capturedUpdateRefresh;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TripSettingsControl(
+              automaticUpdates: false,
+              isOwner: true,
+              isLoading: false,
+              onSettingsChange:
+                  (automaticUpdates, updateRefresh, tripModality) {
+                capturedAutomaticUpdates = automaticUpdates;
+                capturedUpdateRefresh = updateRefresh;
+              },
+              tripStatus: TripStatus.inProgress,
+              isWeb: false,
+            ),
+          ),
+        ),
+      );
+
+      // Toggle automatic updates ON — should auto-save immediately
+      await tester.tap(find.byType(Switch));
+      await tester.pump();
+
+      expect(capturedAutomaticUpdates, true);
+      // Default interval is 15 min = 900 seconds
+      expect(capturedUpdateRefresh, 900);
     });
 
     testWidgets('shows error snackbar when saving with invalid interval',

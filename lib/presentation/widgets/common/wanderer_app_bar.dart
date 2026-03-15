@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
+import 'package:wanderer_frontend/data/services/notification_api_service.dart';
+import 'package:wanderer_frontend/data/services/websocket_service.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/notifications_dropdown.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/search_bar_widget.dart';
-import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 
 /// Reusable AppBar for the Wanderer application
 class WandererAppBar extends StatefulWidget implements PreferredSizeWidget {
@@ -43,6 +48,156 @@ class WandererAppBar extends StatefulWidget implements PreferredSizeWidget {
 
 class _WandererAppBarState extends State<WandererAppBar> {
   bool _isSearchExpanded = false;
+  int _unreadCount = 0;
+  final NotificationApiService _notificationService = NotificationApiService();
+  final WebSocketService _webSocketService = WebSocketService();
+  final GlobalKey _notificationButtonKey = GlobalKey();
+  StreamSubscription<WebSocketEvent>? _wsSubscription;
+  String? _subscribedUserId;
+  Timer? _pollTimer;
+  Timer? _debounceTimer;
+
+  /// Event types that typically generate a notification on the backend.
+  /// When any of these arrive we debounce-refresh the unread count from the API.
+  static const _notificationTriggerEvents = {
+    WebSocketEventType.commentAdded,
+    WebSocketEventType.userFollowed,
+    WebSocketEventType.friendRequestSent,
+    WebSocketEventType.friendRequestAccepted,
+    WebSocketEventType.friendRequestDeclined,
+    WebSocketEventType.friendshipCreated,
+    WebSocketEventType.tripStatusChanged,
+    WebSocketEventType.tripUpdateCreated,
+    WebSocketEventType.commentReactionAdded,
+    WebSocketEventType.commentReactionReplaced,
+    WebSocketEventType.commentReaction,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isLoggedIn) {
+      _fetchUnreadCount();
+      _subscribeToNotificationEvents();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant WandererAppBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isLoggedIn && !oldWidget.isLoggedIn) {
+      _fetchUnreadCount();
+      _subscribeToNotificationEvents();
+    } else if (!widget.isLoggedIn && oldWidget.isLoggedIn) {
+      _cancelSubscriptions();
+      setState(() {
+        _unreadCount = 0;
+      });
+    } else if (widget.isLoggedIn &&
+        widget.userId != oldWidget.userId &&
+        widget.userId != null) {
+      // User ID changed while still logged in — resubscribe
+      _fetchUnreadCount();
+      _subscribeToNotificationEvents();
+    }
+  }
+
+  @override
+  void dispose() {
+    _cancelSubscriptions();
+    super.dispose();
+  }
+
+  void _cancelSubscriptions() {
+    _wsSubscription?.cancel();
+    _wsSubscription = null;
+    _pollTimer?.cancel();
+    _pollTimer = null;
+    _debounceTimer?.cancel();
+    _debounceTimer = null;
+    _subscribedUserId = null;
+  }
+
+  void _subscribeToNotificationEvents() {
+    final userId = widget.userId;
+    if (userId == null) return;
+
+    // Already subscribed to this user — skip
+    if (_subscribedUserId == userId && _wsSubscription != null) return;
+
+    _wsSubscription?.cancel();
+    _wsSubscription = null;
+    _pollTimer?.cancel();
+    _debounceTimer?.cancel();
+    _subscribedUserId = userId;
+
+    // Start periodic polling as a reliable fallback.
+    // This ensures the badge updates even when the WebSocket connection
+    // is unavailable (e.g. dev server, firewall, or backend doesn't send
+    // NOTIFICATION_CREATED events).
+    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted && widget.isLoggedIn) {
+        _fetchUnreadCount();
+      }
+    });
+
+    // Kick off WebSocket connect + subscribe asynchronously
+    _connectAndSubscribe(userId);
+  }
+
+  Future<void> _connectAndSubscribe(String userId) async {
+    // Ensure the WebSocket is connected before subscribing.
+    // Awaiting avoids the race where subscribeToUser runs before the
+    // connection is established and _handleConnectionStateChange has
+    // already fired for pending subscriptions.
+    await _webSocketService.connect();
+
+    if (!mounted || _subscribedUserId != userId) return;
+
+    // Subscribe to the user's WebSocket topic so NOTIFICATION_CREATED events
+    // arrive on all platforms (PushNotificationManager only subscribes on Android)
+    _webSocketService.subscribeToUser(userId);
+
+    // Listen on the global events stream — it receives ALL events from every
+    // subscribed topic.
+    _wsSubscription = _webSocketService.events.listen((event) {
+      if (!mounted) return;
+
+      if (event.type == WebSocketEventType.notificationCreated) {
+        // Explicit notification event → increment immediately
+        setState(() {
+          _unreadCount++;
+        });
+      } else if (_notificationTriggerEvents.contains(event.type)) {
+        // Other events that typically create a notification on the backend.
+        // Debounce an API refresh so we don't fire for every single event.
+        _debounceFetchUnreadCount();
+      }
+    });
+  }
+
+  /// Debounce the unread count fetch so rapid-fire events only trigger one call.
+  void _debounceFetchUnreadCount() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted && widget.isLoggedIn) {
+        _fetchUnreadCount();
+      }
+    });
+  }
+
+  Future<void> _fetchUnreadCount() async {
+    try {
+      final count = await _notificationService.getUnreadCount();
+      if (mounted) {
+        setState(() {
+          _unreadCount = count;
+        });
+      }
+    } catch (e) {
+      debugPrint('WandererAppBar: Failed to fetch unread count: $e');
+    }
+  }
 
   /// Get the initial letter for the avatar, preferring displayName over username
   String get _avatarInitial {
@@ -61,11 +216,33 @@ class _WandererAppBarState extends State<WandererAppBar> {
     });
   }
 
-  void _showNotImplementedMessage() {
-    UiHelpers.showInfoMessage(
-      context,
-      'Notifications feature not yet implemented',
+  void _showNotificationsDropdown() {
+    final renderBox =
+        _notificationButtonKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final buttonPosition = renderBox.localToGlobal(Offset.zero);
+    final buttonSize = renderBox.size;
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+
+    final position = RelativeRect.fromRect(
+      Rect.fromLTWH(
+        buttonPosition.dx,
+        buttonPosition.dy + buttonSize.height,
+        buttonSize.width,
+        0,
+      ),
+      Offset.zero & overlay.size,
     );
+
+    showNotificationsDropdown(context: context, position: position).then((_) {
+      // Always refresh the unread count when the dropdown closes,
+      // regardless of how it was dismissed (notification tap, "Read all",
+      // or barrier tap). This ensures the badge stays in sync.
+      if (mounted && widget.isLoggedIn) {
+        _fetchUnreadCount();
+      }
+    });
   }
 
   @override
@@ -120,12 +297,20 @@ class _WandererAppBarState extends State<WandererAppBar> {
             tooltip: 'Search',
             onPressed: _toggleSearch,
           ),
-        // Notifications icon (only for logged in users)
+        // Notifications icon with badge (only for logged in users)
         if (widget.isLoggedIn)
           IconButton(
-            icon: const Icon(Icons.notifications_outlined),
+            key: _notificationButtonKey,
+            icon: Badge(
+              isLabelVisible: _unreadCount > 0,
+              label: Text(
+                _unreadCount > 99 ? '99+' : '$_unreadCount',
+                style: const TextStyle(fontSize: 10),
+              ),
+              child: const Icon(Icons.notifications_outlined),
+            ),
             tooltip: 'Notifications',
-            onPressed: _showNotImplementedMessage,
+            onPressed: _showNotificationsDropdown,
           ),
         if (!widget.isLoggedIn && widget.onLoginPressed != null)
           Padding(

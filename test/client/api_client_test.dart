@@ -703,7 +703,8 @@ void main() {
         verify(mockTokenStorage.clearTokens()).called(1);
       });
 
-      test('refresh token fails with exception does not clear tokens', () async {
+      test('refresh token fails with exception does not clear tokens',
+          () async {
         when(
           mockTokenStorage.isAccessTokenExpired(),
         ).thenAnswer((_) async => true);

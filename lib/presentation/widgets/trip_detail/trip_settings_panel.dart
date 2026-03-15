@@ -415,17 +415,17 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
                                   setState(() {
                                     _automaticUpdates = value;
                                   });
-                                  // When toggling OFF, auto-save immediately
-                                  // since there is no Save button in the
-                                  // disabled state.
-                                  if (!value) {
-                                    final minutes =
-                                        int.tryParse(_intervalController.text);
-                                    final seconds =
-                                        minutes != null ? minutes * 60 : null;
-                                    widget.onSettingsChange
-                                        ?.call(false, seconds, _tripModality);
-                                  }
+                                  // Auto-save immediately on toggle so the
+                                  // backend is always in sync. Previously only
+                                  // toggling OFF was auto-saved, which meant
+                                  // enabling updates was never persisted until
+                                  // the user also changed the interval.
+                                  final minutes =
+                                      int.tryParse(_intervalController.text);
+                                  final seconds =
+                                      minutes != null ? minutes * 60 : null;
+                                  widget.onSettingsChange
+                                      ?.call(value, seconds, _tripModality);
                                 },
                           activeColor: WandererTheme.primaryOrange,
                         ),

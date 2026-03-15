@@ -182,8 +182,7 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
       return const SizedBox.shrink();
     }
 
-    final bool isTripInProgress =
-        widget.tripStatus == TripStatus.inProgress;
+    final bool isTripInProgress = widget.tripStatus == TripStatus.inProgress;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -265,15 +264,13 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
                         setState(() {
                           _automaticUpdates = value;
                         });
-                        // When toggling OFF, auto-save immediately since
-                        // there is no Save button in the disabled state.
-                        if (!value) {
-                          final minutes =
-                              int.tryParse(_intervalController.text);
-                          final seconds = minutes != null ? minutes * 60 : null;
-                          widget.onSettingsChange(
-                              false, seconds, _tripModality);
-                        }
+                        // Auto-save immediately on toggle so the backend is
+                        // always in sync. Previously only toggling OFF was
+                        // auto-saved, which meant enabling updates was never
+                        // persisted until the user also changed the interval.
+                        final minutes = int.tryParse(_intervalController.text);
+                        final seconds = minutes != null ? minutes * 60 : null;
+                        widget.onSettingsChange(value, seconds, _tripModality);
                       },
                 activeColor: WandererTheme.primaryOrange,
               ),

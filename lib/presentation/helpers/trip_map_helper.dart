@@ -800,8 +800,7 @@ class TripMapHelper {
   static String _formatMarkerTimestamp(DateTime timestamp) {
     final local = timestamp.toLocal();
     final day = '${local.day}/${local.month}/${local.year}';
-    final time =
-        '${local.hour}:${local.minute.toString().padLeft(2, '0')}';
+    final time = '${local.hour}:${local.minute.toString().padLeft(2, '0')}';
     return '$day  $time';
   }
 }

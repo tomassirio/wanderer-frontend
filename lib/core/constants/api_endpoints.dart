@@ -135,6 +135,16 @@ class ApiEndpoints {
   static String wsTripTopic(String tripId) => '/topic/trips/$tripId';
   static String wsUserTopic(String userId) => '/topic/users/$userId';
 
+  // Notification Query endpoints (use queryBaseUrl)
+  static const String notificationsMe = '/notifications/me';
+  static const String notificationsUnreadCount =
+      '/notifications/me/unread-count';
+
+  // Notification Command endpoints (use commandBaseUrl)
+  static String notificationMarkRead(String notificationId) =>
+      '/notifications/$notificationId/read';
+  static const String notificationsMarkAllRead = '/notifications/me/read-all';
+
   // Achievement Query endpoints (use queryBaseUrl)
   static const String achievements = '/achievements';
   static const String achievementsMe = '/users/me/achievements';

@@ -105,10 +105,9 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
       final effectiveTrip = _automaticUpdates
           ? trip.copyWith(
               automaticUpdates: true,
-              updateRefresh:
-                  (int.tryParse(_intervalController.text) ??
-                          _minIntervalMinutes) *
-                      60,
+              updateRefresh: (int.tryParse(_intervalController.text) ??
+                      _minIntervalMinutes) *
+                  60,
             )
           : trip;
 
@@ -688,8 +687,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                     FilteringTextInputFormatter.digitsOnly,
                   ],
                   decoration: InputDecoration(
-                    labelText:
-                        'Update Interval (min $_minIntervalMinutes min)',
+                    labelText: 'Update Interval (min $_minIntervalMinutes min)',
                     hintText: 'e.g., 15',
                     filled: true,
                     fillColor: Colors.white,

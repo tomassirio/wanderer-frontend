@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:wanderer_frontend/core/constants/enums.dart'
     show TripModality, TripStatus, Visibility;
+import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
@@ -40,6 +41,8 @@ class _HomeScreenState extends State<HomeScreen>
   final TripService _tripService = TripService();
   final AdminService _adminService = AdminService();
   final WebSocketService _webSocketService = WebSocketService();
+  final PushNotificationManager _pushNotificationManager =
+      PushNotificationManager();
   final TextEditingController _searchController = TextEditingController();
   StreamSubscription<WebSocketEvent>? _wsSubscription;
 
@@ -230,6 +233,7 @@ class _HomeScreenState extends State<HomeScreen>
     routeObserver.unsubscribe(this);
     _wsSubscription?.cancel();
     _webSocketService.unsubscribeFromAllTrips();
+    _pushNotificationManager.stop();
     _searchController.dispose();
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
@@ -249,6 +253,13 @@ class _HomeScreenState extends State<HomeScreen>
 
     final displayName = await _repository.getCurrentDisplayName();
     final avatarUrl = await _repository.getCurrentAvatarUrl();
+
+    // Start push notification listener when logged in with a valid userId
+    if (isLoggedIn && userId != null) {
+      _pushNotificationManager.start(userId);
+    } else {
+      _pushNotificationManager.stop();
+    }
 
     setState(() {
       _username = username;
@@ -753,8 +764,11 @@ class _HomeScreenState extends State<HomeScreen>
                   value: TripStatus.finished,
                   child: Row(
                     children: [
-                      Icon(Icons.check_circle_outline,
-                          size: 18, color: Colors.blue),
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: 18,
+                        color: Colors.blue,
+                      ),
                       const SizedBox(width: 8),
                       const Text('Completed'),
                     ],
@@ -929,8 +943,11 @@ class _HomeScreenState extends State<HomeScreen>
     // Group trips by status
     // Resting trips are shown alongside active trips (like live, but with a resting badge)
     final activeTrips = filteredTrips
-        .where((t) =>
-            t.status == TripStatus.inProgress || t.status == TripStatus.resting)
+        .where(
+          (t) =>
+              t.status == TripStatus.inProgress ||
+              t.status == TripStatus.resting,
+        )
         .toList();
     final pausedTrips =
         filteredTrips.where((t) => t.status == TripStatus.paused).toList();
@@ -1023,21 +1040,28 @@ class _HomeScreenState extends State<HomeScreen>
 
     // Group by live (including resting) and other
     final liveTrips = filteredTrips
-        .where((t) =>
-            t.status == TripStatus.inProgress || t.status == TripStatus.resting)
+        .where(
+          (t) =>
+              t.status == TripStatus.inProgress ||
+              t.status == TripStatus.resting,
+        )
         .toList();
     final friendsTrips = filteredTrips
-        .where((t) =>
-            _friendIds.contains(t.userId) &&
-            t.status != TripStatus.inProgress &&
-            t.status != TripStatus.resting)
+        .where(
+          (t) =>
+              _friendIds.contains(t.userId) &&
+              t.status != TripStatus.inProgress &&
+              t.status != TripStatus.resting,
+        )
         .toList();
     final followingTrips = filteredTrips
-        .where((t) =>
-            _followingIds.contains(t.userId) &&
-            !_friendIds.contains(t.userId) &&
-            t.status != TripStatus.inProgress &&
-            t.status != TripStatus.resting)
+        .where(
+          (t) =>
+              _followingIds.contains(t.userId) &&
+              !_friendIds.contains(t.userId) &&
+              t.status != TripStatus.inProgress &&
+              t.status != TripStatus.resting,
+        )
         .toList();
 
     if (filteredTrips.isEmpty) {
@@ -1091,9 +1115,11 @@ class _HomeScreenState extends State<HomeScreen>
               subtitle: 'From your friends',
             ),
             const SizedBox(height: 12),
-            _buildTripGrid(friendsTrips,
-                showRelationship: true,
-                defaultRelationship: RelationshipType.friend),
+            _buildTripGrid(
+              friendsTrips,
+              showRelationship: true,
+              defaultRelationship: RelationshipType.friend,
+            ),
             const SizedBox(height: 24),
           ],
           if (followingTrips.isNotEmpty) ...[
@@ -1104,9 +1130,11 @@ class _HomeScreenState extends State<HomeScreen>
               subtitle: 'From users you follow',
             ),
             const SizedBox(height: 12),
-            _buildTripGrid(followingTrips,
-                showRelationship: true,
-                defaultRelationship: RelationshipType.following),
+            _buildTripGrid(
+              followingTrips,
+              showRelationship: true,
+              defaultRelationship: RelationshipType.following,
+            ),
           ],
         ],
       ),
@@ -1375,7 +1403,9 @@ class _HomeScreenState extends State<HomeScreen>
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
-                                vertical: 48, horizontal: 24),
+                              vertical: 48,
+                              horizontal: 24,
+                            ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
@@ -1465,9 +1495,9 @@ class _HomeScreenState extends State<HomeScreen>
                                     Container(
                                       padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
-                                        color: Theme.of(context)
-                                            .primaryColor
-                                            .withOpacity(0.1),
+                                        color: Theme.of(
+                                          context,
+                                        ).primaryColor.withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Icon(
@@ -1574,7 +1604,7 @@ class _HomeScreenState extends State<HomeScreen>
                                       final labels = [
                                         'My Trips',
                                         'Feed',
-                                        'Discover',
+                                        'Discover'
                                       ];
                                       return Expanded(
                                         child: InkWell(
@@ -1592,10 +1622,12 @@ class _HomeScreenState extends State<HomeScreen>
                                                     ? selectedIcons[index]
                                                     : icons[index],
                                                 color: isSelected
-                                                    ? Theme.of(context)
-                                                        .colorScheme
-                                                        .primary
-                                                    : Theme.of(context)
+                                                    ? Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary
+                                                    : Theme.of(
+                                                        context,
+                                                      )
                                                         .colorScheme
                                                         .onSurfaceVariant,
                                                 size: 24,
@@ -1606,10 +1638,12 @@ class _HomeScreenState extends State<HomeScreen>
                                                 style: TextStyle(
                                                   fontSize: 12,
                                                   color: isSelected
-                                                      ? Theme.of(context)
-                                                          .colorScheme
-                                                          .primary
-                                                      : Theme.of(context)
+                                                      ? Theme.of(
+                                                          context,
+                                                        ).colorScheme.primary
+                                                      : Theme.of(
+                                                          context,
+                                                        )
                                                           .colorScheme
                                                           .onSurfaceVariant,
                                                   fontWeight: isSelected

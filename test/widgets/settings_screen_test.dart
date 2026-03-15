@@ -1,43 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 
 void main() {
   group('SettingsScreen', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
     Widget buildTestWidget() {
-      return const MaterialApp(
-        home: SettingsScreen(),
-      );
+      return const MaterialApp(home: SettingsScreen());
     }
 
     testWidgets('renders app bar with Settings title', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
 
       expect(find.text('Settings'), findsOneWidget);
     });
 
-    testWidgets('renders Account section header', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('renders Account section header', (WidgetTester tester) async {
       await tester.pumpWidget(buildTestWidget());
 
       expect(find.text('ACCOUNT'), findsOneWidget);
     });
 
-    testWidgets('renders Change Password option', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('renders Change Password option', (WidgetTester tester) async {
       await tester.pumpWidget(buildTestWidget());
 
       expect(find.text('Change Password'), findsOneWidget);
       expect(find.text('Update your current password'), findsOneWidget);
     });
 
-    testWidgets('renders Reset Password option', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('renders Reset Password option', (WidgetTester tester) async {
       await tester.pumpWidget(buildTestWidget());
 
       expect(find.text('Reset Password'), findsOneWidget);
@@ -59,40 +57,37 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
 
       expect(find.text('Push Notifications'), findsOneWidget);
-      expect(find.text('Manage notification preferences'), findsOneWidget);
+      expect(
+        find.textContaining('Receive alerts for friend requests'),
+        findsOneWidget,
+      );
+      expect(find.byType(SwitchListTile), findsOneWidget);
     });
 
-    testWidgets('renders Support section header', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('renders Support section header', (WidgetTester tester) async {
       await tester.pumpWidget(buildTestWidget());
 
       expect(find.text('SUPPORT'), findsOneWidget);
     });
 
-    testWidgets('renders Contact Support option', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('renders Contact Support option', (WidgetTester tester) async {
       await tester.pumpWidget(buildTestWidget());
 
       expect(find.text('Contact Support'), findsOneWidget);
       expect(find.text('Get help via email'), findsOneWidget);
     });
 
-    testWidgets('renders Terms of Service option', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('renders Terms of Service option', (WidgetTester tester) async {
       await tester.pumpWidget(buildTestWidget());
 
       expect(find.text('Terms of Service'), findsOneWidget);
       expect(find.text('Read our terms and conditions'), findsOneWidget);
     });
 
-    testWidgets('renders Privacy Policy option', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('renders Privacy Policy option', (WidgetTester tester) async {
       await tester.pumpWidget(buildTestWidget());
 
       expect(find.text('Privacy Policy'), findsOneWidget);
@@ -221,32 +216,31 @@ void main() {
       expect(find.text('Continue'), findsOneWidget);
     });
 
-    testWidgets(
-      'Close Account shows second confirmation after first',
-      (WidgetTester tester) async {
-        await tester.pumpWidget(buildTestWidget());
+    testWidgets('Close Account shows second confirmation after first', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(buildTestWidget());
 
-        // Scroll down to Close Account
-        await tester.scrollUntilVisible(
-          find.text('Close Account'),
-          200,
-          scrollable: find.byType(Scrollable),
-        );
-        await tester.pumpAndSettle();
+      // Scroll down to Close Account
+      await tester.scrollUntilVisible(
+        find.text('Close Account'),
+        200,
+        scrollable: find.byType(Scrollable),
+      );
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Close Account'));
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('Close Account'));
+      await tester.pumpAndSettle();
 
-        // Tap Continue on first dialog
-        await tester.tap(find.text('Continue'));
-        await tester.pumpAndSettle();
+      // Tap Continue on first dialog
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
 
-        // Second dialog should appear
-        expect(find.text('Confirm Account Deletion'), findsOneWidget);
-        expect(find.text('Type DELETE'), findsOneWidget);
-        expect(find.text('Delete My Account'), findsOneWidget);
-      },
-    );
+      // Second dialog should appear
+      expect(find.text('Confirm Account Deletion'), findsOneWidget);
+      expect(find.text('Type DELETE'), findsOneWidget);
+      expect(find.text('Delete My Account'), findsOneWidget);
+    });
 
     testWidgets('Cancel on Change Password dialog dismisses it', (
       WidgetTester tester,
