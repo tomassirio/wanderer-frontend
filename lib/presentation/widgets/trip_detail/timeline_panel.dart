@@ -175,12 +175,13 @@ class TimelinePanel extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Timeline',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ),

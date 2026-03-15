@@ -321,12 +321,13 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
                       color: WandererTheme.primaryOrange,
                     ),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Trip Settings',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ),

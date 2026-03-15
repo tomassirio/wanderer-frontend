@@ -299,7 +299,7 @@ class TripInfoCard extends StatelessWidget {
                         Container(
                           height: 28,
                           decoration: BoxDecoration(
-                             color: isFollowing
+                            color: isFollowing
                                 ? Colors.blue.withOpacity(0.7)
                                 : Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(6),
