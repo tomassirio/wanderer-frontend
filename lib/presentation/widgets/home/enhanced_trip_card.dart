@@ -117,6 +117,9 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.deepPurple.withOpacity(0.3),
           width: 1.5,
         ),
         boxShadow: [
@@ -150,6 +153,9 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: WandererTheme.primaryOrange.withOpacity(0.4),
           width: 1.5,
         ),
         boxShadow: [
