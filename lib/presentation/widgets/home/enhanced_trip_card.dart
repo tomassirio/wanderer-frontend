@@ -290,7 +290,8 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
     final isMobile = screenWidth < 600;
 
     if (isMobile) {
-      final onSurface = Theme.of(context).colorScheme.onSurface;
+      final colorScheme = Theme.of(context).colorScheme;
+      final onSurface = colorScheme.onSurface;
       // Mobile: compact 2-row layout (title + username/metadata row)
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,7 +331,7 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: Theme.of(context).primaryColor,
+                            color: colorScheme.primary,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -359,7 +360,8 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
     }
 
     // Web/desktop: original 3-row layout matching production
-    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final colorScheme = Theme.of(context).colorScheme;
+    final onSurface = colorScheme.onSurface;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -399,7 +401,7 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: Theme.of(context).primaryColor,
+                      color: colorScheme.primary,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
