@@ -106,6 +106,13 @@ void main() {
     ) async {
       await tester.pumpWidget(buildTestWidget());
 
+      await tester.scrollUntilVisible(
+        find.text('Privacy Policy'),
+        200,
+        scrollable: find.byType(Scrollable),
+      );
+      await tester.pumpAndSettle();
+
       expect(find.text('Privacy Policy'), findsOneWidget);
       expect(find.text('Review our privacy practices'), findsOneWidget);
     });
@@ -152,6 +159,9 @@ void main() {
     testWidgets('renders Account section icons', (WidgetTester tester) async {
       await tester.pumpWidget(buildTestWidget());
 
+      // Appearance icon (dark mode)
+      expect(find.byIcon(Icons.dark_mode_outlined), findsOneWidget);
+
       // Account icons
       expect(find.byIcon(Icons.lock_outline), findsOneWidget);
       expect(find.byIcon(Icons.email_outlined), findsOneWidget);
@@ -159,7 +169,14 @@ void main() {
       // Notifications icon
       expect(find.byIcon(Icons.notifications_outlined), findsOneWidget);
 
-      // Support icons
+      // Support icons require scrolling since the Appearance section pushed them down
+      await tester.scrollUntilVisible(
+        find.byIcon(Icons.privacy_tip_outlined),
+        200,
+        scrollable: find.byType(Scrollable),
+      );
+      await tester.pumpAndSettle();
+
       expect(find.byIcon(Icons.help_outline), findsOneWidget);
       expect(find.byIcon(Icons.description_outlined), findsOneWidget);
       expect(find.byIcon(Icons.privacy_tip_outlined), findsOneWidget);
