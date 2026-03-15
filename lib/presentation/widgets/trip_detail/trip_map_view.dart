@@ -122,34 +122,49 @@ class _TripMapViewState extends State<TripMapView> {
   Widget build(BuildContext context) {
     if (_hasError) {
       return Container(
-        color: Colors.grey[200],
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.map_outlined, size: 64, color: Colors.grey[400]),
+                Icon(Icons.map_outlined,
+                    size: 64,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.4)),
                 const SizedBox(height: 16),
                 Text(
                   'Map Loading Error',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[700],
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   _errorMessage ?? 'Failed to load Google Maps',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.6)),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Coordinates: ${widget.initialLocation.latitude.toStringAsFixed(4)}, ${widget.initialLocation.longitude.toStringAsFixed(4)}',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.5)),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
@@ -216,7 +231,7 @@ class _TripMapViewState extends State<TripMapView> {
         // Loading indicator while map initializes
         if (!_isMapReady && !_hasError)
           Container(
-            color: Colors.grey[200],
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -225,12 +240,21 @@ class _TripMapViewState extends State<TripMapView> {
                   const SizedBox(height: 16),
                   Text(
                     'Loading map...',
-                    style: TextStyle(color: Colors.grey[600]),
+                    style: TextStyle(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.6)),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Location: ${widget.initialLocation.latitude.toStringAsFixed(4)}, ${widget.initialLocation.longitude.toStringAsFixed(4)}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.5)),
                   ),
                 ],
               ),

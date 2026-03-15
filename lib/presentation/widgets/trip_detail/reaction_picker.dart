@@ -98,7 +98,8 @@ class _ReactionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(
+              color: Theme.of(context).colorScheme.outline.withOpacity(0.4)),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
