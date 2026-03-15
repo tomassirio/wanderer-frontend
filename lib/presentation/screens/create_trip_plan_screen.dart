@@ -344,7 +344,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
       builder: (context) => Container(
         margin: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: WandererTheme.backgroundLight,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -380,7 +380,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
               subtitle: Text(
                 'Tap the map to set a new position',
                 style:
-                    TextStyle(fontSize: 12, color: WandererTheme.textTertiary),
+                    TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45)),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -645,7 +645,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
   Widget _buildDesktopLayout() {
     const double panelWidth = 400.0;
     return Scaffold(
-      backgroundColor: WandererTheme.backgroundLight,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text('New Trip Plan'),
@@ -715,7 +715,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -760,7 +760,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -916,7 +916,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                       vertical: 12,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.4),
+                      color: Theme.of(context).colorScheme.surface.withOpacity(0.4),
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(WandererTheme.glassRadius),
                         topRight: Radius.circular(WandererTheme.glassRadius),
@@ -942,20 +942,20 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: WandererTheme.textPrimary,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ),
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.5),
+                            color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: IconButton(
                             icon: Icon(
                               Icons.remove,
                               size: 18,
-                              color: WandererTheme.textSecondary,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                             ),
                             onPressed: () =>
                                 setState(() => _isPanelCollapsed = true),
@@ -1053,7 +1053,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: WandererTheme.primaryOrange,
                                   foregroundColor: Colors.white,
-                                  disabledBackgroundColor: Colors.grey.shade300,
+                                  disabledBackgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.12),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(14),
                                   ),
@@ -1098,7 +1098,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
         MediaQuery.of(context).padding.top -
         kToolbarHeight;
     return Scaffold(
-      backgroundColor: WandererTheme.backgroundLight,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       extendBodyBehindAppBar: true,
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
@@ -1171,7 +1171,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -1229,7 +1229,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -1330,14 +1330,14 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
               ? color.withOpacity(0.25)
               : isSet
                   ? color.withOpacity(0.15)
-                  : Colors.white.withOpacity(0.9),
+                  : Theme.of(context).colorScheme.surface.withOpacity(0.9),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isActive
                 ? color
                 : isSet
                     ? color.withOpacity(0.4)
-                    : Colors.grey.shade300,
+                    : Theme.of(context).colorScheme.outline,
             width: isActive ? 2 : 1,
           ),
           boxShadow: [
@@ -1354,7 +1354,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
             Icon(
               isSet ? Icons.check_circle : icon,
               size: 14,
-              color: isActive || isSet ? color : Colors.grey.shade500,
+              color: isActive || isSet ? color : Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
             ),
             const SizedBox(width: 4),
             Text(
@@ -1362,7 +1362,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive || isSet ? color : Colors.grey.shade600,
+                color: isActive || isSet ? color : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               ),
             ),
           ],
@@ -1375,7 +1375,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
   Widget _buildWaypointsPanel() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -1397,10 +1397,10 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                 const SizedBox(width: 8),
                 Text(
                   'Waypoints (${_waypoints.length})',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: WandererTheme.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const Spacer(),
@@ -1408,7 +1408,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                   'Drag to reorder',
                   style: TextStyle(
                     fontSize: 11,
-                    color: WandererTheme.textTertiary,
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -1416,7 +1416,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                   icon: Icon(
                     Icons.close_rounded,
                     size: 20,
-                    color: WandererTheme.textTertiary,
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
                   ),
                   onPressed: () => setState(() => _showWaypointsList = false),
                   padding: EdgeInsets.zero,
@@ -1462,7 +1462,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
         ValueKey('wp_${waypoint.latitude}_${waypoint.longitude}_$index');
     return Container(
       key: key,
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       child: ListTile(
         dense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
@@ -1489,7 +1489,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
         ),
         subtitle: Text(
           '${waypoint.latitude.toStringAsFixed(4)}, ${waypoint.longitude.toStringAsFixed(4)}',
-          style: TextStyle(fontSize: 11, color: WandererTheme.textTertiary),
+          style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45)),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1511,7 +1511,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
             Icon(
               Icons.drag_handle_rounded,
               size: 20,
-              color: WandererTheme.textTertiary,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
             ),
           ],
         ),
@@ -1551,7 +1551,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
             curve: Curves.easeInOut,
             height: _formExpanded ? expandedHeight : 200,
             decoration: BoxDecoration(
-              color: WandererTheme.backgroundLight,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(20),
               ),
@@ -1576,7 +1576,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                         width: 36,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
+                          color: Theme.of(context).colorScheme.outline,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -1684,7 +1684,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: WandererTheme.primaryOrange,
                                 foregroundColor: Colors.white,
-                                disabledBackgroundColor: Colors.grey.shade300,
+                                disabledBackgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.12),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),
                                 ),
@@ -1735,9 +1735,9 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
       ),
       padding: const EdgeInsets.all(4),
       child: Row(
@@ -1768,7 +1768,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                       size: 20,
                       color: isSelected
                           ? WandererTheme.primaryOrange
-                          : WandererTheme.textTertiary,
+                          : Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -1778,7 +1778,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                         fontWeight: FontWeight.w600,
                         color: isSelected
                             ? WandererTheme.primaryOrange
-                            : WandererTheme.textSecondary,
+                            : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -1804,12 +1804,12 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: hasDate
                 ? WandererTheme.primaryOrange.withOpacity(0.5)
-                : Colors.grey.shade200,
+                : Theme.of(context).colorScheme.outline.withOpacity(0.3),
           ),
         ),
         child: Row(
@@ -1819,7 +1819,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
               size: 18,
               color: hasDate
                   ? WandererTheme.primaryOrange
-                  : WandererTheme.textTertiary,
+                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -1830,7 +1830,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                     label,
                     style: TextStyle(
                       fontSize: 11,
-                      color: WandererTheme.textTertiary,
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -1840,8 +1840,8 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                       fontSize: 13,
                       fontWeight: hasDate ? FontWeight.w600 : FontWeight.w400,
                       color: hasDate
-                          ? WandererTheme.textPrimary
-                          : WandererTheme.textTertiary,
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
                     ),
                   ),
                 ],
@@ -1862,12 +1862,12 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
       decoration: BoxDecoration(
         color: isMultiDay
             ? WandererTheme.primaryOrange.withOpacity(0.06)
-            : Colors.grey.shade50,
+            : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: isMultiDay
               ? WandererTheme.primaryOrange.withOpacity(0.2)
-              : Colors.grey.shade200,
+              : Theme.of(context).colorScheme.outline.withOpacity(0.3),
         ),
       ),
       child: Row(
@@ -1877,7 +1877,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
             size: 16,
             color: isMultiDay
                 ? WandererTheme.primaryOrange
-                : WandererTheme.textTertiary,
+                : Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
           ),
           const SizedBox(width: 8),
           Text(
@@ -1887,7 +1887,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
               fontWeight: FontWeight.w600,
               color: isMultiDay
                   ? WandererTheme.primaryOrange
-                  : WandererTheme.textSecondary,
+                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
             ),
           ),
           if (isMultiDay && days > 1) ...[
@@ -1908,10 +1908,10 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
   Widget _buildSectionLabel(String text) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: WandererTheme.textPrimary,
+        color: Theme.of(context).colorScheme.onSurface,
       ),
     );
   }
@@ -1919,16 +1919,16 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: Colors.grey.shade400),
+      hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4)),
       filled: true,
-      fillColor: Colors.white,
+      fillColor: Theme.of(context).colorScheme.surface,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade200),
+        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade200),
+        borderSide: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.3)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
