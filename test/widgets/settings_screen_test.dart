@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 
 void main() {
   group('SettingsScreen', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    tearDown(() async {
+      // Reset theme to light after each test to prevent state leakage
+      await ThemeController().setDarkMode(false);
+    });
+
     Widget buildTestWidget() {
       return const MaterialApp(
         home: SettingsScreen(),
@@ -323,6 +334,64 @@ void main() {
 
       final listTile = tester.widget<ListTile>(appVersionTile);
       expect(listTile.trailing, isNull);
+    });
+
+    testWidgets('renders Appearance section header', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      expect(find.text('APPEARANCE'), findsOneWidget);
+    });
+
+    testWidgets('renders Dark Mode toggle option', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      expect(find.text('Dark Mode'), findsOneWidget);
+      expect(find.text('Switch between light and dark theme'), findsOneWidget);
+    });
+
+    testWidgets('Dark Mode switch starts off when preference is unset', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      final switchFinder = find.byType(Switch);
+      expect(switchFinder, findsOneWidget);
+      final switchWidget = tester.widget<Switch>(switchFinder);
+      expect(switchWidget.value, isFalse);
+    });
+
+    testWidgets('Dark Mode switch starts on when preference is set to dark', (
+      WidgetTester tester,
+    ) async {
+      // Pre-set the dark mode preference
+      SharedPreferences.setMockInitialValues({'dark_mode_enabled': true});
+      await ThemeController().initialize();
+
+      await tester.pumpWidget(buildTestWidget());
+
+      final switchFinder = find.byType(Switch);
+      expect(switchFinder, findsOneWidget);
+      final switchWidget = tester.widget<Switch>(switchFinder);
+      expect(switchWidget.value, isTrue);
+    });
+
+    testWidgets('toggling Dark Mode switch updates state', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      final switchFinder = find.byType(Switch);
+      expect(tester.widget<Switch>(switchFinder).value, isFalse);
+
+      await tester.tap(switchFinder);
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<Switch>(switchFinder).value, isTrue);
+      expect(ThemeController().isDarkMode, isTrue);
     });
   });
 }

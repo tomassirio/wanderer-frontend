@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/data/services/auth_service.dart';
@@ -24,6 +25,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final HomeRepository _homeRepository = HomeRepository();
 
   bool _isLoading = false;
+  bool _isDarkMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isDarkMode = ThemeController().isDarkMode;
+  }
+
+  // --- Appearance ---
+
+  Future<void> _toggleDarkMode(bool value) async {
+    await ThemeController().setDarkMode(value);
+    if (mounted) {
+      setState(() => _isDarkMode = value);
+    }
+  }
 
   // --- Account Actions ---
 
@@ -341,6 +358,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           : ListView(
               padding: const EdgeInsets.symmetric(vertical: 16),
               children: [
+                _buildSectionHeader('Appearance'),
+                _buildSwitchTile(
+                  icon: Icons.dark_mode_outlined,
+                  iconColor: WandererTheme.textSecondary,
+                  title: 'Dark Mode',
+                  subtitle: 'Switch between light and dark theme',
+                  value: _isDarkMode,
+                  onChanged: _toggleDarkMode,
+                ),
+                const SizedBox(height: 8),
                 _buildSectionHeader('Account'),
                 _buildSettingsTile(
                   icon: Icons.lock_outline,
@@ -431,28 +458,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        title.toUpperCase(),
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.2,
-          color: WandererTheme.textTertiary,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSettingsTile({
+  Widget _buildSwitchTile({
     required IconData icon,
     required Color iconColor,
     required String title,
     required String subtitle,
-    required VoidCallback? onTap,
-    bool isDestructive = false,
+    required bool value,
+    required ValueChanged<bool> onChanged,
   }) {
     return ListTile(
       leading: Container(
@@ -469,7 +481,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
         style: TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w600,
-          color: isDestructive ? Colors.red : WandererTheme.textPrimary,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          fontSize: 13,
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+        ),
+      ),
+      trailing: Switch(
+        value: value,
+        onChanged: onChanged,
+        activeColor: WandererTheme.primaryOrange,
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback? onTap,
+    bool isDestructive = false,
+  }) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    return ListTile(
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: iconColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: iconColor, size: 22),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: isDestructive ? Colors.red : onSurface,
         ),
       ),
       subtitle: Text(
@@ -478,13 +547,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           fontSize: 13,
           color: isDestructive
               ? Colors.red.withOpacity(0.7)
-              : WandererTheme.textSecondary,
+              : onSurface.withOpacity(0.6),
         ),
       ),
       trailing: onTap != null
           ? Icon(
               Icons.chevron_right,
-              color: isDestructive ? Colors.red : WandererTheme.textTertiary,
+              color: isDestructive ? Colors.red : onSurface.withOpacity(0.4),
             )
           : null,
       onTap: onTap,
