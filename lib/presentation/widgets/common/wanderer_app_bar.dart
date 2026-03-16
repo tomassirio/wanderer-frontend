@@ -5,6 +5,7 @@ import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/services/notification_api_service.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/notifications_dropdown.dart';
+import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/search_bar_widget.dart';
 
@@ -284,6 +285,20 @@ class _WandererAppBarState extends State<WandererAppBar> {
               ],
             ),
       actions: [
+        // Dark mode toggle (available to all users)
+        ValueListenableBuilder<ThemeMode>(
+          valueListenable: ThemeController().themeMode,
+          builder: (context, mode, _) {
+            final isDark = mode == ThemeMode.dark;
+            return IconButton(
+              icon: Icon(
+                isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+              ),
+              tooltip: isDark ? 'Switch to light mode' : 'Switch to dark mode',
+              onPressed: () => ThemeController().setDarkMode(!isDark),
+            );
+          },
+        ),
         // Search icon
         if (_isSearchExpanded)
           IconButton(
