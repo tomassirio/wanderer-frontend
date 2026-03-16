@@ -5,6 +5,7 @@ import 'package:wanderer_frontend/core/constants/enums.dart'
 import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
+import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
@@ -58,6 +59,10 @@ class _HomeScreenState extends State<HomeScreen>
   Set<String> _followingIds = {};
 
   bool _isLoading = false;
+  bool _isLoadingMoreTrips = false;
+  bool _hasMoreTrips = false;
+  int _currentTripsPage = 0;
+  static const int _tripsPageSize = 20;
   String? _error;
   String? _userId;
   String? _username;
@@ -275,20 +280,24 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() {
       _isLoading = true;
       _error = null;
+      _currentTripsPage = 0;
     });
 
     try {
       if (_isLoggedIn) {
         // Load user-specific data
         final results = await Future.wait([
-          _repository.loadTrips(), // All available trips
+          _repository.loadTrips(
+              page: 0, size: _tripsPageSize), // All available trips
           _repository.getMyTrips(), // User's own trips
           _repository.getFriendsIds(),
           _repository.getFollowingIds(),
         ]);
 
+        final tripsPage = results[0] as PageResponse<Trip>;
         setState(() {
-          _allTrips = results[0] as List<Trip>;
+          _allTrips = tripsPage.content;
+          _hasMoreTrips = !tripsPage.last;
           _myTrips = results[1] as List<Trip>;
           _friendIds = results[2] as Set<String>;
           _followingIds = results[3] as Set<String>;
@@ -297,7 +306,9 @@ class _HomeScreenState extends State<HomeScreen>
         });
       } else {
         // Not logged in, only show public trips
-        final trips = await _repository.getPublicTrips();
+        final tripsPage = await _repository.getPublicTrips(
+            page: 0, size: _tripsPageSize);
+        final trips = tripsPage.content;
 
         // Merge with previously known active trips that the backend may not
         // return (e.g. RESTING trips are active but the /trips/public endpoint
@@ -316,6 +327,7 @@ class _HomeScreenState extends State<HomeScreen>
 
         setState(() {
           _allTrips = [...trips, ...preservedTrips];
+          _hasMoreTrips = !tripsPage.last;
           _myTrips = [];
           _friendIds = {};
           _followingIds = {};
@@ -341,6 +353,37 @@ class _HomeScreenState extends State<HomeScreen>
         _error = e.toString();
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _loadMoreTrips() async {
+    if (_isLoadingMoreTrips || !_hasMoreTrips) return;
+
+    setState(() => _isLoadingMoreTrips = true);
+
+    try {
+      final nextPage = _currentTripsPage + 1;
+      final tripsPage = await _repository.loadTrips(
+        page: nextPage,
+        size: _tripsPageSize,
+      );
+
+      setState(() {
+        _allTrips = [..._allTrips, ...tripsPage.content];
+        _currentTripsPage = nextPage;
+        _hasMoreTrips = !tripsPage.last;
+        _isLoadingMoreTrips = false;
+        _categorizeTrips();
+      });
+
+      // Subscribe to new trip WebSocket updates
+      _webSocketService.subscribeToTrips(
+          tripsPage.content.map((t) => t.id).toList());
+    } catch (e) {
+      setState(() => _isLoadingMoreTrips = false);
+      if (mounted) {
+        UiHelpers.showErrorMessage(context, 'Error loading more trips: $e');
+      }
     }
   }
 
@@ -1156,6 +1199,7 @@ class _HomeScreenState extends State<HomeScreen>
               defaultRelationship: RelationshipType.following,
             ),
           ],
+          if (_hasMoreTrips) _buildLoadMoreTripsButton(),
         ],
       ),
     );
@@ -1236,6 +1280,7 @@ class _HomeScreenState extends State<HomeScreen>
             const SizedBox(height: 12),
             _buildTripGrid(nonPromotedTrips, showRelationship: true),
           ],
+          if (_hasMoreTrips) _buildLoadMoreTripsButton(),
         ],
       ),
     );
@@ -1311,6 +1356,34 @@ class _HomeScreenState extends State<HomeScreen>
           _buildTripGrid(nonPromotedTrips, showRelationship: false),
         ],
       ],
+    );
+  }
+
+  Widget _buildLoadMoreTripsButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Center(
+        child: _isLoadingMoreTrips
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  color: WandererTheme.primaryOrange,
+                  strokeWidth: 2,
+                ),
+              )
+            : TextButton.icon(
+                onPressed: _loadMoreTrips,
+                icon: const Icon(
+                  Icons.expand_more,
+                  color: WandererTheme.primaryOrange,
+                ),
+                label: const Text(
+                  'Load more trips',
+                  style: TextStyle(color: WandererTheme.primaryOrange),
+                ),
+              ),
+      ),
     );
   }
 

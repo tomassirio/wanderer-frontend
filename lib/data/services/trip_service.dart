@@ -42,7 +42,7 @@ class TripService {
   /// Get all trips (admin only, paginated)
   Future<PageResponse<Trip>> getAllTrips({
     int page = 0,
-    int size = 100,
+    int size = 20,
   }) async {
     return await _tripQueryClient.getAllTrips(page: page, size: size);
   }
@@ -50,7 +50,7 @@ class TripService {
   /// Get public trips (paginated)
   Future<PageResponse<Trip>> getPublicTrips({
     int page = 0,
-    int size = 100,
+    int size = 20,
   }) async {
     return await _tripQueryClient.getPublicTrips(page: page, size: size);
   }
@@ -58,7 +58,7 @@ class TripService {
   /// Get available trips (paginated)
   Future<PageResponse<Trip>> getAvailableTrips({
     int page = 0,
-    int size = 100,
+    int size = 20,
   }) async {
     return await _tripQueryClient.getAvailableTrips(page: page, size: size);
   }
@@ -160,7 +160,7 @@ class TripService {
   Future<PageResponse<TripLocation>> getTripUpdates(
     String tripId, {
     int page = 0,
-    int size = 100,
+    int size = 1000,
   }) async {
     return await _tripQueryClient.getTripUpdates(tripId,
         page: page, size: size);

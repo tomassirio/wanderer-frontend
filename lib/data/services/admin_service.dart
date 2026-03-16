@@ -41,7 +41,7 @@ class AdminService {
   /// Get all trips (admin only, paginated) - for listing promotable trips
   Future<PageResponse<Trip>> getAllTrips({
     int page = 0,
-    int size = 100,
+    int size = 20,
   }) async {
     return await _tripQueryClient.getAllTrips(page: page, size: size);
   }

@@ -31,6 +31,10 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
   List<PromotedTrip> _promotedTrips = [];
   List<Trip> _filteredTrips = [];
   bool _isLoading = false;
+  bool _isLoadingMoreTrips = false;
+  bool _hasMoreTrips = false;
+  int _currentTripsPage = 0;
+  static const int _tripsPageSize = 20;
   bool _isLoadingPromoted = false;
   String? _error;
   String? _userId;
@@ -83,24 +87,20 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
     setState(() {
       _isLoading = true;
       _error = null;
+      _currentTripsPage = 0;
     });
 
     try {
-      // Get all trips (admin only, paginated)
-      final page = await _adminService.getAllTrips();
-      final trips = page.content;
+      // Get all trips (admin only, first page)
+      final page =
+          await _adminService.getAllTrips(page: 0, size: _tripsPageSize);
 
-      // Filter to only show public trips with status: created, in_progress, or paused
-      final promotableTrips = trips.where((trip) {
-        return trip.visibility == Visibility.public &&
-            (trip.status == TripStatus.created ||
-                trip.status == TripStatus.inProgress ||
-                trip.status == TripStatus.paused);
-      }).toList();
+      final promotableTrips = _filterPromotable(page.content);
 
       setState(() {
         _allTrips = promotableTrips;
         _filteredTrips = promotableTrips;
+        _hasMoreTrips = !page.last;
         _isLoading = false;
       });
     } catch (e) {
@@ -109,6 +109,48 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _loadMoreTrips() async {
+    if (_isLoadingMoreTrips || !_hasMoreTrips) return;
+
+    setState(() => _isLoadingMoreTrips = true);
+
+    try {
+      final nextPage = _currentTripsPage + 1;
+      final page = await _adminService.getAllTrips(
+          page: nextPage, size: _tripsPageSize);
+
+      final more = _filterPromotable(page.content);
+
+      setState(() {
+        _allTrips = [..._allTrips, ...more];
+        _currentTripsPage = nextPage;
+        _hasMoreTrips = !page.last;
+        _isLoadingMoreTrips = false;
+        final query = _searchController.text.toLowerCase();
+        _filteredTrips = query.isEmpty
+            ? _allTrips
+            : _allTrips.where((t) {
+                return t.name.toLowerCase().contains(query) ||
+                    t.username.toLowerCase().contains(query);
+              }).toList();
+      });
+    } catch (e) {
+      setState(() => _isLoadingMoreTrips = false);
+      if (mounted) {
+        UiHelpers.showErrorMessage(context, 'Error loading more trips: $e');
+      }
+    }
+  }
+
+  List<Trip> _filterPromotable(List<Trip> trips) {
+    return trips.where((trip) {
+      return trip.visibility == Visibility.public &&
+          (trip.status == TripStatus.created ||
+              trip.status == TripStatus.inProgress ||
+              trip.status == TripStatus.paused);
+    }).toList();
   }
 
   Future<void> _loadPromotedTrips() async {
@@ -660,6 +702,33 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
                       .any((promoted) => promoted.tripId == trip.id);
                   return _buildPromotableTripItem(trip, isPromoted, isMobile);
                 },
+              ),
+            if (_hasMoreTrips)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: _isLoadingMoreTrips
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: WandererTheme.primaryOrange,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : TextButton.icon(
+                          onPressed: _loadMoreTrips,
+                          icon: const Icon(
+                            Icons.expand_more,
+                            color: WandererTheme.primaryOrange,
+                          ),
+                          label: const Text(
+                            'Load more trips',
+                            style:
+                                TextStyle(color: WandererTheme.primaryOrange),
+                          ),
+                        ),
+                ),
               ),
           ],
         ),
