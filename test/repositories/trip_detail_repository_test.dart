@@ -45,9 +45,9 @@ void main() {
 
         final result = await repository.loadComments('trip-1');
 
-        expect(result.length, 2);
-        expect(result[0].id, 'comment-1');
-        expect(result[1].id, 'comment-2');
+        expect(result.content.length, 2);
+        expect(result.content[0].id, 'comment-1');
+        expect(result.content[1].id, 'comment-2');
         verify(mockCommentService.getCommentsByTripId('trip-1',
                 page: anyNamed('page'), size: anyNamed('size')))
             .called(1);
@@ -61,7 +61,7 @@ void main() {
 
         final result = await repository.loadComments('trip-1');
 
-        expect(result, isEmpty);
+        expect(result.content, isEmpty);
         verify(mockCommentService.getCommentsByTripId('trip-1',
                 page: anyNamed('page'), size: anyNamed('size')))
             .called(1);
@@ -89,7 +89,7 @@ void main() {
 
           final result = await repository.loadComments('trip-1');
 
-          expect(result, isEmpty);
+          expect(result.content, isEmpty);
         },
       );
     });
@@ -399,7 +399,7 @@ PageResponse<Comment> _wrapCommentsInPage(List<Comment> comments) {
     totalElements: comments.length,
     totalPages: comments.isEmpty ? 0 : 1,
     number: 0,
-    size: 100,
+    size: 20,
     first: true,
     last: true,
   );

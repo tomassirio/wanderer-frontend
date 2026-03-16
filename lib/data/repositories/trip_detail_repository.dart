@@ -1,6 +1,7 @@
 import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/domain/location_update_result.dart';
+import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/services/comment_service.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/data/services/trip_update_service.dart';
@@ -24,10 +25,32 @@ class TripDetailRepository {
         _authService = authService ?? AuthService(),
         _tripUpdateService = tripUpdateService ?? TripUpdateService();
 
-  /// Loads top-level comments for a trip via API (paginated)
-  Future<List<Comment>> loadComments(String tripId) async {
-    final page = await _commentService.getCommentsByTripId(tripId);
-    return page.content.where((c) => c.parentCommentId == null).toList();
+  /// Loads top-level comments for a trip via API (paginated).
+  /// The backend returns only top-level comments (replies are nested within
+  /// each comment's [Comment.replies] field), so [totalElements] and
+  /// [totalPages] already reflect the top-level count. The client-side
+  /// [parentCommentId] filter is a safety guard for any orphaned items.
+  Future<PageResponse<Comment>> loadComments(
+    String tripId, {
+    int page = 0,
+    int size = 20,
+  }) async {
+    final pageResponse = await _commentService.getCommentsByTripId(
+      tripId,
+      page: page,
+      size: size,
+    );
+    final topLevel =
+        pageResponse.content.where((c) => c.parentCommentId == null).toList();
+    return PageResponse(
+      content: topLevel,
+      totalElements: pageResponse.totalElements,
+      totalPages: pageResponse.totalPages,
+      number: pageResponse.number,
+      size: pageResponse.size,
+      first: pageResponse.first,
+      last: pageResponse.last,
+    );
   }
 
   /// Gets full trip data by ID

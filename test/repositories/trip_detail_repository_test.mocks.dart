@@ -95,7 +95,7 @@ class MockCommentService extends _i1.Mock implements _i6.CommentService {
   _i7.Future<_i2.PageResponse<_i3.Comment>> getCommentsByTripId(
     String? tripId, {
     int? page = 0,
-    int? size = 100,
+    int? size = 20,
   }) =>
       (super.noSuchMethod(
         Invocation.method(

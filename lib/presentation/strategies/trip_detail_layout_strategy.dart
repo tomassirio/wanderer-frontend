@@ -19,6 +19,8 @@ class TripDetailLayoutData {
   final Map<String, bool> expandedComments;
   final List<TripLocation> tripUpdates;
   final bool isLoadingComments;
+  final bool isLoadingMoreComments;
+  final bool hasMoreComments;
   final bool isLoadingUpdates;
   final bool isLoggedIn;
   final bool isAddingComment;
@@ -59,6 +61,7 @@ class TripDetailLayoutData {
   final Function(String, bool) onToggleReplies;
   final VoidCallback onSendComment;
   final VoidCallback onCancelReply;
+  final VoidCallback? onLoadMoreComments;
   final Function(TripStatus)? onStatusChange;
   final Function(bool automaticUpdates, int? updateRefresh,
       TripModality? tripModality)? onSettingsChange;
@@ -79,6 +82,8 @@ class TripDetailLayoutData {
     required this.expandedComments,
     required this.tripUpdates,
     required this.isLoadingComments,
+    this.isLoadingMoreComments = false,
+    this.hasMoreComments = false,
     required this.isLoadingUpdates,
     required this.isLoggedIn,
     required this.isAddingComment,
@@ -118,6 +123,7 @@ class TripDetailLayoutData {
     required this.onToggleReplies,
     required this.onSendComment,
     required this.onCancelReply,
+    this.onLoadMoreComments,
     this.onStatusChange,
     this.onSettingsChange,
     required this.onSendTripUpdate,
@@ -200,6 +206,8 @@ abstract class TripDetailLayoutStrategy {
       expandedComments: data.expandedComments,
       tripUserId: data.trip.userId,
       isLoading: data.isLoadingComments,
+      isLoadingMore: data.isLoadingMoreComments,
+      hasMore: data.hasMoreComments,
       isLoggedIn: data.isLoggedIn,
       isAddingComment: data.isAddingComment,
       isCollapsed: data.isCommentsCollapsed,
@@ -216,6 +224,7 @@ abstract class TripDetailLayoutStrategy {
       onToggleReplies: data.onToggleReplies,
       onSendComment: data.onSendComment,
       onCancelReply: data.onCancelReply,
+      onLoadMore: data.onLoadMoreComments,
     );
   }
 
