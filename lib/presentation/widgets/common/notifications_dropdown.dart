@@ -419,8 +419,7 @@ class _NotificationsDropdownContentState
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.error_outline,
-                size: 36,
-                color: theme.colorScheme.onSurface.withOpacity(0.4)),
+                size: 36, color: theme.colorScheme.onSurface.withOpacity(0.4)),
             const SizedBox(height: 8),
             Text(
               _error!,
@@ -447,8 +446,7 @@ class _NotificationsDropdownContentState
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.notifications_none,
-                size: 48,
-                color: theme.colorScheme.onSurface.withOpacity(0.4)),
+                size: 48, color: theme.colorScheme.onSurface.withOpacity(0.4)),
             const SizedBox(height: 12),
             Text(
               'No notifications yet',
@@ -542,8 +540,7 @@ class _NotificationsDropdownContentState
                     timeAgo,
                     style: TextStyle(
                         fontSize: 11,
-                        color:
-                            theme.colorScheme.onSurface.withOpacity(0.5)),
+                        color: theme.colorScheme.onSurface.withOpacity(0.5)),
                   ),
                 ],
               ),

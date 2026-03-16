@@ -50,6 +50,7 @@ dependencies:
   url_launcher: ^6.2.1
   flutter_local_notifications: ^20.1.0
   qr_flutter: ^4.1.0
+  package_info_plus: ^8.0.0
 
 dev_dependencies:
   flutter_test:
