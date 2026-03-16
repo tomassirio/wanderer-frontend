@@ -110,5 +110,8 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // AndroidX Activity 1.10+ handles edge-to-edge on API 35+ without
+    // calling the deprecated setStatusBarColor / setNavigationBarColor APIs.
+    implementation("androidx.activity:activity-ktx:1.10.0")
 }
 
