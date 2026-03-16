@@ -101,8 +101,8 @@ void main() {
     });
 
     group('getAllTrips', () {
-      test('successful retrieval returns list of trips', () async {
-        final responseBody = [
+      test('successful retrieval returns paginated trips', () async {
+        final trips = [
           {
             'id': 'trip-1',
             'userId': 'user-1',
@@ -128,13 +128,17 @@ void main() {
             'updatedAt': DateTime.now().toIso8601String(),
           },
         ];
+        final responseBody = _wrapInPage(trips);
         mockHttpClient.response = http.Response(jsonEncode(responseBody), 200);
 
         final result = await tripQueryClient.getAllTrips();
 
-        expect(result.length, 2);
-        expect(result[0].id, 'trip-1');
-        expect(result[1].id, 'trip-2');
+        expect(result.content.length, 2);
+        expect(result.content[0].id, 'trip-1');
+        expect(result.content[1].id, 'trip-2');
+        expect(result.totalElements, 2);
+        expect(result.first, true);
+        expect(result.last, true);
         expect(mockHttpClient.lastMethod, 'GET');
         expect(mockHttpClient.lastUri?.path, endsWith(ApiEndpoints.trips));
         expect(
@@ -143,8 +147,20 @@ void main() {
         );
       });
 
+      test('getAllTrips sends pagination query params', () async {
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage([])), 200);
+
+        await tripQueryClient.getAllTrips(page: 2, size: 10);
+
+        final uri = mockHttpClient.lastUri!;
+        expect(uri.queryParameters['page'], '2');
+        expect(uri.queryParameters['size'], '10');
+      });
+
       test('getAllTrips requires authentication (ADMIN)', () async {
-        mockHttpClient.response = http.Response(jsonEncode([]), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage([])), 200);
 
         await tripQueryClient.getAllTrips();
 
@@ -225,8 +241,8 @@ void main() {
     });
 
     group('getPublicTrips', () {
-      test('successful retrieval returns public trips', () async {
-        final responseBody = [
+      test('successful retrieval returns paginated public trips', () async {
+        final trips = [
           {
             'id': 'trip-1',
             'userId': 'user-1',
@@ -240,12 +256,13 @@ void main() {
             'updatedAt': DateTime.now().toIso8601String(),
           },
         ];
-        mockHttpClient.response = http.Response(jsonEncode(responseBody), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage(trips)), 200);
 
         final result = await tripQueryClient.getPublicTrips();
 
-        expect(result.length, 1);
-        expect(result[0].name, 'Public Trip 1');
+        expect(result.content.length, 1);
+        expect(result.content[0].name, 'Public Trip 1');
         expect(mockHttpClient.lastMethod, 'GET');
         expect(
           mockHttpClient.lastUri?.path,
@@ -256,25 +273,28 @@ void main() {
       test('getPublicTrips does not require authentication', () async {
         mockTokenStorage.accessToken = null;
         mockTokenStorage.tokenType = null;
-        mockHttpClient.response = http.Response(jsonEncode([]), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage([])), 200);
 
         await tripQueryClient.getPublicTrips();
 
         expect(mockHttpClient.lastHeaders?['Authorization'], isNull);
       });
 
-      test('getPublicTrips returns empty list when no public trips', () async {
-        mockHttpClient.response = http.Response(jsonEncode([]), 200);
+      test('getPublicTrips returns empty page when no public trips', () async {
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage([])), 200);
 
         final result = await tripQueryClient.getPublicTrips();
 
-        expect(result, isEmpty);
+        expect(result.content, isEmpty);
+        expect(result.totalElements, 0);
       });
     });
 
     group('getAvailableTrips', () {
-      test('successful retrieval returns available trips', () async {
-        final responseBody = [
+      test('successful retrieval returns paginated available trips', () async {
+        final trips = [
           {
             'id': 'trip-1',
             'userId': 'user-1',
@@ -288,12 +308,13 @@ void main() {
             'updatedAt': DateTime.now().toIso8601String(),
           },
         ];
-        mockHttpClient.response = http.Response(jsonEncode(responseBody), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage(trips)), 200);
 
         final result = await tripQueryClient.getAvailableTrips();
 
-        expect(result.length, 1);
-        expect(result[0].name, 'Available Trip');
+        expect(result.content.length, 1);
+        expect(result.content[0].name, 'Available Trip');
         expect(mockHttpClient.lastMethod, 'GET');
         expect(
           mockHttpClient.lastUri?.path,
@@ -306,7 +327,8 @@ void main() {
       });
 
       test('getAvailableTrips requires authentication', () async {
-        mockHttpClient.response = http.Response(jsonEncode([]), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage([])), 200);
 
         await tripQueryClient.getAvailableTrips();
 
@@ -401,7 +423,83 @@ void main() {
         },
       );
     });
+
+    group('getTripUpdateLocations', () {
+      test('successful retrieval returns list of locations', () async {
+        final responseBody = [
+          {
+            'id': 'update-1',
+            'lat': 42.8805,
+            'lon': -8.5449,
+            'timestamp': '2026-03-15T10:46:00Z',
+            'updateType': 'REGULAR',
+            'battery': 71,
+            'city': 'Utrecht',
+            'country': 'Netherlands',
+            'temperatureCelsius': 8.7,
+            'weatherCondition': 'CLEAR',
+          },
+          {
+            'id': 'update-2',
+            'lat': 43.0,
+            'lon': -8.6,
+            'timestamp': '2026-03-15T12:00:00Z',
+            'updateType': 'MANUAL',
+            'battery': 55,
+            'city': 'Amsterdam',
+            'country': 'Netherlands',
+          },
+        ];
+        mockHttpClient.response = http.Response(jsonEncode(responseBody), 200);
+
+        final result = await tripQueryClient.getTripUpdateLocations('trip-123');
+
+        expect(result.length, 2);
+        expect(result[0].id, 'update-1');
+        expect(result[0].latitude, 42.8805);
+        expect(result[0].longitude, -8.5449);
+        expect(result[0].city, 'Utrecht');
+        expect(result[0].battery, 71);
+        expect(result[1].id, 'update-2');
+        expect(mockHttpClient.lastMethod, 'GET');
+        expect(
+          mockHttpClient.lastUri?.path,
+          endsWith(ApiEndpoints.tripUpdateLocations('trip-123')),
+        );
+      });
+
+      test('getTripUpdateLocations requires authentication', () async {
+        mockHttpClient.response = http.Response(jsonEncode([]), 200);
+
+        await tripQueryClient.getTripUpdateLocations('trip-123');
+
+        expect(mockHttpClient.lastHeaders?['Authorization'], isNotNull);
+      });
+
+      test('getTripUpdateLocations returns empty list when no updates',
+          () async {
+        mockHttpClient.response = http.Response(jsonEncode([]), 200);
+
+        final result = await tripQueryClient.getTripUpdateLocations('trip-123');
+
+        expect(result, isEmpty);
+      });
+    });
   });
+}
+
+/// Helper to wrap a list of items in a Spring Boot `Page<T>` JSON structure
+Map<String, dynamic> _wrapInPage(List<dynamic> content) {
+  return {
+    'content': content,
+    'totalElements': content.length,
+    'totalPages': content.isEmpty ? 0 : 1,
+    'number': 0,
+    'size': 100,
+    'first': true,
+    'last': true,
+    'empty': content.isEmpty,
+  };
 }
 
 // Mock HTTP Client

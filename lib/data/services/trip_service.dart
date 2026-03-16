@@ -1,3 +1,4 @@
+import '../models/responses/page_response.dart';
 import '../models/trip_models.dart';
 import '../client/clients.dart';
 
@@ -38,19 +39,28 @@ class TripService {
     return await _tripQueryClient.getPublicTripById(tripId);
   }
 
-  /// Get all trips (admin only)
-  Future<List<Trip>> getAllTrips() async {
-    return await _tripQueryClient.getAllTrips();
+  /// Get all trips (admin only, paginated)
+  Future<PageResponse<Trip>> getAllTrips({
+    int page = 0,
+    int size = 100,
+  }) async {
+    return await _tripQueryClient.getAllTrips(page: page, size: size);
   }
 
-  /// Get public trips (no authentication required)
-  Future<List<Trip>> getPublicTrips() async {
-    return await _tripQueryClient.getPublicTrips();
+  /// Get public trips (paginated)
+  Future<PageResponse<Trip>> getPublicTrips({
+    int page = 0,
+    int size = 100,
+  }) async {
+    return await _tripQueryClient.getPublicTrips(page: page, size: size);
   }
 
-  /// Get available trips
-  Future<List<Trip>> getAvailableTrips() async {
-    return await _tripQueryClient.getAvailableTrips();
+  /// Get available trips (paginated)
+  Future<PageResponse<Trip>> getAvailableTrips({
+    int page = 0,
+    int size = 100,
+  }) async {
+    return await _tripQueryClient.getAvailableTrips(page: page, size: size);
   }
 
   /// Get trips by user ID (respects visibility)
@@ -146,8 +156,19 @@ class TripService {
 
   // ===== Trip Updates Operations =====
 
-  /// Get trip updates/locations for a specific trip
-  Future<List<TripLocation>> getTripUpdates(String tripId) async {
-    return await _tripQueryClient.getTripUpdates(tripId);
+  /// Get trip updates for a specific trip (paginated)
+  Future<PageResponse<TripLocation>> getTripUpdates(
+    String tripId, {
+    int page = 0,
+    int size = 100,
+  }) async {
+    return await _tripQueryClient.getTripUpdates(tripId,
+        page: page, size: size);
+  }
+
+  /// Get lightweight trip update locations for map + timeline (not paginated)
+  /// Returns all location points without heavy fields (message, reactions)
+  Future<List<TripLocation>> getTripUpdateLocations(String tripId) async {
+    return await _tripQueryClient.getTripUpdateLocations(tripId);
   }
 }

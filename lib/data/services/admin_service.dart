@@ -38,9 +38,12 @@ class AdminService {
 
   // Promotion operations
 
-  /// Get all trips (admin only) - for listing promotable trips
-  Future<List<Trip>> getAllTrips() async {
-    return await _tripQueryClient.getAllTrips();
+  /// Get all trips (admin only, paginated) - for listing promotable trips
+  Future<PageResponse<Trip>> getAllTrips({
+    int page = 0,
+    int size = 100,
+  }) async {
+    return await _tripQueryClient.getAllTrips(page: page, size: size);
   }
 
   /// Promote a trip

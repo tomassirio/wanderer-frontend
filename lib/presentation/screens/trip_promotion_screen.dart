@@ -86,8 +86,9 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
     });
 
     try {
-      // Get all trips (admin only)
-      final trips = await _adminService.getAllTrips();
+      // Get all trips (admin only, paginated)
+      final page = await _adminService.getAllTrips();
+      final trips = page.content;
 
       // Filter to only show public trips with status: created, in_progress, or paused
       final promotableTrips = trips.where((trip) {

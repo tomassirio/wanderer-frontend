@@ -59,8 +59,10 @@ class TripLocation {
 
     return TripLocation(
       id: json['id'] as String? ?? '',
-      latitude: (location?['lat'] ?? json['latitude'] ?? 0).toDouble(),
-      longitude: (location?['lon'] ?? json['longitude'] ?? 0).toDouble(),
+      latitude:
+          (location?['lat'] ?? json['lat'] ?? json['latitude'] ?? 0).toDouble(),
+      longitude: (location?['lon'] ?? json['lon'] ?? json['longitude'] ?? 0)
+          .toDouble(),
       message: json['message'] as String?,
       imageUrl: json['imageUrl'] as String?,
       timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ??

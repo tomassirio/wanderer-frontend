@@ -1,4 +1,5 @@
 import '../../../core/constants/api_endpoints.dart';
+import '../../models/responses/page_response.dart';
 import '../../models/trip_models.dart';
 import '../api_client.dart';
 
@@ -29,14 +30,19 @@ class TripQueryClient {
     return _apiClient.handleResponse(response, Trip.fromJson);
   }
 
-  /// Get all trips
+  /// Get all trips (paginated)
   /// Requires authentication (ADMIN only)
-  Future<List<Trip>> getAllTrips() async {
+  Future<PageResponse<Trip>> getAllTrips({
+    int page = 0,
+    int size = 100,
+    String sort = 'creationTimestamp,desc',
+  }) async {
+    final endpoint = '${ApiEndpoints.trips}?page=$page&size=$size&sort=$sort';
     final response = await _apiClient.get(
-      ApiEndpoints.trips,
+      endpoint,
       requireAuth: true,
     );
-    return _apiClient.handleListResponse(response, Trip.fromJson);
+    return _apiClient.handlePageResponse(response, Trip.fromJson);
   }
 
   /// Get current user's trips
@@ -49,24 +55,36 @@ class TripQueryClient {
     return _apiClient.handleListResponse(response, Trip.fromJson);
   }
 
-  /// Get public trips
+  /// Get public trips (paginated)
   /// No authentication required
-  Future<List<Trip>> getPublicTrips() async {
+  Future<PageResponse<Trip>> getPublicTrips({
+    int page = 0,
+    int size = 100,
+    String sort = 'creationTimestamp,desc',
+  }) async {
+    final endpoint =
+        '${ApiEndpoints.tripsPublic}?page=$page&size=$size&sort=$sort';
     final response = await _apiClient.get(
-      ApiEndpoints.tripsPublic,
+      endpoint,
       requireAuth: false,
     );
-    return _apiClient.handleListResponse(response, Trip.fromJson);
+    return _apiClient.handlePageResponse(response, Trip.fromJson);
   }
 
-  /// Get available trips
+  /// Get available trips (paginated)
   /// Requires authentication (USER, ADMIN)
-  Future<List<Trip>> getAvailableTrips() async {
+  Future<PageResponse<Trip>> getAvailableTrips({
+    int page = 0,
+    int size = 100,
+    String sort = 'creationTimestamp,desc',
+  }) async {
+    final endpoint =
+        '${ApiEndpoints.tripsAvailable}?page=$page&size=$size&sort=$sort';
     final response = await _apiClient.get(
-      ApiEndpoints.tripsAvailable,
+      endpoint,
       requireAuth: true,
     );
-    return _apiClient.handleListResponse(response, Trip.fromJson);
+    return _apiClient.handlePageResponse(response, Trip.fromJson);
   }
 
   /// Get trips by user ID
@@ -79,11 +97,29 @@ class TripQueryClient {
     return _apiClient.handleListResponse(response, Trip.fromJson);
   }
 
-  /// Get trip updates/locations for a specific trip
+  /// Get trip updates for a specific trip (paginated)
   /// Requires authentication (visibility-dependent)
-  Future<List<TripLocation>> getTripUpdates(String tripId) async {
+  Future<PageResponse<TripLocation>> getTripUpdates(
+    String tripId, {
+    int page = 0,
+    int size = 100,
+    String sort = 'timestamp,desc',
+  }) async {
+    final endpoint =
+        '${ApiEndpoints.tripUpdates(tripId)}?page=$page&size=$size&sort=$sort';
     final response = await _apiClient.get(
-      ApiEndpoints.tripUpdates(tripId),
+      endpoint,
+      requireAuth: true,
+    );
+    return _apiClient.handlePageResponse(response, TripLocation.fromJson);
+  }
+
+  /// Get lightweight trip update locations for map + timeline (not paginated)
+  /// Returns all location points for a trip without heavy fields (message, reactions)
+  /// Requires authentication (visibility-dependent)
+  Future<List<TripLocation>> getTripUpdateLocations(String tripId) async {
+    final response = await _apiClient.get(
+      ApiEndpoints.tripUpdateLocations(tripId),
       requireAuth: true,
     );
     return _apiClient.handleListResponse(response, TripLocation.fromJson);

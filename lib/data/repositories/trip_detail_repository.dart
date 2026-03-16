@@ -24,10 +24,10 @@ class TripDetailRepository {
         _authService = authService ?? AuthService(),
         _tripUpdateService = tripUpdateService ?? TripUpdateService();
 
-  /// Loads top-level comments for a trip via API
+  /// Loads top-level comments for a trip via API (paginated)
   Future<List<Comment>> loadComments(String tripId) async {
-    final allComments = await _commentService.getCommentsByTripId(tripId);
-    return allComments.where((c) => c.parentCommentId == null).toList();
+    final page = await _commentService.getCommentsByTripId(tripId);
+    return page.content.where((c) => c.parentCommentId == null).toList();
   }
 
   /// Gets full trip data by ID
@@ -169,10 +169,11 @@ class TripDetailRepository {
     await _authService.logout();
   }
 
-  /// Loads trip updates for a specific trip via API
+  /// Loads lightweight trip update locations for map + timeline via API
+  /// Uses the /locations endpoint which returns all points without heavy fields
   /// City and country are now populated by the backend via reverse geocoding
   Future<List<TripLocation>> loadTripUpdates(String tripId) {
-    return _tripService.getTripUpdates(tripId);
+    return _tripService.getTripUpdateLocations(tripId);
   }
 
   /// Sends a manual trip update with current location and battery

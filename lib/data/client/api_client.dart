@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:http/http.dart' as http;
+import '../models/responses/page_response.dart';
 import '../storage/token_storage.dart';
 import '../storage/token_refresh_manager.dart';
 
@@ -334,6 +335,19 @@ class ApiClient {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((item) => fromJson(item)).toList();
+    } else {
+      throw _handleError(response);
+    }
+  }
+
+  /// Handle paginated response (Spring Boot `Page<T>` format)
+  PageResponse<T> handlePageResponse<T>(
+    http.Response response,
+    T Function(Map<String, dynamic>) fromJson,
+  ) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return PageResponse.fromJson(data, fromJson);
     } else {
       throw _handleError(response);
     }

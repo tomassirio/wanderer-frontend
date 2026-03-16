@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/data/models/admin_models.dart';
+import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/services/admin_service.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
@@ -104,9 +105,10 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
         _adminService.getTripStats(),
       ]);
 
+      final tripPage = results[0] as PageResponse<Trip>;
       setState(() {
-        _allTrips = results[0] as List<Trip>;
-        _filteredTrips = results[0] as List<Trip>;
+        _allTrips = tripPage.content;
+        _filteredTrips = tripPage.content;
         _stats = results[1] as TripMaintenanceStats;
         _isLoading = false;
       });

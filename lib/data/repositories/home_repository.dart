@@ -59,9 +59,13 @@ class HomeRepository {
     final userId = await _authService.getCurrentUserId();
 
     // Load public trips if not logged in, or user's trips if logged in
-    return isLoggedIn && userId != null
-        ? await _tripService.getAvailableTrips()
-        : await _tripService.getPublicTrips();
+    if (isLoggedIn && userId != null) {
+      final page = await _tripService.getAvailableTrips();
+      return page.content;
+    } else {
+      final page = await _tripService.getPublicTrips();
+      return page.content;
+    }
   }
 
   /// Logs out the current user
@@ -109,7 +113,8 @@ class HomeRepository {
   /// Gets public trips for discovery
   Future<List<Trip>> getPublicTrips() async {
     try {
-      return await _tripService.getPublicTrips();
+      final page = await _tripService.getPublicTrips();
+      return page.content;
     } catch (e) {
       debugPrint('Error fetching public trips: $e');
       return [];

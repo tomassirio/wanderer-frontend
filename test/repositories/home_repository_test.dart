@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/data/services/auth_service.dart';
@@ -203,26 +204,44 @@ class MockTripService extends TripService {
   bool getPublicTripsCalled = false;
   bool shouldThrowError = false;
 
+  PageResponse<Trip> _wrapInPage(List<Trip> trips) {
+    return PageResponse(
+      content: trips,
+      totalElements: trips.length,
+      totalPages: trips.isEmpty ? 0 : 1,
+      number: 0,
+      size: 100,
+      first: true,
+      last: true,
+    );
+  }
+
   @override
-  Future<List<Trip>> getAvailableTrips() async {
+  Future<PageResponse<Trip>> getAvailableTrips({
+    int page = 0,
+    int size = 100,
+  }) async {
     getAvailableTripsCalled = true;
 
     if (shouldThrowError) {
       throw Exception('Failed to load available trips');
     }
 
-    return mockTrips;
+    return _wrapInPage(mockTrips);
   }
 
   @override
-  Future<List<Trip>> getPublicTrips() async {
+  Future<PageResponse<Trip>> getPublicTrips({
+    int page = 0,
+    int size = 100,
+  }) async {
     getPublicTripsCalled = true;
 
     if (shouldThrowError) {
       throw Exception('Failed to load public trips');
     }
 
-    return mockTrips;
+    return _wrapInPage(mockTrips);
   }
 }
 

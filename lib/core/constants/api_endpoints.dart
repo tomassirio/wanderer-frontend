@@ -101,6 +101,11 @@ class ApiEndpoints {
   // Trip Update Command endpoints (use commandBaseUrl)
   static String tripUpdates(String tripId) => '/trips/$tripId/updates';
 
+  // Trip Update Location Query endpoint (use queryBaseUrl)
+  // Returns lightweight location data for map + timeline (not paginated)
+  static String tripUpdateLocations(String tripId) =>
+      '/trips/$tripId/updates/locations';
+
   // Comment Command endpoints (use commandBaseUrl)
   static String tripComments(String tripId) => '/trips/$tripId/comments';
   static String commentReactions(String commentId) =>
