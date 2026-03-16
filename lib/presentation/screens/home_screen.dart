@@ -106,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen>
       setState(() {
         // Reset visibility filter when switching away from My Trips tab
         // since visibility filter only applies to My Trips
-        if (_tabController.index != 0) {
+        if (_tabController.index != 2) {
           _visibilityFilter = null;
           // Reset status filter if current filter is not valid for Feed/Discover
           // (only inProgress, resting, and paused are shown in those tabs)
@@ -700,7 +700,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildFilterChips() {
-    final bool isMyTripsTab = _tabController.index == 0;
+    final bool isMyTripsTab = _tabController.index == 2;
 
     return Container(
       width: double.infinity,
@@ -1617,9 +1617,9 @@ class _HomeScreenState extends State<HomeScreen>
                               child: TabBarView(
                                 controller: _tabController,
                                 children: [
-                                  _buildMyTripsTab(),
-                                  _buildFeedTab(),
                                   _buildDiscoverTab(),
+                                  _buildFeedTab(),
+                                  _buildMyTripsTab(),
                                 ],
                               ),
                             ),
@@ -1658,19 +1658,19 @@ class _HomeScreenState extends State<HomeScreen>
                                       final isSelected =
                                           _tabController.index == index;
                                       final icons = [
-                                        Icons.person_outline,
-                                        Icons.dynamic_feed_outlined,
                                         Icons.explore_outlined,
+                                        Icons.dynamic_feed_outlined,
+                                        Icons.person_outline,
                                       ];
                                       final selectedIcons = [
-                                        Icons.person,
-                                        Icons.dynamic_feed,
                                         Icons.explore,
+                                        Icons.dynamic_feed,
+                                        Icons.person,
                                       ];
                                       final labels = [
-                                        'My Trips',
+                                        'Discover',
                                         'Feed',
-                                        'Discover'
+                                        'My Trips'
                                       ];
                                       return Expanded(
                                         child: InkWell(
