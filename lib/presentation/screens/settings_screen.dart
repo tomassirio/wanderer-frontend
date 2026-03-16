@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
@@ -30,12 +31,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoading = false;
   bool _pushEnabled = true;
   bool _isDarkMode = false;
+  String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
     _loadPushPreference();
+    _loadAppVersion();
     _isDarkMode = ThemeController().isDarkMode;
+  }
+
+  Future<void> _loadAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = packageInfo.version;
+      });
+    }
   }
 
   Future<void> _loadPushPreference() async {
@@ -462,7 +474,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   iconColor:
                       Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                   title: 'App Version',
-                  subtitle: '1.2.8-SNAPSHOT',
+                  subtitle: _appVersion.isEmpty ? 'Loading...' : _appVersion,
                   onTap: null,
                 ),
                 const SizedBox(height: 8),

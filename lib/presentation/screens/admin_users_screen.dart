@@ -572,10 +572,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             child: Text(
               'No users found',
               style: TextStyle(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withOpacity(0.6)),
+                  color:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
             ),
           ),
         ),
@@ -755,10 +753,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withOpacity(0.05),
+                  color:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(

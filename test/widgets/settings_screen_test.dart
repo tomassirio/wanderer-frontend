@@ -122,7 +122,6 @@ void main() {
 
       expect(find.text('ABOUT'), findsOneWidget);
       expect(find.text('App Version'), findsOneWidget);
-      expect(find.text('1.2.8-SNAPSHOT'), findsOneWidget);
     });
 
     testWidgets('renders Danger Zone section with Close Account', (
