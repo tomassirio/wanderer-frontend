@@ -250,7 +250,7 @@ class _WandererAppBarState extends State<WandererAppBar> {
   Widget build(BuildContext context) {
     return AppBar(
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      centerTitle: true,
+      centerTitle: false,
       title: _isSearchExpanded
           ? SearchBarWidget(
               controller: widget.searchController,
@@ -268,19 +268,16 @@ class _WandererAppBarState extends State<WandererAppBar> {
                     // Navigate to home screen by popping all routes until first route
                     Navigator.of(context).popUntil((route) => route.isFirst);
                   },
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(15),
                   child: const Padding(
-                    padding: EdgeInsets.all(4.0),
-                    child: WandererLogo(size: 36),
+                    padding: EdgeInsets.all(2.0),
+                    child: WandererLogo(size: 30),
                   ),
                 ),
-                const SizedBox(width: 12),
-                const Flexible(
-                  child: Text(
-                    'Wanderer',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Wanderer',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -329,11 +326,12 @@ class _WandererAppBarState extends State<WandererAppBar> {
           ),
         if (!widget.isLoggedIn && widget.onLoginPressed != null)
           Padding(
-            padding: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.only(right: 8),
             child: TextButton.icon(
               onPressed: widget.onLoginPressed,
-              icon: const Icon(Icons.login, color: Colors.white),
-              label: const Text('Login', style: TextStyle(color: Colors.white)),
+              icon: const Icon(Icons.login, size: 18, color: Colors.white),
+              label: const Text('Login',
+                  style: TextStyle(fontSize: 13, color: Colors.white)),
             ),
           ),
         if (widget.isLoggedIn && widget.username != null)
