@@ -95,7 +95,7 @@ class MockCommentService extends _i1.Mock implements _i6.CommentService {
   _i7.Future<_i2.PageResponse<_i3.Comment>> getCommentsByTripId(
     String? tripId, {
     int? page = 0,
-    int? size = 100,
+    int? size = 20,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -272,7 +272,7 @@ class MockTripService extends _i1.Mock implements _i9.TripService {
   @override
   _i7.Future<_i2.PageResponse<_i4.Trip>> getAllTrips({
     int? page = 0,
-    int? size = 100,
+    int? size = 20,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -300,7 +300,7 @@ class MockTripService extends _i1.Mock implements _i9.TripService {
   @override
   _i7.Future<_i2.PageResponse<_i4.Trip>> getPublicTrips({
     int? page = 0,
-    int? size = 100,
+    int? size = 20,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -328,7 +328,7 @@ class MockTripService extends _i1.Mock implements _i9.TripService {
   @override
   _i7.Future<_i2.PageResponse<_i4.Trip>> getAvailableTrips({
     int? page = 0,
-    int? size = 100,
+    int? size = 20,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -619,7 +619,7 @@ class MockTripService extends _i1.Mock implements _i9.TripService {
   _i7.Future<_i2.PageResponse<_i4.TripLocation>> getTripUpdates(
     String? tripId, {
     int? page = 0,
-    int? size = 100,
+    int? size = 1000,
   }) =>
       (super.noSuchMethod(
         Invocation.method(

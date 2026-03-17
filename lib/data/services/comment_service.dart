@@ -19,7 +19,7 @@ class CommentService {
   Future<PageResponse<Comment>> getCommentsByTripId(
     String tripId, {
     int page = 0,
-    int size = 100,
+    int size = 20,
   }) async {
     return await _commentQueryClient.getTripComments(tripId,
         page: page, size: size);

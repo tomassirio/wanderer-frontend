@@ -25,7 +25,7 @@ class CommentQueryClient {
   Future<PageResponse<Comment>> getTripComments(
     String tripId, {
     int page = 0,
-    int size = 100,
+    int size = 20,
     String sort = 'timestamp,desc',
   }) async {
     final endpoint =

@@ -17,6 +17,8 @@ class CommentsSection extends StatelessWidget {
   final String tripUserId;
   final String? currentUserId;
   final bool isLoading;
+  final bool isLoadingMore;
+  final bool hasMore;
   final bool isLoggedIn;
   final bool isAddingComment;
   final bool isCollapsed;
@@ -32,6 +34,7 @@ class CommentsSection extends StatelessWidget {
   final Function(String, bool) onToggleReplies;
   final VoidCallback onSendComment;
   final VoidCallback onCancelReply;
+  final VoidCallback? onLoadMore;
 
   const CommentsSection({
     super.key,
@@ -41,6 +44,8 @@ class CommentsSection extends StatelessWidget {
     required this.tripUserId,
     this.currentUserId,
     required this.isLoading,
+    this.isLoadingMore = false,
+    this.hasMore = false,
     required this.isLoggedIn,
     required this.isAddingComment,
     required this.isCollapsed,
@@ -56,6 +61,7 @@ class CommentsSection extends StatelessWidget {
     required this.onToggleReplies,
     required this.onSendComment,
     required this.onCancelReply,
+    this.onLoadMore,
   });
 
   @override
@@ -288,8 +294,12 @@ class CommentsSection extends StatelessWidget {
                               controller: scrollController,
                               shrinkWrap: true,
                               padding: const EdgeInsets.symmetric(vertical: 8),
-                              itemCount: comments.length,
+                              itemCount:
+                                  comments.length + (hasMore ? 1 : 0),
                               itemBuilder: (context, index) {
+                                if (index == comments.length) {
+                                  return _buildLoadMoreButton(context);
+                                }
                                 final comment = comments[index];
                                 final isExpanded =
                                     expandedComments[comment.id] ?? false;
@@ -372,6 +382,34 @@ class CommentsSection extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildLoadMoreButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Center(
+        child: isLoadingMore
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  color: WandererTheme.primaryOrange,
+                  strokeWidth: 2,
+                ),
+              )
+            : TextButton.icon(
+                onPressed: onLoadMore,
+                icon: const Icon(
+                  Icons.expand_more,
+                  color: WandererTheme.primaryOrange,
+                ),
+                label: const Text(
+                  'Load more comments',
+                  style: TextStyle(color: WandererTheme.primaryOrange),
+                ),
+              ),
       ),
     );
   }

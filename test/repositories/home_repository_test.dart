@@ -89,9 +89,9 @@ void main() {
 
         final result = await homeRepository.loadTrips();
 
-        expect(result.length, 2);
-        expect(result[0].id, 'trip-1');
-        expect(result[1].id, 'trip-2');
+        expect(result.content.length, 2);
+        expect(result.content[0].id, 'trip-1');
+        expect(result.content[1].id, 'trip-2');
         expect(mockTripService.getAvailableTripsCalled, true);
         expect(mockTripService.getPublicTripsCalled, false);
       });
@@ -105,8 +105,8 @@ void main() {
 
         final result = await homeRepository.loadTrips();
 
-        expect(result.length, 1);
-        expect(result[0].id, 'trip-public');
+        expect(result.content.length, 1);
+        expect(result.content[0].id, 'trip-public');
         expect(mockTripService.getPublicTripsCalled, true);
         expect(mockTripService.getAvailableTripsCalled, false);
       });
@@ -127,14 +127,14 @@ void main() {
         },
       );
 
-      test('returns empty list when no trips available', () async {
+      test('returns empty page when no trips available', () async {
         mockAuthService.mockIsLoggedIn = true;
         mockAuthService.mockUserId = 'user-123';
         mockTripService.mockTrips = [];
 
         final result = await homeRepository.loadTrips();
 
-        expect(result, isEmpty);
+        expect(result.content, isEmpty);
       });
 
       test('passes through service errors', () async {
@@ -210,7 +210,7 @@ class MockTripService extends TripService {
       totalElements: trips.length,
       totalPages: trips.isEmpty ? 0 : 1,
       number: 0,
-      size: 100,
+      size: 20,
       first: true,
       last: true,
     );
@@ -219,7 +219,7 @@ class MockTripService extends TripService {
   @override
   Future<PageResponse<Trip>> getAvailableTrips({
     int page = 0,
-    int size = 100,
+    int size = 20,
   }) async {
     getAvailableTripsCalled = true;
 
@@ -233,7 +233,7 @@ class MockTripService extends TripService {
   @override
   Future<PageResponse<Trip>> getPublicTrips({
     int page = 0,
-    int size = 100,
+    int size = 20,
   }) async {
     getPublicTripsCalled = true;
 

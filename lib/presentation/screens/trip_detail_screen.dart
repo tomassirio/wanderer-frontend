@@ -63,6 +63,11 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   final Map<String, List<Comment>> _replies = {};
   final Map<String, bool> _expandedComments = {};
 
+  int _currentCommentPage = 0;
+  bool _hasMoreComments = false;
+  bool _isLoadingMoreComments = false;
+  static const int _commentPageSize = 20;
+
   List<TripLocation> _tripUpdates = [];
   bool _isLoadingUpdates = false;
 
@@ -1004,12 +1009,20 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   }
 
   Future<void> _loadComments() async {
-    setState(() => _isLoadingComments = true);
+    setState(() {
+      _isLoadingComments = true;
+      _currentCommentPage = 0;
+    });
 
     try {
-      final comments = await _repository.loadComments(_trip.id);
+      final pageResponse = await _repository.loadComments(
+        _trip.id,
+        page: 0,
+        size: _commentPageSize,
+      );
       setState(() {
-        _comments = comments;
+        _comments = pageResponse.content;
+        _hasMoreComments = !pageResponse.last;
         _sortComments();
         _isLoadingComments = false;
       });
@@ -1017,6 +1030,32 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       setState(() => _isLoadingComments = false);
       if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error loading comments: $e');
+      }
+    }
+  }
+
+  Future<void> _loadMoreComments() async {
+    if (_isLoadingMoreComments || !_hasMoreComments) return;
+
+    setState(() => _isLoadingMoreComments = true);
+
+    try {
+      final nextPage = _currentCommentPage + 1;
+      final pageResponse = await _repository.loadComments(
+        _trip.id,
+        page: nextPage,
+        size: _commentPageSize,
+      );
+      setState(() {
+        _comments = [..._comments, ...pageResponse.content];
+        _currentCommentPage = nextPage;
+        _hasMoreComments = !pageResponse.last;
+        _isLoadingMoreComments = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingMoreComments = false);
+      if (mounted) {
+        UiHelpers.showErrorMessage(context, 'Error loading more comments: $e');
       }
     }
   }
@@ -2424,6 +2463,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       expandedComments: _expandedComments,
       tripUpdates: _tripUpdates,
       isLoadingComments: _isLoadingComments,
+      isLoadingMoreComments: _isLoadingMoreComments,
+      hasMoreComments: _hasMoreComments,
       isLoadingUpdates: _isLoadingUpdates,
       isLoggedIn: _isLoggedIn,
       isAddingComment: _isAddingComment,
@@ -2463,6 +2504,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       onToggleReplies: _handleToggleReplies,
       onSendComment: _addComment,
       onCancelReply: () => setState(() => _replyingToCommentId = null),
+      onLoadMoreComments: _hasMoreComments ? _loadMoreComments : null,
       onStatusChange: _changeTripStatus,
       onSettingsChange: _handleSettingsChange,
       onSendTripUpdate: _sendManualUpdate,

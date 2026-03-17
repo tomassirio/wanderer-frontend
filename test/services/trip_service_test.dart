@@ -299,7 +299,7 @@ class MockTripQueryClient extends TripQueryClient {
       totalElements: trips.length,
       totalPages: 1,
       number: 0,
-      size: 100,
+      size: 20,
       first: true,
       last: true,
     );
@@ -323,7 +323,7 @@ class MockTripQueryClient extends TripQueryClient {
   @override
   Future<PageResponse<Trip>> getAllTrips({
     int page = 0,
-    int size = 100,
+    int size = 20,
     String sort = 'creationTimestamp,desc',
   }) async {
     getAllTripsCalled = true;
@@ -334,7 +334,7 @@ class MockTripQueryClient extends TripQueryClient {
   @override
   Future<PageResponse<Trip>> getPublicTrips({
     int page = 0,
-    int size = 100,
+    int size = 20,
     String sort = 'creationTimestamp,desc',
   }) async {
     getPublicTripsCalled = true;
@@ -345,7 +345,7 @@ class MockTripQueryClient extends TripQueryClient {
   @override
   Future<PageResponse<Trip>> getAvailableTrips({
     int page = 0,
-    int size = 100,
+    int size = 20,
     String sort = 'creationTimestamp,desc',
   }) async {
     getAvailableTripsCalled = true;

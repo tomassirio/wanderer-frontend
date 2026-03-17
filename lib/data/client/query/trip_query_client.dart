@@ -34,7 +34,7 @@ class TripQueryClient {
   /// Requires authentication (ADMIN only)
   Future<PageResponse<Trip>> getAllTrips({
     int page = 0,
-    int size = 100,
+    int size = 20,
     String sort = 'creationTimestamp,desc',
   }) async {
     final endpoint = '${ApiEndpoints.trips}?page=$page&size=$size&sort=$sort';
@@ -59,7 +59,7 @@ class TripQueryClient {
   /// No authentication required
   Future<PageResponse<Trip>> getPublicTrips({
     int page = 0,
-    int size = 100,
+    int size = 20,
     String sort = 'creationTimestamp,desc',
   }) async {
     final endpoint =
@@ -75,7 +75,7 @@ class TripQueryClient {
   /// Requires authentication (USER, ADMIN)
   Future<PageResponse<Trip>> getAvailableTrips({
     int page = 0,
-    int size = 100,
+    int size = 20,
     String sort = 'creationTimestamp,desc',
   }) async {
     final endpoint =
@@ -102,7 +102,7 @@ class TripQueryClient {
   Future<PageResponse<TripLocation>> getTripUpdates(
     String tripId, {
     int page = 0,
-    int size = 100,
+    int size = 1000,
     String sort = 'timestamp,desc',
   }) async {
     final endpoint =

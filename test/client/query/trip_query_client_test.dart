@@ -495,7 +495,7 @@ Map<String, dynamic> _wrapInPage(List<dynamic> content) {
     'totalElements': content.length,
     'totalPages': content.isEmpty ? 0 : 1,
     'number': 0,
-    'size': 100,
+    'size': 20,
     'first': true,
     'last': true,
     'empty': content.isEmpty,

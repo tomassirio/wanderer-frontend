@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/data/services/auth_service.dart';
@@ -53,18 +54,19 @@ class HomeRepository {
     return await _authService.isAdmin();
   }
 
-  /// Loads trips based on authentication status
-  Future<List<Trip>> loadTrips() async {
+  /// Loads trips based on authentication status (paginated)
+  Future<PageResponse<Trip>> loadTrips({
+    int page = 0,
+    int size = 20,
+  }) async {
     final isLoggedIn = await _authService.isLoggedIn();
     final userId = await _authService.getCurrentUserId();
 
-    // Load public trips if not logged in, or user's trips if logged in
+    // Load available trips if logged in, or public trips if not
     if (isLoggedIn && userId != null) {
-      final page = await _tripService.getAvailableTrips();
-      return page.content;
+      return await _tripService.getAvailableTrips(page: page, size: size);
     } else {
-      final page = await _tripService.getPublicTrips();
-      return page.content;
+      return await _tripService.getPublicTrips(page: page, size: size);
     }
   }
 
@@ -110,14 +112,24 @@ class HomeRepository {
     }
   }
 
-  /// Gets public trips for discovery
-  Future<List<Trip>> getPublicTrips() async {
+  /// Gets public trips for discovery (paginated)
+  Future<PageResponse<Trip>> getPublicTrips({
+    int page = 0,
+    int size = 20,
+  }) async {
     try {
-      final page = await _tripService.getPublicTrips();
-      return page.content;
+      return await _tripService.getPublicTrips(page: page, size: size);
     } catch (e) {
       debugPrint('Error fetching public trips: $e');
-      return [];
+      return PageResponse(
+        content: [],
+        totalElements: 0,
+        totalPages: 0,
+        number: page,
+        size: size,
+        first: true,
+        last: true,
+      );
     }
   }
 }
