@@ -248,9 +248,11 @@ class _WandererAppBarState extends State<WandererAppBar> {
 
   @override
   Widget build(BuildContext context) {
+    final isWideScreen = MediaQuery.of(context).size.width >= 600;
+
     return AppBar(
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      centerTitle: false,
+      centerTitle: isWideScreen,
       title: _isSearchExpanded
           ? SearchBarWidget(
               controller: widget.searchController,
