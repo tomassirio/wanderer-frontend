@@ -73,7 +73,6 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final ProfileRepository _repository = ProfileRepository();
   final UserService _userService = UserService();
-  final TextEditingController _searchController = TextEditingController();
   UserProfile? _profile;
   List<Trip> _userTrips = [];
   bool _isLoadingProfile = false;
@@ -110,7 +109,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -684,9 +682,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: WandererAppBar(
-        searchController: _searchController,
-        onSearch: () {},
-        onClear: () {},
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
         username: _currentUsername,

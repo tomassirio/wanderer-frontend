@@ -27,7 +27,6 @@ class TripPlansScreen extends StatefulWidget {
 class _TripPlansScreenState extends State<TripPlansScreen> {
   final TripPlanService _tripPlanService = TripPlanService();
   final HomeRepository _homeRepository = HomeRepository();
-  final TextEditingController _searchController = TextEditingController();
   late final TripService _tripService;
   List<TripPlan> _tripPlans = [];
   List<TripPlan> _filteredPlans = [];
@@ -47,12 +46,10 @@ class _TripPlansScreenState extends State<TripPlansScreen> {
     _tripService = TripService();
     _loadUserInfo();
     _loadTripPlans();
-    _searchController.addListener(_filterPlans);
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -99,24 +96,6 @@ class _TripPlansScreenState extends State<TripPlansScreen> {
         _isLoading = false;
       });
     }
-  }
-
-  void _filterPlans() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      if (query.isEmpty) {
-        _filteredPlans = _tripPlans;
-      } else {
-        _filteredPlans = _tripPlans.where((plan) {
-          return plan.name.toLowerCase().contains(query);
-        }).toList();
-      }
-    });
-  }
-
-  void _clearSearch() {
-    _searchController.clear();
-    _filterPlans();
   }
 
   Future<void> _logout() async {
@@ -266,9 +245,6 @@ class _TripPlansScreenState extends State<TripPlansScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: WandererAppBar(
-        searchController: _searchController,
-        onSearch: _filterPlans,
-        onClear: _clearSearch,
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
         username: _username,

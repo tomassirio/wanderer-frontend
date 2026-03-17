@@ -21,7 +21,6 @@ class AchievementsScreen extends StatefulWidget {
 class _AchievementsScreenState extends State<AchievementsScreen> {
   final AchievementService _achievementService = AchievementService();
   final AuthService _authService = AuthService();
-  final TextEditingController _searchController = TextEditingController();
 
   List<Achievement> _allAchievements = [];
   List<UserAchievement> _myAchievements = [];
@@ -43,7 +42,6 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -235,7 +233,6 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: WandererAppBar(
-        searchController: _searchController,
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
         username: _username,

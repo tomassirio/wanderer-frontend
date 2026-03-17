@@ -450,7 +450,6 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: WandererAppBar(
-        searchController: _searchController,
         isLoggedIn: _isLoggedIn,
         username: _username,
         userId: _userId,

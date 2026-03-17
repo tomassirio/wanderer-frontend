@@ -51,7 +51,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   final PromotionQueryClient _promotionQueryClient = PromotionQueryClient();
   final AchievementService _achievementService = AchievementService();
   final WebSocketService _webSocketService = WebSocketService();
-  final TextEditingController _searchController = TextEditingController();
   GoogleMapController? _mapController;
   final Completer<GoogleMapController> _mapControllerCompleter = Completer();
   StreamSubscription<WebSocketEvent>? _wsSubscription;
@@ -850,7 +849,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     debugPrint('TripDetailScreen: Unsubscribed from trip');
     _commentController.dispose();
     _scrollController.dispose();
-    _searchController.dispose();
     _mapController?.dispose();
     super.dispose();
   }
@@ -2228,9 +2226,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: WandererAppBar(
-        searchController: _searchController,
-        onSearch: () {},
-        onClear: () => _searchController.clear(),
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
         username: _username,

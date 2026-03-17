@@ -44,7 +44,6 @@ class _HomeScreenState extends State<HomeScreen>
   final WebSocketService _webSocketService = WebSocketService();
   final PushNotificationManager _pushNotificationManager =
       PushNotificationManager();
-  final TextEditingController _searchController = TextEditingController();
   StreamSubscription<WebSocketEvent>? _wsSubscription;
 
   late TabController _tabController;
@@ -82,7 +81,6 @@ class _HomeScreenState extends State<HomeScreen>
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_onTabChanged);
     _initializeData();
-    _searchController.addListener(_applyFilters);
     _initWebSocket();
   }
 
@@ -239,7 +237,6 @@ class _HomeScreenState extends State<HomeScreen>
     _wsSubscription?.cancel();
     _webSocketService.unsubscribeFromAllTrips();
     _pushNotificationManager.stop();
-    _searchController.dispose();
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
@@ -616,15 +613,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   List<Trip> _getFilteredTrips(List<Trip> trips) {
-    final query = _searchController.text.toLowerCase();
     return trips.where((trip) {
-      // Apply search filter
-      if (query.isNotEmpty) {
-        final matchesQuery = trip.name.toLowerCase().contains(query) ||
-            trip.username.toLowerCase().contains(query);
-        if (!matchesQuery) return false;
-      }
-
       // Apply status filter
       if (_statusFilter != null && trip.status != _statusFilter) {
         return false;
@@ -637,11 +626,6 @@ class _HomeScreenState extends State<HomeScreen>
 
       return true;
     }).toList();
-  }
-
-  void _clearSearch() {
-    _searchController.clear();
-    _applyFilters();
   }
 
   Future<void> _logout() async {
@@ -1511,9 +1495,6 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: WandererAppBar(
-        searchController: _searchController,
-        onSearch: _applyFilters,
-        onClear: _clearSearch,
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
         username: _username,
