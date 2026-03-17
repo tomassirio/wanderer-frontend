@@ -285,19 +285,36 @@ class _HomeScreenState extends State<HomeScreen>
 
     try {
       if (_isLoggedIn) {
-        // Load user-specific data
+        // Load user-specific data AND public trips so the Discover tab
+        // includes all public trips, not just those from the user's network.
         final results = await Future.wait([
           _repository.loadTrips(
-              page: 0, size: _tripsPageSize), // All available trips
+              page: 0,
+              size: _tripsPageSize), // Available trips (relationship-based)
           _repository.getMyTrips(), // User's own trips
           _repository.getFriendsIds(),
           _repository.getFollowingIds(),
+          _repository.getPublicTrips(
+              page: 0, size: _tripsPageSize), // All public trips for Discover
         ]);
 
-        final tripsPage = results[0] as PageResponse<Trip>;
+        final availablePage = results[0] as PageResponse<Trip>;
+        final publicPage = results[4] as PageResponse<Trip>;
+
+        // Merge available trips with public trips (deduplicate by ID).
+        // Available trips take priority since they may contain richer data
+        // (e.g. protected trips from friends).
+        final merged = <String, Trip>{};
+        for (final t in availablePage.content) {
+          merged[t.id] = t;
+        }
+        for (final t in publicPage.content) {
+          merged.putIfAbsent(t.id, () => t);
+        }
+
         setState(() {
-          _allTrips = tripsPage.content;
-          _hasMoreTrips = !tripsPage.last;
+          _allTrips = merged.values.toList();
+          _hasMoreTrips = !availablePage.last || !publicPage.last;
           _myTrips = results[1] as List<Trip>;
           _friendIds = results[2] as Set<String>;
           _followingIds = results[3] as Set<String>;
@@ -306,8 +323,8 @@ class _HomeScreenState extends State<HomeScreen>
         });
       } else {
         // Not logged in, only show public trips
-        final tripsPage = await _repository.getPublicTrips(
-            page: 0, size: _tripsPageSize);
+        final tripsPage =
+            await _repository.getPublicTrips(page: 0, size: _tripsPageSize);
         final trips = tripsPage.content;
 
         // Merge with previously known active trips that the backend may not
@@ -363,22 +380,56 @@ class _HomeScreenState extends State<HomeScreen>
 
     try {
       final nextPage = _currentTripsPage + 1;
-      final tripsPage = await _repository.loadTrips(
-        page: nextPage,
-        size: _tripsPageSize,
-      );
 
-      setState(() {
-        _allTrips = [..._allTrips, ...tripsPage.content];
-        _currentTripsPage = nextPage;
-        _hasMoreTrips = !tripsPage.last;
-        _isLoadingMoreTrips = false;
-        _categorizeTrips();
-      });
+      if (_isLoggedIn) {
+        // Fetch both available and public trips to keep Discover populated
+        final results = await Future.wait([
+          _repository.loadTrips(page: nextPage, size: _tripsPageSize),
+          _repository.getPublicTrips(page: nextPage, size: _tripsPageSize),
+        ]);
 
-      // Subscribe to new trip WebSocket updates
-      _webSocketService.subscribeToTrips(
-          tripsPage.content.map((t) => t.id).toList());
+        final availablePage = results[0];
+        final publicPage = results[1];
+
+        // Merge new pages (deduplicate against existing + each other)
+        final existingIds = _allTrips.map((t) => t.id).toSet();
+        final newTrips = <String, Trip>{};
+        for (final t in availablePage.content) {
+          if (!existingIds.contains(t.id)) newTrips[t.id] = t;
+        }
+        for (final t in publicPage.content) {
+          if (!existingIds.contains(t.id)) {
+            newTrips.putIfAbsent(t.id, () => t);
+          }
+        }
+
+        setState(() {
+          _allTrips = [..._allTrips, ...newTrips.values];
+          _currentTripsPage = nextPage;
+          _hasMoreTrips = !availablePage.last || !publicPage.last;
+          _isLoadingMoreTrips = false;
+          _categorizeTrips();
+        });
+
+        _webSocketService
+            .subscribeToTrips(newTrips.values.map((t) => t.id).toList());
+      } else {
+        final tripsPage = await _repository.loadTrips(
+          page: nextPage,
+          size: _tripsPageSize,
+        );
+
+        setState(() {
+          _allTrips = [..._allTrips, ...tripsPage.content];
+          _currentTripsPage = nextPage;
+          _hasMoreTrips = !tripsPage.last;
+          _isLoadingMoreTrips = false;
+          _categorizeTrips();
+        });
+
+        _webSocketService
+            .subscribeToTrips(tripsPage.content.map((t) => t.id).toList());
+      }
     } catch (e) {
       setState(() => _isLoadingMoreTrips = false);
       if (mounted) {
@@ -396,12 +447,10 @@ class _HomeScreenState extends State<HomeScreen>
           _promotedTripsById = {for (final p in promoted) p.tripId: p};
         });
 
-        // For guest users, promoted pre-announced trips (status: created) are
-        // not returned by the /trips/public endpoint.  Fetch them individually
-        // so that _categorizeTrips() Rule 4 can include them in Discover.
-        if (!_isLoggedIn) {
-          await _fetchMissingPromotedTrips(promoted);
-        }
+        // Fetch any promoted trips that are missing from _allTrips.
+        // For example, pre-announced trips (status: created) or promoted
+        // trips that weren't returned by the available/public endpoints.
+        await _fetchMissingPromotedTrips(promoted);
 
         // Re-categorize since promoted data affects which trips appear in
         // the discover list (promoted completed / pre-announced trips).
@@ -414,7 +463,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   /// Fetches promoted trips that are not yet in [_allTrips] (e.g. pre-announced
-  /// trips with status `created` which the public trips endpoint excludes).
+  /// trips with status `created` which the public/available endpoints exclude).
   Future<void> _fetchMissingPromotedTrips(List<PromotedTrip> promoted) async {
     final existingIds = _allTrips.map((t) => t.id).toSet();
     final missingPromoted =
@@ -425,7 +474,10 @@ class _HomeScreenState extends State<HomeScreen>
     final fetched = <Trip>[];
     for (final p in missingPromoted) {
       try {
-        final trip = await _tripService.getPublicTripById(p.tripId);
+        // Use authenticated endpoint for logged-in users, public for guests
+        final trip = _isLoggedIn
+            ? await _tripService.getTripById(p.tripId)
+            : await _tripService.getPublicTripById(p.tripId);
         fetched.add(trip);
       } catch (e) {
         debugPrint('Could not fetch promoted trip ${p.tripId}: $e');
