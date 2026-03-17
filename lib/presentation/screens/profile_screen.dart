@@ -99,7 +99,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Sorting and filtering
   TripSortOption _tripSortOption = TripSortOption.statusPriority;
-  Set<TripStatus> _selectedStatusFilters = {}; // empty = show all
+  final Set<TripStatus> _selectedStatusFilters = {}; // empty = show all
   bool _showFilterPanel = false;
 
   @override
@@ -126,8 +126,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     // Filter by selected statuses (empty = show all)
     if (_selectedStatusFilters.isNotEmpty) {
-      trips =
-          trips.where((t) => _selectedStatusFilters.contains(t.status)).toList();
+      trips = trips
+          .where((t) => _selectedStatusFilters.contains(t.status))
+          .toList();
     }
 
     // Sort the trips based on the selected sort option
@@ -1028,8 +1029,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             if (_userTrips.isNotEmpty)
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: WandererTheme.primaryOrange.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -1120,8 +1121,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(width: 8),
               // Filter toggle button with badge
-              _buildFilterToggleButton(
-                  hasActiveFilters, activeFilterCount),
+              _buildFilterToggleButton(hasActiveFilters, activeFilterCount),
             ],
           ),
           // Animated filter panel
@@ -1297,9 +1297,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ? Icons.filter_list_off_rounded
                     : Icons.filter_list_rounded,
                 size: 16,
-                color: hasActive
-                    ? WandererTheme.primaryOrange
-                    : Colors.grey[600],
+                color:
+                    hasActive ? WandererTheme.primaryOrange : Colors.grey[600],
               ),
               if (hasActive) ...[
                 const SizedBox(width: 6),
@@ -1384,17 +1383,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? statusColor
-                      : statusColor.withOpacity(0.08),
+                  color:
+                      isSelected ? statusColor : statusColor.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isSelected
-                        ? statusColor
-                        : statusColor.withOpacity(0.3),
+                    color:
+                        isSelected ? statusColor : statusColor.withOpacity(0.3),
                     width: 1.5,
                   ),
                   boxShadow: isSelected
@@ -1492,7 +1489,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onTap: () => _navigateToTripDetail(trip),
     );
   }
-
 }
 
 /// Trip card for profile screen with mini map
