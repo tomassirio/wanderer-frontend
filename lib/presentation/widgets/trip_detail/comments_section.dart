@@ -124,10 +124,11 @@ class CommentsSection extends StatelessWidget {
                       right: 4,
                       top: 4,
                       child: Container(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 4),
                         decoration: BoxDecoration(
                           color: WandererTheme.primaryOrange,
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         constraints: const BoxConstraints(
                           minWidth: 18,
@@ -135,7 +136,9 @@ class CommentsSection extends StatelessWidget {
                         ),
                         child: Center(
                           child: Text(
-                            comments.length > 99 ? '99+' : '${comments.length}',
+                            comments.length > 99
+                                ? '99+'
+                                : '${comments.length}${hasMore ? '+' : ''}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,
@@ -210,7 +213,7 @@ class CommentsSection extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '${comments.length} Comments',
+                        '${comments.length}${hasMore ? '+' : ''} Comments',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,

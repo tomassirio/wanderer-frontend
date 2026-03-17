@@ -174,26 +174,30 @@ void main() {
     });
 
     group('loadTripUpdates', () {
-      test('fetches trip update locations from API', () async {
+      test('fetches trip updates from API', () async {
         final updates = [
           createMockTripLocation(1.0, 2.0),
           createMockTripLocation(3.0, 4.0),
         ];
 
         when(
-          mockTripService.getTripUpdateLocations('trip-1'),
-        ).thenAnswer((_) async => updates);
+          mockTripService.getTripUpdates('trip-1',
+              page: anyNamed('page'), size: anyNamed('size')),
+        ).thenAnswer((_) async => _wrapLocationsInPage(updates));
 
         final result = await repository.loadTripUpdates('trip-1');
 
         expect(result.length, 2);
-        verify(mockTripService.getTripUpdateLocations('trip-1')).called(1);
+        verify(mockTripService.getTripUpdates('trip-1',
+                page: anyNamed('page'), size: anyNamed('size')))
+            .called(1);
       });
 
       test('returns empty list when no updates', () async {
         when(
-          mockTripService.getTripUpdateLocations('trip-1'),
-        ).thenAnswer((_) async => []);
+          mockTripService.getTripUpdates('trip-1',
+              page: anyNamed('page'), size: anyNamed('size')),
+        ).thenAnswer((_) async => _wrapLocationsInPage([]));
 
         final result = await repository.loadTripUpdates('trip-1');
 
@@ -400,6 +404,18 @@ PageResponse<Comment> _wrapCommentsInPage(List<Comment> comments) {
     totalPages: comments.isEmpty ? 0 : 1,
     number: 0,
     size: 20,
+    first: true,
+    last: true,
+  );
+}
+
+PageResponse<TripLocation> _wrapLocationsInPage(List<TripLocation> locations) {
+  return PageResponse(
+    content: locations,
+    totalElements: locations.length,
+    totalPages: locations.isEmpty ? 0 : 1,
+    number: 0,
+    size: 50,
     first: true,
     last: true,
   );

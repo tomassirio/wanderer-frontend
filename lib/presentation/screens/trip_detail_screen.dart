@@ -70,6 +70,10 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
   List<TripLocation> _tripUpdates = [];
   bool _isLoadingUpdates = false;
+  int _currentUpdatesPage = 0;
+  bool _hasMoreUpdates = false;
+  bool _isLoadingMoreUpdates = false;
+  static const int _updatesPageSize = 50;
 
   bool _isLoadingComments = false;
   bool _isAddingComment = false;
@@ -921,18 +925,68 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   }
 
   Future<void> _loadTripUpdates() async {
-    setState(() => _isLoadingUpdates = true);
+    setState(() {
+      _isLoadingUpdates = true;
+      _currentUpdatesPage = 0;
+    });
 
     try {
-      final updates = await _repository.loadTripUpdates(_trip.id);
+      final pageResponse = await _repository.loadTripUpdates(
+        _trip.id,
+        page: 0,
+        size: _updatesPageSize,
+      );
       setState(() {
-        _tripUpdates = updates;
+        _tripUpdates = pageResponse.content;
+        _hasMoreUpdates = !pageResponse.last;
         _isLoadingUpdates = false;
       });
     } catch (e) {
       setState(() => _isLoadingUpdates = false);
       if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error loading updates: $e');
+      }
+    }
+  }
+
+  Future<void> _loadMoreTripUpdates() async {
+    if (_isLoadingMoreUpdates || !_hasMoreUpdates) return;
+
+    setState(() => _isLoadingMoreUpdates = true);
+
+    try {
+      final nextPage = _currentUpdatesPage + 1;
+      final pageResponse = await _repository.loadTripUpdates(
+        _trip.id,
+        page: nextPage,
+        size: _updatesPageSize,
+      );
+      setState(() {
+        _tripUpdates = [..._tripUpdates, ...pageResponse.content];
+        _currentUpdatesPage = nextPage;
+        _hasMoreUpdates = !pageResponse.last;
+        _isLoadingMoreUpdates = false;
+      });
+
+      // Update the map with the newly loaded older locations so
+      // the polyline extends further back in time.
+      final updatedLocations = <TripLocation>[
+        ...(_trip.locations ?? []),
+        ...pageResponse.content,
+      ];
+      // Deduplicate by ID
+      final seen = <String>{};
+      final deduped =
+          updatedLocations.where((l) => seen.add(l.id)).toList();
+      setState(() {
+        _trip = _trip.copyWith(locations: deduped);
+      });
+      _updateMapData();
+    } catch (e) {
+      setState(() => _isLoadingMoreUpdates = false);
+      if (mounted) {
+        UiHelpers.showErrorMessage(
+            context, 'Error loading more updates: $e');
       }
     }
   }
@@ -2466,6 +2520,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       isLoadingMoreComments: _isLoadingMoreComments,
       hasMoreComments: _hasMoreComments,
       isLoadingUpdates: _isLoadingUpdates,
+      isLoadingMoreUpdates: _isLoadingMoreUpdates,
+      hasMoreUpdates: _hasMoreUpdates,
       isLoggedIn: _isLoggedIn,
       isAddingComment: _isAddingComment,
       isTimelineCollapsed: _isTimelineCollapsed,
@@ -2495,6 +2551,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       onToggleTripUpdate: () => _handleToggleTripUpdate(isMobile),
       onToggleTripSettings: () => _handleToggleTripSettings(isMobile),
       onRefreshTimeline: _loadTripUpdates,
+      onLoadMoreUpdates: _hasMoreUpdates ? _loadMoreTripUpdates : null,
       onTimelineUpdateTap: _handleTimelineUpdateTap,
       onSortChanged: _changeSortOption,
       onReact: _showReactionPicker,

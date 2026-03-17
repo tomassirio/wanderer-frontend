@@ -288,7 +288,6 @@ class MockTripQueryClient extends TripQueryClient {
   bool getPublicTripsCalled = false;
   bool getAvailableTripsCalled = false;
   bool getTripsByUserCalled = false;
-  bool getTripUpdateLocationsCalled = false;
   String? lastTripId;
   String? lastUserId;
   bool shouldThrowError = false;
@@ -359,14 +358,6 @@ class MockTripQueryClient extends TripQueryClient {
     lastUserId = userId;
     if (shouldThrowError) throw Exception('Failed to get user trips');
     return mockTrips ?? [];
-  }
-
-  @override
-  Future<List<TripLocation>> getTripUpdateLocations(String tripId) async {
-    getTripUpdateLocationsCalled = true;
-    lastTripId = tripId;
-    if (shouldThrowError) throw Exception('Failed to get locations');
-    return [];
   }
 }
 

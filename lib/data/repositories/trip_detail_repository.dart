@@ -192,11 +192,15 @@ class TripDetailRepository {
     await _authService.logout();
   }
 
-  /// Loads lightweight trip update locations for map + timeline via API
-  /// Uses the /locations endpoint which returns all points without heavy fields
+  /// Loads trip updates for map + timeline via API (paginated)
+  /// Uses the /updates endpoint which returns a paginated response
   /// City and country are now populated by the backend via reverse geocoding
-  Future<List<TripLocation>> loadTripUpdates(String tripId) {
-    return _tripService.getTripUpdateLocations(tripId);
+  Future<PageResponse<TripLocation>> loadTripUpdates(
+    String tripId, {
+    int page = 0,
+    int size = 50,
+  }) async {
+    return await _tripService.getTripUpdates(tripId, page: page, size: size);
   }
 
   /// Sends a manual trip update with current location and battery

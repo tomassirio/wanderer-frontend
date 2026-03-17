@@ -102,7 +102,7 @@ class TripQueryClient {
   Future<PageResponse<TripLocation>> getTripUpdates(
     String tripId, {
     int page = 0,
-    int size = 1000,
+    int size = 50,
     String sort = 'timestamp,desc',
   }) async {
     final endpoint =
@@ -112,16 +112,5 @@ class TripQueryClient {
       requireAuth: true,
     );
     return _apiClient.handlePageResponse(response, TripLocation.fromJson);
-  }
-
-  /// Get lightweight trip update locations for map + timeline (not paginated)
-  /// Returns all location points for a trip without heavy fields (message, reactions)
-  /// Requires authentication (visibility-dependent)
-  Future<List<TripLocation>> getTripUpdateLocations(String tripId) async {
-    final response = await _apiClient.get(
-      ApiEndpoints.tripUpdateLocations(tripId),
-      requireAuth: true,
-    );
-    return _apiClient.handleListResponse(response, TripLocation.fromJson);
   }
 }

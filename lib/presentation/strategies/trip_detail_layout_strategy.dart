@@ -22,6 +22,8 @@ class TripDetailLayoutData {
   final bool isLoadingMoreComments;
   final bool hasMoreComments;
   final bool isLoadingUpdates;
+  final bool isLoadingMoreUpdates;
+  final bool hasMoreUpdates;
   final bool isLoggedIn;
   final bool isAddingComment;
   final bool isTimelineCollapsed;
@@ -53,6 +55,7 @@ class TripDetailLayoutData {
   final VoidCallback onToggleTripUpdate;
   final VoidCallback onToggleTripSettings;
   final VoidCallback onRefreshTimeline;
+  final VoidCallback? onLoadMoreUpdates;
   final Function(TripLocation)? onTimelineUpdateTap;
   final Function(CommentSortOption) onSortChanged;
   final Function(String) onReact;
@@ -85,6 +88,8 @@ class TripDetailLayoutData {
     this.isLoadingMoreComments = false,
     this.hasMoreComments = false,
     required this.isLoadingUpdates,
+    this.isLoadingMoreUpdates = false,
+    this.hasMoreUpdates = false,
     required this.isLoggedIn,
     required this.isAddingComment,
     required this.isTimelineCollapsed,
@@ -115,6 +120,7 @@ class TripDetailLayoutData {
     required this.onToggleTripUpdate,
     required this.onToggleTripSettings,
     required this.onRefreshTimeline,
+    this.onLoadMoreUpdates,
     this.onTimelineUpdateTap,
     required this.onSortChanged,
     required this.onReact,
@@ -234,9 +240,12 @@ abstract class TripDetailLayoutStrategy {
     return TimelinePanel(
       updates: data.tripUpdates,
       isLoading: data.isLoadingUpdates,
+      isLoadingMore: data.isLoadingMoreUpdates,
+      hasMore: data.hasMoreUpdates,
       isCollapsed: data.isTimelineCollapsed,
       onToggleCollapse: data.onToggleTimeline,
       onRefresh: data.onRefreshTimeline,
+      onLoadMore: data.onLoadMoreUpdates,
       onUpdateTap: data.onTimelineUpdateTap,
     );
   }

@@ -423,68 +423,6 @@ void main() {
         },
       );
     });
-
-    group('getTripUpdateLocations', () {
-      test('successful retrieval returns list of locations', () async {
-        final responseBody = [
-          {
-            'id': 'update-1',
-            'lat': 42.8805,
-            'lon': -8.5449,
-            'timestamp': '2026-03-15T10:46:00Z',
-            'updateType': 'REGULAR',
-            'battery': 71,
-            'city': 'Utrecht',
-            'country': 'Netherlands',
-            'temperatureCelsius': 8.7,
-            'weatherCondition': 'CLEAR',
-          },
-          {
-            'id': 'update-2',
-            'lat': 43.0,
-            'lon': -8.6,
-            'timestamp': '2026-03-15T12:00:00Z',
-            'updateType': 'MANUAL',
-            'battery': 55,
-            'city': 'Amsterdam',
-            'country': 'Netherlands',
-          },
-        ];
-        mockHttpClient.response = http.Response(jsonEncode(responseBody), 200);
-
-        final result = await tripQueryClient.getTripUpdateLocations('trip-123');
-
-        expect(result.length, 2);
-        expect(result[0].id, 'update-1');
-        expect(result[0].latitude, 42.8805);
-        expect(result[0].longitude, -8.5449);
-        expect(result[0].city, 'Utrecht');
-        expect(result[0].battery, 71);
-        expect(result[1].id, 'update-2');
-        expect(mockHttpClient.lastMethod, 'GET');
-        expect(
-          mockHttpClient.lastUri?.path,
-          endsWith(ApiEndpoints.tripUpdateLocations('trip-123')),
-        );
-      });
-
-      test('getTripUpdateLocations requires authentication', () async {
-        mockHttpClient.response = http.Response(jsonEncode([]), 200);
-
-        await tripQueryClient.getTripUpdateLocations('trip-123');
-
-        expect(mockHttpClient.lastHeaders?['Authorization'], isNotNull);
-      });
-
-      test('getTripUpdateLocations returns empty list when no updates',
-          () async {
-        mockHttpClient.response = http.Response(jsonEncode([]), 200);
-
-        final result = await tripQueryClient.getTripUpdateLocations('trip-123');
-
-        expect(result, isEmpty);
-      });
-    });
   });
 }
 

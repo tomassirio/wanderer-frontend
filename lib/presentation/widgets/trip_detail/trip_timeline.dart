@@ -9,14 +9,20 @@ import 'package:wanderer_frontend/presentation/helpers/weather_helpers.dart';
 class TripTimeline extends StatelessWidget {
   final List<TripLocation> updates;
   final bool isLoading;
+  final bool isLoadingMore;
+  final bool hasMore;
   final VoidCallback onRefresh;
+  final VoidCallback? onLoadMore;
   final Function(TripLocation)? onUpdateTap;
 
   const TripTimeline({
     super.key,
     required this.updates,
     required this.isLoading,
+    this.isLoadingMore = false,
+    this.hasMore = false,
     required this.onRefresh,
+    this.onLoadMore,
     this.onUpdateTap,
   });
 
@@ -101,8 +107,11 @@ class TripTimeline extends StatelessWidget {
       color: WandererTheme.primaryOrange,
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        itemCount: updates.length,
+        itemCount: updates.length + (hasMore ? 1 : 0),
         itemBuilder: (context, index) {
+          if (index == updates.length) {
+            return _buildLoadMoreButton(context);
+          }
           final update = updates[index];
           final isLast = index == updates.length - 1;
           final isFirst = index == 0;
@@ -139,6 +148,35 @@ class TripTimeline extends StatelessWidget {
       if (i == markerIndex) return day;
     }
     return day;
+  }
+
+  /// Build the "Load older updates" button at the bottom of the timeline
+  Widget _buildLoadMoreButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Center(
+        child: isLoadingMore
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  color: WandererTheme.primaryOrange,
+                  strokeWidth: 2,
+                ),
+              )
+            : TextButton.icon(
+                onPressed: onLoadMore,
+                icon: const Icon(
+                  Icons.expand_more,
+                  color: WandererTheme.primaryOrange,
+                ),
+                label: const Text(
+                  'Load older updates',
+                  style: TextStyle(color: WandererTheme.primaryOrange),
+                ),
+              ),
+      ),
+    );
   }
 
   /// Build a regular timeline entry (location update)

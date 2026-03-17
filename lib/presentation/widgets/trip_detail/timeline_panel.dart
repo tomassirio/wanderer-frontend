@@ -10,18 +10,24 @@ import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_timeline
 class TimelinePanel extends StatelessWidget {
   final List<TripLocation> updates;
   final bool isLoading;
+  final bool isLoadingMore;
+  final bool hasMore;
   final bool isCollapsed;
   final VoidCallback onToggleCollapse;
   final VoidCallback onRefresh;
+  final VoidCallback? onLoadMore;
   final Function(TripLocation)? onUpdateTap;
 
   const TimelinePanel({
     super.key,
     required this.updates,
     required this.isLoading,
+    this.isLoadingMore = false,
+    this.hasMore = false,
     required this.isCollapsed,
     required this.onToggleCollapse,
     required this.onRefresh,
+    this.onLoadMore,
     this.onUpdateTap,
   });
 
@@ -85,10 +91,11 @@ class TimelinePanel extends StatelessWidget {
                       right: 4,
                       top: 4,
                       child: Container(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 4),
                         decoration: BoxDecoration(
                           color: WandererTheme.primaryOrange,
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         constraints: const BoxConstraints(
                           minWidth: 18,
@@ -96,7 +103,9 @@ class TimelinePanel extends StatelessWidget {
                         ),
                         child: Center(
                           child: Text(
-                            updates.length > 99 ? '99+' : '${updates.length}',
+                            updates.length > 99
+                                ? '99+'
+                                : '${updates.length}${hasMore ? '+' : ''}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,
@@ -225,7 +234,10 @@ class TimelinePanel extends StatelessWidget {
                       child: TripTimeline(
                         updates: updates,
                         isLoading: isLoading,
+                        isLoadingMore: isLoadingMore,
+                        hasMore: hasMore,
                         onRefresh: onRefresh,
+                        onLoadMore: onLoadMore,
                         onUpdateTap: onUpdateTap,
                       ),
                     ),

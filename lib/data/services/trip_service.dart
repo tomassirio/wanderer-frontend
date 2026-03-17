@@ -160,15 +160,9 @@ class TripService {
   Future<PageResponse<TripLocation>> getTripUpdates(
     String tripId, {
     int page = 0,
-    int size = 1000,
+    int size = 50,
   }) async {
     return await _tripQueryClient.getTripUpdates(tripId,
         page: page, size: size);
-  }
-
-  /// Get lightweight trip update locations for map + timeline (not paginated)
-  /// Returns all location points without heavy fields (message, reactions)
-  Future<List<TripLocation>> getTripUpdateLocations(String tripId) async {
-    return await _tripQueryClient.getTripUpdateLocations(tripId);
   }
 }
