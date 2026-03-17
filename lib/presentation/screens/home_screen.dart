@@ -1603,26 +1603,7 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                             child: Column(
                               children: [
-                                Container(
-                                  width: 120,
-                                  height: 120,
-                                  decoration: BoxDecoration(
-                                    color:
-                                        Theme.of(context).colorScheme.surface,
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 20,
-                                        offset: const Offset(0, 10),
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(16),
-                                    child: WandererLogo(size: 64),
-                                  ),
-                                ),
+                                const WandererLogo(size: 110),
                                 const SizedBox(height: 24),
                                 const Text(
                                   'Welcome to Wanderer',
