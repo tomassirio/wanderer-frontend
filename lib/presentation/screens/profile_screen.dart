@@ -21,6 +21,45 @@ import 'settings_screen.dart';
 import 'trip_detail_screen.dart';
 import 'friends_followers_screen.dart';
 
+/// Sort options for trips in the profile
+enum TripSortOption {
+  statusPriority,
+  nameAsc,
+  nameDesc,
+  newestFirst,
+  oldestFirst;
+
+  String get label {
+    switch (this) {
+      case TripSortOption.statusPriority:
+        return 'Status';
+      case TripSortOption.nameAsc:
+        return 'Name (A-Z)';
+      case TripSortOption.nameDesc:
+        return 'Name (Z-A)';
+      case TripSortOption.newestFirst:
+        return 'Newest';
+      case TripSortOption.oldestFirst:
+        return 'Oldest';
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case TripSortOption.statusPriority:
+        return Icons.priority_high;
+      case TripSortOption.nameAsc:
+        return Icons.sort_by_alpha;
+      case TripSortOption.nameDesc:
+        return Icons.sort_by_alpha;
+      case TripSortOption.newestFirst:
+        return Icons.arrow_downward;
+      case TripSortOption.oldestFirst:
+        return Icons.arrow_upward;
+    }
+  }
+}
+
 /// User profile screen showing user information, statistics, and trips
 class ProfileScreen extends StatefulWidget {
   final String? userId;
@@ -58,6 +97,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _followingCount = 0;
   int _friendsCount = 0;
 
+  // Sorting and filtering
+  TripSortOption _tripSortOption = TripSortOption.statusPriority;
+  Set<TripStatus> _selectedStatusFilters = {}; // empty = show all
+  bool _showFilterPanel = false;
+
   @override
   void initState() {
     super.initState();
@@ -74,6 +118,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool get _isViewingOwnProfile =>
       widget.userId == null ||
       (widget.userId != null && widget.userId == _currentUserId);
+
+  /// Get the filtered and sorted list of user trips based on the current
+  /// sort option and upcoming trips filter.
+  List<Trip> get _filteredAndSortedTrips {
+    var trips = List<Trip>.from(_userTrips);
+
+    // Filter by selected statuses (empty = show all)
+    if (_selectedStatusFilters.isNotEmpty) {
+      trips =
+          trips.where((t) => _selectedStatusFilters.contains(t.status)).toList();
+    }
+
+    // Sort the trips based on the selected sort option
+    switch (_tripSortOption) {
+      case TripSortOption.statusPriority:
+        trips.sort((a, b) {
+          const statusPriority = {
+            TripStatus.inProgress: 0,
+            TripStatus.paused: 1,
+            TripStatus.resting: 2,
+            TripStatus.created: 3,
+            TripStatus.finished: 4,
+          };
+          final priorityA = statusPriority[a.status] ?? 5;
+          final priorityB = statusPriority[b.status] ?? 5;
+          if (priorityA != priorityB) return priorityA.compareTo(priorityB);
+          return b.updatedAt.compareTo(a.updatedAt);
+        });
+        break;
+      case TripSortOption.nameAsc:
+        trips.sort((a, b) => a.name.compareTo(b.name));
+        break;
+      case TripSortOption.nameDesc:
+        trips.sort((a, b) => b.name.compareTo(a.name));
+        break;
+      case TripSortOption.newestFirst:
+        trips.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+      case TripSortOption.oldestFirst:
+        trips.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        break;
+    }
+
+    return trips;
+  }
 
   Future<void> _loadProfile() async {
     setState(() {
@@ -271,6 +360,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final trips = _isViewingOwnProfile
           ? await _repository.getMyTrips()
           : await _repository.getUserTrips(userId);
+      // Sort: ongoing trips first (inProgress > paused > resting > created > finished)
+      trips.sort((a, b) {
+        const statusPriority = {
+          TripStatus.inProgress: 0,
+          TripStatus.paused: 1,
+          TripStatus.resting: 2,
+          TripStatus.created: 3,
+          TripStatus.finished: 4,
+        };
+        final priorityA = statusPriority[a.status] ?? 5;
+        final priorityB = statusPriority[b.status] ?? 5;
+        if (priorityA != priorityB) return priorityA.compareTo(priorityB);
+        // Within same status, sort by most recently updated
+        return b.updatedAt.compareTo(a.updatedAt);
+      });
       setState(() {
         _userTrips = trips;
         _isLoadingTrips = false;
@@ -897,24 +1001,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildTripsSection() {
+    final filtered = _filteredAndSortedTrips;
+    final hasActiveFilters = _selectedStatusFilters.isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Header row
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              _isViewingOwnProfile ? 'My Trips' : 'Trips',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                Icon(
+                  Icons.backpack_rounded,
+                  size: 22,
+                  color: WandererTheme.primaryOrange,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _isViewingOwnProfile ? 'My Trips' : 'Trips',
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
             if (_userTrips.isNotEmpty)
-              Text(
-                '${_userTrips.length} ${_userTrips.length == 1 ? 'trip' : 'trips'}',
-                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: WandererTheme.primaryOrange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  hasActiveFilters
+                      ? '${filtered.length} of ${_userTrips.length}'
+                      : '${_userTrips.length} ${_userTrips.length == 1 ? 'trip' : 'trips'}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: WandererTheme.primaryOrange,
+                  ),
+                ),
               ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
+        // Sort + filter controls
+        if (_userTrips.isNotEmpty) ...[
+          _buildSortAndFilterControls(),
+          const SizedBox(height: 12),
+        ],
         if (_isLoadingTrips)
           const Center(child: CircularProgressIndicator())
         else if (_userTrips.isEmpty)
@@ -924,26 +1062,428 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Text('No trips yet'),
             ),
           )
-        else
-          // Make the trip list independently scrollable with a max height
-          ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxHeight: 500, // Maximum height before scrolling kicks in
+        else if (filtered.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                children: [
+                  Icon(Icons.filter_list_off,
+                      size: 48, color: Colors.grey[400]),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No trips match the selected filters',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () =>
+                        setState(() => _selectedStatusFilters.clear()),
+                    child: const Text('Clear filters'),
+                  ),
+                ],
+              ),
             ),
-            child: ListView.builder(
-              shrinkWrap: false,
-              physics: const AlwaysScrollableScrollPhysics(),
-              itemCount: _userTrips.length,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _buildTripCard(_userTrips[index]),
-                );
-              },
+          )
+        else
+          ...filtered.map(
+            (trip) => Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _buildTripCard(trip),
             ),
           ),
+        // Extra bottom padding so the last card is fully visible
+        const SizedBox(height: 16),
       ],
     );
+  }
+
+  /// Builds a stylish sort & filter control bar with glassmorphism design.
+  Widget _buildSortAndFilterControls() {
+    final hasActiveFilters = _selectedStatusFilters.isNotEmpty;
+    final activeFilterCount = _selectedStatusFilters.length;
+
+    return Container(
+      decoration: WandererTheme.glassDecoration(
+        radius: WandererTheme.glassRadiusSmall,
+        shadow: WandererTheme.cardShadow,
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          // Compact toolbar row: Sort dropdown + Filter toggle
+          Row(
+            children: [
+              // Sort dropdown button
+              Expanded(
+                child: _buildSortDropdown(),
+              ),
+              const SizedBox(width: 8),
+              // Filter toggle button with badge
+              _buildFilterToggleButton(
+                  hasActiveFilters, activeFilterCount),
+            ],
+          ),
+          // Animated filter panel
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: _buildStatusFilterPills(),
+            ),
+            crossFadeState: _showFilterPanel
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 250),
+            sizeCurve: Curves.easeInOut,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// A sleek dropdown-style sort button.
+  Widget _buildSortDropdown() {
+    return InkWell(
+      onTap: () => _showSortBottomSheet(),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: WandererTheme.primaryOrange.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: WandererTheme.primaryOrange.withOpacity(0.2),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              _tripSortOption.icon,
+              size: 16,
+              color: WandererTheme.primaryOrange,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                _tripSortOption.label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: WandererTheme.textPrimary,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Icon(
+              Icons.unfold_more_rounded,
+              size: 16,
+              color: WandererTheme.primaryOrange.withOpacity(0.7),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Shows a bottom sheet with sort options.
+  void _showSortBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: WandererTheme.backgroundCard,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Row(
+                  children: [
+                    Icon(Icons.sort_rounded,
+                        size: 20, color: WandererTheme.primaryOrange),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Sort trips by',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              ...TripSortOption.values.map((option) {
+                final isSelected = _tripSortOption == option;
+                return ListTile(
+                  leading: Icon(
+                    option.icon,
+                    color: isSelected
+                        ? WandererTheme.primaryOrange
+                        : Colors.grey[500],
+                    size: 20,
+                  ),
+                  title: Text(
+                    option.label,
+                    style: TextStyle(
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                      color: isSelected
+                          ? WandererTheme.primaryOrange
+                          : WandererTheme.textPrimary,
+                    ),
+                  ),
+                  trailing: isSelected
+                      ? const Icon(Icons.check_circle_rounded,
+                          color: WandererTheme.primaryOrange, size: 20)
+                      : null,
+                  onTap: () {
+                    setState(() => _tripSortOption = option);
+                    Navigator.pop(context);
+                  },
+                  dense: true,
+                  visualDensity: VisualDensity.compact,
+                );
+              }),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// A filter toggle button with an animated badge.
+  Widget _buildFilterToggleButton(bool hasActive, int count) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => setState(() => _showFilterPanel = !_showFilterPanel),
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: hasActive
+                ? WandererTheme.primaryOrange.withOpacity(0.12)
+                : Colors.grey.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: hasActive
+                  ? WandererTheme.primaryOrange.withOpacity(0.3)
+                  : Colors.grey.withOpacity(0.2),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _showFilterPanel
+                    ? Icons.filter_list_off_rounded
+                    : Icons.filter_list_rounded,
+                size: 16,
+                color: hasActive
+                    ? WandererTheme.primaryOrange
+                    : Colors.grey[600],
+              ),
+              if (hasActive) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: WandererTheme.primaryOrange,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Builds pill-shaped status filter buttons.
+  Widget _buildStatusFilterPills() {
+    // Gather statuses that have trips
+    final statusCounts = <TripStatus, int>{};
+    for (final trip in _userTrips) {
+      statusCounts[trip.status] = (statusCounts[trip.status] ?? 0) + 1;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Clear all button row
+        if (_selectedStatusFilters.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedStatusFilters.clear()),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.close_rounded,
+                      size: 14, color: WandererTheme.primaryOrange),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Clear all filters',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: WandererTheme.primaryOrange,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: TripStatus.values
+              .where((s) => (statusCounts[s] ?? 0) > 0)
+              .map((status) {
+            final isSelected = _selectedStatusFilters.contains(status);
+            final count = statusCounts[status]!;
+            final statusColor = _getStatusChipColor(status);
+
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  if (isSelected) {
+                    _selectedStatusFilters.remove(status);
+                  } else {
+                    _selectedStatusFilters.add(status);
+                  }
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? statusColor
+                      : statusColor.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected
+                        ? statusColor
+                        : statusColor.withOpacity(0.3),
+                    width: 1.5,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: statusColor.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : [],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _getStatusIcon(status),
+                      size: 14,
+                      color: isSelected ? Colors.white : statusColor,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      status.displayLabel,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected
+                            ? Colors.white
+                            : statusColor.withOpacity(0.9),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? Colors.white.withOpacity(0.25)
+                            : statusColor.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '$count',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : statusColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  /// Returns an icon for each trip status.
+  IconData _getStatusIcon(TripStatus status) {
+    switch (status) {
+      case TripStatus.created:
+        return Icons.edit_note_rounded;
+      case TripStatus.inProgress:
+        return Icons.directions_walk_rounded;
+      case TripStatus.paused:
+        return Icons.pause_circle_outline_rounded;
+      case TripStatus.finished:
+        return Icons.check_circle_outline_rounded;
+      case TripStatus.resting:
+        return Icons.hotel_rounded;
+    }
+  }
+
+  Color _getStatusChipColor(TripStatus status) {
+    switch (status) {
+      case TripStatus.created:
+        return Colors.grey;
+      case TripStatus.inProgress:
+        return Colors.blue;
+      case TripStatus.paused:
+        return Colors.orange;
+      case TripStatus.finished:
+        return Colors.green;
+      case TripStatus.resting:
+        return WandererTheme.statusResting;
+    }
   }
 
   Widget _buildTripCard(Trip trip) {
@@ -952,6 +1492,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onTap: () => _navigateToTripDetail(trip),
     );
   }
+
 }
 
 /// Trip card for profile screen with mini map
