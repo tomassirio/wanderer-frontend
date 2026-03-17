@@ -85,24 +85,13 @@ class _NotificationsDropdownContentState
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
     _loadNotifications();
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 200 &&
-        !_isLoadingMore &&
-        _hasMore) {
-      _loadMore();
-    }
   }
 
   Future<void> _loadNotifications() async {
@@ -375,12 +364,15 @@ class _NotificationsDropdownContentState
 
   Widget _buildHeader() {
     final theme = Theme.of(context);
+    final countLabel = _notifications.isNotEmpty
+        ? ' (${_notifications.length}${_hasMore ? '+' : ''})'
+        : '';
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
       child: Row(
         children: [
           Text(
-            'Notifications',
+            'Notifications$countLabel',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -473,23 +465,42 @@ class _NotificationsDropdownContentState
       controller: _scrollController,
       shrinkWrap: true,
       padding: EdgeInsets.zero,
-      itemCount: _notifications.length + (_isLoadingMore ? 1 : 0),
+      itemCount: _notifications.length + (_hasMore ? 1 : 0),
       separatorBuilder: (_, __) => const Divider(height: 1),
       itemBuilder: (context, index) {
         if (index >= _notifications.length) {
-          return const Padding(
-            padding: EdgeInsets.all(12),
-            child: Center(
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          );
+          return _buildLoadMoreButton();
         }
         return _buildNotificationTile(_notifications[index]);
       },
+    );
+  }
+
+  Widget _buildLoadMoreButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Center(
+        child: _isLoadingMore
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: WandererTheme.primaryOrange,
+                  strokeWidth: 2,
+                ),
+              )
+            : TextButton.icon(
+                onPressed: _loadMore,
+                icon: const Icon(
+                  Icons.expand_more,
+                  color: WandererTheme.primaryOrange,
+                ),
+                label: const Text(
+                  'Load more notifications',
+                  style: TextStyle(color: WandererTheme.primaryOrange),
+                ),
+              ),
+      ),
     );
   }
 

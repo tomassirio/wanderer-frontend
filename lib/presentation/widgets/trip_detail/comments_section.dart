@@ -297,8 +297,7 @@ class CommentsSection extends StatelessWidget {
                               controller: scrollController,
                               shrinkWrap: true,
                               padding: const EdgeInsets.symmetric(vertical: 8),
-                              itemCount:
-                                  comments.length + (hasMore ? 1 : 0),
+                              itemCount: comments.length + (hasMore ? 1 : 0),
                               itemBuilder: (context, index) {
                                 if (index == comments.length) {
                                   return _buildLoadMoreButton(context);

@@ -16,7 +16,7 @@ class NotificationQueryClient {
   /// Requires authentication (USER, ADMIN)
   Future<PageResponse<NotificationDto>> getMyNotifications({
     int page = 0,
-    int size = 20,
+    int size = 10,
     String sort = 'createdAt,desc',
   }) async {
     final endpoint =

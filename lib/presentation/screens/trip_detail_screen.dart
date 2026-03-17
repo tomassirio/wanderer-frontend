@@ -976,8 +976,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       ];
       // Deduplicate by ID
       final seen = <String>{};
-      final deduped =
-          updatedLocations.where((l) => seen.add(l.id)).toList();
+      final deduped = updatedLocations.where((l) => seen.add(l.id)).toList();
       setState(() {
         _trip = _trip.copyWith(locations: deduped);
       });
@@ -985,8 +984,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     } catch (e) {
       setState(() => _isLoadingMoreUpdates = false);
       if (mounted) {
-        UiHelpers.showErrorMessage(
-            context, 'Error loading more updates: $e');
+        UiHelpers.showErrorMessage(context, 'Error loading more updates: $e');
       }
     }
   }

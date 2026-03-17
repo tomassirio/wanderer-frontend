@@ -643,17 +643,6 @@ class MockTripService extends _i1.Mock implements _i9.TripService {
           ),
         )),
       ) as _i7.Future<_i2.PageResponse<_i4.TripLocation>>);
-
-  @override
-  _i7.Future<List<_i4.TripLocation>> getTripUpdateLocations(String? tripId) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getTripUpdateLocations,
-          [tripId],
-        ),
-        returnValue:
-            _i7.Future<List<_i4.TripLocation>>.value(<_i4.TripLocation>[]),
-      ) as _i7.Future<List<_i4.TripLocation>>);
 }
 
 /// A class which mocks [AuthService].

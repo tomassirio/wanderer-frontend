@@ -118,8 +118,8 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
 
     try {
       final nextPage = _currentTripsPage + 1;
-      final page = await _adminService.getAllTrips(
-          page: nextPage, size: _tripsPageSize);
+      final page =
+          await _adminService.getAllTrips(page: nextPage, size: _tripsPageSize);
 
       final more = _filterPromotable(page.content);
 

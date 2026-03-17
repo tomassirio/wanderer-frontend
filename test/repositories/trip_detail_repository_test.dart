@@ -187,7 +187,7 @@ void main() {
 
         final result = await repository.loadTripUpdates('trip-1');
 
-        expect(result.length, 2);
+        expect(result.content.length, 2);
         verify(mockTripService.getTripUpdates('trip-1',
                 page: anyNamed('page'), size: anyNamed('size')))
             .called(1);
@@ -201,7 +201,7 @@ void main() {
 
         final result = await repository.loadTripUpdates('trip-1');
 
-        expect(result, isEmpty);
+        expect(result.content, isEmpty);
       });
     });
 

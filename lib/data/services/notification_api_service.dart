@@ -20,7 +20,7 @@ class NotificationApiService {
   /// Get paginated notifications for the current user
   Future<PageResponse<NotificationDto>> getMyNotifications({
     int page = 0,
-    int size = 20,
+    int size = 10,
   }) async {
     return await _notificationQueryClient.getMyNotifications(
       page: page,
