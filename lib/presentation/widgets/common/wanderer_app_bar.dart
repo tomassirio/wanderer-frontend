@@ -261,16 +261,23 @@ class _WandererAppBarState extends State<WandererAppBar>
   Widget build(BuildContext context) {
     return AppBar(
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      centerTitle: !_isSearchExpanded,
       titleSpacing: _isSearchExpanded ? 8.0 : null,
       title: _isSearchExpanded
-          ? SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1.0, 0.0),
-                end: Offset.zero,
-              ).animate(_searchAnimation),
-              child: FadeTransition(
-                opacity: _searchAnimation,
-                child: SearchBarWidget(onClose: _toggleSearch),
+          ? Align(
+              alignment: Alignment.centerRight,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(1.0, 0.0),
+                    end: Offset.zero,
+                  ).animate(_searchAnimation),
+                  child: FadeTransition(
+                    opacity: _searchAnimation,
+                    child: SearchBarWidget(onClose: _toggleSearch),
+                  ),
+                ),
               ),
             )
           : Row(
