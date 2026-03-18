@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/data/models/admin_models.dart';
+import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/services/admin_service.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
@@ -33,6 +34,10 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
   List<Trip> _filteredTrips = [];
   TripMaintenanceStats? _stats;
   bool _isLoading = false;
+  bool _isLoadingMoreTrips = false;
+  bool _hasMoreTrips = false;
+  int _currentTripsPage = 0;
+  static const int _tripsPageSize = 20;
   String? _error;
   String? _userId;
   String? _username;
@@ -95,18 +100,21 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
     setState(() {
       _isLoading = true;
       _error = null;
+      _currentTripsPage = 0;
     });
 
     try {
-      // Load both trips and stats in parallel
+      // Load both trips (first page) and stats in parallel
       final results = await Future.wait([
-        _adminService.getAllTrips(),
+        _adminService.getAllTrips(page: 0, size: _tripsPageSize),
         _adminService.getTripStats(),
       ]);
 
+      final tripPage = results[0] as PageResponse<Trip>;
       setState(() {
-        _allTrips = results[0] as List<Trip>;
-        _filteredTrips = results[0] as List<Trip>;
+        _allTrips = tripPage.content;
+        _filteredTrips = tripPage.content;
+        _hasMoreTrips = !tripPage.last;
         _stats = results[1] as TripMaintenanceStats;
         _isLoading = false;
       });
@@ -115,6 +123,40 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
         _error = e.toString();
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _loadMoreTrips() async {
+    if (_isLoadingMoreTrips || !_hasMoreTrips) return;
+
+    setState(() => _isLoadingMoreTrips = true);
+
+    try {
+      final nextPage = _currentTripsPage + 1;
+      final page =
+          await _adminService.getAllTrips(page: nextPage, size: _tripsPageSize);
+
+      setState(() {
+        _allTrips = [..._allTrips, ...page.content];
+        _currentTripsPage = nextPage;
+        _hasMoreTrips = !page.last;
+        _isLoadingMoreTrips = false;
+        final query = _searchController.text.toLowerCase();
+        _filteredTrips = query.isEmpty
+            ? _allTrips
+            : _allTrips.where((trip) {
+                return trip.name.toLowerCase().contains(query) ||
+                    trip.username.toLowerCase().contains(query) ||
+                    trip.id.toLowerCase().contains(query);
+              }).toList();
+      });
+    } catch (e) {
+      setState(() => _isLoadingMoreTrips = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading more trips: $e')),
+        );
+      }
     }
   }
 
@@ -408,7 +450,6 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: WandererAppBar(
-        searchController: _searchController,
         isLoggedIn: _isLoggedIn,
         username: _username,
         userId: _userId,
@@ -741,6 +782,23 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
                   final trip = _filteredTrips[index];
                   return _buildTripItem(trip, isMobile);
                 },
+              ),
+            if (_hasMoreTrips)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: _isLoadingMoreTrips
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : TextButton.icon(
+                          onPressed: _loadMoreTrips,
+                          icon: const Icon(Icons.expand_more),
+                          label: const Text('Load more trips'),
+                        ),
+                ),
               ),
           ],
         ),

@@ -1,5 +1,6 @@
 import '../../../core/constants/api_endpoints.dart';
 import '../../models/comment_models.dart';
+import '../../models/responses/page_response.dart';
 import '../api_client.dart';
 
 /// Comment query client for read operations (Port 8082)
@@ -19,13 +20,20 @@ class CommentQueryClient {
     return _apiClient.handleResponse(response, Comment.fromJson);
   }
 
-  /// Get all comments for a trip (includes top-level comments with replies)
+  /// Get all comments for a trip (paginated, includes top-level comments with replies)
   /// Requires authentication (USER, ADMIN)
-  Future<List<Comment>> getTripComments(String tripId) async {
+  Future<PageResponse<Comment>> getTripComments(
+    String tripId, {
+    int page = 0,
+    int size = 20,
+    String sort = 'timestamp,desc',
+  }) async {
+    final endpoint =
+        '${ApiEndpoints.tripComments(tripId)}?page=$page&size=$size&sort=$sort';
     final response = await _apiClient.get(
-      ApiEndpoints.tripComments(tripId),
+      endpoint,
       requireAuth: true,
     );
-    return _apiClient.handleListResponse(response, Comment.fromJson);
+    return _apiClient.handlePageResponse(response, Comment.fromJson);
   }
 }

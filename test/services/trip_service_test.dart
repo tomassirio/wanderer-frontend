@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/data/client/clients.dart';
@@ -50,7 +51,7 @@ void main() {
         expect(mockTripQueryClient.lastTripId, 'trip-123');
       });
 
-      test('getAllTrips returns all trips', () async {
+      test('getAllTrips returns all trips (paginated)', () async {
         final mockTrips = [
           createMockTrip('trip-1', 'Trip 1'),
           createMockTrip('trip-2', 'Trip 2'),
@@ -60,27 +61,27 @@ void main() {
 
         final result = await tripService.getAllTrips();
 
-        expect(result.length, 3);
+        expect(result.content.length, 3);
         expect(mockTripQueryClient.getAllTripsCalled, true);
       });
 
-      test('getPublicTrips returns public trips', () async {
+      test('getPublicTrips returns public trips (paginated)', () async {
         final mockTrips = [createMockTrip('trip-1', 'Public Trip 1')];
         mockTripQueryClient.mockTrips = mockTrips;
 
         final result = await tripService.getPublicTrips();
 
-        expect(result.length, 1);
+        expect(result.content.length, 1);
         expect(mockTripQueryClient.getPublicTripsCalled, true);
       });
 
-      test('getAvailableTrips returns available trips', () async {
+      test('getAvailableTrips returns available trips (paginated)', () async {
         final mockTrips = [createMockTrip('trip-1', 'Available Trip')];
         mockTripQueryClient.mockTrips = mockTrips;
 
         final result = await tripService.getAvailableTrips();
 
-        expect(result.isNotEmpty, true);
+        expect(result.content.isNotEmpty, true);
         expect(mockTripQueryClient.getAvailableTripsCalled, true);
       });
 
@@ -291,6 +292,18 @@ class MockTripQueryClient extends TripQueryClient {
   String? lastUserId;
   bool shouldThrowError = false;
 
+  PageResponse<Trip> _wrapInPage(List<Trip> trips) {
+    return PageResponse(
+      content: trips,
+      totalElements: trips.length,
+      totalPages: 1,
+      number: 0,
+      size: 20,
+      first: true,
+      last: true,
+    );
+  }
+
   @override
   Future<List<Trip>> getCurrentUserTrips() async {
     getCurrentUserTripsCalled = true;
@@ -307,24 +320,36 @@ class MockTripQueryClient extends TripQueryClient {
   }
 
   @override
-  Future<List<Trip>> getAllTrips() async {
+  Future<PageResponse<Trip>> getAllTrips({
+    int page = 0,
+    int size = 20,
+    String sort = 'creationTimestamp,desc',
+  }) async {
     getAllTripsCalled = true;
     if (shouldThrowError) throw Exception('Failed to get all trips');
-    return mockTrips ?? [];
+    return _wrapInPage(mockTrips ?? []);
   }
 
   @override
-  Future<List<Trip>> getPublicTrips() async {
+  Future<PageResponse<Trip>> getPublicTrips({
+    int page = 0,
+    int size = 20,
+    String sort = 'creationTimestamp,desc',
+  }) async {
     getPublicTripsCalled = true;
     if (shouldThrowError) throw Exception('Failed to get public trips');
-    return mockTrips ?? [];
+    return _wrapInPage(mockTrips ?? []);
   }
 
   @override
-  Future<List<Trip>> getAvailableTrips() async {
+  Future<PageResponse<Trip>> getAvailableTrips({
+    int page = 0,
+    int size = 20,
+    String sort = 'creationTimestamp,desc',
+  }) async {
     getAvailableTripsCalled = true;
     if (shouldThrowError) throw Exception('Failed to get available trips');
-    return mockTrips ?? [];
+    return _wrapInPage(mockTrips ?? []);
   }
 
   @override

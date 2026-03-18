@@ -1,4 +1,5 @@
 import '../models/comment_models.dart';
+import '../models/responses/page_response.dart';
 import '../client/clients.dart';
 
 /// Service for comment operations
@@ -14,9 +15,14 @@ class CommentService {
 
   // ===== Comment Query Operations =====
 
-  /// Get all comments for a trip (includes nested replies)
-  Future<List<Comment>> getCommentsByTripId(String tripId) async {
-    return await _commentQueryClient.getTripComments(tripId);
+  /// Get all comments for a trip (paginated, includes nested replies)
+  Future<PageResponse<Comment>> getCommentsByTripId(
+    String tripId, {
+    int page = 0,
+    int size = 20,
+  }) async {
+    return await _commentQueryClient.getTripComments(tripId,
+        page: page, size: size);
   }
 
   /// Get replies for a specific comment

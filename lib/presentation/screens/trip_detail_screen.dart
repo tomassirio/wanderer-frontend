@@ -51,7 +51,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   final PromotionQueryClient _promotionQueryClient = PromotionQueryClient();
   final AchievementService _achievementService = AchievementService();
   final WebSocketService _webSocketService = WebSocketService();
-  final TextEditingController _searchController = TextEditingController();
   GoogleMapController? _mapController;
   final Completer<GoogleMapController> _mapControllerCompleter = Completer();
   StreamSubscription<WebSocketEvent>? _wsSubscription;
@@ -63,8 +62,17 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   final Map<String, List<Comment>> _replies = {};
   final Map<String, bool> _expandedComments = {};
 
+  int _currentCommentPage = 0;
+  bool _hasMoreComments = false;
+  bool _isLoadingMoreComments = false;
+  static const int _commentPageSize = 20;
+
   List<TripLocation> _tripUpdates = [];
   bool _isLoadingUpdates = false;
+  int _currentUpdatesPage = 0;
+  bool _hasMoreUpdates = false;
+  bool _isLoadingMoreUpdates = false;
+  static const int _updatesPageSize = 50;
 
   bool _isLoadingComments = false;
   bool _isAddingComment = false;
@@ -841,7 +849,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     debugPrint('TripDetailScreen: Unsubscribed from trip');
     _commentController.dispose();
     _scrollController.dispose();
-    _searchController.dispose();
     _mapController?.dispose();
     super.dispose();
   }
@@ -916,18 +923,66 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   }
 
   Future<void> _loadTripUpdates() async {
-    setState(() => _isLoadingUpdates = true);
+    setState(() {
+      _isLoadingUpdates = true;
+      _currentUpdatesPage = 0;
+    });
 
     try {
-      final updates = await _repository.loadTripUpdates(_trip.id);
+      final pageResponse = await _repository.loadTripUpdates(
+        _trip.id,
+        page: 0,
+        size: _updatesPageSize,
+      );
       setState(() {
-        _tripUpdates = updates;
+        _tripUpdates = pageResponse.content;
+        _hasMoreUpdates = !pageResponse.last;
         _isLoadingUpdates = false;
       });
     } catch (e) {
       setState(() => _isLoadingUpdates = false);
       if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error loading updates: $e');
+      }
+    }
+  }
+
+  Future<void> _loadMoreTripUpdates() async {
+    if (_isLoadingMoreUpdates || !_hasMoreUpdates) return;
+
+    setState(() => _isLoadingMoreUpdates = true);
+
+    try {
+      final nextPage = _currentUpdatesPage + 1;
+      final pageResponse = await _repository.loadTripUpdates(
+        _trip.id,
+        page: nextPage,
+        size: _updatesPageSize,
+      );
+      setState(() {
+        _tripUpdates = [..._tripUpdates, ...pageResponse.content];
+        _currentUpdatesPage = nextPage;
+        _hasMoreUpdates = !pageResponse.last;
+        _isLoadingMoreUpdates = false;
+      });
+
+      // Update the map with the newly loaded older locations so
+      // the polyline extends further back in time.
+      final updatedLocations = <TripLocation>[
+        ...(_trip.locations ?? []),
+        ...pageResponse.content,
+      ];
+      // Deduplicate by ID
+      final seen = <String>{};
+      final deduped = updatedLocations.where((l) => seen.add(l.id)).toList();
+      setState(() {
+        _trip = _trip.copyWith(locations: deduped);
+      });
+      _updateMapData();
+    } catch (e) {
+      setState(() => _isLoadingMoreUpdates = false);
+      if (mounted) {
+        UiHelpers.showErrorMessage(context, 'Error loading more updates: $e');
       }
     }
   }
@@ -1004,12 +1059,20 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   }
 
   Future<void> _loadComments() async {
-    setState(() => _isLoadingComments = true);
+    setState(() {
+      _isLoadingComments = true;
+      _currentCommentPage = 0;
+    });
 
     try {
-      final comments = await _repository.loadComments(_trip.id);
+      final pageResponse = await _repository.loadComments(
+        _trip.id,
+        page: 0,
+        size: _commentPageSize,
+      );
       setState(() {
-        _comments = comments;
+        _comments = pageResponse.content;
+        _hasMoreComments = !pageResponse.last;
         _sortComments();
         _isLoadingComments = false;
       });
@@ -1017,6 +1080,32 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       setState(() => _isLoadingComments = false);
       if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error loading comments: $e');
+      }
+    }
+  }
+
+  Future<void> _loadMoreComments() async {
+    if (_isLoadingMoreComments || !_hasMoreComments) return;
+
+    setState(() => _isLoadingMoreComments = true);
+
+    try {
+      final nextPage = _currentCommentPage + 1;
+      final pageResponse = await _repository.loadComments(
+        _trip.id,
+        page: nextPage,
+        size: _commentPageSize,
+      );
+      setState(() {
+        _comments = [..._comments, ...pageResponse.content];
+        _currentCommentPage = nextPage;
+        _hasMoreComments = !pageResponse.last;
+        _isLoadingMoreComments = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingMoreComments = false);
+      if (mounted) {
+        UiHelpers.showErrorMessage(context, 'Error loading more comments: $e');
       }
     }
   }
@@ -2137,9 +2226,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: WandererAppBar(
-        searchController: _searchController,
-        onSearch: () {},
-        onClear: () => _searchController.clear(),
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
         username: _username,
@@ -2424,7 +2510,11 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       expandedComments: _expandedComments,
       tripUpdates: _tripUpdates,
       isLoadingComments: _isLoadingComments,
+      isLoadingMoreComments: _isLoadingMoreComments,
+      hasMoreComments: _hasMoreComments,
       isLoadingUpdates: _isLoadingUpdates,
+      isLoadingMoreUpdates: _isLoadingMoreUpdates,
+      hasMoreUpdates: _hasMoreUpdates,
       isLoggedIn: _isLoggedIn,
       isAddingComment: _isAddingComment,
       isTimelineCollapsed: _isTimelineCollapsed,
@@ -2454,6 +2544,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       onToggleTripUpdate: () => _handleToggleTripUpdate(isMobile),
       onToggleTripSettings: () => _handleToggleTripSettings(isMobile),
       onRefreshTimeline: _loadTripUpdates,
+      onLoadMoreUpdates: _hasMoreUpdates ? _loadMoreTripUpdates : null,
       onTimelineUpdateTap: _handleTimelineUpdateTap,
       onSortChanged: _changeSortOption,
       onReact: _showReactionPicker,
@@ -2463,6 +2554,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       onToggleReplies: _handleToggleReplies,
       onSendComment: _addComment,
       onCancelReply: () => setState(() => _replyingToCommentId = null),
+      onLoadMoreComments: _hasMoreComments ? _loadMoreComments : null,
       onStatusChange: _changeTripStatus,
       onSettingsChange: _handleSettingsChange,
       onSendTripUpdate: _sendManualUpdate,

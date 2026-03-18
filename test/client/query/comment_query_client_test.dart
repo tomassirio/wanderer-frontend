@@ -99,9 +99,9 @@ void main() {
 
     group('getTripComments', () {
       test(
-        'successful retrieval returns list of comments with replies',
+        'successful retrieval returns paginated comments with replies',
         () async {
-          final responseBody = [
+          final comments = [
             {
               'id': 'comment-1',
               'tripId': 'trip-123',
@@ -140,17 +140,18 @@ void main() {
             },
           ];
           mockHttpClient.response = http.Response(
-            jsonEncode(responseBody),
+            jsonEncode(_wrapInPage(comments)),
             200,
           );
 
           final result = await commentQueryClient.getTripComments('trip-123');
 
-          expect(result.length, 2);
-          expect(result[0].message, 'Nice trip!');
-          expect(result[0].replies?.length, 1);
-          expect(result[0].replies?[0].message, 'Thanks!');
-          expect(result[1].message, 'Amazing!');
+          expect(result.content.length, 2);
+          expect(result.content[0].message, 'Nice trip!');
+          expect(result.content[0].replies?.length, 1);
+          expect(result.content[0].replies?[0].message, 'Thanks!');
+          expect(result.content[1].message, 'Amazing!');
+          expect(result.totalElements, 2);
           expect(mockHttpClient.lastMethod, 'GET');
           expect(
             mockHttpClient.lastUri?.path,
@@ -163,20 +164,34 @@ void main() {
         },
       );
 
+      test('getTripComments sends pagination query params', () async {
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage([])), 200);
+
+        await commentQueryClient.getTripComments('trip-123', page: 1, size: 10);
+
+        final uri = mockHttpClient.lastUri!;
+        expect(uri.queryParameters['page'], '1');
+        expect(uri.queryParameters['size'], '10');
+      });
+
       test('getTripComments requires authentication', () async {
-        mockHttpClient.response = http.Response(jsonEncode([]), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage([])), 200);
 
         await commentQueryClient.getTripComments('trip-123');
 
         expect(mockHttpClient.lastHeaders?['Authorization'], isNotNull);
       });
 
-      test('getTripComments returns empty list when no comments', () async {
-        mockHttpClient.response = http.Response(jsonEncode([]), 200);
+      test('getTripComments returns empty page when no comments', () async {
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage([])), 200);
 
         final result = await commentQueryClient.getTripComments('trip-123');
 
-        expect(result, isEmpty);
+        expect(result.content, isEmpty);
+        expect(result.totalElements, 0);
       });
 
       test('getTripComments throws exception on trip not found', () async {
@@ -226,6 +241,20 @@ void main() {
       );
     });
   });
+}
+
+/// Helper to wrap a list of items in a Spring Boot `Page<T>` JSON structure
+Map<String, dynamic> _wrapInPage(List<dynamic> content) {
+  return {
+    'content': content,
+    'totalElements': content.length,
+    'totalPages': content.isEmpty ? 0 : 1,
+    'number': 0,
+    'size': 20,
+    'first': true,
+    'last': true,
+    'empty': content.isEmpty,
+  };
 }
 
 // Mock HTTP Client

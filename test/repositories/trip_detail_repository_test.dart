@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
+import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
 import 'package:wanderer_frontend/data/services/comment_service.dart';
@@ -37,31 +38,39 @@ void main() {
         final replyComment = createMockComment('comment-3', 'comment-1');
 
         when(
-          mockCommentService.getCommentsByTripId('trip-1'),
-        ).thenAnswer((_) async => [topComment1, topComment2, replyComment]);
+          mockCommentService.getCommentsByTripId('trip-1',
+              page: anyNamed('page'), size: anyNamed('size')),
+        ).thenAnswer((_) async =>
+            _wrapCommentsInPage([topComment1, topComment2, replyComment]));
 
         final result = await repository.loadComments('trip-1');
 
-        expect(result.length, 2);
-        expect(result[0].id, 'comment-1');
-        expect(result[1].id, 'comment-2');
-        verify(mockCommentService.getCommentsByTripId('trip-1')).called(1);
+        expect(result.content.length, 2);
+        expect(result.content[0].id, 'comment-1');
+        expect(result.content[1].id, 'comment-2');
+        verify(mockCommentService.getCommentsByTripId('trip-1',
+                page: anyNamed('page'), size: anyNamed('size')))
+            .called(1);
       });
 
       test('returns empty list when no comments', () async {
         when(
-          mockCommentService.getCommentsByTripId('trip-1'),
-        ).thenAnswer((_) async => []);
+          mockCommentService.getCommentsByTripId('trip-1',
+              page: anyNamed('page'), size: anyNamed('size')),
+        ).thenAnswer((_) async => _wrapCommentsInPage([]));
 
         final result = await repository.loadComments('trip-1');
 
-        expect(result, isEmpty);
-        verify(mockCommentService.getCommentsByTripId('trip-1')).called(1);
+        expect(result.content, isEmpty);
+        verify(mockCommentService.getCommentsByTripId('trip-1',
+                page: anyNamed('page'), size: anyNamed('size')))
+            .called(1);
       });
 
       test('handles API errors gracefully', () async {
         when(
-          mockCommentService.getCommentsByTripId('trip-1'),
+          mockCommentService.getCommentsByTripId('trip-1',
+              page: anyNamed('page'), size: anyNamed('size')),
         ).thenThrow(Exception('API Error'));
 
         expect(() => repository.loadComments('trip-1'), throwsException);
@@ -74,12 +83,13 @@ void main() {
           final reply2 = createMockComment('comment-2', 'parent-2');
 
           when(
-            mockCommentService.getCommentsByTripId('trip-1'),
-          ).thenAnswer((_) async => [reply1, reply2]);
+            mockCommentService.getCommentsByTripId('trip-1',
+                page: anyNamed('page'), size: anyNamed('size')),
+          ).thenAnswer((_) async => _wrapCommentsInPage([reply1, reply2]));
 
           final result = await repository.loadComments('trip-1');
 
-          expect(result, isEmpty);
+          expect(result.content, isEmpty);
         },
       );
     });
@@ -171,23 +181,27 @@ void main() {
         ];
 
         when(
-          mockTripService.getTripUpdates('trip-1'),
-        ).thenAnswer((_) async => updates);
+          mockTripService.getTripUpdates('trip-1',
+              page: anyNamed('page'), size: anyNamed('size')),
+        ).thenAnswer((_) async => _wrapLocationsInPage(updates));
 
         final result = await repository.loadTripUpdates('trip-1');
 
-        expect(result.length, 2);
-        verify(mockTripService.getTripUpdates('trip-1')).called(1);
+        expect(result.content.length, 2);
+        verify(mockTripService.getTripUpdates('trip-1',
+                page: anyNamed('page'), size: anyNamed('size')))
+            .called(1);
       });
 
       test('returns empty list when no updates', () async {
         when(
-          mockTripService.getTripUpdates('trip-1'),
-        ).thenAnswer((_) async => []);
+          mockTripService.getTripUpdates('trip-1',
+              page: anyNamed('page'), size: anyNamed('size')),
+        ).thenAnswer((_) async => _wrapLocationsInPage([]));
 
         final result = await repository.loadTripUpdates('trip-1');
 
-        expect(result, isEmpty);
+        expect(result.content, isEmpty);
       });
     });
 
@@ -380,6 +394,30 @@ TripLocation createMockTripLocation(double lat, double lng) {
     latitude: lat,
     longitude: lng,
     timestamp: DateTime.now(),
+  );
+}
+
+PageResponse<Comment> _wrapCommentsInPage(List<Comment> comments) {
+  return PageResponse(
+    content: comments,
+    totalElements: comments.length,
+    totalPages: comments.isEmpty ? 0 : 1,
+    number: 0,
+    size: 20,
+    first: true,
+    last: true,
+  );
+}
+
+PageResponse<TripLocation> _wrapLocationsInPage(List<TripLocation> locations) {
+  return PageResponse(
+    content: locations,
+    totalElements: locations.length,
+    totalPages: locations.isEmpty ? 0 : 1,
+    number: 0,
+    size: 50,
+    first: true,
+    last: true,
   );
 }
 

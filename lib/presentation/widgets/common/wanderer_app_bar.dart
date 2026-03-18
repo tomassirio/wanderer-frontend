@@ -11,9 +11,6 @@ import 'package:wanderer_frontend/presentation/widgets/common/search_bar_widget.
 
 /// Reusable AppBar for the Wanderer application
 class WandererAppBar extends StatefulWidget implements PreferredSizeWidget {
-  final TextEditingController searchController;
-  final VoidCallback? onSearch;
-  final VoidCallback? onClear;
   final bool isLoggedIn;
   final VoidCallback? onLoginPressed;
   final String? username;
@@ -26,9 +23,6 @@ class WandererAppBar extends StatefulWidget implements PreferredSizeWidget {
 
   const WandererAppBar({
     super.key,
-    required this.searchController,
-    this.onSearch,
-    this.onClear,
     required this.isLoggedIn,
     this.onLoginPressed,
     this.username,
@@ -47,7 +41,8 @@ class WandererAppBar extends StatefulWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
 
-class _WandererAppBarState extends State<WandererAppBar> {
+class _WandererAppBarState extends State<WandererAppBar>
+    with SingleTickerProviderStateMixin {
   bool _isSearchExpanded = false;
   int _unreadCount = 0;
   final NotificationApiService _notificationService = NotificationApiService();
@@ -57,6 +52,9 @@ class _WandererAppBarState extends State<WandererAppBar> {
   String? _subscribedUserId;
   Timer? _pollTimer;
   Timer? _debounceTimer;
+
+  late final AnimationController _searchAnimController;
+  late final Animation<double> _searchAnimation;
 
   /// Event types that typically generate a notification on the backend.
   /// When any of these arrive we debounce-refresh the unread count from the API.
@@ -77,6 +75,20 @@ class _WandererAppBarState extends State<WandererAppBar> {
   @override
   void initState() {
     super.initState();
+    _searchAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _searchAnimation = CurvedAnimation(
+      parent: _searchAnimController,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    _searchAnimController.addStatusListener((status) {
+      if (status == AnimationStatus.dismissed) {
+        setState(() => _isSearchExpanded = false);
+      }
+    });
     if (widget.isLoggedIn) {
       _fetchUnreadCount();
       _subscribeToNotificationEvents();
@@ -106,6 +118,7 @@ class _WandererAppBarState extends State<WandererAppBar> {
   @override
   void dispose() {
     _cancelSubscriptions();
+    _searchAnimController.dispose();
     super.dispose();
   }
 
@@ -207,14 +220,12 @@ class _WandererAppBarState extends State<WandererAppBar> {
   }
 
   void _toggleSearch() {
-    setState(() {
-      _isSearchExpanded = !_isSearchExpanded;
-      if (!_isSearchExpanded) {
-        // Clear search when closing
-        widget.searchController.clear();
-        widget.onClear?.call();
-      }
-    });
+    if (_isSearchExpanded) {
+      _searchAnimController.reverse();
+    } else {
+      setState(() => _isSearchExpanded = true);
+      _searchAnimController.forward();
+    }
   }
 
   void _showNotificationsDropdown() {
@@ -248,65 +259,70 @@ class _WandererAppBarState extends State<WandererAppBar> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width >= 600;
     return AppBar(
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      centerTitle: true,
+      centerTitle: isDesktop,
+      titleSpacing: _isSearchExpanded ? 8.0 : (isDesktop ? null : 0),
       title: _isSearchExpanded
-          ? SearchBarWidget(
-              controller: widget.searchController,
-              onSearch: (_) => widget.onSearch?.call(),
-              onClear: () {
-                widget.searchController.clear();
-                widget.onClear?.call();
-              },
+          ? Align(
+              alignment: Alignment.center,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(1.0, 0.0),
+                    end: Offset.zero,
+                  ).animate(_searchAnimation),
+                  child: FadeTransition(
+                    opacity: _searchAnimation,
+                    child: SearchBarWidget(onClose: _toggleSearch),
+                  ),
+                ),
+              ),
             )
           : Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 InkWell(
                   onTap: () {
-                    // Navigate to home screen by popping all routes until first route
                     Navigator.of(context).popUntil((route) => route.isFirst);
                   },
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(15),
                   child: const Padding(
-                    padding: EdgeInsets.all(4.0),
-                    child: WandererLogo(size: 36),
+                    padding: EdgeInsets.all(2.0),
+                    child: WandererLogo(size: 30),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 const Flexible(
                   child: Text(
                     'Wanderer',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
       actions: [
-        // Dark mode toggle (available to all users)
-        ValueListenableBuilder<ThemeMode>(
-          valueListenable: ThemeController().themeMode,
-          builder: (context, mode, _) {
-            final isDark = mode == ThemeMode.dark;
-            return IconButton(
-              icon: Icon(
-                isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-              ),
-              tooltip: isDark ? 'Switch to light mode' : 'Switch to dark mode',
-              onPressed: () => ThemeController().setDarkMode(!isDark),
-            );
-          },
-        ),
-        // Search icon
-        if (_isSearchExpanded)
-          IconButton(
-            icon: const Icon(Icons.close),
-            tooltip: 'Close search',
-            onPressed: _toggleSearch,
-          )
-        else
+        // Dark mode toggle — hidden while search is expanded
+        if (!_isSearchExpanded)
+          ValueListenableBuilder<ThemeMode>(
+            valueListenable: ThemeController().themeMode,
+            builder: (context, mode, _) {
+              final isDark = mode == ThemeMode.dark;
+              return IconButton(
+                icon: Icon(
+                  isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                ),
+                tooltip:
+                    isDark ? 'Switch to light mode' : 'Switch to dark mode',
+                onPressed: () => ThemeController().setDarkMode(!isDark),
+              );
+            },
+          ),
+        // Search icon (hidden while search is expanded — close is inside the bar)
+        if (!_isSearchExpanded)
           IconButton(
             icon: const Icon(Icons.search),
             tooltip: 'Search',
@@ -329,16 +345,17 @@ class _WandererAppBarState extends State<WandererAppBar> {
           ),
         if (!widget.isLoggedIn && widget.onLoginPressed != null)
           Padding(
-            padding: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.only(right: 8),
             child: TextButton.icon(
               onPressed: widget.onLoginPressed,
-              icon: const Icon(Icons.login, color: Colors.white),
-              label: const Text('Login', style: TextStyle(color: Colors.white)),
+              icon: const Icon(Icons.login, size: 18, color: Colors.white),
+              label: const Text('Login',
+                  style: TextStyle(fontSize: 13, color: Colors.white)),
             ),
           ),
         if (widget.isLoggedIn && widget.username != null)
           Padding(
-            padding: const EdgeInsets.only(right: 16),
+            padding: EdgeInsets.only(right: isDesktop ? 16 : 4),
             child: PopupMenuButton<String>(
               icon: CircleAvatar(
                 backgroundColor: Theme.of(context).colorScheme.primary,
@@ -382,9 +399,8 @@ class _WandererAppBarState extends State<WandererAppBar> {
                         Row(
                           children: [
                             CircleAvatar(
-                              backgroundColor: Theme.of(
-                                context,
-                              ).colorScheme.primary,
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.primary,
                               backgroundImage: widget.avatarUrl != null &&
                                       widget.avatarUrl!.isNotEmpty
                                   ? NetworkImage(widget.avatarUrl!)

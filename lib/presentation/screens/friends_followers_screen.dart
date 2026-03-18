@@ -27,7 +27,6 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   final UserService _userService = UserService();
   final AuthService _authService = AuthService();
   final WebSocketService _webSocketService = WebSocketService();
-  final TextEditingController _searchController = TextEditingController();
 
   late TabController _tabController;
   StreamSubscription<WebSocketEvent>? _wsSubscription;
@@ -125,7 +124,6 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   void dispose() {
     _wsSubscription?.cancel();
     _tabController.dispose();
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -313,9 +311,6 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: WandererAppBar(
-        searchController: _searchController,
-        onSearch: () {},
-        onClear: () {},
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
         username: _currentUser?.username,

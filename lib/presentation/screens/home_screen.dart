@@ -5,6 +5,7 @@ import 'package:wanderer_frontend/core/constants/enums.dart'
 import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
+import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
@@ -43,7 +44,6 @@ class _HomeScreenState extends State<HomeScreen>
   final WebSocketService _webSocketService = WebSocketService();
   final PushNotificationManager _pushNotificationManager =
       PushNotificationManager();
-  final TextEditingController _searchController = TextEditingController();
   StreamSubscription<WebSocketEvent>? _wsSubscription;
 
   late TabController _tabController;
@@ -58,6 +58,10 @@ class _HomeScreenState extends State<HomeScreen>
   Set<String> _followingIds = {};
 
   bool _isLoading = false;
+  bool _isLoadingMoreTrips = false;
+  bool _hasMoreTrips = false;
+  int _currentTripsPage = 0;
+  static const int _tripsPageSize = 20;
   String? _error;
   String? _userId;
   String? _username;
@@ -77,7 +81,6 @@ class _HomeScreenState extends State<HomeScreen>
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_onTabChanged);
     _initializeData();
-    _searchController.addListener(_applyFilters);
     _initWebSocket();
   }
 
@@ -234,7 +237,6 @@ class _HomeScreenState extends State<HomeScreen>
     _wsSubscription?.cancel();
     _webSocketService.unsubscribeFromAllTrips();
     _pushNotificationManager.stop();
-    _searchController.dispose();
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
@@ -275,20 +277,41 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() {
       _isLoading = true;
       _error = null;
+      _currentTripsPage = 0;
     });
 
     try {
       if (_isLoggedIn) {
-        // Load user-specific data
+        // Load user-specific data AND public trips so the Discover tab
+        // includes all public trips, not just those from the user's network.
         final results = await Future.wait([
-          _repository.loadTrips(), // All available trips
+          _repository.loadTrips(
+              page: 0,
+              size: _tripsPageSize), // Available trips (relationship-based)
           _repository.getMyTrips(), // User's own trips
           _repository.getFriendsIds(),
           _repository.getFollowingIds(),
+          _repository.getPublicTrips(
+              page: 0, size: _tripsPageSize), // All public trips for Discover
         ]);
 
+        final availablePage = results[0] as PageResponse<Trip>;
+        final publicPage = results[4] as PageResponse<Trip>;
+
+        // Merge available trips with public trips (deduplicate by ID).
+        // Available trips take priority since they may contain richer data
+        // (e.g. protected trips from friends).
+        final merged = <String, Trip>{};
+        for (final t in availablePage.content) {
+          merged[t.id] = t;
+        }
+        for (final t in publicPage.content) {
+          merged.putIfAbsent(t.id, () => t);
+        }
+
         setState(() {
-          _allTrips = results[0] as List<Trip>;
+          _allTrips = merged.values.toList();
+          _hasMoreTrips = !availablePage.last || !publicPage.last;
           _myTrips = results[1] as List<Trip>;
           _friendIds = results[2] as Set<String>;
           _followingIds = results[3] as Set<String>;
@@ -297,7 +320,9 @@ class _HomeScreenState extends State<HomeScreen>
         });
       } else {
         // Not logged in, only show public trips
-        final trips = await _repository.getPublicTrips();
+        final tripsPage =
+            await _repository.getPublicTrips(page: 0, size: _tripsPageSize);
+        final trips = tripsPage.content;
 
         // Merge with previously known active trips that the backend may not
         // return (e.g. RESTING trips are active but the /trips/public endpoint
@@ -316,6 +341,7 @@ class _HomeScreenState extends State<HomeScreen>
 
         setState(() {
           _allTrips = [...trips, ...preservedTrips];
+          _hasMoreTrips = !tripsPage.last;
           _myTrips = [];
           _friendIds = {};
           _followingIds = {};
@@ -344,6 +370,71 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  Future<void> _loadMoreTrips() async {
+    if (_isLoadingMoreTrips || !_hasMoreTrips) return;
+
+    setState(() => _isLoadingMoreTrips = true);
+
+    try {
+      final nextPage = _currentTripsPage + 1;
+
+      if (_isLoggedIn) {
+        // Fetch both available and public trips to keep Discover populated
+        final results = await Future.wait([
+          _repository.loadTrips(page: nextPage, size: _tripsPageSize),
+          _repository.getPublicTrips(page: nextPage, size: _tripsPageSize),
+        ]);
+
+        final availablePage = results[0];
+        final publicPage = results[1];
+
+        // Merge new pages (deduplicate against existing + each other)
+        final existingIds = _allTrips.map((t) => t.id).toSet();
+        final newTrips = <String, Trip>{};
+        for (final t in availablePage.content) {
+          if (!existingIds.contains(t.id)) newTrips[t.id] = t;
+        }
+        for (final t in publicPage.content) {
+          if (!existingIds.contains(t.id)) {
+            newTrips.putIfAbsent(t.id, () => t);
+          }
+        }
+
+        setState(() {
+          _allTrips = [..._allTrips, ...newTrips.values];
+          _currentTripsPage = nextPage;
+          _hasMoreTrips = !availablePage.last || !publicPage.last;
+          _isLoadingMoreTrips = false;
+          _categorizeTrips();
+        });
+
+        _webSocketService
+            .subscribeToTrips(newTrips.values.map((t) => t.id).toList());
+      } else {
+        final tripsPage = await _repository.loadTrips(
+          page: nextPage,
+          size: _tripsPageSize,
+        );
+
+        setState(() {
+          _allTrips = [..._allTrips, ...tripsPage.content];
+          _currentTripsPage = nextPage;
+          _hasMoreTrips = !tripsPage.last;
+          _isLoadingMoreTrips = false;
+          _categorizeTrips();
+        });
+
+        _webSocketService
+            .subscribeToTrips(tripsPage.content.map((t) => t.id).toList());
+      }
+    } catch (e) {
+      setState(() => _isLoadingMoreTrips = false);
+      if (mounted) {
+        UiHelpers.showErrorMessage(context, 'Error loading more trips: $e');
+      }
+    }
+  }
+
   Future<void> _loadPromotedTrips() async {
     try {
       final promoted = await _adminService.getPromotedTrips();
@@ -353,12 +444,10 @@ class _HomeScreenState extends State<HomeScreen>
           _promotedTripsById = {for (final p in promoted) p.tripId: p};
         });
 
-        // For guest users, promoted pre-announced trips (status: created) are
-        // not returned by the /trips/public endpoint.  Fetch them individually
-        // so that _categorizeTrips() Rule 4 can include them in Discover.
-        if (!_isLoggedIn) {
-          await _fetchMissingPromotedTrips(promoted);
-        }
+        // Fetch any promoted trips that are missing from _allTrips.
+        // For example, pre-announced trips (status: created) or promoted
+        // trips that weren't returned by the available/public endpoints.
+        await _fetchMissingPromotedTrips(promoted);
 
         // Re-categorize since promoted data affects which trips appear in
         // the discover list (promoted completed / pre-announced trips).
@@ -371,7 +460,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   /// Fetches promoted trips that are not yet in [_allTrips] (e.g. pre-announced
-  /// trips with status `created` which the public trips endpoint excludes).
+  /// trips with status `created` which the public/available endpoints exclude).
   Future<void> _fetchMissingPromotedTrips(List<PromotedTrip> promoted) async {
     final existingIds = _allTrips.map((t) => t.id).toSet();
     final missingPromoted =
@@ -382,7 +471,10 @@ class _HomeScreenState extends State<HomeScreen>
     final fetched = <Trip>[];
     for (final p in missingPromoted) {
       try {
-        final trip = await _tripService.getPublicTripById(p.tripId);
+        // Use authenticated endpoint for logged-in users, public for guests
+        final trip = _isLoggedIn
+            ? await _tripService.getTripById(p.tripId)
+            : await _tripService.getPublicTripById(p.tripId);
         fetched.add(trip);
       } catch (e) {
         debugPrint('Could not fetch promoted trip ${p.tripId}: $e');
@@ -521,15 +613,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   List<Trip> _getFilteredTrips(List<Trip> trips) {
-    final query = _searchController.text.toLowerCase();
     return trips.where((trip) {
-      // Apply search filter
-      if (query.isNotEmpty) {
-        final matchesQuery = trip.name.toLowerCase().contains(query) ||
-            trip.username.toLowerCase().contains(query);
-        if (!matchesQuery) return false;
-      }
-
       // Apply status filter
       if (_statusFilter != null && trip.status != _statusFilter) {
         return false;
@@ -542,11 +626,6 @@ class _HomeScreenState extends State<HomeScreen>
 
       return true;
     }).toList();
-  }
-
-  void _clearSearch() {
-    _searchController.clear();
-    _applyFilters();
   }
 
   Future<void> _logout() async {
@@ -1156,6 +1235,7 @@ class _HomeScreenState extends State<HomeScreen>
               defaultRelationship: RelationshipType.following,
             ),
           ],
+          if (_hasMoreTrips) _buildLoadMoreTripsButton(),
         ],
       ),
     );
@@ -1236,6 +1316,7 @@ class _HomeScreenState extends State<HomeScreen>
             const SizedBox(height: 12),
             _buildTripGrid(nonPromotedTrips, showRelationship: true),
           ],
+          if (_hasMoreTrips) _buildLoadMoreTripsButton(),
         ],
       ),
     );
@@ -1314,6 +1395,34 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Widget _buildLoadMoreTripsButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Center(
+        child: _isLoadingMoreTrips
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  color: WandererTheme.primaryOrange,
+                  strokeWidth: 2,
+                ),
+              )
+            : TextButton.icon(
+                onPressed: _loadMoreTrips,
+                icon: const Icon(
+                  Icons.expand_more,
+                  color: WandererTheme.primaryOrange,
+                ),
+                label: const Text(
+                  'Load more trips',
+                  style: TextStyle(color: WandererTheme.primaryOrange),
+                ),
+              ),
+      ),
+    );
+  }
+
   Widget _buildTripGrid(
     List<Trip> trips, {
     bool showDelete = false,
@@ -1386,9 +1495,6 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: WandererAppBar(
-        searchController: _searchController,
-        onSearch: _applyFilters,
-        onClear: _clearSearch,
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
         username: _username,
@@ -1478,26 +1584,7 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                             child: Column(
                               children: [
-                                Container(
-                                  width: 120,
-                                  height: 120,
-                                  decoration: BoxDecoration(
-                                    color:
-                                        Theme.of(context).colorScheme.surface,
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 20,
-                                        offset: const Offset(0, 10),
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(16),
-                                    child: WandererLogo(size: 64),
-                                  ),
-                                ),
+                                const WandererLogo(size: 110),
                                 const SizedBox(height: 24),
                                 const Text(
                                   'Welcome to Wanderer',

@@ -7,13 +7,10 @@ void main() {
     testWidgets('shows notification icon when logged in', (
       WidgetTester tester,
     ) async {
-      final searchController = TextEditingController();
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
-              searchController: searchController,
               isLoggedIn: true,
               username: 'testuser',
               userId: 'user-123',
@@ -26,20 +23,15 @@ void main() {
       await tester.pump();
 
       expect(find.byIcon(Icons.notifications_outlined), findsOneWidget);
-
-      searchController.dispose();
     });
 
     testWidgets('hides notification icon when not logged in', (
       WidgetTester tester,
     ) async {
-      final searchController = TextEditingController();
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
-              searchController: searchController,
               isLoggedIn: false,
             ),
           ),
@@ -49,18 +41,13 @@ void main() {
       await tester.pump();
 
       expect(find.byIcon(Icons.notifications_outlined), findsNothing);
-
-      searchController.dispose();
     });
 
     testWidgets('shows Wanderer title', (WidgetTester tester) async {
-      final searchController = TextEditingController();
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
-              searchController: searchController,
               isLoggedIn: false,
             ),
           ),
@@ -68,18 +55,13 @@ void main() {
       );
 
       expect(find.text('Wanderer'), findsOneWidget);
-
-      searchController.dispose();
     });
 
     testWidgets('shows search icon', (WidgetTester tester) async {
-      final searchController = TextEditingController();
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
-              searchController: searchController,
               isLoggedIn: false,
             ),
           ),
@@ -87,20 +69,15 @@ void main() {
       );
 
       expect(find.byIcon(Icons.search), findsOneWidget);
-
-      searchController.dispose();
     });
 
     testWidgets('shows login button when not logged in and callback provided', (
       WidgetTester tester,
     ) async {
-      final searchController = TextEditingController();
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
-              searchController: searchController,
               isLoggedIn: false,
               onLoginPressed: () {},
             ),
@@ -110,20 +87,15 @@ void main() {
 
       expect(find.text('Login'), findsOneWidget);
       expect(find.byIcon(Icons.login), findsOneWidget);
-
-      searchController.dispose();
     });
 
     testWidgets('shows user avatar when logged in with username', (
       WidgetTester tester,
     ) async {
-      final searchController = TextEditingController();
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
-              searchController: searchController,
               isLoggedIn: true,
               username: 'testuser',
               userId: 'user-123',
@@ -136,20 +108,15 @@ void main() {
 
       // Avatar should display the first letter of username
       expect(find.text('T'), findsOneWidget);
-
-      searchController.dispose();
     });
 
     testWidgets('prefers displayName initial for avatar', (
       WidgetTester tester,
     ) async {
-      final searchController = TextEditingController();
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
-              searchController: searchController,
               isLoggedIn: true,
               username: 'testuser',
               userId: 'user-123',
@@ -163,20 +130,15 @@ void main() {
 
       // Avatar should display 'J' from displayName, not 'T' from username
       expect(find.text('J'), findsWidgets);
-
-      searchController.dispose();
     });
 
-    testWidgets('toggles search bar on search icon tap', (
+    testWidgets('expands search bar on search icon tap', (
       WidgetTester tester,
     ) async {
-      final searchController = TextEditingController();
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
-              searchController: searchController,
               isLoggedIn: false,
             ),
           ),
@@ -189,30 +151,21 @@ void main() {
 
       // Tap search icon to expand search
       await tester.tap(find.byIcon(Icons.search));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
-      // Close icon should appear, title should be replaced by search field
-      expect(find.byIcon(Icons.close), findsOneWidget);
-      expect(find.text('Wanderer'), findsNothing);
-
-      searchController.dispose();
+      // Clear icon should appear inside the search bar, search field should be visible
+      expect(find.byIcon(Icons.clear), findsOneWidget);
+      expect(find.byType(TextField), findsOneWidget);
     });
 
-    testWidgets('clears search and calls onClear when closing search', (
+    testWidgets('collapses search bar on close icon tap', (
       WidgetTester tester,
     ) async {
-      final searchController = TextEditingController(text: 'query');
-      bool clearCalled = false;
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
-              searchController: searchController,
               isLoggedIn: false,
-              onClear: () {
-                clearCalled = true;
-              },
             ),
           ),
         ),
@@ -220,29 +173,25 @@ void main() {
 
       // Expand search
       await tester.tap(find.byIcon(Icons.search));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
-      // Close search
-      await tester.tap(find.byIcon(Icons.close));
-      await tester.pump();
+      // Close search via the clear icon inside the search bar
+      await tester.tap(find.byIcon(Icons.clear));
+      await tester.pumpAndSettle();
 
-      expect(searchController.text, isEmpty);
-      expect(clearCalled, isTrue);
-
-      searchController.dispose();
+      // Search icon should be visible again, no TextField
+      expect(find.byIcon(Icons.search), findsOneWidget);
+      expect(find.text('Wanderer'), findsOneWidget);
     });
 
     testWidgets('resets unread count to 0 on logout', (
       WidgetTester tester,
     ) async {
-      final searchController = TextEditingController();
-
       // Start logged in
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
-              searchController: searchController,
               isLoggedIn: true,
               username: 'testuser',
               userId: 'user-123',
@@ -257,7 +206,6 @@ void main() {
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
-              searchController: searchController,
               isLoggedIn: false,
             ),
           ),
@@ -267,20 +215,15 @@ void main() {
 
       // Notification icon should be gone (user logged out)
       expect(find.byIcon(Icons.notifications_outlined), findsNothing);
-
-      searchController.dispose();
     });
 
     testWidgets('notification icon has Badge widget when logged in', (
       WidgetTester tester,
     ) async {
-      final searchController = TextEditingController();
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
-              searchController: searchController,
               isLoggedIn: true,
               username: 'testuser',
               userId: 'user-123',
@@ -293,20 +236,15 @@ void main() {
 
       // Badge widget should be present around the notification icon
       expect(find.byType(Badge), findsOneWidget);
-
-      searchController.dispose();
     });
 
     testWidgets('cleans up timers on dispose without errors', (
       WidgetTester tester,
     ) async {
-      final searchController = TextEditingController();
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
-              searchController: searchController,
               isLoggedIn: true,
               username: 'testuser',
               userId: 'user-123',
@@ -326,20 +264,15 @@ void main() {
 
       // Should not throw any errors
       expect(find.text('replaced'), findsOneWidget);
-
-      searchController.dispose();
     });
 
     testWidgets('resubscribes when userId changes while logged in', (
       WidgetTester tester,
     ) async {
-      final searchController = TextEditingController();
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
-              searchController: searchController,
               isLoggedIn: true,
               username: 'user1',
               userId: 'user-1',
@@ -354,7 +287,6 @@ void main() {
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
-              searchController: searchController,
               isLoggedIn: true,
               username: 'user2',
               userId: 'user-2',
@@ -366,8 +298,6 @@ void main() {
 
       // Should still show notification icon (still logged in)
       expect(find.byIcon(Icons.notifications_outlined), findsOneWidget);
-
-      searchController.dispose();
     });
   });
 }
