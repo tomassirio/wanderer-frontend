@@ -1103,6 +1103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: WandererTheme.glassDecoration(
         radius: WandererTheme.glassRadiusSmall,
         shadow: WandererTheme.cardShadow,
+        backgroundColor: WandererTheme.glassBackgroundFor(context),
       ),
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -1162,10 +1163,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Expanded(
               child: Text(
                 _tripSortOption.label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: WandererTheme.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -1187,10 +1188,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+        final sheetBg = isDark
+            ? const Color(0xFF1E1E1E)
+            : WandererTheme.backgroundCard;
+        final handleColor = isDark ? Colors.grey[600] : Colors.grey[300];
+        final titleColor = theme.colorScheme.onSurface;
+        final unselectedTextColor = theme.colorScheme.onSurface;
+        final unselectedIconColor =
+            isDark ? Colors.grey[400] : Colors.grey[500];
+
         return Container(
-          decoration: const BoxDecoration(
-            color: WandererTheme.backgroundCard,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: BoxDecoration(
+            color: sheetBg,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1201,7 +1214,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: handleColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1212,11 +1225,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Icon(Icons.sort_rounded,
                         size: 20, color: WandererTheme.primaryOrange),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Sort trips by',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
+                        color: titleColor,
                       ),
                     ),
                   ],
@@ -1230,7 +1244,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     option.icon,
                     color: isSelected
                         ? WandererTheme.primaryOrange
-                        : Colors.grey[500],
+                        : unselectedIconColor,
                     size: 20,
                   ),
                   title: Text(
@@ -1240,7 +1254,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           isSelected ? FontWeight.w600 : FontWeight.normal,
                       color: isSelected
                           ? WandererTheme.primaryOrange
-                          : WandererTheme.textPrimary,
+                          : unselectedTextColor,
                     ),
                   ),
                   trailing: isSelected
@@ -1265,6 +1279,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   /// A filter toggle button with an animated badge.
   Widget _buildFilterToggleButton(bool hasActive, int count) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inactiveIconColor = isDark ? Colors.grey[400] : Colors.grey[600];
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1293,7 +1310,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     : Icons.filter_list_rounded,
                 size: 16,
                 color:
-                    hasActive ? WandererTheme.primaryOrange : Colors.grey[600],
+                    hasActive ? WandererTheme.primaryOrange : inactiveIconColor,
               ),
               if (hasActive) ...[
                 const SizedBox(width: 6),
