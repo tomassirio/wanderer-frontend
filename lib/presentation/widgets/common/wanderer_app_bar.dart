@@ -259,13 +259,14 @@ class _WandererAppBarState extends State<WandererAppBar>
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width >= 600;
     return AppBar(
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      centerTitle: !_isSearchExpanded,
-      titleSpacing: _isSearchExpanded ? 8.0 : null,
+      centerTitle: isDesktop,
+      titleSpacing: _isSearchExpanded ? 8.0 : (isDesktop ? null : 0),
       title: _isSearchExpanded
           ? Align(
-              alignment: Alignment.centerRight,
+              alignment: Alignment.center,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 400),
                 child: SlideTransition(
@@ -285,8 +286,7 @@ class _WandererAppBarState extends State<WandererAppBar>
               children: [
                 InkWell(
                   onTap: () {
-                    Navigator.of(context)
-                        .popUntil((route) => route.isFirst);
+                    Navigator.of(context).popUntil((route) => route.isFirst);
                   },
                   borderRadius: BorderRadius.circular(15),
                   child: const Padding(
@@ -295,10 +295,12 @@ class _WandererAppBarState extends State<WandererAppBar>
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Text(
-                  'Wanderer',
-                  style: TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
+                const Flexible(
+                  child: Text(
+                    'Wanderer',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -313,7 +315,8 @@ class _WandererAppBarState extends State<WandererAppBar>
                 icon: Icon(
                   isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
                 ),
-                tooltip: isDark ? 'Switch to light mode' : 'Switch to dark mode',
+                tooltip:
+                    isDark ? 'Switch to light mode' : 'Switch to dark mode',
                 onPressed: () => ThemeController().setDarkMode(!isDark),
               );
             },
@@ -352,7 +355,7 @@ class _WandererAppBarState extends State<WandererAppBar>
           ),
         if (widget.isLoggedIn && widget.username != null)
           Padding(
-            padding: const EdgeInsets.only(right: 16),
+            padding: EdgeInsets.only(right: isDesktop ? 16 : 4),
             child: PopupMenuButton<String>(
               icon: CircleAvatar(
                 backgroundColor: Theme.of(context).colorScheme.primary,
