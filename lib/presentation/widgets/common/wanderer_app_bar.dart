@@ -92,7 +92,18 @@ class _WandererAppBarState extends State<WandererAppBar>
     });
     if (widget.isLoggedIn) {
       _fetchUnreadCount();
-      _subscribeToNotificationEvents();
+      _startPolling();
+    }
+
+    // Always listen to the global WebSocket events stream immediately.
+    // This ensures notification events are caught even before the userId
+    // is available — the global stream receives events from ALL subscribed
+    // topics (including ones subscribed by other screens).
+    _wsSubscription = _webSocketService.events.listen(_handleGlobalEvent);
+
+    // If userId is already available, ensure the user topic is subscribed.
+    if (widget.isLoggedIn && widget.userId != null) {
+      _ensureUserTopicSubscribed(widget.userId!);
     }
   }
 
@@ -100,95 +111,87 @@ class _WandererAppBarState extends State<WandererAppBar>
   void didUpdateWidget(covariant WandererAppBar oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isLoggedIn && !oldWidget.isLoggedIn) {
+      // Just became logged in — fetch the real count from the API
+      // to pick up any notifications missed during the async window.
       _fetchUnreadCount();
-      _subscribeToNotificationEvents();
+      _startPolling();
+      if (widget.userId != null) {
+        _ensureUserTopicSubscribed(widget.userId!);
+      }
     } else if (!widget.isLoggedIn && oldWidget.isLoggedIn) {
-      _cancelSubscriptions();
+      _stopPolling();
       setState(() {
         _unreadCount = 0;
       });
     } else if (widget.isLoggedIn &&
         widget.userId != oldWidget.userId &&
         widget.userId != null) {
-      // User ID changed while still logged in — resubscribe
+      // User ID changed while still logged in — resubscribe to user topic
+      // and refresh count in case it was stale.
       _fetchUnreadCount();
-      _subscribeToNotificationEvents();
+      _ensureUserTopicSubscribed(widget.userId!);
     }
   }
 
   @override
   void dispose() {
-    _cancelSubscriptions();
+    _wsSubscription?.cancel();
+    _wsSubscription = null;
+    _stopPolling();
     _searchAnimController.dispose();
     super.dispose();
   }
 
-  void _cancelSubscriptions() {
-    _wsSubscription?.cancel();
-    _wsSubscription = null;
+  void _stopPolling() {
     _pollTimer?.cancel();
     _pollTimer = null;
     _debounceTimer?.cancel();
     _debounceTimer = null;
-    _subscribedUserId = null;
   }
 
-  void _subscribeToNotificationEvents() {
-    final userId = widget.userId;
-    if (userId == null) return;
-
-    // Already subscribed to this user — skip
-    if (_subscribedUserId == userId && _wsSubscription != null) return;
-
-    _wsSubscription?.cancel();
-    _wsSubscription = null;
+  /// Start periodic polling as a reliable fallback.
+  /// This ensures the badge updates even when the WebSocket connection
+  /// is unavailable (e.g. dev server, firewall, or backend doesn't send
+  /// NOTIFICATION_CREATED events).
+  void _startPolling() {
     _pollTimer?.cancel();
-    _debounceTimer?.cancel();
-    _subscribedUserId = userId;
-
-    // Start periodic polling as a reliable fallback.
-    // This ensures the badge updates even when the WebSocket connection
-    // is unavailable (e.g. dev server, firewall, or backend doesn't send
-    // NOTIFICATION_CREATED events).
-    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+    _pollTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted && widget.isLoggedIn) {
         _fetchUnreadCount();
       }
     });
-
-    // Kick off WebSocket connect + subscribe asynchronously
-    _connectAndSubscribe(userId);
   }
 
-  Future<void> _connectAndSubscribe(String userId) async {
-    // Ensure the WebSocket is connected before subscribing.
-    // Awaiting avoids the race where subscribeToUser runs before the
-    // connection is established and _handleConnectionStateChange has
-    // already fired for pending subscriptions.
-    await _webSocketService.connect();
+  /// Ensure the user's WebSocket topic is subscribed so NOTIFICATION_CREATED
+  /// events arrive. The global events listener is set up separately in
+  /// initState and doesn't depend on this.
+  void _ensureUserTopicSubscribed(String userId) {
+    if (_subscribedUserId == userId) return;
+    _subscribedUserId = userId;
 
-    if (!mounted || _subscribedUserId != userId) return;
-
-    // Subscribe to the user's WebSocket topic so NOTIFICATION_CREATED events
-    // arrive on all platforms (PushNotificationManager only subscribes on Android)
-    _webSocketService.subscribeToUser(userId);
-
-    // Listen on the global events stream — it receives ALL events from every
-    // subscribed topic.
-    _wsSubscription = _webSocketService.events.listen((event) {
-      if (!mounted) return;
-
-      if (event.type == WebSocketEventType.notificationCreated) {
-        // Explicit notification event → increment immediately
-        setState(() {
-          _unreadCount++;
-        });
-      } else if (_notificationTriggerEvents.contains(event.type)) {
-        // Other events that typically create a notification on the backend.
-        // Debounce an API refresh so we don't fire for every single event.
-        _debounceFetchUnreadCount();
-      }
+    // Fire-and-forget: connect then subscribe to the user topic.
+    // The global events listener (set up in initState) will already
+    // catch events once the subscription is active.
+    _webSocketService.connect().then((_) {
+      if (!mounted || _subscribedUserId != userId) return;
+      _webSocketService.subscribeToUser(userId);
     });
+  }
+
+  /// Handle a WebSocket event from the global events stream.
+  void _handleGlobalEvent(WebSocketEvent event) {
+    if (!mounted || !widget.isLoggedIn) return;
+
+    if (event.type == WebSocketEventType.notificationCreated) {
+      // Explicit notification event → increment immediately
+      setState(() {
+        _unreadCount++;
+      });
+    } else if (_notificationTriggerEvents.contains(event.type)) {
+      // Other events that typically create a notification on the backend.
+      // Debounce an API refresh so we don't fire for every single event.
+      _debounceFetchUnreadCount();
+    }
   }
 
   /// Debounce the unread count fetch so rapid-fire events only trigger one call.

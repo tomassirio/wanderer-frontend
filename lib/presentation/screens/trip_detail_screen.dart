@@ -55,6 +55,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   GoogleMapController? _mapController;
   final Completer<GoogleMapController> _mapControllerCompleter = Completer();
   StreamSubscription<WebSocketEvent>? _wsSubscription;
+  StreamSubscription<WebSocketEvent>? _globalWsSubscription;
   late Trip _trip;
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
@@ -101,6 +102,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
   // Trip achievements
   List<UserAchievement> _tripAchievements = [];
+  Timer? _achievementRefreshTimer;
+  Timer? _achievementPollTimer;
 
   // Collapsible panel states
   bool _isTimelineCollapsed = false;
@@ -238,8 +241,66 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     // Subscribe to events for this specific trip
     final tripStream = _webSocketService.subscribeToTrip(_trip.id);
     _wsSubscription = tripStream.listen(_handleWebSocketEvent);
+
+    // Listen to the global events stream for notification events
+    // (e.g. ACHIEVEMENT_UNLOCKED) that arrive on the user topic, not
+    // the trip topic.
+    _globalWsSubscription =
+        _webSocketService.events.listen(_handleGlobalWebSocketEvent);
+
+    // Subscribe to the user topic so NOTIFICATION_CREATED events
+    // (including ACHIEVEMENT_UNLOCKED) are received. The userId may
+    // not be available yet (loaded async in _loadUserInfo), so we
+    // try now and also retry in _loadUserInfo via _subscribeUserTopic.
+    _subscribeUserTopic();
+
+    // Start periodic achievement polling as a reliable fallback.
+    // WebSocket events may be delayed or missed; polling ensures the
+    // achievements section updates within a reasonable window.
+    _startAchievementPolling();
+
     debugPrint(
         'TripDetailScreen: WebSocket initialized and listening for trip ${_trip.id}');
+  }
+
+  /// Subscribe to the current user's WebSocket topic if userId is known.
+  /// Safe to call multiple times — no-ops when already subscribed.
+  void _subscribeUserTopic() {
+    final userId = _userId;
+    if (userId == null) return;
+    _webSocketService.subscribeToUser(userId);
+    debugPrint(
+        'TripDetailScreen: Subscribed to user topic for user $userId');
+  }
+
+  /// Start periodic polling for trip achievements as a reliable fallback.
+  void _startAchievementPolling() {
+    _achievementPollTimer?.cancel();
+    _achievementPollTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) {
+        if (mounted) {
+          _loadTripAchievements();
+        }
+      },
+    );
+  }
+
+  /// Handle events from the global WebSocket stream that are relevant
+  /// to the trip detail screen but arrive on non-trip topics (e.g. user topic).
+  void _handleGlobalWebSocketEvent(WebSocketEvent event) {
+    if (!mounted) return;
+
+    if (event is NotificationCreatedEvent) {
+      final notifType = event.notificationType.toUpperCase();
+      if (notifType == 'ACHIEVEMENT_UNLOCKED') {
+        // An achievement was just unlocked — refresh the trip achievements
+        // so they appear immediately in the info panel.
+        debugPrint(
+            'TripDetailScreen: Received ACHIEVEMENT_UNLOCKED notification');
+        _loadTripAchievements();
+      }
+    }
   }
 
   void _handleWebSocketEvent(WebSocketEvent event) {
@@ -265,6 +326,12 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         break;
       case WebSocketEventType.tripSettingsUpdated:
         _handleTripSettingsUpdated(event as TripSettingsUpdatedEvent);
+        break;
+      case WebSocketEventType.tripUpdateCreated:
+        // Achievements are evaluated server-side after trip updates
+        // (distance milestones, time-based, etc.). Debounce a refresh
+        // so rapid-fire updates don't hammer the API.
+        _debouncedAchievementRefresh();
         break;
       default:
         break;
@@ -845,7 +912,10 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   void dispose() {
     debugPrint('TripDetailScreen: Disposing for trip ${_trip.id}');
     _wsSubscription?.cancel();
-    debugPrint('TripDetailScreen: Cancelled WebSocket subscription');
+    _globalWsSubscription?.cancel();
+    _achievementRefreshTimer?.cancel();
+    _achievementPollTimer?.cancel();
+    debugPrint('TripDetailScreen: Cancelled WebSocket subscriptions');
     _webSocketService.unsubscribeFromTrip(_trip.id);
     debugPrint('TripDetailScreen: Unsubscribed from trip');
     _commentController.dispose();
@@ -873,6 +943,10 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       _avatarUrl = avatarUrl;
       _isAdmin = isAdmin;
     });
+
+    // Now that userId is available, ensure we're subscribed to the
+    // user topic for NOTIFICATION_CREATED events (achievements, etc.)
+    _subscribeUserTopic();
 
     // If logged in and viewing another user's trip, check social status
     if (userId != null && _trip.userId != userId) {
@@ -1006,6 +1080,19 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         });
       }
     }
+  }
+
+  /// Debounce achievement refresh so rapid-fire trip updates don't
+  /// hammer the API. Waits 3 seconds after the last trigger.
+  void _debouncedAchievementRefresh() {
+    _achievementRefreshTimer?.cancel();
+    _achievementRefreshTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        debugPrint(
+            'TripDetailScreen: Debounced achievement refresh for trip ${_trip.id}');
+        _loadTripAchievements();
+      }
+    });
   }
 
   Future<void> _loadTripAchievements() async {
