@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Section header widget for organizing trips in the home feed
 class FeedSectionHeader extends StatelessWidget {
@@ -19,6 +20,7 @@ class FeedSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final primaryColor = Theme.of(context).colorScheme.primary;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -104,7 +106,7 @@ class FeedSectionHeader extends StatelessWidget {
           if (onSeeAll != null)
             TextButton(
               onPressed: onSeeAll,
-              child: const Text('See All'),
+              child: Text(l10n.seeAll),
             ),
         ],
       ),
