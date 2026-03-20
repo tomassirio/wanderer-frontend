@@ -329,7 +329,6 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
 
   @override
   Widget build(BuildContext context) {
-
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: 3,

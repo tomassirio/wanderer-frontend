@@ -59,7 +59,6 @@ class _TripCardState extends State<TripCard> {
 
   @override
   Widget build(BuildContext context) {
-
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),

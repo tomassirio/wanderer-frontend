@@ -4,14 +4,13 @@ import '../config/api_endpoints_stub.dart'
 /// API endpoint constants
 class ApiEndpoints {
   // Base URLs - read from window.appConfig (injected by Docker) or use defaults
-  // Defaults for Android emulator use 10.0.2.2 (special IP for host machine)
-  // For physical devices, set via --dart-define at build time
+  // Defaults use /api/1 for all services (query, command, auth)
   static String get commandBaseUrl =>
-      getConfigValue('commandBaseUrl', 'http://10.0.2.2:8081/api/1');
+      getConfigValue('commandBaseUrl', 'http://localhost:8081/api/1');
   static String get queryBaseUrl =>
-      getConfigValue('queryBaseUrl', 'http://10.0.2.2:8082/api/1');
+      getConfigValue('queryBaseUrl', 'http://localhost:8082/api/1');
   static String get authBaseUrl =>
-      getConfigValue('authBaseUrl', 'http://10.0.2.2:8083/api/1/auth');
+      getConfigValue('authBaseUrl', 'http://localhost:8083/api/1/auth');
 
   // Admin base URLs - admin operations now use command/query services (CQRS)
   // Write operations (promote, demote, delete) → command service
