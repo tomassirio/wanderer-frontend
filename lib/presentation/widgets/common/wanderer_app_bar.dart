@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/services/notification_api_service.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
