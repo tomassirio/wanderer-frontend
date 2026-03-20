@@ -48,6 +48,9 @@ class _HomeScreenState extends State<HomeScreen>
   final PushNotificationManager _pushNotificationManager =
       PushNotificationManager();
   StreamSubscription<WebSocketEvent>? _wsSubscription;
+  Timer? _pollTimer;
+  Timer? _debounceTimer;
+  String? _subscribedUserId;
 
   late TabController _tabController;
 
@@ -84,7 +87,18 @@ class _HomeScreenState extends State<HomeScreen>
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_onTabChanged);
     _initializeData();
-    _initWebSocket();
+
+    // Listen to the global WebSocket events stream immediately so events
+    // are caught even before the async connect / userId resolution finishes.
+    _wsSubscription = _webSocketService.events.listen(_handleWebSocketEvent);
+
+    // Fire-and-forget: connect to WebSocket server. Once connected the
+    // pending trip / user subscriptions will be activated automatically.
+    _webSocketService.connect();
+
+    // Start periodic polling as a reliable fallback — ensures the trip
+    // list stays fresh even when WebSocket events are missed or delayed.
+    _startPolling();
   }
 
   @override
@@ -127,9 +141,50 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  Future<void> _initWebSocket() async {
-    await _webSocketService.connect();
-    _wsSubscription = _webSocketService.events.listen(_handleWebSocketEvent);
+  /// Start periodic polling as a reliable fallback.
+  /// This ensures the trip list stays fresh even when the WebSocket connection
+  /// is unavailable (e.g. dev server, firewall, or events are missed).
+  /// Reduced from 15s to 5 minutes - WebSocket provides real-time updates.
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      if (mounted) {
+        debugPrint('HomeScreen: Polling fallback triggered (every 5 min)');
+        _loadTrips();
+      }
+    });
+  }
+
+  void _stopPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+    _debounceTimer?.cancel();
+    _debounceTimer = null;
+  }
+
+  /// Ensure the user's WebSocket topic is subscribed so user-scoped events
+  /// (e.g. notifications, friend activity) are received on the global stream.
+  void _ensureUserTopicSubscribed(String userId) {
+    if (_subscribedUserId == userId) return;
+    _subscribedUserId = userId;
+
+    // Fire-and-forget: connect then subscribe to the user topic.
+    _webSocketService.connect().then((_) {
+      if (!mounted || _subscribedUserId != userId) return;
+      _webSocketService.subscribeToUser(userId);
+      debugPrint('HomeScreen: Subscribed to user topic for user $userId');
+    });
+  }
+
+  /// Debounce the trip list refresh so rapid-fire WS events only trigger
+  /// one API call.
+  void _debouncedLoadTrips() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        _loadTrips();
+      }
+    });
   }
 
   void _handleWebSocketEvent(WebSocketEvent event) {
@@ -145,7 +200,9 @@ class _HomeScreenState extends State<HomeScreen>
       case WebSocketEventType.tripUpdated:
       case WebSocketEventType.tripCreated:
       case WebSocketEventType.tripDeleted:
-        _loadTrips();
+        // Debounce so rapid-fire events (e.g. multiple trip updates in
+        // quick succession) don't hammer the API.
+        _debouncedLoadTrips();
         break;
       default:
         break;
@@ -238,6 +295,8 @@ class _HomeScreenState extends State<HomeScreen>
   void dispose() {
     routeObserver.unsubscribe(this);
     _wsSubscription?.cancel();
+    _wsSubscription = null;
+    _stopPolling();
     _webSocketService.unsubscribeFromAllTrips();
     _pushNotificationManager.stop();
     _tabController.removeListener(_onTabChanged);
@@ -262,6 +321,9 @@ class _HomeScreenState extends State<HomeScreen>
     // Start push notification listener when logged in with a valid userId
     if (isLoggedIn && userId != null) {
       _pushNotificationManager.start(userId);
+      // Subscribe to the user's WebSocket topic so user-scoped events
+      // (e.g. friend activity, notifications) arrive on the global stream.
+      _ensureUserTopicSubscribed(userId);
     } else {
       _pushNotificationManager.stop();
     }
@@ -1566,6 +1628,7 @@ class _HomeScreenState extends State<HomeScreen>
             }
 
             return EnhancedTripCard(
+              key: ValueKey(trip.id), // Prevents unnecessary rebuilds
               trip: trip,
               onTap: () => _navigateToTripDetail(trip),
               onDelete: showDelete && trip.userId == _userId

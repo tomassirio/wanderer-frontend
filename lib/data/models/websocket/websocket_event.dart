@@ -462,6 +462,11 @@ class TripUpdateCreatedEvent extends WebSocketEvent {
   final double? longitude;
   final int? batteryLevel;
   final String? message;
+  final String? city;
+  final String? country;
+  final double? temperatureCelsius;
+  final String? weatherCondition;
+  final String? updateType;
 
   TripUpdateCreatedEvent({
     required String tripId,
@@ -470,6 +475,11 @@ class TripUpdateCreatedEvent extends WebSocketEvent {
     this.longitude,
     this.batteryLevel,
     this.message,
+    this.city,
+    this.country,
+    this.temperatureCelsius,
+    this.weatherCondition,
+    this.updateType,
     required super.payload,
     super.timestamp,
   }) : super(type: WebSocketEventType.tripUpdateCreated, tripId: tripId);
@@ -489,6 +499,11 @@ class TripUpdateCreatedEvent extends WebSocketEvent {
           : (payload['longitude'] as num?)?.toDouble(),
       batteryLevel: payload['batteryLevel'] as int?,
       message: payload['message'] as String?,
+      city: payload['city'] as String?,
+      country: payload['country'] as String?,
+      temperatureCelsius: (payload['temperatureCelsius'] as num?)?.toDouble(),
+      weatherCondition: payload['weatherCondition'] as String?,
+      updateType: payload['updateType'] as String?,
       payload: payload,
       timestamp: json['timestamp'] != null
           ? DateTime.tryParse(json['timestamp'] as String)

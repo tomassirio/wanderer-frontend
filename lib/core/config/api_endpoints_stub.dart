@@ -6,6 +6,8 @@
 //                   --dart-define=QUERY_BASE_URL=https://wanderer.tomassir.io/api/query \
 //                   --dart-define=AUTH_BASE_URL=https://wanderer.tomassir.io/api/auth
 
+import 'package:flutter/foundation.dart';
+
 // Compile-time constants from --dart-define (empty string means use default)
 const String _commandBaseUrl = String.fromEnvironment('COMMAND_BASE_URL');
 const String _queryBaseUrl = String.fromEnvironment('QUERY_BASE_URL');
@@ -48,8 +50,23 @@ String getWebSocketUrl(String relativePath) {
   // For mobile/desktop, use localhost as default for development
   // In production, this should be configured via --dart-define
   const wsBaseUrl = String.fromEnvironment('WS_BASE_URL');
+
+  debugPrint('getWebSocketUrl: WS_BASE_URL from environment: "$wsBaseUrl"');
+  debugPrint('getWebSocketUrl: relativePath: "$relativePath"');
+
   if (wsBaseUrl.isNotEmpty) {
-    return wsBaseUrl + relativePath;
+    final fullUrl = wsBaseUrl + relativePath;
+    debugPrint('getWebSocketUrl: Using environment WS_BASE_URL: $fullUrl');
+    return fullUrl;
   }
-  return 'ws://localhost:8080$relativePath';
+
+  // Default for Android emulator development
+  // 10.0.2.2 is the special IP for "host machine" from Android emulator
+  final defaultUrl = 'ws://10.0.2.2:8080$relativePath';
+  debugPrint(
+      'getWebSocketUrl: No WS_BASE_URL set, using default for Android emulator: $defaultUrl');
+  debugPrint(
+      'getWebSocketUrl: ⚠️  For physical Android device, set WS_BASE_URL to ws://YOUR_COMPUTER_IP:8080');
+
+  return defaultUrl;
 }

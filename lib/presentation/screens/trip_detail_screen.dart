@@ -269,8 +269,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     final userId = _userId;
     if (userId == null) return;
     _webSocketService.subscribeToUser(userId);
-    debugPrint(
-        'TripDetailScreen: Subscribed to user topic for user $userId');
+    debugPrint('TripDetailScreen: Subscribed to user topic for user $userId');
   }
 
   /// Start periodic polling for trip achievements as a reliable fallback.
@@ -287,31 +286,42 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   }
 
   /// Handle events from the global WebSocket stream that are relevant
-  /// to the trip detail screen but arrive on non-trip topics (e.g. user topic).
+  /// to the trip detail screen but may arrive on non-trip topics (e.g.
+  /// user topic) or fail to route to the trip-specific stream (e.g.
+  /// because the backend didn't include tripId at the expected JSON level).
+  ///
+  /// This acts as a reliable fallback: if an event was already handled by
+  /// the trip-specific listener it will be a no-op because the state is
+  /// already up-to-date.
   void _handleGlobalWebSocketEvent(WebSocketEvent event) {
     if (!mounted) return;
 
     if (event is NotificationCreatedEvent) {
       final notifType = event.notificationType.toUpperCase();
       if (notifType == 'ACHIEVEMENT_UNLOCKED') {
-        // An achievement was just unlocked — refresh the trip achievements
-        // so they appear immediately in the info panel.
         debugPrint(
             'TripDetailScreen: Received ACHIEVEMENT_UNLOCKED notification');
         _loadTripAchievements();
       }
+      return;
     }
-  }
 
-  void _handleWebSocketEvent(WebSocketEvent event) {
-    if (!mounted) return;
+    // For trip-scoped events, only process if they belong to this trip.
+    // Extract tripId from the event itself or from the raw payload.
+    final eventTripId =
+        event.tripId ?? (event.payload['tripId'] as String?) ?? '';
+    if (eventTripId.isEmpty || eventTripId != _trip.id) return;
 
     switch (event.type) {
-      case WebSocketEventType.tripStatusChanged:
-        _handleTripStatusChanged(event as TripStatusChangedEvent);
+      case WebSocketEventType.tripUpdateCreated:
+        _handleTripUpdateCreatedEvent(event as TripUpdateCreatedEvent);
+        _debouncedAchievementRefresh();
         break;
       case WebSocketEventType.tripUpdated:
         _handleTripUpdatedEvent(event as TripUpdatedEvent);
+        break;
+      case WebSocketEventType.tripStatusChanged:
+        _handleTripStatusChanged(event as TripStatusChangedEvent);
         break;
       case WebSocketEventType.polylineUpdated:
         _handlePolylineUpdatedEvent(event as PolylineUpdatedEvent);
@@ -327,11 +337,41 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       case WebSocketEventType.tripSettingsUpdated:
         _handleTripSettingsUpdated(event as TripSettingsUpdatedEvent);
         break;
+      default:
+        break;
+    }
+  }
+
+  void _handleWebSocketEvent(WebSocketEvent event) {
+    if (!mounted) return;
+
+    switch (event.type) {
+      case WebSocketEventType.tripStatusChanged:
+        _handleTripStatusChanged(event as TripStatusChangedEvent);
+        break;
+      case WebSocketEventType.tripUpdated:
+        _handleTripUpdatedEvent(event as TripUpdatedEvent);
+        break;
       case WebSocketEventType.tripUpdateCreated:
+        _handleTripUpdateCreatedEvent(event as TripUpdateCreatedEvent);
         // Achievements are evaluated server-side after trip updates
         // (distance milestones, time-based, etc.). Debounce a refresh
         // so rapid-fire updates don't hammer the API.
         _debouncedAchievementRefresh();
+        break;
+      case WebSocketEventType.polylineUpdated:
+        _handlePolylineUpdatedEvent(event as PolylineUpdatedEvent);
+        break;
+      case WebSocketEventType.commentAdded:
+        _handleCommentAdded(event as CommentAddedEvent);
+        break;
+      case WebSocketEventType.commentReactionAdded:
+      case WebSocketEventType.commentReactionRemoved:
+      case WebSocketEventType.commentReactionReplaced:
+        _handleCommentReaction(event as CommentReactionEvent);
+        break;
+      case WebSocketEventType.tripSettingsUpdated:
+        _handleTripSettingsUpdated(event as TripSettingsUpdatedEvent);
         break;
       default:
         break;
@@ -405,8 +445,18 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     // have location: null. Add them to the timeline but don't create map pins.
     final hasLocation = event.latitude != null && event.longitude != null;
 
+    final updateId = 'ws_${event.timestamp.millisecondsSinceEpoch}';
+
+    // Guard against duplicate processing (event can arrive from both the
+    // trip-specific and global streams).
+    if (_tripUpdates.any((u) => u.id == updateId)) {
+      debugPrint(
+          'TripDetailScreen: Skipping duplicate TRIP_UPDATED event with id $updateId');
+      return;
+    }
+
     final newUpdate = TripLocation(
-      id: 'ws_${event.timestamp.millisecondsSinceEpoch}',
+      id: updateId,
       latitude: event.latitude ?? 0.0,
       longitude: event.longitude ?? 0.0,
       timestamp: event.timestamp,
@@ -420,6 +470,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
           : null,
       updateType: parsedUpdateType,
     );
+
+    debugPrint(
+        'TripDetailScreen: Processing TRIP_UPDATED - hasLocation: $hasLocation, lat: ${event.latitude}, lng: ${event.longitude}');
 
     setState(() {
       _tripUpdates = [newUpdate, ..._tripUpdates];
@@ -439,26 +492,92 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       _updateMapData();
       // Animate the camera to the new location
       _animateMapToLocation(LatLng(event.latitude!, event.longitude!));
+      debugPrint('TripDetailScreen: Map updated and animated to new location');
+    }
+  }
+
+  void _handleTripUpdateCreatedEvent(TripUpdateCreatedEvent event) {
+    // Parse the update type from the event payload (if available)
+    final parsedUpdateType = event.updateType != null
+        ? TripUpdateType.fromJson(event.updateType!)
+        : TripUpdateType.regular;
+
+    final hasLocation = event.latitude != null && event.longitude != null;
+
+    final updateId = event.tripUpdateId.isNotEmpty
+        ? event.tripUpdateId
+        : 'ws_${event.timestamp.millisecondsSinceEpoch}';
+
+    // Guard against duplicate processing (event can arrive from both the
+    // trip-specific and global streams).
+    if (_tripUpdates.any((u) => u.id == updateId)) {
+      debugPrint(
+          'TripDetailScreen: Skipping duplicate TRIP_UPDATE_CREATED event with id $updateId');
+      return;
+    }
+
+    final newUpdate = TripLocation(
+      id: updateId,
+      latitude: event.latitude ?? 0.0,
+      longitude: event.longitude ?? 0.0,
+      timestamp: event.timestamp,
+      battery: hasLocation ? event.batteryLevel : null,
+      message: event.message,
+      city: hasLocation ? event.city : null,
+      country: hasLocation ? event.country : null,
+      temperatureCelsius: hasLocation ? event.temperatureCelsius : null,
+      weatherCondition: hasLocation && event.weatherCondition != null
+          ? WeatherCondition.fromJson(event.weatherCondition!)
+          : null,
+      updateType: parsedUpdateType,
+    );
+
+    debugPrint(
+        'TripDetailScreen: Processing TRIP_UPDATE_CREATED - hasLocation: $hasLocation, lat: ${event.latitude}, lng: ${event.longitude}');
+
+    setState(() {
+      _tripUpdates = [newUpdate, ..._tripUpdates];
+    });
+
+    // Only update the map for updates with real locations
+    if (hasLocation) {
+      final updatedLocations = <TripLocation>[
+        ...(_trip.locations ?? []),
+        newUpdate,
+      ];
+      setState(() {
+        _trip = _trip.copyWith(locations: updatedLocations);
+      });
+      _updateMapData();
+      // Animate the camera to the new location
+      _animateMapToLocation(LatLng(event.latitude!, event.longitude!));
+      debugPrint('TripDetailScreen: Map updated and animated to new location');
     }
   }
 
   void _handlePolylineUpdatedEvent(PolylineUpdatedEvent event) {
     // Validate that we have the required data
     if (event.tripId == null || event.tripId!.isEmpty) {
-      debugPrint('PolylineUpdatedEvent: Missing tripId, ignoring event');
+      debugPrint(
+          'TripDetailScreen: PolylineUpdatedEvent missing tripId, ignoring');
       return;
     }
 
     if (event.encodedPolyline.isEmpty) {
       debugPrint(
-          'PolylineUpdatedEvent: Empty encodedPolyline for trip ${event.tripId}, ignoring event');
+          'TripDetailScreen: PolylineUpdatedEvent has empty encodedPolyline for trip ${event.tripId}, ignoring');
       return;
     }
 
     // Only update if this event is for the current trip
     if (event.tripId != _trip.id) {
+      debugPrint(
+          'TripDetailScreen: PolylineUpdatedEvent for different trip (${event.tripId}), ignoring');
       return;
     }
+
+    debugPrint(
+        'TripDetailScreen: Processing POLYLINE_UPDATED - updating encoded polyline');
 
     // Update the trip's encoded polyline and refresh the map
     setState(() {
@@ -467,6 +586,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
     // Redraw the polyline on the map
     _updateMapData();
+    debugPrint('TripDetailScreen: Polyline updated on map');
 
     // Animate to the latest location on the polyline (only after the initial
     // camera position has been set — during startup, _initializeMapPosition
@@ -1110,6 +1230,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   }
 
   void _updateMapData() {
+    debugPrint(
+        'TripDetailScreen: Updating map data - locations: ${_trip.locations?.length}, encodedPolyline length: ${_trip.encodedPolyline?.length}');
     try {
       final mapData = TripMapHelper.createMapDataWithDirections(
         _trip,
@@ -1120,7 +1242,11 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         _markers = mapData.markers;
         _polylines = mapData.polylines;
       });
+      debugPrint(
+          'TripDetailScreen: Map updated - markers: ${_markers.length}, polylines: ${_polylines.length}');
     } catch (e) {
+      debugPrint(
+          'TripDetailScreen: Error in createMapDataWithDirections, falling back to straight lines: $e');
       // Fallback to straight lines if decoding fails
       final mapData = TripMapHelper.createMapData(
         _trip,
@@ -1131,6 +1257,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         _markers = mapData.markers;
         _polylines = mapData.polylines;
       });
+      debugPrint(
+          'TripDetailScreen: Fallback map updated - markers: ${_markers.length}, polylines: ${_polylines.length}');
     }
   }
 

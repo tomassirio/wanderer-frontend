@@ -59,6 +59,8 @@ class Trip {
   // Backend-computed encoded polyline (Google Encoded Polyline Algorithm)
   final String? encodedPolyline;
   final DateTime? polylineUpdatedAt;
+  // Backend-generated thumbnail URL
+  final String? thumbnailUrl;
   // Multi-day trip data
   final List<TripDay>? tripDays;
   final int? currentDay;
@@ -103,6 +105,7 @@ class Trip {
     this.plannedEncodedPolyline,
     this.encodedPolyline,
     this.polylineUpdatedAt,
+    this.thumbnailUrl,
     this.tripDays,
     this.currentDay,
   });
@@ -227,6 +230,7 @@ class Trip {
       polylineUpdatedAt: json['polylineUpdatedAt'] != null
           ? DateTime.tryParse(json['polylineUpdatedAt'] as String)
           : null,
+      thumbnailUrl: json['thumbnailUrl'] as String?,
       tripDays: json['tripDays'] != null && json['tripDays'] is List
           ? (json['tripDays'] as List)
               .where((day) => day != null)
@@ -271,6 +275,7 @@ class Trip {
         if (encodedPolyline != null) 'encodedPolyline': encodedPolyline,
         if (polylineUpdatedAt != null)
           'polylineUpdatedAt': polylineUpdatedAt!.toIso8601String(),
+        if (thumbnailUrl != null) 'thumbnailUrl': thumbnailUrl,
         if (tripDays != null)
           'tripDays': tripDays!.map((day) => day.toJson()).toList(),
         if (currentDay != null) 'currentDay': currentDay,

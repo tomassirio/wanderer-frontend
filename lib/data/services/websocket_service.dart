@@ -209,13 +209,36 @@ class WebSocketService {
     try {
       final event = _parseEvent(data);
 
+      debugPrint(
+          'WebSocketService: Received event type: ${event.type}, tripId: ${event.tripId}');
+
       // Emit to global stream
       _eventController.add(event);
 
+      // Determine the effective trip ID for routing.
+      // Some events (e.g. TRIP_UPDATE_CREATED) only carry tripId inside
+      // the payload, not at the top level.  Fall back to the raw JSON
+      // payload when the parsed event has a null/empty tripId.
+      String? effectiveTripId = event.tripId;
+      if (effectiveTripId == null || effectiveTripId.isEmpty) {
+        final payload = data['payload'] as Map<String, dynamic>?;
+        effectiveTripId =
+            data['tripId'] as String? ?? payload?['tripId'] as String?;
+      }
+
+      debugPrint(
+          'WebSocketService: Effective tripId: $effectiveTripId, subscribed trips: $_subscribedTrips');
+
       // Emit to trip-specific stream if applicable
-      if (event.tripId != null &&
-          _tripEventControllers.containsKey(event.tripId)) {
-        _tripEventControllers[event.tripId]!.add(event);
+      if (effectiveTripId != null &&
+          effectiveTripId.isNotEmpty &&
+          _tripEventControllers.containsKey(effectiveTripId)) {
+        debugPrint(
+            'WebSocketService: Emitting to trip-specific stream for $effectiveTripId');
+        _tripEventControllers[effectiveTripId]!.add(event);
+      } else if (effectiveTripId != null && effectiveTripId.isNotEmpty) {
+        debugPrint(
+            'WebSocketService: No controller found for trip $effectiveTripId (available: ${_tripEventControllers.keys.toList()})');
       }
 
       // Emit to user-specific streams for user relationship events

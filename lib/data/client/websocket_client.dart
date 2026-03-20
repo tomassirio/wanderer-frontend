@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/io.dart';
 import '../storage/token_storage.dart';
 import '../storage/token_refresh_manager.dart';
 import '../../core/constants/api_endpoints.dart';
@@ -111,12 +112,38 @@ class WebSocketClient {
         return;
       }
 
-      debugPrint('WebSocket: Connecting to $wsUrl');
+      debugPrint(
+          'WebSocket: Connecting to $wsUrl (platform: ${kIsWeb ? "web" : "mobile"})');
+      debugPrint(
+          'WebSocket: Protocol: ${wsUrl.startsWith("wss://") ? "WSS (secure)" : "WS (insecure)"}');
+      debugPrint('WebSocket: Base URL from config: $_baseUrl');
 
-      _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      // Use platform-specific WebSocket implementation
+      // IOWebSocketChannel works on mobile (Android/iOS)
+      // WebSocketChannel.connect works on web
+      if (kIsWeb) {
+        _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      } else {
+        // Use IOWebSocketChannel for mobile platforms with custom headers
+        debugPrint('WebSocket: Using IOWebSocketChannel for mobile');
+
+        try {
+          _channel = IOWebSocketChannel.connect(
+            wsUrl,
+            pingInterval: const Duration(seconds: 30),
+          );
+        } catch (e) {
+          debugPrint('WebSocket: IOWebSocketChannel.connect failed: $e');
+          rethrow;
+        }
+      }
+
+      debugPrint('WebSocket: Channel created, waiting for ready state...');
 
       // Wait for the connection to be established
       await _channel!.ready;
+
+      debugPrint('WebSocket: Channel ready!');
 
       _updateConnectionState(WebSocketConnectionState.connected);
       _reconnectAttempts = 0;
@@ -131,9 +158,11 @@ class WebSocketClient {
       _startPingTimer();
 
       debugPrint('WebSocket: Connected successfully');
-    } catch (e) {
+      debugPrint('WebSocket: Starting message listener...');
+    } catch (e, stackTrace) {
       final errorStr = e.toString();
       debugPrint('WebSocket: Connection error: $errorStr');
+      debugPrint('WebSocket: Stack trace: $stackTrace');
 
       // Check if this is a 401 error and we haven't already retried
       if (!isRetryAfterRefresh && errorStr.contains('401')) {
@@ -198,6 +227,9 @@ class WebSocketClient {
       final String messageStr =
           message is String ? message : message.toString();
 
+      debugPrint(
+          'WebSocket: Raw message received (length: ${messageStr.length}, platform: ${kIsWeb ? "web" : "mobile"})');
+
       // Handle ping/pong
       if (messageStr == 'PONG' || messageStr == 'pong') {
         debugPrint('WebSocket: Received pong');
@@ -213,28 +245,39 @@ class WebSocketClient {
         return;
       }
 
+      debugPrint('WebSocket: Parsing JSON message...');
       final Map<String, dynamic> data = jsonDecode(messageStr);
-      debugPrint('WebSocket: Received message: ${data['type']}');
+      debugPrint(
+          'WebSocket: Received message type: ${data['type']} (platform: ${kIsWeb ? "web" : "mobile"})');
       _messageController.add(data);
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('WebSocket: Error parsing message: $e');
+      debugPrint('WebSocket: Stack trace: $stackTrace');
     }
   }
 
   void _handleError(dynamic error) {
-    debugPrint('WebSocket: Error: $error');
+    debugPrint(
+        'WebSocket: Error occurred: $error (platform: ${kIsWeb ? "web" : "mobile"})');
+    debugPrint('WebSocket: Connection state before error: $_connectionState');
     _updateConnectionState(WebSocketConnectionState.disconnected);
     // Clear subscription tracking on disconnection so they can be reestablished
     _topicSubscriptions.clear();
+    debugPrint(
+        'WebSocket: Cleared ${_topicSubscriptions.length} topic subscriptions');
     _scheduleReconnect();
   }
 
   void _handleDone() {
-    debugPrint('WebSocket: Connection closed');
+    debugPrint(
+        'WebSocket: Connection closed (platform: ${kIsWeb ? "web" : "mobile"})');
+    debugPrint('WebSocket: Connection state before close: $_connectionState');
     _updateConnectionState(WebSocketConnectionState.disconnected);
     _stopPingTimer();
     // Clear subscription tracking on disconnection so they can be reestablished
     _topicSubscriptions.clear();
+    debugPrint(
+        'WebSocket: Cleared ${_topicSubscriptions.length} topic subscriptions');
     _scheduleReconnect();
   }
 
@@ -285,14 +328,17 @@ class WebSocketClient {
   /// Send a message to the server
   void send(Map<String, dynamic> message) {
     if (!isConnected || _channel == null) {
-      debugPrint('WebSocket: Cannot send message - not connected');
+      debugPrint(
+          'WebSocket: Cannot send message - not connected (isConnected: $isConnected, channel: ${_channel != null})');
       return;
     }
 
     try {
       final jsonStr = jsonEncode(message);
+      debugPrint(
+          'WebSocket: Sending message: ${message['type']} (platform: ${kIsWeb ? "web" : "mobile"})');
       _channel!.sink.add(jsonStr);
-      debugPrint('WebSocket: Sent message: ${message['type']}');
+      debugPrint('WebSocket: Message sent successfully');
     } catch (e) {
       debugPrint('WebSocket: Error sending message: $e');
     }
@@ -300,6 +346,11 @@ class WebSocketClient {
 
   /// Subscribe to a topic
   void subscribe(String topic) {
+    debugPrint(
+        'WebSocket: subscribe() called for topic: $topic (platform: ${kIsWeb ? "web" : "mobile"})');
+    debugPrint('WebSocket: Current connection state: $_connectionState');
+    debugPrint('WebSocket: Channel exists: ${_channel != null}');
+
     // Check if already subscribed to this topic
     if (_topicSubscriptions.containsKey(topic)) {
       debugPrint(
@@ -309,7 +360,8 @@ class WebSocketClient {
 
     // Check if we're actually connected before subscribing
     if (!isConnected || _channel == null) {
-      debugPrint('WebSocket: Cannot subscribe to $topic - not connected');
+      debugPrint(
+          'WebSocket: Cannot subscribe to $topic - not connected (isConnected: $isConnected, channel: ${_channel != null})');
       return;
     }
 
@@ -317,11 +369,14 @@ class WebSocketClient {
     final subscriptionId = 'sub-${_nextSubscriptionId++}';
     _topicSubscriptions[topic] = subscriptionId;
 
-    send({
+    final message = {
       'type': 'SUBSCRIBE',
       'destination': topic,
       'id': subscriptionId,
-    });
+    };
+
+    debugPrint('WebSocket: Sending SUBSCRIBE message: $message');
+    send(message);
     debugPrint('WebSocket: Subscribed to $topic with ID $subscriptionId');
   }
 
