@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
@@ -468,9 +469,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       text: _profile!.displayName,
     );
     final bioController = TextEditingController(text: _profile!.bio);
-    final avatarUrlController = TextEditingController(
-      text: _profile!.avatarUrl,
-    );
 
     final result = await showDialog<bool>(
       context: context,
@@ -498,15 +496,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 maxLines: 3,
                 textCapitalization: TextCapitalization.sentences,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: avatarUrlController,
-                decoration: InputDecoration(
-                  labelText: l10n.avatarUrl,
-                  hintText: 'https://example.com/avatar.jpg',
-                ),
-                textCapitalization: TextCapitalization.none,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => Navigator.pop(context, true),
               ),
@@ -530,13 +519,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _updateProfile(
         displayNameController.text,
         bioController.text,
-        avatarUrlController.text,
       );
     }
 
     displayNameController.dispose();
     bioController.dispose();
-    avatarUrlController.dispose();
   }
 
   Future<void> _handleFollowUser() async {
@@ -643,13 +630,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _updateProfile(
     String displayName,
     String bio,
-    String avatarUrl,
   ) async {
     try {
       final request = UpdateProfileRequest(
         displayName: displayName.isEmpty ? null : displayName,
         bio: bio.isEmpty ? null : bio,
-        avatarUrl: avatarUrl.isEmpty ? null : avatarUrl,
       );
 
       // PATCH returns 202 Accepted with just a UUID
@@ -676,7 +661,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               email: _profile!.email,
               displayName: displayName.isEmpty ? null : displayName,
               bio: bio.isEmpty ? null : bio,
-              avatarUrl: avatarUrl.isEmpty ? null : avatarUrl,
+              avatarUrl: _profile!.avatarUrl,
               followersCount: _profile!.followersCount,
               followingCount: _profile!.followingCount,
               friendsCount: _profile!.friendsCount,
@@ -685,7 +670,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               createdAt: _profile!.createdAt,
             );
             _currentDisplayName = displayName.isEmpty ? null : displayName;
-            _currentAvatarUrl = avatarUrl.isEmpty ? null : avatarUrl;
           });
         }
       }
@@ -698,6 +682,99 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         UiHelpers.showErrorMessage(
             context, context.l10n.failedToUpdateProfile);
+      }
+    }
+  }
+
+  Future<void> _handleAvatarUpload() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+
+      // Check file size (5MB max)
+      final fileSize = await image.length();
+      if (fileSize > 5 * 1024 * 1024) {
+        if (mounted) {
+          UiHelpers.showErrorMessage(
+            context,
+            'Image too large. Maximum size is 5MB.',
+          );
+        }
+        return;
+      }
+
+      final bytes = await image.readAsBytes();
+      await _repository.uploadAvatar(bytes, image.name);
+
+      // Refresh profile to get new avatar URL
+      final refreshedProfile = await _repository.getMyProfile();
+      await _repository.refreshUserDetails();
+
+      setState(() {
+        _profile = refreshedProfile;
+        _currentAvatarUrl = refreshedProfile.avatarUrl;
+      });
+
+      if (mounted) {
+        UiHelpers.showSuccessMessage(context, 'Avatar updated successfully!');
+      }
+    } catch (e) {
+      if (mounted) {
+        UiHelpers.showErrorMessage(context, 'Failed to upload avatar: $e');
+      }
+    }
+  }
+
+  Future<void> _handleAvatarDelete() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Avatar'),
+        content: const Text('Are you sure you want to delete your profile picture?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _repository.deleteAvatar();
+
+      // Refresh profile
+      final refreshedProfile = await _repository.getMyProfile();
+      await _repository.refreshUserDetails();
+
+      setState(() {
+        _profile = refreshedProfile;
+        _currentAvatarUrl = null;
+      });
+
+      if (mounted) {
+        UiHelpers.showSuccessMessage(context, 'Avatar deleted successfully!');
+      }
+    } catch (e) {
+      if (mounted) {
+        UiHelpers.showErrorMessage(context, 'Failed to delete avatar: $e');
       }
     }
   }
@@ -795,18 +872,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             final userInfoSection = Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundImage: _profile!.avatarUrl != null
-                      ? NetworkImage(_profile!.avatarUrl!)
-                      : null,
-                  child: _profile!.avatarUrl == null
-                      ? Text(
-                          _profile!.username.substring(0, 1).toUpperCase(),
-                          style: const TextStyle(fontSize: 32),
-                        )
-                      : null,
-                ),
+                _buildAvatarWidget(),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -922,6 +988,105 @@ class _ProfileScreenState extends State<ProfileScreen> {
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildAvatarWidget() {
+    if (!_isViewingOwnProfile) {
+      // For other users, just show the avatar
+      return CircleAvatar(
+        radius: 40,
+        backgroundImage: _profile!.avatarUrl != null
+            ? NetworkImage(ApiEndpoints.resolveThumbnailUrl(_profile!.avatarUrl))
+            : null,
+        child: _profile!.avatarUrl == null
+            ? Text(
+                _profile!.username.substring(0, 1).toUpperCase(),
+                style: const TextStyle(fontSize: 32),
+              )
+            : null,
+      );
+    }
+
+    // For own profile, make it clickable with hover effect
+    bool isHovering = false;
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => setState(() => isHovering = true),
+          onExit: (_) => setState(() => isHovering = false),
+          child: GestureDetector(
+            onTap: () {
+              if (_profile!.avatarUrl != null) {
+                // Show options: change or delete
+                showModalBottomSheet(
+                  context: context,
+                  builder: (context) => SafeArea(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.photo_camera),
+                          title: const Text('Change Avatar'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _handleAvatarUpload();
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.delete, color: Colors.red),
+                          title: const Text('Delete Avatar',
+                              style: TextStyle(color: Colors.red)),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _handleAvatarDelete();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              } else {
+                // No avatar, just upload
+                _handleAvatarUpload();
+              }
+            },
+            child: Stack(
+              children: [
+                CircleAvatar(
+                  radius: 40,
+                  backgroundImage: _profile!.avatarUrl != null
+                      ? NetworkImage(
+                          ApiEndpoints.resolveThumbnailUrl(_profile!.avatarUrl))
+                      : null,
+                  child: _profile!.avatarUrl == null
+                      ? Text(
+                          _profile!.username.substring(0, 1).toUpperCase(),
+                          style: const TextStyle(fontSize: 32),
+                        )
+                      : null,
+                ),
+                // Hover overlay with camera icon
+                if (isHovering)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.black.withOpacity(0.5),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

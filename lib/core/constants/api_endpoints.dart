@@ -29,6 +29,28 @@ class ApiEndpoints {
   // Trip deep link URL
   static String tripDeepLink(String tripId) => '$appBaseUrl/trip/$tripId';
 
+  // Resolve thumbnail URL (handles both relative and absolute URLs)
+  static String resolveThumbnailUrl(String? thumbnailUrl) {
+    if (thumbnailUrl == null || thumbnailUrl.isEmpty) {
+      print('⚠️  Thumbnail URL is null or empty');
+      return '';
+    }
+    
+    // If already absolute URL, return as-is
+    if (thumbnailUrl.startsWith('http://') || thumbnailUrl.startsWith('https://')) {
+      print('✅ Thumbnail URL is absolute: $thumbnailUrl');
+      return thumbnailUrl;
+    }
+    
+    // Relative URL - prepend appBaseUrl
+    final resolved = appBaseUrl + thumbnailUrl;
+    print('🔧 Resolved relative thumbnail URL:');
+    print('   Input: $thumbnailUrl');
+    print('   APP_BASE_URL: $appBaseUrl');
+    print('   Result: $resolved');
+    return resolved;
+  }
+
   // Auth endpoints (use authBaseUrl)
   static const String authRegister = '/register';
   static const String authVerifyEmail = '/verify-email';
@@ -61,6 +83,8 @@ class ApiEndpoints {
   // User Command endpoints (use commandBaseUrl)
   static const String usersCreate = '/users';
   static const String usersUpdate = '/users/me';
+  static const String usersAvatarUpload = '/users/me/avatar';
+  static const String usersAvatarDelete = '/users/me/avatar';
   static const String usersFriendRequests = '/users/friends/requests';
   static String usersFriendRequestAccept(String requestId) =>
       '/users/friends/requests/$requestId/accept';

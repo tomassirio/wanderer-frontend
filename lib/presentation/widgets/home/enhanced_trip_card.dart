@@ -4,6 +4,7 @@ import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/constants/api_endpoints.dart';
 import '../../../core/constants/enums.dart';
 import '../../../core/theme/wanderer_theme.dart';
 import '../../helpers/auth_navigation_helper.dart';
@@ -348,7 +349,7 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                 children: [
                   if (widget.trip.thumbnailUrl != null)
                     Image.network(
-                      widget.trip.thumbnailUrl!,
+                      ApiEndpoints.resolveThumbnailUrl(widget.trip.thumbnailUrl),
                       fit: BoxFit.cover,
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) {

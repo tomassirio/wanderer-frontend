@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:intl/intl.dart';
 
@@ -92,7 +93,7 @@ class _TripCardState extends State<TripCard> {
                       // Map or placeholder
                       if (widget.trip.thumbnailUrl != null)
                         Image.network(
-                          widget.trip.thumbnailUrl!,
+                          ApiEndpoints.resolveThumbnailUrl(widget.trip.thumbnailUrl),
                           fit: BoxFit.cover,
                           width: double.infinity,
                           height: double.infinity,

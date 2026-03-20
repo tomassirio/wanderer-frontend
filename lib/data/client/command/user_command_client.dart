@@ -104,6 +104,31 @@ class UserCommandClient {
     return _apiClient.handleAcceptedResponse(response);
   }
 
+  /// Upload avatar for current user
+  /// Requires authentication (USER, ADMIN)
+  /// Returns the user ID from 202 Accepted response
+  Future<String> uploadAvatar(List<int> fileBytes, String fileName) async {
+    final response = await _apiClient.postMultipart(
+      ApiEndpoints.usersAvatarUpload,
+      fileBytes: fileBytes,
+      fileName: fileName,
+      fieldName: 'file',
+      requireAuth: true,
+    );
+    return _apiClient.handleAcceptedResponse(response);
+  }
+
+  /// Delete avatar for current user
+  /// Requires authentication (USER, ADMIN)
+  /// Returns the user ID from 202 Accepted response
+  Future<String> deleteAvatar() async {
+    final response = await _apiClient.delete(
+      ApiEndpoints.usersAvatarDelete,
+      requireAuth: true,
+    );
+    return _apiClient.handleAcceptedResponse(response);
+  }
+
   /// Delete own account
   /// Requires authentication (USER, ADMIN)
   /// DELETE /api/1/users/me → 202 Accepted
