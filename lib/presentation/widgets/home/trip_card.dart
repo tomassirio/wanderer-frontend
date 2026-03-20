@@ -93,7 +93,8 @@ class _TripCardState extends State<TripCard> {
                       // Map or placeholder
                       if (widget.trip.thumbnailUrl != null)
                         Image.network(
-                          ApiEndpoints.resolveThumbnailUrl(widget.trip.thumbnailUrl),
+                          ApiEndpoints.resolveThumbnailUrl(
+                              widget.trip.thumbnailUrl),
                           fit: BoxFit.cover,
                           width: double.infinity,
                           height: double.infinity,

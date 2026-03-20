@@ -349,7 +349,8 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                 children: [
                   if (widget.trip.thumbnailUrl != null)
                     Image.network(
-                      ApiEndpoints.resolveThumbnailUrl(widget.trip.thumbnailUrl),
+                      ApiEndpoints.resolveThumbnailUrl(
+                          widget.trip.thumbnailUrl),
                       fit: BoxFit.cover,
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) {

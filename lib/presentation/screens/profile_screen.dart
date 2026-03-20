@@ -737,7 +737,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Avatar'),
-        content: const Text('Are you sure you want to delete your profile picture?'),
+        content:
+            const Text('Are you sure you want to delete your profile picture?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -997,7 +998,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return CircleAvatar(
         radius: 40,
         backgroundImage: _profile!.avatarUrl != null
-            ? NetworkImage(ApiEndpoints.resolveThumbnailUrl(_profile!.avatarUrl))
+            ? NetworkImage(
+                ApiEndpoints.resolveThumbnailUrl(_profile!.avatarUrl))
             : null,
         child: _profile!.avatarUrl == null
             ? Text(

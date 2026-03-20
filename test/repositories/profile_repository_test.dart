@@ -48,7 +48,6 @@ void main() {
         final request = UpdateProfileRequest(
           displayName: 'New Name',
           bio: 'New bio',
-          avatarUrl: 'https://example.com/avatar.jpg',
         );
         mockUserService.mockProfile = createMockProfile('user-1', 'testuser');
 

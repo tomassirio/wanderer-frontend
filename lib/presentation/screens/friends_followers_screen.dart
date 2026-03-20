@@ -47,9 +47,9 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
 
   // State
   bool _isLoading = false;
+  bool _isLoggedIn = false;
   String? _error;
   UserProfile? _currentUser;
-  bool _isLoggedIn = false;
   bool _isAdmin = false;
   final int _selectedSidebarIndex = 2; // Friends is index 2
 

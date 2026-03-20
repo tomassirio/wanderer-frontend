@@ -35,13 +35,14 @@ class ApiEndpoints {
       print('⚠️  Thumbnail URL is null or empty');
       return '';
     }
-    
+
     // If already absolute URL, return as-is
-    if (thumbnailUrl.startsWith('http://') || thumbnailUrl.startsWith('https://')) {
+    if (thumbnailUrl.startsWith('http://') ||
+        thumbnailUrl.startsWith('https://')) {
       print('✅ Thumbnail URL is absolute: $thumbnailUrl');
       return thumbnailUrl;
     }
-    
+
     // Relative URL - prepend appBaseUrl
     final resolved = appBaseUrl + thumbnailUrl;
     print('🔧 Resolved relative thumbnail URL:');
