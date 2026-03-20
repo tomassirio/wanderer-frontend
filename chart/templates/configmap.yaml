@@ -92,7 +92,8 @@ data:
         }
 
         # Thumbnails - proxy /thumbnails/* to nginx static file server
-        location /thumbnails/ {
+        # Use ^~ to give this priority over regex locations
+        location ^~ /thumbnails/ {
             proxy_pass http://wanderer-command{{ .Values.nameSuffix }}-nginx/;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
