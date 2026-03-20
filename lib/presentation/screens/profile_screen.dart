@@ -20,6 +20,7 @@ import 'home_screen.dart';
 import 'settings_screen.dart';
 import 'trip_detail_screen.dart';
 import 'friends_followers_screen.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Sort options for trips in the profile
 enum TripSortOption {
@@ -445,6 +446,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _showEditProfileDialog() async {
     if (_profile == null) return;
 
+    final l10n = context.l10n;
+
     final displayNameController = TextEditingController(
       text: _profile!.displayName,
     );
@@ -456,16 +459,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Edit Profile'),
+        title: Text(l10n.editProfile),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: displayNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Display Name',
-                  hintText: 'Your display name',
+                decoration: InputDecoration(
+                  labelText: l10n.displayName,
+                  hintText: l10n.yourDisplayName,
                 ),
                 textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.next,
@@ -473,9 +476,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: bioController,
-                decoration: const InputDecoration(
-                  labelText: 'Bio',
-                  hintText: 'Tell us about yourself',
+                decoration: InputDecoration(
+                  labelText: l10n.bio,
+                  hintText: l10n.tellUsAboutYourself,
                 ),
                 maxLines: 3,
                 textCapitalization: TextCapitalization.sentences,
@@ -483,8 +486,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: avatarUrlController,
-                decoration: const InputDecoration(
-                  labelText: 'Avatar URL',
+                decoration: InputDecoration(
+                  labelText: l10n.avatarUrl,
                   hintText: 'https://example.com/avatar.jpg',
                 ),
                 textCapitalization: TextCapitalization.none,
@@ -497,11 +500,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Save'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -707,6 +710,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildBody() {
+    final l10n = context.l10n;
     if (_isLoadingProfile) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -727,7 +731,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _navigateToAuth,
-                child: const Text('Login'),
+                child: Text(l10n.login),
               ),
             ],
           ],
@@ -736,7 +740,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     if (_profile == null) {
-      return const Center(child: Text('No profile data available'));
+      return Center(child: Text(l10n.noProfileData));
     }
 
     return SingleChildScrollView(
@@ -898,11 +902,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildActionButtons() {
+    final l10n = context.l10n;
     if (_isViewingOwnProfile) {
       return IconButton(
         icon: const Icon(Icons.edit),
         onPressed: _showEditProfileDialog,
-        tooltip: 'Edit Profile',
+        tooltip: l10n.editProfile,
         iconSize: 20,
       );
     } else {
@@ -914,7 +919,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _isFollowingUser ? Icons.person_remove : Icons.person_add,
             ),
             onPressed: _handleFollowUser,
-            tooltip: _isFollowingUser ? 'Unfollow' : 'Follow',
+            tooltip: _isFollowingUser ? l10n.unfollow : 'Follow',
             color: _isFollowingUser ? Colors.blue : null,
             iconSize: 20,
           ),
@@ -997,6 +1002,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildTripsSection() {
+    final l10n = context.l10n;
     final filtered = _filteredAndSortedTrips;
     final hasActiveFilters = _selectedStatusFilters.isNotEmpty;
 
@@ -1052,10 +1058,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (_isLoadingTrips)
           const Center(child: CircularProgressIndicator())
         else if (_userTrips.isEmpty)
-          const Center(
+          Center(
             child: Padding(
-              padding: EdgeInsets.all(32),
-              child: Text('No trips yet'),
+              padding: const EdgeInsets.all(32),
+              child: Text(l10n.noTripsYet),
             ),
           )
         else if (filtered.isEmpty)
@@ -1068,14 +1074,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       size: 48, color: Colors.grey[400]),
                   const SizedBox(height: 12),
                   Text(
-                    'No trips match the selected filters',
+                    l10n.noTripsMatchFilters,
                     style: TextStyle(color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: () =>
                         setState(() => _selectedStatusFilters.clear()),
-                    child: const Text('Clear filters'),
+                    child: Text(l10n.clearFilters),
                   ),
                 ],
               ),
@@ -1184,15 +1190,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   /// Shows a bottom sheet with sort options.
   void _showSortBottomSheet() {
+    final l10n = context.l10n;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
         final theme = Theme.of(context);
         final isDark = theme.brightness == Brightness.dark;
-        final sheetBg = isDark
-            ? const Color(0xFF1E1E1E)
-            : WandererTheme.backgroundCard;
+        final sheetBg =
+            isDark ? const Color(0xFF1E1E1E) : WandererTheme.backgroundCard;
         final handleColor = isDark ? Colors.grey[600] : Colors.grey[300];
         final titleColor = theme.colorScheme.onSurface;
         final unselectedTextColor = theme.colorScheme.onSurface;
@@ -1202,8 +1208,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Container(
           decoration: BoxDecoration(
             color: sheetBg,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1226,7 +1231,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         size: 20, color: WandererTheme.primaryOrange),
                     const SizedBox(width: 8),
                     Text(
-                      'Sort trips by',
+                      l10n.sortTripsBy,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -1340,6 +1345,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   /// Builds pill-shaped status filter buttons.
   Widget _buildStatusFilterPills() {
+    final l10n = context.l10n;
     // Gather statuses that have trips
     final statusCounts = <TripStatus, int>{};
     for (final trip in _userTrips) {
@@ -1362,7 +1368,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       size: 14, color: WandererTheme.primaryOrange),
                   const SizedBox(width: 4),
                   Text(
-                    'Clear all filters',
+                    l10n.clearAllFilters,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,

@@ -291,7 +291,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.emoji_events_outlined, size: 64, color: Colors.grey),
+            const Icon(Icons.emoji_events_outlined,
+                size: 64, color: Colors.grey),
             const SizedBox(height: 16),
             Text(
               l10n.noAchievementsYet,

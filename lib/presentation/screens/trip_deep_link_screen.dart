@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 
@@ -47,6 +48,7 @@ class _TripDeepLinkScreenState extends State<TripDeepLinkScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       body: Center(
         child: _isLoading
@@ -58,7 +60,7 @@ class _TripDeepLinkScreenState extends State<TripDeepLinkScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Loading trip…',
+                    l10n.loadingTripDeepLink,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
@@ -83,7 +85,7 @@ class _TripDeepLinkScreenState extends State<TripDeepLinkScreen> {
                   ElevatedButton(
                     onPressed: () => Navigator.of(context)
                         .pushNamedAndRemoveUntil('/', (_) => false),
-                    child: const Text('Go Home'),
+                    child: Text(l10n.goHome),
                   ),
                 ],
               ),

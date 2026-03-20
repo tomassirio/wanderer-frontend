@@ -310,6 +310,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
@@ -357,7 +358,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _navigateToAuth,
-                child: const Text('Login'),
+                child: Text(l10n.login),
               ),
             ],
           ],
