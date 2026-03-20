@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
@@ -135,52 +137,93 @@ class AppSidebar extends StatelessWidget {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isLoggedIn = username != null;
+  /// Language toggle widget placed at the bottom-left of the header.
+  Widget _buildLanguageToggle(bool isSpanish) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _langLabel('EN', !isSpanish),
+        Transform.scale(
+          scale: 0.75,
+          child: Switch(
+            value: isSpanish,
+            onChanged: (value) => LocaleController().setLocale(
+              value ? const Locale('es') : const Locale('en'),
+            ),
+            activeColor: Colors.white,
+            inactiveThumbColor: Colors.white,
+            inactiveTrackColor: Colors.white38,
+            activeTrackColor: Colors.white38,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+        _langLabel('ES', isSpanish),
+      ],
+    );
+  }
 
-    return Drawer(
-      child: Column(
-        children: [
-          UserAccountsDrawerHeader(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            accountName: Text(
-              displayName ?? username ?? 'Guest',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            accountEmail: isLoggedIn ? Text('@${username ?? ''}') : null,
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.white,
-              backgroundImage: avatarUrl != null && avatarUrl!.isNotEmpty
-                  ? NetworkImage(avatarUrl!)
-                  : null,
-              child: avatarUrl == null || avatarUrl!.isEmpty
-                  ? (isLoggedIn
-                      ? Text(
-                          (displayName ?? username ?? '?')
-                              .substring(0, 1)
-                              .toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        )
-                      : Icon(
-                          Icons.person_outline,
-                          size: 40,
-                          color: Theme.of(context).colorScheme.primary,
-                        ))
-                  : null,
-            ),
-            otherAccountsPictures: isLoggedIn
-                ? [
+  Widget _langLabel(String code, bool isActive) {
+    return Text(
+      code,
+      style: TextStyle(
+        color: isActive ? Colors.white : Colors.white54,
+        fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+        fontSize: 13,
+      ),
+    );
+  }
+
+  /// Custom drawer header that replicates [UserAccountsDrawerHeader] styling
+  /// and adds a language switch at the bottom-left corner.
+  Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
+    final isLoggedIn = username != null;
+    final isSpanish = LocaleController().isSpanish;
+
+    return Container(
+      color: Theme.of(context).colorScheme.primary,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Top row: avatar + action icons
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 36,
+                    backgroundColor: Colors.white,
+                    backgroundImage: avatarUrl != null && avatarUrl!.isNotEmpty
+                        ? NetworkImage(avatarUrl!)
+                        : null,
+                    child: avatarUrl == null || avatarUrl!.isEmpty
+                        ? (isLoggedIn
+                            ? Text(
+                                (displayName ?? username ?? '?')
+                                    .substring(0, 1)
+                                    .toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              )
+                            : Icon(
+                                Icons.person_outline,
+                                size: 40,
+                                color: Theme.of(context).colorScheme.primary,
+                              ))
+                        : null,
+                  ),
+                  const Spacer(),
+                  if (isLoggedIn) ...[
                     IconButton(
                       icon: const Icon(Icons.person, color: Colors.white),
                       onPressed: () => _handleNavigation(context, 4),
-                      tooltip: 'My Profile',
+                      tooltip: l10n.myProfile,
                     ),
                     IconButton(
                       icon: const Icon(Icons.settings, color: Colors.white),
@@ -193,100 +236,143 @@ class AppSidebar extends StatelessWidget {
                           ),
                         );
                       },
-                      tooltip: 'Settings',
-                    ),
-                  ]
-                : null,
-          ),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.map),
-                  title: const Text('Trips'),
-                  selected: selectedIndex == 0,
-                  onTap: () => _handleNavigation(context, 0),
-                ),
-                if (isLoggedIn) ...[
-                  ListTile(
-                    leading: const Icon(Icons.calendar_today),
-                    title: const Text('Trip Plans'),
-                    selected: selectedIndex == 1,
-                    onTap: () => _handleNavigation(context, 1),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.people),
-                    title: const Text('Friends'),
-                    selected: selectedIndex == 2,
-                    onTap: () => _handleNavigation(context, 2),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.emoji_events),
-                    title: const Text('Achievements'),
-                    selected: selectedIndex == 3,
-                    onTap: () => _handleNavigation(context, 3),
-                  ),
-                  if (isAdmin) ...[
-                    const Divider(),
-                    ListTile(
-                      leading: const Icon(Icons.admin_panel_settings),
-                      title: const Text('Trip Promotion'),
-                      selected: selectedIndex == 5,
-                      onTap: () => _handleNavigation(context, 5),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.people_outline),
-                      title: const Text('User Management'),
-                      selected: selectedIndex == 6,
-                      onTap: () => _handleNavigation(context, 6),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.build_outlined),
-                      title: const Text('Trip Data Maintenance'),
-                      selected: selectedIndex == 7,
-                      onTap: () => _handleNavigation(context, 7),
+                      tooltip: l10n.settings,
                     ),
                   ],
                 ],
-              ],
-            ),
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.coffee),
-            title: const Text('Buy Me a Coffee'),
-            onTap: () {
-              Navigator.pop(context);
-              _launchBuyMeACoffee(context);
-            },
-          ),
-          if (isLoggedIn)
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
-              onTap: () {
-                Navigator.pop(context);
-                onLogout?.call();
-              },
-            ),
-          if (!isLoggedIn)
-            ListTile(
-              leading: const Icon(Icons.login),
-              title: const Text('Log In'),
-              onTap: () {
-                Navigator.pop(context);
-                // Navigate to auth screen
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AuthScreen(),
+              ),
+              const SizedBox(height: 8),
+              // Display name
+              Text(
+                displayName ?? username ?? l10n.guest,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+              // Username
+              if (isLoggedIn)
+                Text(
+                  '@${username ?? ''}',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
                   ),
-                );
-              },
-            ),
-        ],
+                ),
+              const SizedBox(height: 4),
+              // Language toggle — bottom-left corner of the orange block
+              _buildLanguageToggle(isSpanish),
+            ],
+          ),
+        ),
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<Locale>(
+      valueListenable: LocaleController().locale,
+      builder: (context, locale, _) {
+        final l10n = AppLocalizations(locale.languageCode);
+        final isLoggedIn = username != null;
+
+        return Drawer(
+          child: Column(
+            children: [
+              _buildHeader(context, l10n),
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.map),
+                      title: Text(l10n.trips),
+                      selected: selectedIndex == 0,
+                      onTap: () => _handleNavigation(context, 0),
+                    ),
+                    if (isLoggedIn) ...[
+                      ListTile(
+                        leading: const Icon(Icons.calendar_today),
+                        title: Text(l10n.tripPlans),
+                        selected: selectedIndex == 1,
+                        onTap: () => _handleNavigation(context, 1),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.people),
+                        title: Text(l10n.friends),
+                        selected: selectedIndex == 2,
+                        onTap: () => _handleNavigation(context, 2),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.emoji_events),
+                        title: Text(l10n.achievements),
+                        selected: selectedIndex == 3,
+                        onTap: () => _handleNavigation(context, 3),
+                      ),
+                      if (isAdmin) ...[
+                        const Divider(),
+                        ListTile(
+                          leading: const Icon(Icons.admin_panel_settings),
+                          title: Text(l10n.tripPromotion),
+                          selected: selectedIndex == 5,
+                          onTap: () => _handleNavigation(context, 5),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.people_outline),
+                          title: Text(l10n.userManagement),
+                          selected: selectedIndex == 6,
+                          onTap: () => _handleNavigation(context, 6),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.build_outlined),
+                          title: Text(l10n.tripDataMaintenance),
+                          selected: selectedIndex == 7,
+                          onTap: () => _handleNavigation(context, 7),
+                        ),
+                      ],
+                    ],
+                  ],
+                ),
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.coffee),
+                title: Text(l10n.buyMeACoffee),
+                onTap: () {
+                  Navigator.pop(context);
+                  _launchBuyMeACoffee(context);
+                },
+              ),
+              if (isLoggedIn)
+                ListTile(
+                  leading: const Icon(Icons.logout),
+                  title: Text(l10n.logout),
+                  onTap: () {
+                    Navigator.pop(context);
+                    onLogout?.call();
+                  },
+                ),
+              if (!isLoggedIn)
+                ListTile(
+                  leading: const Icon(Icons.login),
+                  title: Text(l10n.logIn),
+                  onTap: () {
+                    Navigator.pop(context);
+                    // Navigate to auth screen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AuthScreen(),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

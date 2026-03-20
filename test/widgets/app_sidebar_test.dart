@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 
 void main() {
+  setUp(() {
+    // Provide an in-memory SharedPreferences store and reset locale to English
+    SharedPreferences.setMockInitialValues({});
+    LocaleController().locale.value = const Locale('en');
+  });
+
   group('AppSidebar Widget', () {
     testWidgets('displays Buy Me a Coffee link for logged-in users', (
       WidgetTester tester,
@@ -300,6 +308,78 @@ void main() {
 
       // Verify Buy Me a Coffee is above Log In (smaller y coordinate)
       expect(buyMeACoffeePosition.dy < logInPosition.dy, isTrue);
+    });
+
+    testWidgets('language switch is visible in header', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            drawer: AppSidebar(
+              username: 'testuser',
+              userId: 'user-123',
+              selectedIndex: 0,
+              onLogout: () {},
+              onSettings: () {},
+            ),
+            body: Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byIcon(Icons.menu));
+      await tester.pumpAndSettle();
+
+      // Language toggle labels should be visible in the header
+      expect(find.text('EN'), findsOneWidget);
+      expect(find.text('ES'), findsOneWidget);
+
+      // The Switch widget should be present in the header
+      expect(find.byType(Switch), findsOneWidget);
+    });
+
+    testWidgets('language switch shows Spanish labels after toggle', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            drawer: AppSidebar(
+              username: 'testuser',
+              userId: 'user-123',
+              selectedIndex: 0,
+              onLogout: () {},
+              onSettings: () {},
+            ),
+            body: Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byIcon(Icons.menu));
+      await tester.pumpAndSettle();
+
+      // Default is English
+      expect(find.text('Trips'), findsOneWidget);
+
+      // Toggle to Spanish by tapping the Switch
+      await tester.tap(find.byType(Switch));
+      await tester.pumpAndSettle();
+
+      // Sidebar should now show Spanish labels
+      expect(find.text('Viajes'), findsOneWidget);
+      expect(find.text('Amigos'), findsOneWidget);
     });
   });
 }
