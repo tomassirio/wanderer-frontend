@@ -31,6 +31,7 @@ import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_lifecycl
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/strategies/trip_detail_layout_strategy.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'auth_screen.dart';
 import 'home_screen.dart';
 import 'settings_screen.dart';
@@ -1658,10 +1659,11 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   /// Handles trip deletion with confirmation dialog.
   /// On success, navigates to the home screen and clears the navigation stack.
   Future<void> _handleDeleteTrip() async {
+    final l10n = context.l10n;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Trip'),
+        title: Text(l10n.deleteTrip),
         content: Text(
           'Are you sure you want to delete "${_trip.name}"? '
           'This action cannot be undone.',
@@ -1669,7 +1671,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -1677,7 +1679,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -1706,6 +1708,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   /// When finishing a day, shows a confirmation dialog first.
   /// Returns `true` when the action was completed (message field can be cleared).
   Future<bool> _handleDayButtonTap(String? message) async {
+    final l10n = context.l10n;
     if (_trip.status == TripStatus.inProgress) {
       // --- Finish Day: confirmation → toggle day ---
       final confirmed = await showDialog<bool>(
@@ -1719,7 +1722,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               key: const Key('confirm_finish_day_button'),
@@ -1728,7 +1731,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                 backgroundColor: WandererTheme.dayEndColor,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Finish Day'),
+              child: Text(l10n.finishDay),
             ),
           ],
         ),
@@ -2224,6 +2227,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
@@ -2316,7 +2320,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'Loading trip...',
+                              l10n.loadingTrip,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -2432,6 +2436,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
   /// Builds a donation button styled based on the donation link provider
   Widget _buildDonationButton() {
+    final l10n = context.l10n;
     final isBuyMeACoffee =
         _donationLink != null && _donationLink!.contains('buymeacoffee.com');
 
@@ -2479,16 +2484,16 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       child: InkWell(
         onTap: _launchDonationLink,
         borderRadius: BorderRadius.circular(12),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.favorite, color: Colors.white, size: 20),
-              SizedBox(width: 8),
+              const Icon(Icons.favorite, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
               Text(
-                'Support this trip',
-                style: TextStyle(
+                l10n.supportTrip,
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
