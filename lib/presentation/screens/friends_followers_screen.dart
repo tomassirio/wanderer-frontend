@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/services/auth_service.dart';
@@ -440,21 +441,22 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   Widget _buildFriendsTab() {
+    final l10n = context.l10n;
     if (_friends.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.people_outline, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            const Icon(Icons.people_outline, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
             Text(
-              'No friends yet',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              l10n.noFriendsYet,
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
-              'Send friend requests to connect with others',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+              l10n.sendFriendRequests,
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
           ],
@@ -504,16 +506,17 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   Widget _buildFollowersTab() {
+    final l10n = context.l10n;
     if (_followers.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.person_add_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            const Icon(Icons.person_add_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
             Text(
-              'No followers yet',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              l10n.noFollowersYet,
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
           ],
         ),
@@ -553,11 +556,11 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
               trailing: isFollowingBack
                   ? OutlinedButton(
                       onPressed: () => _handleUnfollowUser(follower.followerId),
-                      child: const Text('Unfollow'),
+                      child: Text(l10n.unfollow),
                     )
                   : ElevatedButton(
                       onPressed: () => _handleFollowUser(follower.followerId),
-                      child: const Text('Follow Back'),
+                      child: Text(l10n.followBack),
                     ),
             ),
           );
@@ -567,16 +570,17 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   Widget _buildFollowingTab() {
+    final l10n = context.l10n;
     if (_following.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.person_outline, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            const Icon(Icons.person_outline, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
             Text(
-              'Not following anyone yet',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              l10n.notFollowingAnyone,
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
           ],
         ),
@@ -613,7 +617,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.grey,
                 ),
-                child: const Text('Unfollow'),
+                child: Text(l10n.unfollow),
               ),
             ),
           );
@@ -648,16 +652,17 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   Widget _buildReceivedRequestsView() {
+    final l10n = context.l10n;
     if (_receivedRequests.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inbox_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            const Icon(Icons.inbox_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
             Text(
-              'No friend requests',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              l10n.noFriendRequests,
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
           ],
         ),
@@ -717,16 +722,17 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   Widget _buildSentRequestsView() {
+    final l10n = context.l10n;
     if (_sentRequests.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.send_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            const Icon(Icons.send_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
             Text(
-              'No sent requests',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              l10n.noSentRequests,
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
           ],
         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/achievement_models.dart';
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/data/services/auth_service.dart';
@@ -258,6 +259,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   }
 
   Widget _buildBody() {
+    final l10n = context.l10n;
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -277,7 +279,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _loadData,
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -285,15 +287,15 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     }
 
     if (_allAchievements.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.emoji_events_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            const Icon(Icons.emoji_events_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
             Text(
-              'No achievements available yet',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+              l10n.noAchievementsYet,
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
             ),
           ],
         ),
