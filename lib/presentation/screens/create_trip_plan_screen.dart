@@ -8,6 +8,7 @@ import 'package:wanderer_frontend/data/client/google_directions_api_client.dart'
 import 'package:wanderer_frontend/data/client/polyline_codec.dart';
 import 'package:wanderer_frontend/data/models/requests/create_trip_plan_backend_request.dart';
 import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 
 /// Screen for creating a new trip plan with map integration
@@ -376,9 +377,9 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                 Icons.my_location_rounded,
                 color: WandererTheme.primaryOrange,
               ),
-              title: const Text('Re-place on map'),
+              title: Text(context.l10n.rePlaceOnMap),
               subtitle: Text(
-                'Tap the map to set a new position',
+                context.l10n.tapMapToSetPosition,
                 style: TextStyle(
                   fontSize: 12,
                   color:
@@ -400,9 +401,9 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.red),
-              title: const Text(
-                'Remove',
-                style: TextStyle(color: Colors.red),
+              title: Text(
+                context.l10n.remove,
+                style: const TextStyle(color: Colors.red),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -651,7 +652,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('New Trip Plan'),
+        title: Text(context.l10n.newTripPlan),
         backgroundColor: WandererTheme.primaryOrange.withOpacity(0.9),
         foregroundColor: Colors.white,
         elevation: 0,
@@ -659,13 +660,13 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
           if (_markers.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.undo_rounded),
-              tooltip: 'Remove last marker',
+              tooltip: context.l10n.removeLastMarker,
               onPressed: _removeLastWaypoint,
             ),
           if (_markers.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.layers_clear_rounded),
-              tooltip: 'Clear all markers',
+              tooltip: context.l10n.clearAllMarkers,
               onPressed: _clearAllMarkers,
             ),
         ],
@@ -728,10 +729,10 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                       ),
                     ],
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
+                      const SizedBox(
                         width: 14,
                         height: 14,
                         child: CircularProgressIndicator(
@@ -739,10 +740,10 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                           color: WandererTheme.primaryOrange,
                         ),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text(
-                        'Getting location...',
-                        style: TextStyle(fontSize: 12),
+                        context.l10n.gettingLocation,
+                        style: const TextStyle(fontSize: 12),
                       ),
                     ],
                   ),
@@ -773,10 +774,10 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                       ),
                     ],
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
+                      const SizedBox(
                         width: 14,
                         height: 14,
                         child: CircularProgressIndicator(
@@ -784,10 +785,10 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                           color: Colors.blue,
                         ),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text(
-                        'Computing route...',
-                        style: TextStyle(fontSize: 12),
+                        context.l10n.computingRoute,
+                        style: const TextStyle(fontSize: 12),
                       ),
                     ],
                   ),
@@ -944,7 +945,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'New Trip Plan',
+                            context.l10n.newTripPlan,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -971,7 +972,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                             ),
                             onPressed: () =>
                                 setState(() => _isPanelCollapsed = true),
-                            tooltip: 'Minimize',
+                            tooltip: context.l10n.minimize,
                             constraints: const BoxConstraints(
                               minWidth: 32,
                               minHeight: 32,
@@ -1117,7 +1118,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
       extendBodyBehindAppBar: true,
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: const Text('New Trip Plan'),
+        title: Text(context.l10n.newTripPlan),
         backgroundColor: WandererTheme.primaryOrange.withOpacity(0.9),
         foregroundColor: Colors.white,
         elevation: 0,
@@ -1125,13 +1126,13 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
           if (_markers.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.undo_rounded),
-              tooltip: 'Remove last marker',
+              tooltip: context.l10n.removeLastMarker,
               onPressed: _removeLastWaypoint,
             ),
           if (_markers.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.layers_clear_rounded),
-              tooltip: 'Clear all markers',
+              tooltip: context.l10n.clearAllMarkers,
               onPressed: _clearAllMarkers,
             ),
         ],
@@ -1196,10 +1197,10 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                       ),
                     ],
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
+                      const SizedBox(
                         width: 14,
                         height: 14,
                         child: CircularProgressIndicator(
@@ -1207,10 +1208,10 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                           color: WandererTheme.primaryOrange,
                         ),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text(
-                        'Getting location...',
-                        style: TextStyle(fontSize: 12),
+                        context.l10n.gettingLocation,
+                        style: const TextStyle(fontSize: 12),
                       ),
                     ],
                   ),
@@ -1254,10 +1255,10 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                       ),
                     ],
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
+                      const SizedBox(
                         width: 14,
                         height: 14,
                         child: CircularProgressIndicator(
@@ -1265,10 +1266,10 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                           color: Colors.blue,
                         ),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text(
-                        'Computing route...',
-                        style: TextStyle(fontSize: 12),
+                        context.l10n.computingRoute,
+                        style: const TextStyle(fontSize: 12),
                       ),
                     ],
                   ),
@@ -1424,7 +1425,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
                 ),
                 const Spacer(),
                 Text(
-                  'Drag to reorder',
+                  context.l10n.dragToReorder,
                   style: TextStyle(
                     fontSize: 11,
                     color: Theme.of(context)
@@ -1938,7 +1939,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
           if (isMultiDay && days > 1) ...[
             const SizedBox(width: 6),
             Text(
-              '· Multi-day trip',
+              context.l10n.multiDayTrip,
               style: TextStyle(
                 fontSize: 12,
                 color: WandererTheme.primaryOrange.withOpacity(0.7),

@@ -15,6 +15,7 @@ import 'home_screen.dart';
 import 'settings_screen.dart';
 import 'trip_detail_screen.dart';
 import 'trip_plan_detail_screen.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Trip Plans screen showing list of planned trips
 class TripPlansScreen extends StatefulWidget {
@@ -202,17 +203,18 @@ class _TripPlansScreenState extends State<TripPlansScreen> {
   }
 
   Future<void> _handleDeletePlan(TripPlan plan) async {
+    final l10n = context.l10n;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Trip Plan'),
+        title: Text(l10n.deleteTripPlan),
         content: Text(
-          'Are you sure you want to delete "${plan.name}"? This action cannot be undone.',
+          '${l10n.deleteTripPlanConfirm}"${plan.name}"? This action cannot be undone.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -220,7 +222,7 @@ class _TripPlansScreenState extends State<TripPlansScreen> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),

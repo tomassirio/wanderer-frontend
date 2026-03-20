@@ -13,6 +13,7 @@ import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_plan_info_card.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// The type of point the user wants to place next on the map in edit mode
 enum _EditPlacementMode { start, end, waypoint }
@@ -282,6 +283,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
 
   /// Shows info for a waypoint in view mode (no delete)
   void _showWaypointOptions(int waypointIndex) {
+    final l10n = context.l10n;
     final waypoint = _tripPlan.waypoints[waypointIndex];
     showModalBottomSheet(
       context: context,
@@ -318,7 +320,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
                 '${waypoint.lat.toStringAsFixed(4)}, ${waypoint.lon.toStringAsFixed(4)}',
               ),
               subtitle: Text(
-                'Tap Edit in the toolbar to modify',
+                l10n.tapEditToModify,
                 style: TextStyle(
                   fontSize: 12,
                   color: WandererTheme.textTertiary,
@@ -434,17 +436,18 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
   }
 
   Future<void> _deleteTripPlan() async {
+    final l10n = context.l10n;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Trip Plan'),
+        title: Text(l10n.deleteTripPlan),
         content: Text(
           'Are you sure you want to delete "${_tripPlan.name}"? This action cannot be undone.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -452,7 +455,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -519,6 +522,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final hasMapData = _markers.isNotEmpty;
 
     // When editing, show the edit form
@@ -538,7 +542,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
           IconButton(
             icon: const Icon(Icons.play_arrow_rounded),
             onPressed: _createTripFromPlan,
-            tooltip: 'Create Trip',
+            tooltip: l10n.createTripFromPlan,
           ),
           IconButton(
             icon: const Icon(Icons.edit),
@@ -598,7 +602,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'No location data available',
+                            l10n.noLocationData,
                             style: TextStyle(
                               color: Colors.grey.shade600,
                               fontSize: 16,
@@ -695,12 +699,13 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
 
   /// Desktop/Web edit layout with floating side panel
   Widget _buildEditScreenDesktop() {
+    final l10n = context.l10n;
     const double panelWidth = 400.0;
     return Scaffold(
       backgroundColor: WandererTheme.backgroundLight,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Edit Trip Plan'),
+        title: Text(l10n.editTripPlan),
         backgroundColor: WandererTheme.primaryOrange.withOpacity(0.9),
         foregroundColor: Colors.white,
         elevation: 0,
@@ -791,7 +796,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
                       ),
                     ],
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       SizedBox(
@@ -804,7 +809,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
                       ),
                       SizedBox(width: 8),
                       Text(
-                        'Computing route...',
+                        l10n.computingRoute,
                         style: TextStyle(fontSize: 12),
                       ),
                     ],
@@ -894,6 +899,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
 
   /// Expanded glass side panel with edit form
   Widget _buildExpandedEditPanel() {
+    final l10n = context.l10n;
     final screenHeight = MediaQuery.of(context).size.height;
     // topOffset = statusBar + appBar + panel top margin (8) + panel bottom margin (16)
     final topOffset =
@@ -957,9 +963,9 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
                           color: WandererTheme.primaryOrange,
                         ),
                         const SizedBox(width: 8),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Edit Trip Plan',
+                            l10n.editTripPlan,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -981,7 +987,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
                             onPressed: () => setState(
                               () => _isEditPanelCollapsed = true,
                             ),
-                            tooltip: 'Minimize',
+                            tooltip: l10n.minimize,
                             constraints: const BoxConstraints(
                               minWidth: 32,
                               minHeight: 32,
@@ -1066,8 +1072,8 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
                                         color: Colors.white,
                                       ),
                                     )
-                                  : const Text(
-                                      'Save Changes',
+                                  : Text(
+                                      l10n.saveChanges,
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
@@ -1091,6 +1097,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
 
   /// Mobile edit layout with bottom sheet form (original behavior)
   Widget _buildEditScreenMobile() {
+    final l10n = context.l10n;
     final expandedHeight = MediaQuery.of(context).size.height -
         MediaQuery.of(context).padding.top -
         kToolbarHeight;
@@ -1099,7 +1106,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
       extendBodyBehindAppBar: true,
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: const Text('Edit Trip Plan'),
+        title: Text(l10n.editTripPlan),
         backgroundColor: Colors.white.withOpacity(0.9),
         elevation: 0,
         leading: IconButton(
@@ -1191,7 +1198,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
                       ),
                     ],
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       SizedBox(
@@ -1204,7 +1211,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
                       ),
                       SizedBox(width: 8),
                       Text(
-                        'Computing route...',
+                        l10n.computingRoute,
                         style: TextStyle(fontSize: 12),
                       ),
                     ],
@@ -1317,6 +1324,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
   }
 
   void _showEditMarkerOptions(String markerId, String title) {
+    final l10n = context.l10n;
     final color = markerId == 'start'
         ? Colors.green
         : markerId == 'end'
@@ -1360,8 +1368,8 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
             if (markerId.startsWith('waypoint_'))
               ListTile(
                 leading: const Icon(Icons.delete_outline, color: Colors.red),
-                title: const Text(
-                  'Remove',
+                title: Text(
+                  l10n.remove,
                   style: TextStyle(color: Colors.red),
                 ),
                 onTap: () {
@@ -1377,9 +1385,9 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
             ListTile(
               leading: Icon(Icons.drag_indicator_rounded,
                   color: WandererTheme.textTertiary),
-              title: const Text('Drag marker on map to move'),
+              title: Text(l10n.dragMarkerOnMap),
               subtitle: Text(
-                'Long press and drag to reposition',
+                l10n.longPressToDrag,
                 style: TextStyle(
                   fontSize: 12,
                   color: WandererTheme.textTertiary,
@@ -1522,6 +1530,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
   }
 
   Widget _buildEditWaypointsPanel() {
+    final l10n = context.l10n;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1553,7 +1562,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
                 ),
                 const Spacer(),
                 Text(
-                  'Drag to reorder',
+                  l10n.dragToReorder,
                   style: TextStyle(
                     fontSize: 11,
                     color: WandererTheme.textTertiary,
@@ -1676,6 +1685,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
   }
 
   Widget _buildEditFormSheet() {
+    final l10n = context.l10n;
     final expandedHeight = MediaQuery.of(context).size.height -
         MediaQuery.of(context).padding.top -
         kToolbarHeight;
@@ -1818,8 +1828,8 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
                                       color: Colors.white,
                                     ),
                                   )
-                                : const Text(
-                                    'Save Changes',
+                                : Text(
+                                    l10n.saveChanges,
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
@@ -1988,6 +1998,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
   }
 
   Widget _buildEditDaysInfo() {
+    final l10n = context.l10n;
     final days = _endDate!.difference(_startDate!).inDays + 1;
     final isMultiDay = _selectedPlanType == 'MULTI_DAY';
     return Container(
@@ -2026,7 +2037,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
           if (isMultiDay && days > 1) ...[
             const SizedBox(width: 6),
             Text(
-              '\u00b7 Multi-day trip',
+              l10n.multiDayTrip,
               style: TextStyle(
                 fontSize: 12,
                 color: WandererTheme.primaryOrange.withOpacity(0.7),

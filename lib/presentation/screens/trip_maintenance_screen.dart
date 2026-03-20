@@ -13,6 +13,7 @@ import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Admin screen for managing trip data maintenance (polyline and geocoding recomputation).
 /// Allows admins to view statistics and trigger backend recomputation of encoded polylines
@@ -176,10 +177,11 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
   }
 
   Future<void> _recomputePolyline(Trip trip) async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Recompute Polyline'),
+        title: Text(l10n.recomputePolyline),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,11 +214,11 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Recompute'),
+            child: Text(l10n.recompute),
           ),
         ],
       ),
@@ -255,10 +257,11 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
   }
 
   Future<void> _recomputeGeocoding(Trip trip) async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Recompute Geocoding'),
+        title: Text(l10n.recomputeGeocoding),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -287,11 +290,11 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Recompute'),
+            child: Text(l10n.recompute),
           ),
         ],
       ),
@@ -330,6 +333,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
   }
 
   Future<void> _recomputeAll() async {
+    final l10n = context.l10n;
     final tripsWithLocations = _allTrips
         .where((t) => t.locations != null && t.locations!.length >= 2)
         .toList();
@@ -342,7 +346,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Recompute All Polylines'),
+        title: Text(l10n.recomputeAllPolylines),
         content: Text(
           'This will recompute polylines for ${tripsWithLocations.length} '
           'trips with 2 or more locations.\n\n'
@@ -352,7 +356,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -360,7 +364,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
               backgroundColor: Colors.orange,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Recompute All'),
+            child: Text(l10n.recomputeAll),
           ),
         ],
       ),
@@ -527,6 +531,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
   }
 
   Widget _buildStatsCard(bool isMobile) {
+    final l10n = context.l10n;
     final cardPadding = isMobile ? 12.0 : 16.0;
 
     // Use server stats if available, otherwise calculate from loaded trips
@@ -560,7 +565,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
                 const Icon(Icons.analytics, color: Colors.blue),
                 const SizedBox(width: 8),
                 Text(
-                  'Trip Data Overview',
+                  l10n.tripDataOverview,
                   style: TextStyle(
                     fontSize: isMobile ? 18 : 20,
                     fontWeight: FontWeight.bold,
@@ -571,7 +576,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
             const SizedBox(height: 16),
             // Polyline stats
             Text(
-              'Polyline Statistics',
+              l10n.polylineStats,
               style: TextStyle(
                 fontSize: isMobile ? 14 : 16,
                 fontWeight: FontWeight.w600,
@@ -624,7 +629,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
             const SizedBox(height: 16),
             // Geocoding stats
             Text(
-              'Geocoding Statistics',
+              l10n.geocodingStats,
               style: TextStyle(
                 fontSize: isMobile ? 14 : 16,
                 fontWeight: FontWeight.w600,
@@ -717,6 +722,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
   }
 
   Widget _buildTripsSection(bool isMobile) {
+    final l10n = context.l10n;
     final cardPadding = isMobile ? 12.0 : 16.0;
     final titleFontSize = isMobile ? 18.0 : 20.0;
 
@@ -732,7 +738,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'All Trips',
+                    l10n.allTrips,
                     style: TextStyle(
                       fontSize: titleFontSize,
                       fontWeight: FontWeight.bold,
@@ -743,7 +749,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Tap a trip to view details, or recompute its polyline/geocoding',
+              l10n.tapTripToView,
               style: TextStyle(
                 color: Colors.grey,
                 fontSize: isMobile ? 12 : 14,
@@ -752,9 +758,9 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: _searchController,
-              decoration: const InputDecoration(
-                labelText: 'Search trips',
-                hintText: 'Search by name, username, or trip ID',
+              decoration: InputDecoration(
+                labelText: l10n.searchTrips,
+                hintText: l10n.searchByNameUsernameId,
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(),
                 isDense: true,
@@ -763,12 +769,12 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
             ),
             const SizedBox(height: 16),
             if (_filteredTrips.isEmpty)
-              const Center(
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.all(32),
+                  padding: const EdgeInsets.all(32),
                   child: Text(
-                    'No trips found',
-                    style: TextStyle(color: Colors.grey),
+                    l10n.noTripsFoundMaintenance,
+                    style: const TextStyle(color: Colors.grey),
                   ),
                 ),
               )
@@ -1029,6 +1035,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
     bool wasRecomputed,
     bool hasEnoughLocations,
   ) {
+    final l10n = context.l10n;
     if (isRecomputing) {
       return const ElevatedButton(
         onPressed: null,
@@ -1044,7 +1051,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
       return ElevatedButton.icon(
         onPressed: () => _recomputePolyline(trip),
         icon: const Icon(Icons.check, size: 16),
-        label: const Text('Done'),
+        label: Text(l10n.done),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.green,
           foregroundColor: Colors.white,
@@ -1056,7 +1063,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
       return ElevatedButton(
         onPressed: null,
         child: Text(
-          'Needs 2+ locations',
+          l10n.needs2Locations,
           style: TextStyle(fontSize: 12, color: Colors.grey[400]),
           textAlign: TextAlign.center,
         ),
@@ -1078,6 +1085,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
     bool wasRecomputed,
     int locationCount,
   ) {
+    final l10n = context.l10n;
     if (isRecomputing) {
       return const ElevatedButton(
         onPressed: null,
@@ -1093,7 +1101,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
       return ElevatedButton.icon(
         onPressed: () => _recomputeGeocoding(trip),
         icon: const Icon(Icons.check, size: 16),
-        label: const Text('Done'),
+        label: Text(l10n.done),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.green,
           foregroundColor: Colors.white,
@@ -1106,7 +1114,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
       return ElevatedButton(
         onPressed: null,
         child: Text(
-          'Needs 1+ location',
+          l10n.needs1Location,
           style: TextStyle(fontSize: 12, color: Colors.grey[400]),
           textAlign: TextAlign.center,
         ),

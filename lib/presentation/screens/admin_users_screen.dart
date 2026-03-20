@@ -9,6 +9,7 @@ import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Admin User Management screen for viewing all users with pagination
 class AdminUsersScreen extends StatefulWidget {
@@ -181,16 +182,17 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   Future<void> _promoteUser(UserProfile user) async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Promote to Admin'),
+        title: Text(l10n.promoteToAdmin),
         content: Text(
             'Are you sure you want to promote "${user.username}" to admin?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -217,16 +219,17 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   Future<void> _demoteUser(UserProfile user) async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Demote from Admin'),
+        title: Text(l10n.demoteFromAdmin),
         content: Text(
             'Are you sure you want to remove admin role from "${user.username}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -256,10 +259,11 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   Future<void> _deleteUser(UserProfile user) async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete User'),
+        title: Text(l10n.deleteUser),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,16 +271,16 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             Text(
                 'Are you sure you want to permanently delete "${user.username}"?'),
             const SizedBox(height: 8),
-            const Text(
-              'This action cannot be undone. All user data will be removed.',
-              style: TextStyle(color: Colors.red, fontSize: 13),
+            Text(
+              l10n.deleteUserNote,
+              style: const TextStyle(color: Colors.red, fontSize: 13),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -284,7 +288,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -409,6 +413,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   Widget _buildHeader(bool isMobile) {
+    final l10n = context.l10n;
     final cardPadding = isMobile ? 12.0 : 16.0;
     final titleFontSize = isMobile ? 18.0 : 20.0;
 
@@ -424,7 +429,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'User Management',
+                    l10n.userManagementTitle,
                     style: TextStyle(
                       fontSize: titleFontSize,
                       fontWeight: FontWeight.bold,
@@ -447,7 +452,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: () => _loadUsers(page: _currentPage),
-              tooltip: 'Refresh',
+              tooltip: l10n.refresh,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
@@ -458,6 +463,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   Widget _buildSortBar(bool isMobile) {
+    final l10n = context.l10n;
     final cardPadding = isMobile ? 12.0 : 16.0;
 
     if (isMobile) {
@@ -471,8 +477,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               // Sort chips
               Row(
                 children: [
-                  const Text(
-                    'Sort by: ',
+                  Text(
+                    l10n.sortBy,
                     style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
                   ),
                   const SizedBox(width: 8),
@@ -485,8 +491,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               // Search filter
               TextField(
                 controller: _searchController,
-                decoration: const InputDecoration(
-                  hintText: 'Filter results...',
+                decoration: InputDecoration(
+                  hintText: l10n.filterResults,
                   prefixIcon: Icon(Icons.filter_list, size: 20),
                   border: OutlineInputBorder(),
                   isDense: true,
@@ -507,8 +513,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         padding: EdgeInsets.symmetric(horizontal: cardPadding, vertical: 8),
         child: Row(
           children: [
-            const Text(
-              'Sort by: ',
+            Text(
+              l10n.sortBy,
               style: TextStyle(fontWeight: FontWeight.w500),
             ),
             const SizedBox(width: 8),
@@ -521,8 +527,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               width: 200,
               child: TextField(
                 controller: _searchController,
-                decoration: const InputDecoration(
-                  hintText: 'Filter results...',
+                decoration: InputDecoration(
+                  hintText: l10n.filterResults,
                   prefixIcon: Icon(Icons.filter_list, size: 20),
                   border: OutlineInputBorder(),
                   isDense: true,
@@ -563,13 +569,14 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   Widget _buildUsersTable(bool isMobile) {
+    final l10n = context.l10n;
     if (_filteredUsers.isEmpty) {
       return Card(
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
             child: Text(
-              'No users found',
+              l10n.noUsersFound,
               style: TextStyle(
                   color:
                       Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
@@ -621,6 +628,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   Widget _buildMobileUserTile(UserProfile user, bool isUserAdmin, bool isSelf) {
+    final l10n = context.l10n;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 1,
@@ -850,8 +858,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                           side: BorderSide(color: Colors.red.shade400),
                         ),
                         icon: const Icon(Icons.delete_outline, size: 16),
-                        label: const Text(
-                          'Delete',
+                        label: Text(
+                          l10n.delete,
                           style: TextStyle(fontSize: 12),
                         ),
                       ),
@@ -860,7 +868,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     IconButton(
                       icon: const Icon(Icons.open_in_new, size: 20),
                       onPressed: () => _navigateToUserProfile(user.id),
-                      tooltip: 'View Profile',
+                      tooltip: l10n.viewProfile,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
@@ -876,8 +884,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     OutlinedButton.icon(
                       onPressed: () => _navigateToUserProfile(user.id),
                       icon: const Icon(Icons.open_in_new, size: 16),
-                      label: const Text(
-                        'View Profile',
+                      label: Text(
+                        l10n.viewProfile,
                         style: TextStyle(fontSize: 12),
                       ),
                     ),
@@ -925,6 +933,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
   Widget _buildDesktopUserTile(
       UserProfile user, bool isUserAdmin, bool isSelf) {
+    final l10n = context.l10n;
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
@@ -1048,13 +1057,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             IconButton(
               icon: const Icon(Icons.delete_forever, color: Colors.red),
               onPressed: () => _deleteUser(user),
-              tooltip: 'Delete User',
+              tooltip: l10n.deleteUser,
             ),
           // View profile button
           IconButton(
             icon: const Icon(Icons.open_in_new),
             onPressed: () => _navigateToUserProfile(user.id),
-            tooltip: 'View Profile',
+            tooltip: l10n.viewProfile,
           ),
         ],
       ),
@@ -1078,6 +1087,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   Widget _buildPaginationControls() {
+    final l10n = context.l10n;
     if (_totalPages <= 1) return const SizedBox.shrink();
 
     return Card(
@@ -1089,13 +1099,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             IconButton(
               icon: const Icon(Icons.first_page),
               onPressed: _currentPage > 0 ? () => _goToPage(0) : null,
-              tooltip: 'First page',
+              tooltip: l10n.firstPage,
             ),
             IconButton(
               icon: const Icon(Icons.chevron_left),
               onPressed:
                   _currentPage > 0 ? () => _goToPage(_currentPage - 1) : null,
-              tooltip: 'Previous page',
+              tooltip: l10n.previousPage,
             ),
             const SizedBox(width: 16),
             Text(
@@ -1108,14 +1118,14 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               onPressed: _currentPage < _totalPages - 1
                   ? () => _goToPage(_currentPage + 1)
                   : null,
-              tooltip: 'Next page',
+              tooltip: l10n.nextPage,
             ),
             IconButton(
               icon: const Icon(Icons.last_page),
               onPressed: _currentPage < _totalPages - 1
                   ? () => _goToPage(_totalPages - 1)
                   : null,
-              tooltip: 'Last page',
+              tooltip: l10n.lastPage,
             ),
           ],
         ),
