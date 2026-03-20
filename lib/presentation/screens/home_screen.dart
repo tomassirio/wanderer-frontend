@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart'
     show TripModality, TripStatus, Visibility;
 import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
@@ -688,10 +689,11 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _handleDeleteTrip(Trip trip) async {
+    final l10n = context.l10n;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Trip'),
+        title: Text(l10n.deleteTrip),
         content: Text(
           'Are you sure you want to delete "${trip.name}"? This action cannot be undone.',
         ),

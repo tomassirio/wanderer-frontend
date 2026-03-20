@@ -18,8 +18,7 @@ class L10nScope extends InheritedNotifier<ValueNotifier<Locale>> {
   });
 
   static Locale of(BuildContext context) {
-    final scope =
-        context.dependOnInheritedWidgetOfExactType<L10nScope>();
+    final scope = context.dependOnInheritedWidgetOfExactType<L10nScope>();
     return scope?.notifier?.value ?? const Locale('en');
   }
 }
@@ -55,8 +54,7 @@ class AppLocalizations {
   String get tripPlans => _isEs ? 'Planes de Viaje' : 'Trip Plans';
   String get friends => _isEs ? 'Amigos' : 'Friends';
   String get achievements => _isEs ? 'Logros' : 'Achievements';
-  String get tripPromotion =>
-      _isEs ? 'Promoción de Viajes' : 'Trip Promotion';
+  String get tripPromotion => _isEs ? 'Promoción de Viajes' : 'Trip Promotion';
   String get userManagement =>
       _isEs ? 'Gestión de Usuarios' : 'User Management';
   String get tripDataMaintenance =>
@@ -111,41 +109,51 @@ class AppLocalizations {
   // --- Home screen ---
   String get newTrip => _isEs ? 'Nuevo Viaje' : 'New Trip';
   String get deleteTrip => _isEs ? 'Eliminar Viaje' : 'Delete Trip';
-  String get deleteTripConfirm =>
-      _isEs ? '¿Estás seguro de que quieres eliminar ' : 'Are you sure you want to delete ';
-  String get welcomeToWanderer => _isEs ? 'Bienvenido a Wanderer' : 'Welcome to Wanderer';
-  String get trackAdventures =>
-      _isEs ? 'Rastrea tus aventuras, comparte tus viajes' : 'Track your adventures, share your journeys';
-  String get discoverAdventures =>
-      _isEs ? 'Descubre aventuras de la comunidad' : 'Discover adventures from the community';
+  String get deleteTripConfirm => _isEs
+      ? '¿Estás seguro de que quieres eliminar '
+      : 'Are you sure you want to delete ';
+  String get welcomeToWanderer =>
+      _isEs ? 'Bienvenido a Wanderer' : 'Welcome to Wanderer';
+  String get trackAdventures => _isEs
+      ? 'Rastrea tus aventuras, comparte tus viajes'
+      : 'Track your adventures, share your journeys';
+  String get discoverAdventures => _isEs
+      ? 'Descubre aventuras de la comunidad'
+      : 'Discover adventures from the community';
   String get explorePublicTrips =>
       _isEs ? 'Explorar Viajes Públicos' : 'Explore Public Trips';
   String get noTripsYet => _isEs ? 'Aún no hay viajes' : 'No trips yet';
-  String get createFirstTrip =>
-      _isEs ? '¡Crea tu primer viaje para empezar!' : 'Create your first trip to get started!';
+  String get createFirstTrip => _isEs
+      ? '¡Crea tu primer viaje para empezar!'
+      : 'Create your first trip to get started!';
   String get noTripsInFeed =>
       _isEs ? 'No hay viajes en tu feed' : 'No trips in your feed';
-  String get followToSeeTrips =>
-      _isEs ? '¡Sigue usuarios o agrega amigos para ver sus viajes!' : 'Follow users or add friends to see their trips!';
+  String get followToSeeTrips => _isEs
+      ? '¡Sigue usuarios o agrega amigos para ver sus viajes!'
+      : 'Follow users or add friends to see their trips!';
   String get noPublicTripsFound =>
       _isEs ? 'No se encontraron viajes públicos' : 'No public trips found';
-  String get checkBackLater =>
-      _isEs ? '¡Vuelve más tarde para nuevas aventuras!' : 'Check back later for new adventures!';
+  String get checkBackLater => _isEs
+      ? '¡Vuelve más tarde para nuevas aventuras!'
+      : 'Check back later for new adventures!';
   String get errorLoadingTrips =>
       _isEs ? 'Error al cargar viajes' : 'Error loading trips';
   String get loadMoreTrips => _isEs ? 'Cargar más viajes' : 'Load more trips';
 
   // --- Search ---
   String get searchHint => _isEs ? 'Buscar…' : 'Search…';
-  String get couldNotLoadResults =>
-      _isEs ? 'No se pudieron cargar resultados. Inténtalo de nuevo.' : 'Could not load results. Try again.';
-  String get noTripsFound => _isEs ? 'No se encontraron viajes' : 'No trips found';
+  String get couldNotLoadResults => _isEs
+      ? 'No se pudieron cargar resultados. Inténtalo de nuevo.'
+      : 'Could not load results. Try again.';
+  String get noTripsFound =>
+      _isEs ? 'No se encontraron viajes' : 'No trips found';
 
   // --- Notifications ---
   String get noNotificationsYet =>
       _isEs ? 'Aún no hay notificaciones' : 'No notifications yet';
-  String get notificationsWillAppear =>
-      _isEs ? 'Cuando recibas notificaciones, aparecerán aquí' : 'When you receive notifications, they appear here';
+  String get notificationsWillAppear => _isEs
+      ? 'Cuando recibas notificaciones, aparecerán aquí'
+      : 'When you receive notifications, they appear here';
   String get readAll => _isEs ? 'Marcar todo como leído' : 'Read all';
   String get loadMoreNotifications =>
       _isEs ? 'Cargar más notificaciones' : 'Load more notifications';
@@ -153,10 +161,12 @@ class AppLocalizations {
   // --- Auth screen ---
   String get welcomeBack => _isEs ? '¡Bienvenido de nuevo!' : 'Welcome Back!';
   String get createAccount => _isEs ? 'Crear Cuenta' : 'Create Account';
-  String get signInToContinue =>
-      _isEs ? 'Inicia sesión para continuar tu viaje' : 'Sign in to continue your journey';
-  String get signUpToStart =>
-      _isEs ? 'Regístrate para empezar a rastrear tus aventuras' : 'Sign up to start tracking your adventures';
+  String get signInToContinue => _isEs
+      ? 'Inicia sesión para continuar tu viaje'
+      : 'Sign in to continue your journey';
+  String get signUpToStart => _isEs
+      ? 'Regístrate para empezar a rastrear tus aventuras'
+      : 'Sign up to start tracking your adventures';
   String get signIn => _isEs ? 'Iniciar Sesión' : 'Sign In';
   String get signUp => _isEs ? 'Registrarse' : 'Sign Up';
   String get alreadyHaveAccount =>
@@ -165,7 +175,8 @@ class AppLocalizations {
       _isEs ? '¿No tienes una cuenta?' : "Don't have an account?";
   String get forgotPassword =>
       _isEs ? '¿Olvidaste tu contraseña?' : 'Forgot Password?';
-  String get backToLogin => _isEs ? 'Volver al inicio de sesión' : 'Back to Login';
+  String get backToLogin =>
+      _isEs ? 'Volver al inicio de sesión' : 'Back to Login';
   String get checkYourEmail =>
       _isEs ? 'Revisa tu correo electrónico' : 'Check your email';
   String get emailLabel => _isEs ? 'Correo Electrónico' : 'Email';
@@ -173,78 +184,106 @@ class AppLocalizations {
   String get passwordLabel => _isEs ? 'Contraseña' : 'Password';
   String get pleaseEnterPassword =>
       _isEs ? 'Por favor ingresa tu contraseña' : 'Please enter your password';
-  String get passwordMinLength =>
-      _isEs ? 'La contraseña debe tener al menos 6 caracteres' : 'Password must be at least 6 characters';
+  String get passwordMinLength => _isEs
+      ? 'La contraseña debe tener al menos 6 caracteres'
+      : 'Password must be at least 6 characters';
   String get passwordsDoNotMatch =>
       _isEs ? 'Las contraseñas no coinciden' : 'Passwords do not match';
-  String get resetPasswordTitle => _isEs ? 'Restablecer Contraseña' : 'Reset Password';
-  String get enterEmailForReset =>
-      _isEs ? "Ingresa tu dirección de correo electrónico y te enviaremos un enlace para restablecer tu contraseña." : "Enter your email address and we'll send you a link to reset your password.";
+  String get resetPasswordTitle =>
+      _isEs ? 'Restablecer Contraseña' : 'Reset Password';
+  String get enterEmailForReset => _isEs
+      ? "Ingresa tu dirección de correo electrónico y te enviaremos un enlace para restablecer tu contraseña."
+      : "Enter your email address and we'll send you a link to reset your password.";
   String get sendResetLink => _isEs ? 'Enviar enlace' : 'Send Reset Link';
 
   // --- Verify email ---
-  String get verifyYourEmail => _isEs ? 'Verifica tu correo electrónico' : 'Verify your email';
-  String get verifyEmail => _isEs ? 'Verificar correo electrónico' : 'Verify Email';
-  String get emailVerified => _isEs ? '¡Correo electrónico verificado!' : 'Email verified!';
-  String get verifyingEmail => _isEs ? 'Verificando tu correo electrónico…' : 'Verifying your email…';
-  String get verificationToken => _isEs ? 'Token de verificación' : 'Verification token';
-  String get enterVerificationToken =>
-      _isEs ? 'Ingresa el token de verificación del correo que te enviamos.' : 'Enter the verification token from the email we sent you.';
-  String get accountNowActive =>
-      _isEs ? 'Tu cuenta está activa ahora. Redirigiendo a la app…' : 'Your account is now active. Redirecting you to the app…';
+  String get verifyYourEmail =>
+      _isEs ? 'Verifica tu correo electrónico' : 'Verify your email';
+  String get verifyEmail =>
+      _isEs ? 'Verificar correo electrónico' : 'Verify Email';
+  String get emailVerified =>
+      _isEs ? '¡Correo electrónico verificado!' : 'Email verified!';
+  String get verifyingEmail =>
+      _isEs ? 'Verificando tu correo electrónico…' : 'Verifying your email…';
+  String get verificationToken =>
+      _isEs ? 'Token de verificación' : 'Verification token';
+  String get enterVerificationToken => _isEs
+      ? 'Ingresa el token de verificación del correo que te enviamos.'
+      : 'Enter the verification token from the email we sent you.';
+  String get accountNowActive => _isEs
+      ? 'Tu cuenta está activa ahora. Redirigiendo a la app…'
+      : 'Your account is now active. Redirecting you to the app…';
 
   // --- Settings screen ---
   String get appearance => _isEs ? 'Apariencia' : 'Appearance';
   String get darkMode => _isEs ? 'Modo Oscuro' : 'Dark Mode';
-  String get darkModeSubtitle =>
-      _isEs ? 'Cambiar entre tema claro y oscuro' : 'Switch between light and dark theme';
+  String get darkModeSubtitle => _isEs
+      ? 'Cambiar entre tema claro y oscuro'
+      : 'Switch between light and dark theme';
   String get language => _isEs ? 'Idioma' : 'Language';
   String get account => _isEs ? 'Cuenta' : 'Account';
   String get changePassword => _isEs ? 'Cambiar Contraseña' : 'Change Password';
   String get changePasswordSubtitle =>
       _isEs ? 'Actualiza tu contraseña actual' : 'Update your current password';
-  String get resetPassword => _isEs ? 'Restablecer Contraseña' : 'Reset Password';
-  String get resetPasswordSubtitle =>
-      _isEs ? 'Envía un enlace de restablecimiento a tu correo' : 'Send a password reset link to your email';
+  String get resetPassword =>
+      _isEs ? 'Restablecer Contraseña' : 'Reset Password';
+  String get resetPasswordSubtitle => _isEs
+      ? 'Envía un enlace de restablecimiento a tu correo'
+      : 'Send a password reset link to your email';
   String get support => _isEs ? 'Soporte' : 'Support';
   String get contactSupport => _isEs ? 'Contactar Soporte' : 'Contact Support';
   String get contactSupportSubtitle =>
       _isEs ? 'Obtén ayuda por correo electrónico' : 'Get help via email';
-  String get termsOfService => _isEs ? 'Términos de Servicio' : 'Terms of Service';
-  String get privacyPolicy => _isEs ? 'Política de Privacidad' : 'Privacy Policy';
-  String get pushNotifications => _isEs ? 'Notificaciones Push' : 'Push Notifications';
-  String get pushNotificationsSubtitle =>
-      _isEs ? 'Recibe alertas de solicitudes de amistad, comentarios, logros y más' : 'Receive alerts for friend requests, comments, achievements, and other activity';
+  String get termsOfService =>
+      _isEs ? 'Términos de Servicio' : 'Terms of Service';
+  String get privacyPolicy =>
+      _isEs ? 'Política de Privacidad' : 'Privacy Policy';
+  String get pushNotifications =>
+      _isEs ? 'Notificaciones Push' : 'Push Notifications';
+  String get pushNotificationsSubtitle => _isEs
+      ? 'Recibe alertas de solicitudes de amistad, comentarios, logros y más'
+      : 'Receive alerts for friend requests, comments, achievements, and other activity';
   String get closeAccount => _isEs ? 'Cerrar Cuenta' : 'Close Account';
-  String get closeAccountSubtitle =>
-      _isEs ? 'Elimina permanentemente tu cuenta y todos los datos' : 'Permanently delete your account and all data';
+  String get closeAccountSubtitle => _isEs
+      ? 'Elimina permanentemente tu cuenta y todos los datos'
+      : 'Permanently delete your account and all data';
   String get confirmAccountDeletion =>
       _isEs ? 'Confirmar eliminación de cuenta' : 'Confirm Account Deletion';
-  String get deleteMyAccount => _isEs ? 'Eliminar mi cuenta' : 'Delete My Account';
+  String get deleteMyAccount =>
+      _isEs ? 'Eliminar mi cuenta' : 'Delete My Account';
   String get typeDELETE => _isEs ? 'Escribe BORRAR' : 'Type DELETE';
-  String get typeDELETEConfirm =>
-      _isEs ? 'Escribe BORRAR para confirmar que quieres cerrar tu cuenta definitivamente.' : 'Type DELETE to confirm you want to permanently close your account.';
-  String get areYouSureDeleteAccount =>
-      _isEs ? '¿Estás seguro de que quieres eliminar permanentemente tu cuenta?' : 'Are you sure you want to permanently delete your account?';
-  String get currentPassword => _isEs ? 'Contraseña actual' : 'Current Password';
+  String get typeDELETEConfirm => _isEs
+      ? 'Escribe BORRAR para confirmar que quieres cerrar tu cuenta definitivamente.'
+      : 'Type DELETE to confirm you want to permanently close your account.';
+  String get areYouSureDeleteAccount => _isEs
+      ? '¿Estás seguro de que quieres eliminar permanentemente tu cuenta?'
+      : 'Are you sure you want to permanently delete your account?';
+  String get currentPassword =>
+      _isEs ? 'Contraseña actual' : 'Current Password';
   String get newPassword => _isEs ? 'Nueva contraseña' : 'New Password';
-  String get confirmNewPassword => _isEs ? 'Confirmar nueva contraseña' : 'Confirm New Password';
-  String get changePasswordTitle => _isEs ? 'Cambiar Contraseña' : 'Change Password';
+  String get confirmNewPassword =>
+      _isEs ? 'Confirmar nueva contraseña' : 'Confirm New Password';
+  String get changePasswordTitle =>
+      _isEs ? 'Cambiar Contraseña' : 'Change Password';
   String get continue_ => _isEs ? 'Continuar' : 'Continue';
   String get appVersion => _isEs ? 'Versión de la app' : 'App Version';
   String get notificationsSection => _isEs ? 'Notificaciones' : 'Notifications';
 
   // --- Profile screen ---
   String get editProfile => _isEs ? 'Editar Perfil' : 'Edit Profile';
-  String get noProfileData =>
-      _isEs ? 'No hay datos de perfil disponibles' : 'No profile data available';
-  String get noTripsMatchFilters =>
-      _isEs ? 'Ningún viaje coincide con los filtros seleccionados' : 'No trips match the selected filters';
-  String get clearAllFilters => _isEs ? 'Borrar todos los filtros' : 'Clear all filters';
+  String get noProfileData => _isEs
+      ? 'No hay datos de perfil disponibles'
+      : 'No profile data available';
+  String get noTripsMatchFilters => _isEs
+      ? 'Ningún viaje coincide con los filtros seleccionados'
+      : 'No trips match the selected filters';
+  String get clearAllFilters =>
+      _isEs ? 'Borrar todos los filtros' : 'Clear all filters';
   String get clearFilters => _isEs ? 'Borrar filtros' : 'Clear filters';
   String get sortTripsBy => _isEs ? 'Ordenar viajes por' : 'Sort trips by';
   String get displayName => _isEs ? 'Nombre para mostrar' : 'Display Name';
-  String get yourDisplayName => _isEs ? 'Tu nombre para mostrar' : 'Your display name';
+  String get yourDisplayName =>
+      _isEs ? 'Tu nombre para mostrar' : 'Your display name';
   String get bio => _isEs ? 'Biografía' : 'Bio';
   String get tellUsAboutYourself =>
       _isEs ? 'Cuéntanos sobre ti' : 'Tell us about yourself';
@@ -262,8 +301,9 @@ class AppLocalizations {
   String get noFriendsYet => _isEs ? 'Aún no hay amigos' : 'No friends yet';
   String get noSentRequests =>
       _isEs ? 'No hay solicitudes enviadas' : 'No sent requests';
-  String get sendFriendRequests =>
-      _isEs ? 'Envía solicitudes de amistad para conectar con otros' : 'Send friend requests to connect with others';
+  String get sendFriendRequests => _isEs
+      ? 'Envía solicitudes de amistad para conectar con otros'
+      : 'Send friend requests to connect with others';
 
   // --- Achievements screen ---
   String get noAchievementsYet =>
@@ -278,35 +318,49 @@ class AppLocalizations {
   String get pause => _isEs ? 'Pausar' : 'Pause';
   String get resume => _isEs ? 'Reanudar' : 'Resume';
   String get finish => _isEs ? 'Terminar' : 'Finish';
-  String get finishTripConfirm =>
-      _isEs ? '¿Estás seguro de que quieres terminar este viaje? Esto marcará el viaje como completado.' : 'Are you sure you want to finish this trip? This will mark the trip as completed.';
+  String get finishTripConfirm => _isEs
+      ? '¿Estás seguro de que quieres terminar este viaje? Esto marcará el viaje como completado.'
+      : 'Are you sure you want to finish this trip? This will mark the trip as completed.';
   String get shareTrip => _isEs ? 'Compartir Viaje' : 'Share Trip';
-  String get tripSettings => _isEs ? 'Configuración del Viaje' : 'Trip Settings';
+  String get tripSettings =>
+      _isEs ? 'Configuración del Viaje' : 'Trip Settings';
   String get showPlannedRoute =>
       _isEs ? 'Mostrar Ruta Planificada' : 'Show Planned Route';
   String get tripType => _isEs ? 'Tipo de Viaje' : 'Trip Type';
-  String get automaticUpdates => _isEs ? 'Actualizaciones Automáticas' : 'Automatic Updates';
-  String get locationInterval =>
-      _isEs ? 'La ubicación se actualizará automáticamente a este intervalo cuando el viaje esté activo' : 'Location will be automatically updated at this interval when trip is active';
-  String get willActivateWhenStarted =>
-      _isEs ? 'Se activará cuando el viaje sea iniciado' : 'Will activate when the trip is started';
-  String get switchToMultiDay => _isEs ? '¿Cambiar a Multi-Día?' : 'Switch to Multi-Day?';
-  String get multiDayIrreversible =>
-      _isEs ? 'Esta acción es irreversible. Una vez que un viaje se convierte a' : 'This action is irreversible. Once a trip is converted to';
-  String get testBackgroundUpdate =>
-      _isEs ? '🧪 Probar Actualización en Segundo Plano Ahora' : '🧪 Test Background Update Now';
-  String get firesWorkManagerTask =>
-      _isEs ? 'Ejecuta una tarea WorkManager inmediatamente' : 'Fires a one-off WorkManager task immediately';
+  String get automaticUpdates =>
+      _isEs ? 'Actualizaciones Automáticas' : 'Automatic Updates';
+  String get locationInterval => _isEs
+      ? 'La ubicación se actualizará automáticamente a este intervalo cuando el viaje esté activo'
+      : 'Location will be automatically updated at this interval when trip is active';
+  String get willActivateWhenStarted => _isEs
+      ? 'Se activará cuando el viaje sea iniciado'
+      : 'Will activate when the trip is started';
+  String get switchToMultiDay =>
+      _isEs ? '¿Cambiar a Multi-Día?' : 'Switch to Multi-Day?';
+  String get multiDayIrreversible => _isEs
+      ? 'Esta acción es irreversible. Una vez que un viaje se convierte a'
+      : 'This action is irreversible. Once a trip is converted to';
+  String get testBackgroundUpdate => _isEs
+      ? '🧪 Probar Actualización en Segundo Plano Ahora'
+      : '🧪 Test Background Update Now';
+  String get firesWorkManagerTask => _isEs
+      ? 'Ejecuta una tarea WorkManager inmediatamente'
+      : 'Fires a one-off WorkManager task immediately';
   String get loadingMap => _isEs ? 'Cargando mapa...' : 'Loading map...';
-  String get mapLoadingError => _isEs ? 'Error al cargar el mapa' : 'Map Loading Error';
-  String get loadingTimeline => _isEs ? 'Cargando línea de tiempo...' : 'Loading timeline...';
-  String get noUpdatesYet => _isEs ? 'Aún no hay actualizaciones' : 'No updates yet';
-  String get tripUpdatesWillAppear =>
-      _isEs ? 'Las actualizaciones del viaje aparecerán aquí' : 'Trip updates will appear here';
+  String get mapLoadingError =>
+      _isEs ? 'Error al cargar el mapa' : 'Map Loading Error';
+  String get loadingTimeline =>
+      _isEs ? 'Cargando línea de tiempo...' : 'Loading timeline...';
+  String get noUpdatesYet =>
+      _isEs ? 'Aún no hay actualizaciones' : 'No updates yet';
+  String get tripUpdatesWillAppear => _isEs
+      ? 'Las actualizaciones del viaje aparecerán aquí'
+      : 'Trip updates will appear here';
   String get loadOlderUpdates =>
       _isEs ? 'Cargar actualizaciones anteriores' : 'Load older updates';
   String get timeline => _isEs ? 'Línea de Tiempo' : 'Timeline';
-  String get noCommentsYet => _isEs ? 'Aún no hay comentarios' : 'No comments yet';
+  String get noCommentsYet =>
+      _isEs ? 'Aún no hay comentarios' : 'No comments yet';
   String get pleaseLogInToComment =>
       _isEs ? 'Inicia sesión para comentar' : 'Please log in to comment';
   String get loadMoreComments =>
@@ -315,7 +369,8 @@ class AppLocalizations {
   String get oldestFirst => _isEs ? 'Más antiguo primero' : 'Oldest first';
   String get mostReactions => _isEs ? 'Más reacciones' : 'Most reactions';
   String get mostReplies => _isEs ? 'Más respuestas' : 'Most replies';
-  String get chooseReaction => _isEs ? 'Elige una reacción' : 'Choose a reaction';
+  String get chooseReaction =>
+      _isEs ? 'Elige una reacción' : 'Choose a reaction';
   String get react => _isEs ? 'Reaccionar' : 'React';
   String get reply => _isEs ? 'Responder' : 'Reply';
   String get author => 'AUTHOR';
@@ -325,11 +380,13 @@ class AppLocalizations {
   String get addMessageOptional =>
       _isEs ? 'Agregar un mensaje (opcional)' : 'Add a message (optional)';
   String get sendUpdate => _isEs ? 'Enviar Actualización' : 'Send Update';
-  String get locationShared =>
-      _isEs ? 'Tu ubicación y nivel de batería serán compartidos' : 'Your location and battery level will be shared';
+  String get locationShared => _isEs
+      ? 'Tu ubicación y nivel de batería serán compartidos'
+      : 'Your location and battery level will be shared';
   String get achievementsEarned =>
       _isEs ? 'Logros Obtenidos' : 'Achievements Earned';
-  String get changeVisibility => _isEs ? 'Cambiar Visibilidad' : 'Change Visibility';
+  String get changeVisibility =>
+      _isEs ? 'Cambiar Visibilidad' : 'Change Visibility';
   String get onlyVisibleToYou =>
       _isEs ? 'Solo visible para ti' : 'Only visible to you';
   String get visibleToEveryone =>
@@ -343,32 +400,40 @@ class AppLocalizations {
   // --- Create trip screen ---
   String get newTripTitle => _isEs ? 'Nuevo Viaje' : 'New Trip';
   String get tripTitleLabel => _isEs ? 'Título del Viaje *' : 'Trip Title *';
-  String get tripTitleHint =>
-      _isEs ? 'ej., Aventura Europea de Verano' : 'e.g., European Summer Adventure';
+  String get tripTitleHint => _isEs
+      ? 'ej., Aventura Europea de Verano'
+      : 'e.g., European Summer Adventure';
   String get tripDescriptionLabel =>
       _isEs ? 'Descripción (Opcional)' : 'Description (Optional)';
-  String get tripDescriptionHint =>
-      _isEs ? 'Cuéntanos sobre tu viaje... (opcional)' : 'Tell us about your trip... (optional)';
+  String get tripDescriptionHint => _isEs
+      ? 'Cuéntanos sobre tu viaje... (opcional)'
+      : 'Tell us about your trip... (optional)';
   String get automaticUpdatesIntervalHint => 'e.g., 15';
   String get planDetails => _isEs ? 'Detalles del Plan' : 'Plan Details';
   String get multiDayTrip => _isEs ? '· Viaje Multi-Día' : '· Multi-day trip';
   String get datesOptional => _isEs ? 'Fechas (Opcional)' : 'Dates (Optional)';
 
   // --- Trip plans screen ---
-  String get deleteTripPlan => _isEs ? 'Eliminar Plan de Viaje' : 'Delete Trip Plan';
-  String get deleteTripPlanConfirm =>
-      _isEs ? '¿Estás seguro de que quieres eliminar ' : 'Are you sure you want to delete ';
+  String get deleteTripPlan =>
+      _isEs ? 'Eliminar Plan de Viaje' : 'Delete Trip Plan';
+  String get deleteTripPlanConfirm => _isEs
+      ? '¿Estás seguro de que quieres eliminar '
+      : 'Are you sure you want to delete ';
   String get editTripPlan => _isEs ? 'Editar Plan de Viaje' : 'Edit Trip Plan';
   String get createTripFromPlan =>
       _isEs ? 'Crear Viaje desde Plan' : 'Create Trip';
   String get noTripPlansYet =>
       _isEs ? 'Aún no hay Planes de Viaje' : 'No Trip Plans Yet';
-  String get startPlanningAdventure =>
-      _isEs ? '¡Empieza a planificar tu próxima aventura!' : 'Start planning your next adventure!';
-  String get createTripPlan => _isEs ? 'Crear Plan de Viaje' : 'Create Trip Plan';
-  String get loginRequired => _isEs ? 'Inicio de Sesión Requerido' : 'Login Required';
-  String get pleaseLogInForPlans =>
-      _isEs ? 'Por favor inicia sesión para ver tus planes de viaje' : 'Please log in to view your trip plans';
+  String get startPlanningAdventure => _isEs
+      ? '¡Empieza a planificar tu próxima aventura!'
+      : 'Start planning your next adventure!';
+  String get createTripPlan =>
+      _isEs ? 'Crear Plan de Viaje' : 'Create Trip Plan';
+  String get loginRequired =>
+      _isEs ? 'Inicio de Sesión Requerido' : 'Login Required';
+  String get pleaseLogInForPlans => _isEs
+      ? 'Por favor inicia sesión para ver tus planes de viaje'
+      : 'Please log in to view your trip plans';
   String get errorLoadingTripPlans =>
       _isEs ? 'Error al cargar planes de viaje' : 'Error loading trip plans';
   String get noDateSet => _isEs ? 'Sin fechas establecidas' : 'No dates set';
@@ -380,50 +445,66 @@ class AppLocalizations {
 
   // --- Create trip plan screen ---
   String get newTripPlan => _isEs ? 'Nuevo Plan de Viaje' : 'New Trip Plan';
-  String get computingRoute => _isEs ? 'Calculando ruta...' : 'Computing route...';
-  String get tapMapToSetPosition =>
-      _isEs ? 'Toca el mapa para establecer una nueva posición' : 'Tap the map to set a new position';
-  String get dragToReorder => _isEs ? 'Arrastra para reordenar' : 'Drag to reorder';
-  String get rePlaceOnMap => _isEs ? 'Volver a colocar en el mapa' : 'Re-place on map';
+  String get computingRoute =>
+      _isEs ? 'Calculando ruta...' : 'Computing route...';
+  String get tapMapToSetPosition => _isEs
+      ? 'Toca el mapa para establecer una nueva posición'
+      : 'Tap the map to set a new position';
+  String get dragToReorder =>
+      _isEs ? 'Arrastra para reordenar' : 'Drag to reorder';
+  String get rePlaceOnMap =>
+      _isEs ? 'Volver a colocar en el mapa' : 'Re-place on map';
   String get removeLastMarker =>
       _isEs ? 'Quitar último marcador' : 'Remove last marker';
   String get clearAllMarkers =>
       _isEs ? 'Borrar todos los marcadores' : 'Clear all markers';
   String get gettingLocation =>
       _isEs ? 'Obteniendo ubicación...' : 'Getting location...';
-  String get dragMarkerOnMap =>
-      _isEs ? 'Arrastra el marcador en el mapa para moverlo' : 'Drag marker on map to move';
-  String get longPressToDrag =>
-      _isEs ? 'Mantén presionado y arrastra para reposicionar' : 'Long press and drag to reposition';
-  String get tapEditToModify =>
-      _isEs ? 'Toca Editar en la barra para modificar' : 'Tap Edit in the toolbar to modify';
-  String get noLocationData =>
-      _isEs ? 'No hay datos de ubicación disponibles' : 'No location data available';
+  String get dragMarkerOnMap => _isEs
+      ? 'Arrastra el marcador en el mapa para moverlo'
+      : 'Drag marker on map to move';
+  String get longPressToDrag => _isEs
+      ? 'Mantén presionado y arrastra para reposicionar'
+      : 'Long press and drag to reposition';
+  String get tapEditToModify => _isEs
+      ? 'Toca Editar en la barra para modificar'
+      : 'Tap Edit in the toolbar to modify';
+  String get noLocationData => _isEs
+      ? 'No hay datos de ubicación disponibles'
+      : 'No location data available';
 
   // --- Trip promotion screen ---
   String get tripPromotion2 => _isEs ? 'Promoción de Viajes' : 'Trip Promotion';
   String get currentlyPromotedTrips =>
       _isEs ? 'Viajes Actualmente Promovidos' : 'Currently Promoted Trips';
-  String get promotableTrips => _isEs ? 'Viajes Promovibles' : 'Promotable Trips';
+  String get promotableTrips =>
+      _isEs ? 'Viajes Promovibles' : 'Promotable Trips';
   String get noPromotedTrips =>
       _isEs ? 'No hay viajes promovidos' : 'No promoted trips';
-  String get noPromotableTripsFound =>
-      _isEs ? 'No se encontraron viajes promovibles' : 'No promotable trips found';
-  String get publicTripsNote =>
-      _isEs ? 'Viajes públicos que están creados, en progreso o pausados' : 'Public trips that are created, in progress, or paused';
+  String get noPromotableTripsFound => _isEs
+      ? 'No se encontraron viajes promovibles'
+      : 'No promotable trips found';
+  String get publicTripsNote => _isEs
+      ? 'Viajes públicos que están creados, en progreso o pausados'
+      : 'Public trips that are created, in progress, or paused';
   String get promoteTripTitle => _isEs ? 'Promover Viaje' : 'Promote Trip';
-  String get unpromoteTripTitle => _isEs ? 'Despromover Viaje' : 'Unpromote Trip';
-  String get unpromoteConfirm =>
-      _isEs ? '¿Estás seguro de que quieres despromover este viaje?' : 'Are you sure you want to unpromote this trip?';
+  String get unpromoteTripTitle =>
+      _isEs ? 'Despromover Viaje' : 'Unpromote Trip';
+  String get unpromoteConfirm => _isEs
+      ? '¿Estás seguro de que quieres despromover este viaje?'
+      : 'Are you sure you want to unpromote this trip?';
   String get donationLink =>
       _isEs ? 'Enlace de donación (opcional)' : 'Donation Link (optional)';
   String get preAnnounce => _isEs ? 'Pre-Anuncio' : 'Pre-Announce';
-  String get showCountdown =>
-      _isEs ? 'Mostrar cuenta regresiva antes de que el viaje comience' : 'Show countdown before trip starts';
-  String get startDateRequired =>
-      _isEs ? 'Se requiere fecha de inicio para pre-anuncios' : 'Start date is required for pre-announcements';
-  String get searchTripsByNameOrUser =>
-      _isEs ? 'Buscar por nombre de viaje o usuario' : 'Search by trip name or username';
+  String get showCountdown => _isEs
+      ? 'Mostrar cuenta regresiva antes de que el viaje comience'
+      : 'Show countdown before trip starts';
+  String get startDateRequired => _isEs
+      ? 'Se requiere fecha de inicio para pre-anuncios'
+      : 'Start date is required for pre-announcements';
+  String get searchTripsByNameOrUser => _isEs
+      ? 'Buscar por nombre de viaje o usuario'
+      : 'Search by trip name or username';
   String get searchTrips => _isEs ? 'Buscar viajes' : 'Search trips';
   String get loadMoreTrips2 => _isEs ? 'Cargar más viajes' : 'Load more trips';
   String get preAnnounced => _isEs ? 'Pre Anunciado' : 'Pre Announced';
@@ -432,21 +513,27 @@ class AppLocalizations {
   // --- Admin users screen ---
   String get userManagementTitle =>
       _isEs ? 'Gestión de Usuarios' : 'User Management';
-  String get filterResults => _isEs ? 'Filtrar resultados...' : 'Filter results...';
-  String get noUsersFound => _isEs ? 'No se encontraron usuarios' : 'No users found';
+  String get filterResults =>
+      _isEs ? 'Filtrar resultados...' : 'Filter results...';
+  String get noUsersFound =>
+      _isEs ? 'No se encontraron usuarios' : 'No users found';
   String get viewProfile => _isEs ? 'Ver Perfil' : 'View Profile';
   String get promoteToAdmin => _isEs ? 'Promover a Admin' : 'Promote to Admin';
   String get demoteFromAdmin =>
       _isEs ? 'Quitar rol de Admin' : 'Demote from Admin';
   String get deleteUser => _isEs ? 'Eliminar Usuario' : 'Delete User';
-  String get deleteUserConfirm =>
-      _isEs ? '¿Estás seguro de que quieres eliminar permanentemente a ' : 'Are you sure you want to permanently delete ';
-  String get deleteUserNote =>
-      _isEs ? 'Esta acción no se puede deshacer. Todos los datos del usuario serán eliminados.' : 'This action cannot be undone. All user data will be removed.';
-  String get promoteUserConfirm =>
-      _isEs ? '¿Estás seguro de que quieres promover a ' : 'Are you sure you want to promote ';
-  String get demoteUserConfirm =>
-      _isEs ? '¿Estás seguro de que quieres quitar el rol de admin a ' : 'Are you sure you want to remove admin role from ';
+  String get deleteUserConfirm => _isEs
+      ? '¿Estás seguro de que quieres eliminar permanentemente a '
+      : 'Are you sure you want to permanently delete ';
+  String get deleteUserNote => _isEs
+      ? 'Esta acción no se puede deshacer. Todos los datos del usuario serán eliminados.'
+      : 'This action cannot be undone. All user data will be removed.';
+  String get promoteUserConfirm => _isEs
+      ? '¿Estás seguro de que quieres promover a '
+      : 'Are you sure you want to promote ';
+  String get demoteUserConfirm => _isEs
+      ? '¿Estás seguro de que quieres quitar el rol de admin a '
+      : 'Are you sure you want to remove admin role from ';
   String get sortBy => _isEs ? 'Ordenar por: ' : 'Sort by: ';
   String get firstPage => _isEs ? 'Primera página' : 'First page';
   String get previousPage => _isEs ? 'Página anterior' : 'Previous page';
@@ -464,7 +551,8 @@ class AppLocalizations {
       _isEs ? 'Estadísticas de Geocodificación' : 'Geocoding Statistics';
   String get polyline => 'Polyline';
   String get geocoding => 'Geocoding';
-  String get needs1Location => _isEs ? 'Necesita 1+ ubicación' : 'Needs 1+ location';
+  String get needs1Location =>
+      _isEs ? 'Necesita 1+ ubicación' : 'Needs 1+ location';
   String get needs2Locations =>
       _isEs ? 'Necesita 2+ ubicaciones' : 'Needs 2+ locations';
   String get recomputePolyline =>
@@ -473,32 +561,38 @@ class AppLocalizations {
       _isEs ? 'Recalcular Geocodificación' : 'Recompute Geocoding';
   String get recomputeAllPolylines =>
       _isEs ? 'Recalcular Todas las Polilíneas' : 'Recompute All Polylines';
-  String get recomputeAll =>
-      _isEs ? 'Recalcular Todo' : 'Recompute All';
+  String get recomputeAll => _isEs ? 'Recalcular Todo' : 'Recompute All';
   String get recompute => _isEs ? 'Recalcular' : 'Recompute';
-  String get searchByNameUsernameId =>
-      _isEs ? 'Buscar por nombre, usuario o ID de viaje' : 'Search by name, username, or trip ID';
+  String get searchByNameUsernameId => _isEs
+      ? 'Buscar por nombre, usuario o ID de viaje'
+      : 'Search by name, username, or trip ID';
   String get noTripsFoundMaintenance =>
       _isEs ? 'No se encontraron viajes' : 'No trips found';
-  String get tapTripToView =>
-      _isEs ? 'Toca un viaje para ver detalles, o recalcular su polilínea/geocodificación' : 'Tap a trip to view details, or recompute its polyline/geocoding';
-  String get recomputePolylineConfirm =>
-      _isEs ? 'Esto recalculará completamente la polilínea codificada de todas las' : 'This will fully recompute the encoded polyline from all ';
-  String get recomputeGeocodingConfirm =>
-      _isEs ? 'Esto recalculará la ciudad y el país de todas las' : 'This will recompute city and country for all ';
+  String get tapTripToView => _isEs
+      ? 'Toca un viaje para ver detalles, o recalcular su polilínea/geocodificación'
+      : 'Tap a trip to view details, or recompute its polyline/geocoding';
+  String get recomputePolylineConfirm => _isEs
+      ? 'Esto recalculará completamente la polilínea codificada de todas las'
+      : 'This will fully recompute the encoded polyline from all ';
+  String get recomputeGeocodingConfirm => _isEs
+      ? 'Esto recalculará la ciudad y el país de todas las'
+      : 'This will recompute city and country for all ';
   String get loadMoreTrips3 => _isEs ? 'Cargar más viajes' : 'Load more trips';
   String get searchTrips2 => _isEs ? 'Buscar viajes' : 'Search trips';
 
   // --- Deep link screens ---
   String get loadingTripDeepLink => _isEs ? 'Cargando viaje…' : 'Loading trip…';
-  String get loadingProfileDeepLink => _isEs ? 'Cargando perfil…' : 'Loading profile…';
+  String get loadingProfileDeepLink =>
+      _isEs ? 'Cargando perfil…' : 'Loading profile…';
   String get goHome => _isEs ? 'Ir al inicio' : 'Go Home';
 
   // --- Home widgets ---
   String get seeAll => _isEs ? 'Ver todo' : 'See All';
-  String get tapPlusToCreate =>
-      _isEs ? 'Toca el botón + para crear un viaje' : 'Tap the + button to create a trip';
-  String get loginOrRegister => _isEs ? 'Iniciar sesión / Registrarse' : 'Login / Register';
+  String get tapPlusToCreate => _isEs
+      ? 'Toca el botón + para crear un viaje'
+      : 'Tap the + button to create a trip';
+  String get loginOrRegister =>
+      _isEs ? 'Iniciar sesión / Registrarse' : 'Login / Register';
   String get following => _isEs ? 'Siguiendo' : 'Following';
   String get friend => _isEs ? 'Amigo' : 'Friend';
 
