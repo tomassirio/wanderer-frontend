@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/repositories/auth_repository.dart';
 
 /// Screen that handles the email verification flow.
@@ -136,29 +137,31 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   }
 
   Widget _buildLoadingView() {
-    return const Column(
+    final l10n = context.l10n;
+    return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        CircularProgressIndicator(),
-        SizedBox(height: 24),
-        Text('Verifying your email…'),
+        const CircularProgressIndicator(),
+        const SizedBox(height: 24),
+        Text(l10n.verifyingEmail),
       ],
     );
   }
 
   Widget _buildSuccessView() {
-    return const Column(
+    final l10n = context.l10n;
+    return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
-        SizedBox(height: 24),
+        const Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
+        const SizedBox(height: 24),
         Text(
-          'Email verified!',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          l10n.emailVerified,
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         Text(
-          'Your account is now active. Redirecting you to the app…',
+          l10n.accountNowActive,
           textAlign: TextAlign.center,
         ),
       ],
@@ -166,6 +169,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   }
 
   Widget _buildVerifyView() {
+    final l10n = context.l10n;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -175,13 +179,13 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
           color: Colors.blueAccent,
         ),
         const SizedBox(height: 24),
-        const Text(
-          'Verify your email',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        Text(
+          l10n.verifyYourEmail,
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        const Text(
-          'Enter the verification token from the email we sent you.',
+        Text(
+          l10n.enterVerificationToken,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),
@@ -210,10 +214,10 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         ],
         TextField(
           controller: _tokenController,
-          decoration: const InputDecoration(
-            labelText: 'Verification token',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.vpn_key_outlined),
+          decoration: InputDecoration(
+            labelText: l10n.verificationToken,
+            border: const OutlineInputBorder(),
+            prefixIcon: const Icon(Icons.vpn_key_outlined),
           ),
           onSubmitted: (_) => _verifyToken(_tokenController.text.trim()),
         ),
@@ -222,13 +226,13 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () => _verifyToken(_tokenController.text.trim()),
-            child: const Text('Verify Email'),
+            child: Text(l10n.verifyEmail),
           ),
         ),
         const SizedBox(height: 12),
         TextButton(
           onPressed: () => Navigator.of(context).pushReplacementNamed('/auth'),
-          child: const Text('Back to Login'),
+          child: Text(l10n.backToLogin),
         ),
       ],
     );

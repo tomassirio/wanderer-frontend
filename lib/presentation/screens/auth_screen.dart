@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/repositories/auth_repository.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/auth_form.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/forgot_password_form.dart';
@@ -238,6 +239,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Widget _buildRegistrationPendingView() {
+    final l10n = context.l10n;
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -248,9 +250,9 @@ class _AuthScreenState extends State<AuthScreen> {
             const Icon(Icons.mark_email_unread_outlined,
                 size: 64, color: Colors.blueAccent),
             const SizedBox(height: 24),
-            const Text(
-              'Check your email',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            Text(
+              l10n.checkYourEmail,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Text(
@@ -269,7 +271,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   _formKey.currentState?.reset();
                 });
               },
-              child: const Text('Back to Login'),
+              child: Text(l10n.backToLogin),
             ),
           ],
         ),
