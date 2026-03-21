@@ -94,6 +94,8 @@ void main() {
       expect(find.byIcon(Icons.dark_mode_outlined), findsNothing);
       expect(find.byIcon(Icons.light_mode_outlined), findsNothing);
     });
+
+    testWidgets('shows login button when not logged in and callback provided', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
