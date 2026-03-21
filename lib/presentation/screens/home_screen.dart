@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart'
     show TripModality, TripStatus, Visibility;
 import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
+import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
@@ -776,6 +778,88 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Compact row showing EN/ES language toggle and dark/light mode toggle.
+  /// Shown at the top of the home screen content area for quick access.
+  Widget _buildQuickControls(AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          // Language toggle (EN | ES)
+          ValueListenableBuilder<Locale>(
+            valueListenable: LocaleController().locale,
+            builder: (context, locale, _) {
+              final isSpanish = LocaleController().isSpanish;
+              return Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _quickLangLabel('EN', !isSpanish),
+                    Transform.scale(
+                      scale: 0.75,
+                      child: Switch(
+                        value: isSpanish,
+                        onChanged: (value) => LocaleController().setLocale(
+                          value ? const Locale('es') : const Locale('en'),
+                        ),
+                        activeColor: WandererTheme.primaryOrange,
+                        inactiveThumbColor: WandererTheme.primaryOrange,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                    _quickLangLabel('ES', isSpanish),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+          // Dark / light mode toggle
+          ValueListenableBuilder<ThemeMode>(
+            valueListenable: ThemeController().themeMode,
+            builder: (context, mode, _) {
+              final isDark = mode == ThemeMode.dark;
+              return IconButton(
+                icon: Icon(
+                  isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                  color: WandererTheme.primaryOrange,
+                ),
+                tooltip:
+                    isDark ? l10n.switchToLightMode : l10n.switchToDarkMode,
+                onPressed: () => ThemeController().setDarkMode(!isDark),
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Text _quickLangLabel(String code, bool isActive) {
+    return Text(
+      code,
+      style: TextStyle(
+        color: isActive
+            ? WandererTheme.primaryOrange
+            : Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+        fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+        fontSize: 13,
       ),
     );
   }
@@ -1564,6 +1648,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ? SingleChildScrollView(
                       child: Column(
                         children: [
+                          _buildQuickControls(l10n),
                           // Hero section with better visuals
                           Container(
                             width: double.infinity,
@@ -1704,6 +1789,7 @@ class _HomeScreenState extends State<HomeScreen>
                       children: [
                         Column(
                           children: [
+                            _buildQuickControls(l10n),
                             _buildFilterChips(),
                             Expanded(
                               child: TabBarView(
