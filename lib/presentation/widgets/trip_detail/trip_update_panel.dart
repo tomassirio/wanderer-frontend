@@ -208,6 +208,13 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
                           Expanded(
                             child: Text(
                               context.l10n.locationShared,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.6),
+                              ),
                             ),
                           ),
                         ],
