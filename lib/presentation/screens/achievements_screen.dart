@@ -196,36 +196,54 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     }
   }
 
-  String _formatValue(Achievement achievement, double value) {
+  String _localizeCategory(BuildContext context, String category) {
+    final l10n = context.l10n;
+    switch (category) {
+      case 'Distance':
+        return l10n.categoryDistance;
+      case 'Updates':
+        return l10n.categoryUpdates;
+      case 'Duration':
+        return l10n.categoryDuration;
+      case 'Social':
+        return l10n.categorySocial;
+      default:
+        return l10n.categoryOther;
+    }
+  }
+
+  String _formatValue(BuildContext context, Achievement achievement, double value) {
+    final l10n = context.l10n;
     final type = achievement.type.toJson();
     final cappedValue = value > achievement.thresholdValue
         ? achievement.thresholdValue.toDouble()
         : value;
     if (type.startsWith('DISTANCE_')) {
-      return '${cappedValue.toStringAsFixed(1)} km';
+      return l10n.achievementKm(cappedValue);
     }
     if (type.startsWith('DURATION_')) {
-      return '${cappedValue.toInt()} days';
+      return l10n.achievementDays(cappedValue.toInt());
     }
     return cappedValue.toInt().toString();
   }
 
-  String _formatThreshold(Achievement achievement) {
+  String _formatThreshold(BuildContext context, Achievement achievement) {
+    final l10n = context.l10n;
     final type = achievement.type.toJson();
     if (type.startsWith('DISTANCE_')) {
-      return '${achievement.thresholdValue} km';
+      return l10n.achievementKm(achievement.thresholdValue.toDouble());
     }
     if (type.startsWith('DURATION_')) {
-      return '${achievement.thresholdValue} days';
+      return l10n.achievementDays(achievement.thresholdValue.toInt());
     }
     if (type.startsWith('UPDATES_')) {
-      return '${achievement.thresholdValue} updates';
+      return l10n.achievementUpdatesCount(achievement.thresholdValue.toInt());
     }
     if (type.startsWith('FOLLOWERS_')) {
-      return '${achievement.thresholdValue} followers';
+      return l10n.achievementFollowers(achievement.thresholdValue.toInt());
     }
     if (type.startsWith('FRIENDS_')) {
-      return '${achievement.thresholdValue} friends';
+      return l10n.achievementFriends(achievement.thresholdValue.toInt());
     }
     return '${achievement.thresholdValue}';
   }
@@ -385,7 +403,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               Icon(categoryIcon, color: categoryColor, size: 24),
               const SizedBox(width: 8),
               Text(
-                category,
+                _localizeCategory(context, category),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -500,8 +518,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
             // Threshold or achieved value
             Text(
               unlocked && userAchievement != null
-                  ? _formatValue(achievement, userAchievement.valueAchieved)
-                  : _formatThreshold(achievement),
+                  ? _formatValue(context, achievement, userAchievement.valueAchieved)
+                  : _formatThreshold(context, achievement),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -580,7 +598,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               if (userAchievement != null) ...[
                 Text(
                   l10n.achievedValue(
-                      _formatValue(achievement, userAchievement.valueAchieved)),
+                      _formatValue(context, achievement, userAchievement.valueAchieved)),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -596,7 +614,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                 ),
               ] else ...[
                 Text(
-                  l10n.goalValue(_formatThreshold(achievement)),
+                  l10n.goalValue(_formatThreshold(context, achievement)),
                   style: TextStyle(
                       fontSize: 14,
                       color: colorScheme.onSurface.withOpacity(0.5)),

@@ -152,7 +152,7 @@ class TripInfoCard extends StatelessWidget {
                       decoration: WandererTheme.statusChipDecoration(
                           trip.status.toJson()),
                       child: Text(
-                        trip.status.displayLabel,
+                        _localizedStatus(context),
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
@@ -419,7 +419,7 @@ class TripInfoCard extends StatelessWidget {
                       _buildStatChip(
                         context,
                         _getVisibilityIcon(trip.visibility.toJson()),
-                        trip.visibility.toJson(),
+                        _localizedVisibility(context),
                       ),
                     // Day badge pushed to the right for multi-day trips
                     if (trip.tripModality == TripModality.multiDay &&
@@ -674,7 +674,7 @@ class TripInfoCard extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             Text(
-              trip.visibility.toJson(),
+              _localizedVisibility(context),
               style: TextStyle(
                 fontSize: 13,
                 color: WandererTheme.primaryOrange,
@@ -780,6 +780,34 @@ class TripInfoCard extends StatelessWidget {
         return Icons.shield;
       default:
         return Icons.visibility;
+    }
+  }
+
+  String _localizedStatus(BuildContext context) {
+    final l10n = context.l10n;
+    switch (trip.status) {
+      case TripStatus.draft:
+        return l10n.draft;
+      case TripStatus.live:
+        return l10n.live;
+      case TripStatus.paused:
+        return l10n.paused;
+      case TripStatus.completed:
+        return l10n.completed;
+      case TripStatus.resting:
+        return l10n.resting;
+    }
+  }
+
+  String _localizedVisibility(BuildContext context) {
+    final l10n = context.l10n;
+    switch (trip.visibility) {
+      case Visibility.public:
+        return l10n.publicVisibility;
+      case Visibility.protected:
+        return l10n.protectedVisibility;
+      case Visibility.private:
+        return l10n.privateVisibility;
     }
   }
 }

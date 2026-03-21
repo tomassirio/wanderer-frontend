@@ -741,4 +741,24 @@ class AppLocalizations {
       _isEs ? 'Desbloqueado el $date' : 'Unlocked on $date';
   String goalValue(String value) =>
       _isEs ? 'Meta: $value' : 'Goal: $value';
+
+  // Achievement categories
+  String get categoryDistance => _isEs ? 'Distancia' : 'Distance';
+  String get categoryUpdates => _isEs ? 'Actualizaciones' : 'Updates';
+  String get categoryDuration => _isEs ? 'Duración' : 'Duration';
+  String get categorySocial => _isEs ? 'Social' : 'Social';
+  String get categoryOther => _isEs ? 'Otro' : 'Other';
+
+  // Achievement units
+  String achievementKm(double v) =>
+      _isEs ? '${v.toStringAsFixed(1)} km' : '${v.toStringAsFixed(1)} km';
+  String achievementKmInt(int v) => '${v} km';
+  String achievementDays(int v) =>
+      _isEs ? '$v días' : '$v days';
+  String achievementUpdatesCount(int v) =>
+      _isEs ? '$v actualizaciones' : '$v updates';
+  String achievementFollowers(int v) =>
+      _isEs ? '$v seguidores' : '$v followers';
+  String achievementFriends(int v) =>
+      _isEs ? '$v amigos' : '$v friends';
 }
