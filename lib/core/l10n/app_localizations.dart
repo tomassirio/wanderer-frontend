@@ -714,4 +714,31 @@ class AppLocalizations {
       _isEs ? '¡Sigue usuarios o añade amigos para ver sus viajes!' : 'Follow users or add friends to see their trips!';
   String get deleteTripWarning =>
       _isEs ? 'Esta acción no se puede deshacer.' : 'This action cannot be undone.';
+
+  // Timeline day/trip markers
+  String dayNStarted(int day) =>
+      _isEs ? 'Día $day Iniciado' : 'Day $day Started';
+  String dayNEnded(int day) =>
+      _isEs ? 'Día $day Finalizado' : 'Day $day Ended';
+  String get tripStartedLabel =>
+      _isEs ? 'Viaje Iniciado' : 'Trip Started';
+  String get tripEndedLabel =>
+      _isEs ? 'Viaje Finalizado' : 'Trip Ended';
+  String get updateLabel => _isEs ? 'Actualización' : 'Update';
+
+  // Comments section
+  String get beFirstToComment =>
+      _isEs ? '¡Sé el primero en comentar!' : 'Be the first to comment!';
+  String get loginToAddComment =>
+      _isEs ? 'Inicia sesión para añadir un comentario' : 'Log in to add a comment';
+
+  // Achievements screen
+  String achievementsProgress(int unlocked, int total) =>
+      _isEs ? 'Logros ($unlocked/$total)' : 'Achievements ($unlocked/$total)';
+  String achievedValue(String value) =>
+      _isEs ? 'Logrado: $value' : 'Achieved: $value';
+  String unlockedOn(String date) =>
+      _isEs ? 'Desbloqueado el $date' : 'Unlocked on $date';
+  String goalValue(String value) =>
+      _isEs ? 'Meta: $value' : 'Goal: $value';
 }

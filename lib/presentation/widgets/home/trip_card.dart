@@ -538,7 +538,7 @@ class _TripCardState extends State<TripCard> {
 
   /// Build colored status badge
   Widget _buildStatusBadge() {
-    final statusText = widget.trip.status.toJson();
+    final l10n = context.l10n;
     final statusColor = _getStatusColor(widget.trip.status);
 
     return Container(
@@ -564,7 +564,7 @@ class _TripCardState extends State<TripCard> {
           ),
           const SizedBox(width: 4),
           Text(
-            _formatStatus(statusText),
+            _formatStatus(widget.trip.status, l10n),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 9,
@@ -732,20 +732,18 @@ class _TripCardState extends State<TripCard> {
   }
 
   /// Format status text for display
-  String _formatStatus(String status) {
-    switch (status.toUpperCase()) {
-      case 'CREATED':
-        return 'DRAFT';
-      case 'IN_PROGRESS':
-        return 'LIVE';
-      case 'PAUSED':
-        return 'PAUSED';
-      case 'FINISHED':
-        return 'DONE';
-      case 'RESTING':
-        return 'RESTING';
-      default:
-        return status.toUpperCase();
+  String _formatStatus(TripStatus status, AppLocalizations l10n) {
+    switch (status) {
+      case TripStatus.created:
+        return l10n.draft.toUpperCase();
+      case TripStatus.inProgress:
+        return l10n.live.toUpperCase();
+      case TripStatus.paused:
+        return l10n.paused.toUpperCase();
+      case TripStatus.finished:
+        return l10n.completed.toUpperCase();
+      case TripStatus.resting:
+        return l10n.resting.toUpperCase();
     }
   }
 }

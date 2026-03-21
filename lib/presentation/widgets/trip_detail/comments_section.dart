@@ -443,8 +443,8 @@ class CommentsSection extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               isLoggedIn
-                  ? 'Be the first to comment!'
-                  : 'Log in to add a comment',
+                  ? l10n.beFirstToComment
+                  : l10n.loginToAddComment,
               style: TextStyle(
                 fontSize: 14,
                 color:

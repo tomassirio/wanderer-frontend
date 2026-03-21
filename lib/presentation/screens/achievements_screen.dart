@@ -327,6 +327,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   }
 
   Widget _buildSummaryCard(int unlocked, int total) {
+    final l10n = context.l10n;
     final progress = total > 0 ? unlocked / total : 0.0;
 
     return Card(
@@ -341,7 +342,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                 const Icon(Icons.emoji_events, color: Colors.amber, size: 28),
                 const SizedBox(width: 12),
                 Text(
-                  'Achievements ($unlocked/$total)',
+                  l10n.achievementsProgress(unlocked, total),
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -530,6 +531,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
+        final l10n = context.l10n;
         final colorScheme = Theme.of(context).colorScheme;
         return Padding(
           padding: const EdgeInsets.all(24),
@@ -577,7 +579,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               const SizedBox(height: 12),
               if (userAchievement != null) ...[
                 Text(
-                  'Achieved: ${_formatValue(achievement, userAchievement.valueAchieved)}',
+                  l10n.achievedValue(
+                      _formatValue(achievement, userAchievement.valueAchieved)),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -586,14 +589,14 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Unlocked on ${_formatDate(userAchievement.unlockedAt)}',
+                  l10n.unlockedOn(_formatDate(userAchievement.unlockedAt)),
                   style: TextStyle(
                       fontSize: 12,
                       color: colorScheme.onSurface.withOpacity(0.6)),
                 ),
               ] else ...[
                 Text(
-                  'Goal: ${_formatThreshold(achievement)}',
+                  l10n.goalValue(_formatThreshold(achievement)),
                   style: TextStyle(
                       fontSize: 14,
                       color: colorScheme.onSurface.withOpacity(0.5)),

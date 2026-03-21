@@ -407,24 +407,24 @@ class TripTimeline extends StatelessWidget {
       case TripUpdateType.dayStart:
         markerColor = WandererTheme.dayStartColor;
         markerIcon = Icons.wb_sunny_rounded;
-        label = 'Day $dayNumber Started';
+        label = context.l10n.dayNStarted(dayNumber);
       case TripUpdateType.dayEnd:
         markerColor = WandererTheme.dayEndColor;
         markerIcon = Icons.nightlight_round;
-        label = 'Day $dayNumber Ended';
+        label = context.l10n.dayNEnded(dayNumber);
       case TripUpdateType.tripStarted:
         markerColor = WandererTheme.tripStartedColor;
         markerIcon = Icons.flag_rounded;
-        label = 'Trip Started';
+        label = context.l10n.tripStartedLabel;
       case TripUpdateType.tripEnded:
         markerColor = WandererTheme.tripEndedColor;
         markerIcon = Icons.sports_score_rounded;
-        label = 'Trip Ended';
+        label = context.l10n.tripEndedLabel;
       case TripUpdateType.regular:
         // Should not reach here; fall back to neutral styling
         markerColor = Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
         markerIcon = Icons.location_on;
-        label = 'Update';
+        label = context.l10n.updateLabel;
     }
 
     return Row(
