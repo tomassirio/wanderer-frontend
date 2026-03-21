@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Profile menu button for authenticated users
 class ProfileMenu extends StatelessWidget {

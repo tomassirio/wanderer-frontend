@@ -310,7 +310,6 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
     return Scaffold(
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
@@ -338,6 +337,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   Widget _buildBody() {
+    final l10n = context.l10n;
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
