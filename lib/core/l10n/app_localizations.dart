@@ -752,7 +752,6 @@ class AppLocalizations {
   // Achievement units
   String achievementKm(double v) =>
       _isEs ? '${v.toStringAsFixed(1)} km' : '${v.toStringAsFixed(1)} km';
-  String achievementKmInt(int v) => '${v} km';
   String achievementDays(int v) =>
       _isEs ? '$v días' : '$v days';
   String achievementUpdatesCount(int v) =>
