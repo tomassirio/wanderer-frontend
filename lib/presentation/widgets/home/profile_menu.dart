@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Profile menu button for authenticated users
 class ProfileMenu extends StatelessWidget {
@@ -17,9 +18,10 @@ class ProfileMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return PopupMenuButton<String>(
       icon: const Icon(Icons.account_circle),
-      tooltip: 'Profile',
+      tooltip: l10n.profile,
       onSelected: (value) {
         if (value == 'logout') {
           onLogout();
@@ -78,23 +80,23 @@ class ProfileMenu extends StatelessWidget {
             ),
           ),
         ),
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'profile',
           child: Row(
             children: [
-              Icon(Icons.person),
-              SizedBox(width: 12),
-              Text('User Profile'),
+              const Icon(Icons.person),
+              const SizedBox(width: 12),
+              Text(l10n.userProfile),
             ],
           ),
         ),
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'logout',
           child: Row(
             children: [
-              Icon(Icons.logout, color: Colors.red),
-              SizedBox(width: 12),
-              Text('Logout', style: TextStyle(color: Colors.red)),
+              const Icon(Icons.logout, color: Colors.red),
+              const SizedBox(width: 12),
+              Text(l10n.logout, style: const TextStyle(color: Colors.red)),
             ],
           ),
         ),

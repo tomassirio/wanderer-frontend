@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 
@@ -57,13 +58,15 @@ class TripStatusControl extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final l10n = context.l10n;
+
     return Row(
       children: [
         // Start / Resume button
         if (currentStatus == TripStatus.created)
           _buildButton(
             context: context,
-            label: 'Start Trip',
+            label: l10n.startTrip,
             icon: Icons.play_arrow,
             color: WandererTheme.statusCreated,
             onPressed: () => onStatusChange(TripStatus.inProgress),
@@ -71,7 +74,7 @@ class TripStatusControl extends StatelessWidget {
         if (currentStatus == TripStatus.paused)
           _buildButton(
             context: context,
-            label: 'Resume',
+            label: l10n.resume,
             icon: Icons.play_arrow,
             color: WandererTheme.statusCreated,
             onPressed: () => onStatusChange(TripStatus.inProgress),
@@ -81,7 +84,7 @@ class TripStatusControl extends StatelessWidget {
         if (currentStatus == TripStatus.resting && !_isMultiDay)
           _buildButton(
             context: context,
-            label: 'Resume',
+            label: l10n.resume,
             icon: Icons.play_arrow,
             color: WandererTheme.statusCreated,
             onPressed: () => onStatusChange(TripStatus.inProgress),
@@ -90,7 +93,7 @@ class TripStatusControl extends StatelessWidget {
         if (currentStatus == TripStatus.inProgress) ...[
           _buildButton(
             context: context,
-            label: 'Pause',
+            label: l10n.pause,
             icon: Icons.pause,
             color: WandererTheme.statusInProgress,
             onPressed: () => onStatusChange(TripStatus.paused),
@@ -103,7 +106,7 @@ class TripStatusControl extends StatelessWidget {
             currentStatus == TripStatus.resting)
           _buildButton(
             context: context,
-            label: 'Finish',
+            label: l10n.finish,
             icon: Icons.check,
             color: WandererTheme.statusCompleted,
             onPressed: () => _showFinishConfirmation(context),
@@ -137,17 +140,16 @@ class TripStatusControl extends StatelessWidget {
   }
 
   Future<void> _showFinishConfirmation(BuildContext context) async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Finish Trip'),
-        content: const Text(
-          'Are you sure you want to finish this trip? This will mark the trip as completed.',
-        ),
+        title: Text(l10n.finishTrip),
+        content: Text(l10n.finishTripConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             key: const Key('confirm_finish_button'),
@@ -156,7 +158,7 @@ class TripStatusControl extends StatelessWidget {
               backgroundColor: WandererTheme.statusCompleted,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Finish'),
+            child: Text(l10n.finish),
           ),
         ],
       ),

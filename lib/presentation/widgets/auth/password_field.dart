@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Password input field with visibility toggle
 class PasswordField extends StatefulWidget {
@@ -28,6 +29,7 @@ class _PasswordFieldState extends State<PasswordField> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return TextFormField(
       controller: widget.controller,
       decoration: InputDecoration(
@@ -52,14 +54,14 @@ class _PasswordFieldState extends State<PasswordField> {
       onFieldSubmitted: widget.onFieldSubmitted,
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Please enter your password';
+          return l10n.pleaseEnterPassword;
         }
         if (!widget.isLogin && value.length < 6) {
-          return 'Password must be at least 6 characters';
+          return l10n.passwordMinLength;
         }
         if (widget.compareController != null &&
             value != widget.compareController!.text) {
-          return 'Passwords do not match';
+          return l10n.passwordsDoNotMatch;
         }
         return null;
       },

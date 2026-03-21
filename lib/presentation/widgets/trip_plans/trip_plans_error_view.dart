@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Error view for trip plans
 class TripPlansErrorView extends StatelessWidget {
@@ -13,6 +14,7 @@ class TripPlansErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -20,7 +22,7 @@ class TripPlansErrorView extends StatelessWidget {
           Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
-            'Error loading trip plans',
+            l10n.errorLoadingTripPlans,
             style: TextStyle(fontSize: 18, color: Colors.grey[700]),
           ),
           const SizedBox(height: 8),
@@ -33,7 +35,7 @@ class TripPlansErrorView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+          ElevatedButton(onPressed: onRetry, child: Text(l10n.retry)),
         ],
       ),
     );

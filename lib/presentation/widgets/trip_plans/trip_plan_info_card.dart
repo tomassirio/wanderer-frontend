@@ -1,6 +1,7 @@
 // filepath: /Users/tomassirio/Workspace/wanderer_frontend/lib/presentation/widgets/trip_plans/trip_plan_info_card.dart
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 
@@ -149,7 +150,7 @@ class TripPlanInfoCard extends StatelessWidget {
                               .withOpacity(0.6),
                         ),
                         onPressed: onToggleCollapse,
-                        tooltip: 'Minimize',
+                        tooltip: context.l10n.minimize,
                         constraints: const BoxConstraints(
                           minWidth: 32,
                           minHeight: 32,
@@ -183,7 +184,7 @@ class TripPlanInfoCard extends StatelessWidget {
                         onDelete != null ||
                         onCreateTrip != null)) ...[
                   const SizedBox(height: 16),
-                  _buildActionButtons(),
+                  _buildActionButtons(context),
                 ],
               ],
             ),
@@ -216,6 +217,7 @@ class TripPlanInfoCard extends StatelessWidget {
   }
 
   Widget _buildRouteSection(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -230,7 +232,7 @@ class TripPlanInfoCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Route',
+            l10n.route,
             style: TextStyle(
               fontSize: 12,
               color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
@@ -297,7 +299,7 @@ class TripPlanInfoCard extends StatelessWidget {
           child: Text(
             hasLocation
                 ? '${location.lat.toStringAsFixed(4)}, ${location.lon.toStringAsFixed(4)}'
-                : 'Not set',
+                : context.l10n.noDateSet,
             style: TextStyle(
               fontSize: 13,
               color: hasLocation
@@ -310,7 +312,8 @@ class TripPlanInfoCard extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       children: [
         if (onCreateTrip != null)
@@ -320,7 +323,7 @@ class TripPlanInfoCard extends StatelessWidget {
               width: double.infinity,
               child: _buildGlassButton(
                 icon: Icons.play_arrow_rounded,
-                label: 'Create Trip',
+                label: l10n.createTripFromPlan,
                 onTap: onCreateTrip!,
                 isPrimary: true,
               ),
@@ -332,7 +335,7 @@ class TripPlanInfoCard extends StatelessWidget {
               Expanded(
                 child: _buildGlassButton(
                   icon: Icons.edit_outlined,
-                  label: 'Edit',
+                  label: l10n.edit,
                   onTap: onEdit!,
                 ),
               ),
@@ -341,7 +344,7 @@ class TripPlanInfoCard extends StatelessWidget {
               Expanded(
                 child: _buildGlassButton(
                   icon: Icons.delete_outline,
-                  label: 'Delete',
+                  label: l10n.delete,
                   onTap: onDelete!,
                   isDestructive: true,
                 ),

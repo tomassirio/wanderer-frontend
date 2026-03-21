@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Submit button for creating a trip
 class CreateTripButton extends StatelessWidget {
@@ -13,6 +14,7 @@ class CreateTripButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return ElevatedButton.icon(
       onPressed: isLoading ? null : onPressed,
       icon: isLoading
@@ -22,7 +24,7 @@ class CreateTripButton extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : const Icon(Icons.add),
-      label: Text(isLoading ? 'Creating...' : 'Create Trip'),
+      label: Text(isLoading ? l10n.creating : l10n.createTrip),
       style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(16)),
     );
   }

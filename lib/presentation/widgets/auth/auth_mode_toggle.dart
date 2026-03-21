@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Toggle between login and registration modes
 class AuthModeToggle extends StatelessWidget {
@@ -15,13 +16,14 @@ class AuthModeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         Flexible(
           child: Text(
-            isLogin ? "Don't have an account? " : 'Already have an account? ',
+            isLogin ? l10n.dontHaveAccount : l10n.alreadyHaveAccount,
             style: TextStyle(color: Colors.grey[600]),
             overflow: TextOverflow.ellipsis,
           ),
@@ -29,7 +31,7 @@ class AuthModeToggle extends StatelessWidget {
         TextButton(
           onPressed: isLoading ? null : onToggle,
           child: Text(
-            isLogin ? 'Sign Up' : 'Sign In',
+            isLogin ? l10n.signUp : l10n.signIn,
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),

@@ -73,6 +73,10 @@ class AppLocalizations {
   String get profile => _isEs ? 'Perfil' : 'Profile';
   String get search => _isEs ? 'Buscar' : 'Search';
   String get userProfile => _isEs ? 'Perfil de Usuario' : 'User Profile';
+  String get switchToLightMode =>
+      _isEs ? 'Cambiar a modo claro' : 'Switch to light mode';
+  String get switchToDarkMode =>
+      _isEs ? 'Cambiar a modo oscuro' : 'Switch to dark mode';
 
   // --- Common actions ---
   String get cancel => _isEs ? 'Cancelar' : 'Cancel';
@@ -139,6 +143,11 @@ class AppLocalizations {
   String get errorLoadingTrips =>
       _isEs ? 'Error al cargar viajes' : 'Error loading trips';
   String get loadMoreTrips => _isEs ? 'Cargar más viajes' : 'Load more trips';
+  String get myTrips => _isEs ? 'Mis Viajes' : 'My Trips';
+  String get friendsTrips => _isEs ? 'Viajes de Amigos' : 'Friends Trips';
+  String get discover => _isEs ? 'Descubrir' : 'Discover';
+  String get orExplorePublicTrips =>
+      _isEs ? 'O explorar viajes públicos:' : 'Or explore public trips:';
 
   // --- Search ---
   String get searchHint => _isEs ? 'Buscar…' : 'Search…';
@@ -157,6 +166,10 @@ class AppLocalizations {
   String get readAll => _isEs ? 'Marcar todo como leído' : 'Read all';
   String get loadMoreNotifications =>
       _isEs ? 'Cargar más notificaciones' : 'Load more notifications';
+  String get pleaseLogInForNotifications =>
+      _isEs ? 'Por favor inicia sesión para ver notificaciones' : 'Please log in to view notifications';
+  String get failedToLoadNotifications =>
+      _isEs ? 'Error al cargar notificaciones' : 'Failed to load notifications';
 
   // --- Auth screen ---
   String get welcomeBack => _isEs ? '¡Bienvenido de nuevo!' : 'Welcome Back!';
@@ -195,6 +208,20 @@ class AppLocalizations {
       ? "Ingresa tu dirección de correo electrónico y te enviaremos un enlace para restablecer tu contraseña."
       : "Enter your email address and we'll send you a link to reset your password.";
   String get sendResetLink => _isEs ? 'Enviar enlace' : 'Send Reset Link';
+  String passwordResetEmailSent(String email) => _isEs
+      ? 'Si existe una cuenta con $email, hemos enviado un enlace de restablecimiento. Revisa tu bandeja de entrada y sigue las instrucciones para restablecer tu contraseña.'
+      : 'If an account with $email exists, we\'ve sent a password reset link. Check your inbox and follow the instructions to reset your password.';
+  String get pleaseEnterEmail =>
+      _isEs ? 'Por favor ingresa tu correo electrónico' : 'Please enter your email';
+  String get pleaseEnterValidEmail =>
+      _isEs ? 'Por favor ingresa un correo válido' : 'Please enter a valid email';
+  String get pleaseEnterUsername =>
+      _isEs ? 'Por favor ingresa tu nombre de usuario' : 'Please enter your username';
+  String get usernameMinLength => _isEs
+      ? 'El nombre de usuario debe tener al menos 3 caracteres'
+      : 'Username must be at least 3 characters';
+  String get confirmPassword =>
+      _isEs ? 'Confirmar Contraseña' : 'Confirm Password';
 
   // --- Verify email ---
   String get verifyYourEmail =>
@@ -396,6 +423,21 @@ class AppLocalizations {
   String get promoted => _isEs ? 'Promovido' : 'Promoted';
   String get justNow => _isEs ? 'Ahora mismo' : 'Just now';
   String get ok => 'OK';
+  String get writeAReply => _isEs ? 'Escribe una respuesta...' : 'Write a reply...';
+  String get writeAComment => _isEs ? 'Escribe un comentario...' : 'Write a comment...';
+  String get comments => _isEs ? 'Comentarios' : 'Comments';
+  String get resumeTrip => _isEs ? 'Reanudar Viaje' : 'Resume Trip';
+  String get pauseTrip => _isEs ? 'Pausar Viaje' : 'Pause Trip';
+  String get restForNight => _isEs ? 'Descansar por la noche' : 'Rest for Night';
+  String get sending => _isEs ? 'Enviando...' : 'Sending...';
+  String get startingToday => _isEs ? '¡Empieza hoy!' : 'Starting today!';
+  String get startsTomorrow => _isEs ? 'Empieza mañana' : 'Starts tomorrow';
+  String startsInDays(int days) =>
+      _isEs ? 'Empieza en $days días' : 'Starts in $days days';
+  String dayNumber(int day) => _isEs ? 'Día $day' : 'Day $day';
+  String get multiDayConvertConfirm => _isEs
+      ? 'Esta acción es irreversible. Una vez que un viaje se convierte a multi-día, no se puede cambiar de vuelta a simple.'
+      : 'This action is irreversible. Once a trip is converted to multi-day, it cannot be changed back to simple.';
 
   // --- Create trip screen ---
   String get newTripTitle => _isEs ? 'Nuevo Viaje' : 'New Trip';
@@ -412,6 +454,16 @@ class AppLocalizations {
   String get planDetails => _isEs ? 'Detalles del Plan' : 'Plan Details';
   String get multiDayTrip => _isEs ? '· Viaje Multi-Día' : '· Multi-day trip';
   String get datesOptional => _isEs ? 'Fechas (Opcional)' : 'Dates (Optional)';
+  String get creating => _isEs ? 'Creando...' : 'Creating...';
+  String get createTrip => _isEs ? 'Crear Viaje' : 'Create Trip';
+  String get simple => _isEs ? 'Simple' : 'Simple';
+  String get singleDayTrip => _isEs ? 'Viaje de un día' : 'Single-day trip';
+  String get multiDay => _isEs ? 'Multi-Día' : 'Multi-Day';
+  String get multiDayJourney => _isEs ? 'Viaje de varios días' : 'Multi-day journey';
+  String get startDate => _isEs ? 'Fecha de Inicio' : 'Start Date';
+  String get endDate => _isEs ? 'Fecha de Fin' : 'End Date';
+  String get pleaseEnterTitle =>
+      _isEs ? 'Por favor ingresa un título' : 'Please enter a title';
 
   // --- Trip plans screen ---
   String get deleteTripPlan =>

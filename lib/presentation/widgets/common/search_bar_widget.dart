@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/domain/trip.dart';
@@ -149,6 +150,7 @@ class SearchBarWidgetState extends State<SearchBarWidget> {
       builder: (context) {
         final renderBox = this.context.findRenderObject() as RenderBox?;
         final appBarWidth = renderBox?.size.width ?? 300;
+        final l10n = this.context.l10n;
 
         return Stack(
           children: [
@@ -171,7 +173,7 @@ class SearchBarWidgetState extends State<SearchBarWidget> {
                   elevation: 8,
                   borderRadius: BorderRadius.circular(12),
                   color: Theme.of(this.context).cardColor,
-                  child: _buildResultsContent(),
+                  child: _buildResultsContent(l10n),
                 ),
               ),
             ),
@@ -181,7 +183,7 @@ class SearchBarWidgetState extends State<SearchBarWidget> {
     );
   }
 
-  Widget _buildResultsContent() {
+  Widget _buildResultsContent(AppLocalizations l10n) {
     if (_isSearching) {
       return const Padding(
         padding: EdgeInsets.all(20),
@@ -202,10 +204,10 @@ class SearchBarWidgetState extends State<SearchBarWidget> {
           children: [
             Icon(Icons.error_outline, size: 18, color: Colors.red[400]),
             const SizedBox(width: 8),
-            const Expanded(
+            Expanded(
               child: Text(
-                'Could not load results. Try again.',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
+                l10n.couldNotLoadResults,
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
             ),
           ],
@@ -220,10 +222,10 @@ class SearchBarWidgetState extends State<SearchBarWidget> {
           children: [
             Icon(Icons.search_off, size: 18, color: Colors.grey[400]),
             const SizedBox(width: 8),
-            const Expanded(
+            Expanded(
               child: Text(
-                'No trips found',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
+                l10n.noTripsFound,
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
             ),
           ],
@@ -345,6 +347,7 @@ class SearchBarWidgetState extends State<SearchBarWidget> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = context.l10n;
 
     return CompositedTransformTarget(
       link: _layerLink,
@@ -357,7 +360,7 @@ class SearchBarWidgetState extends State<SearchBarWidget> {
           controller: _controller,
           focusNode: _focusNode,
           decoration: InputDecoration(
-            hintText: 'Search\u2026',
+            hintText: l10n.searchHint,
             prefixIcon: const Icon(Icons.search, size: 20),
             suffixIcon: IconButton(
               icon: const Icon(Icons.clear, size: 18),

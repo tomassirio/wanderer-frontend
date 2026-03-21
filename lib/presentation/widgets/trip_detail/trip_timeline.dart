@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/battery_helpers.dart';
@@ -28,6 +29,7 @@ class TripTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     if (isLoading) {
       return Center(
         child: Column(
@@ -39,7 +41,7 @@ class TripTimeline extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Loading timeline...',
+              l10n.loadingTimeline,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 fontSize: 14,
@@ -71,7 +73,7 @@ class TripTimeline extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                'No updates yet',
+                l10n.noUpdatesYet,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -80,7 +82,7 @@ class TripTimeline extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Trip updates will appear here',
+                l10n.tripUpdatesWillAppear,
                 style: TextStyle(
                   fontSize: 14,
                   color:
@@ -91,7 +93,7 @@ class TripTimeline extends StatelessWidget {
               TextButton.icon(
                 onPressed: onRefresh,
                 icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Refresh'),
+                label: Text(l10n.refresh),
                 style: TextButton.styleFrom(
                   foregroundColor: WandererTheme.primaryOrange,
                 ),
@@ -170,9 +172,9 @@ class TripTimeline extends StatelessWidget {
                   Icons.expand_more,
                   color: WandererTheme.primaryOrange,
                 ),
-                label: const Text(
-                  'Load older updates',
-                  style: TextStyle(color: WandererTheme.primaryOrange),
+                label: Text(
+                  context.l10n.loadOlderUpdates,
+                  style: const TextStyle(color: WandererTheme.primaryOrange),
                 ),
               ),
       ),
@@ -593,7 +595,7 @@ class TripTimeline extends StatelessWidget {
     final difference = now.difference(local);
 
     if (difference.inMinutes < 1) {
-      return 'Just now';
+      return context.l10n.justNow;
     } else if (difference.inHours < 1) {
       return '${difference.inMinutes}m ago';
     } else if (difference.inDays < 1) {

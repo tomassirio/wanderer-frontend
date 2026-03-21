@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/presentation/widgets/create_trip/create_trip_button.dart';
 import 'package:wanderer_frontend/presentation/widgets/create_trip/date_range_selector.dart';
@@ -77,12 +78,13 @@ class CreateTripForm extends StatelessWidget {
   }
 
   Widget _buildModalitySelector(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Trip Type',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        Text(
+          l10n.tripType,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
         Row(
@@ -90,8 +92,8 @@ class CreateTripForm extends StatelessWidget {
             Expanded(
               child: _buildModalityOption(
                 context: context,
-                label: 'Simple',
-                subtitle: 'Single-day trip',
+                label: l10n.simple,
+                subtitle: l10n.singleDayTrip,
                 modality: TripModality.simple,
               ),
             ),
@@ -99,8 +101,8 @@ class CreateTripForm extends StatelessWidget {
             Expanded(
               child: _buildModalityOption(
                 context: context,
-                label: 'Multi-Day',
-                subtitle: 'Multi-day journey',
+                label: l10n.multiDay,
+                subtitle: l10n.multiDayJourney,
                 modality: TripModality.multiDay,
               ),
             ),

@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/achievement_models.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
@@ -101,6 +102,7 @@ class TripInfoCard extends StatelessWidget {
 
   /// Expanded state - full info card
   Widget _buildExpandedCard(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -289,8 +291,8 @@ class TripInfoCard extends StatelessWidget {
                             ),
                             SizedBox(width: 4),
                             Text(
-                              'Promoted',
-                              style: TextStyle(
+                              l10n.promoted,
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -434,7 +436,7 @@ class TripInfoCard extends StatelessWidget {
                           ),
                         ),
                         child: Text(
-                          'Day ${trip.currentDay}',
+                          l10n.dayNumber(trip.currentDay!),
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
@@ -505,7 +507,7 @@ class TripInfoCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Achievements Earned',
+                              l10n.achievementsEarned,
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -647,7 +649,7 @@ class TripInfoCard extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
-              'OK',
+              context.l10n.ok,
               style: TextStyle(color: Colors.amber.shade700),
             ),
           ),
@@ -692,6 +694,7 @@ class TripInfoCard extends StatelessWidget {
   }
 
   void _showVisibilityPicker(BuildContext context) {
+    final l10n = context.l10n;
     showModalBottomSheet<Visibility>(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -701,11 +704,11 @@ class TripInfoCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
+            Padding(
+              padding: const EdgeInsets.all(16),
               child: Text(
-                'Change Visibility',
-                style: TextStyle(
+                l10n.changeVisibility,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -713,22 +716,22 @@ class TripInfoCard extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.public, color: Colors.green),
-              title: const Text('Public'),
-              subtitle: const Text('Visible to everyone'),
+              title: Text(l10n.publicVisibility),
+              subtitle: Text(l10n.visibleToEveryone),
               selected: trip.visibility == Visibility.public,
               onTap: () => Navigator.pop(context, Visibility.public),
             ),
             ListTile(
               leading: Icon(Icons.shield, color: Colors.orange.shade700),
-              title: const Text('Protected'),
-              subtitle: const Text('Visible to friends only'),
+              title: Text(l10n.protectedVisibility),
+              subtitle: Text(l10n.visibleToFriendsOnly),
               selected: trip.visibility == Visibility.protected,
               onTap: () => Navigator.pop(context, Visibility.protected),
             ),
             ListTile(
               leading: const Icon(Icons.lock, color: Colors.red),
-              title: const Text('Private'),
-              subtitle: const Text('Only visible to you'),
+              title: Text(l10n.privateVisibility),
+              subtitle: Text(l10n.onlyVisibleToYou),
               selected: trip.visibility == Visibility.private,
               onTap: () => Navigator.pop(context, Visibility.private),
             ),

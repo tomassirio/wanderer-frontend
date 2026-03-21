@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 
@@ -87,6 +88,7 @@ class _TripShareDialogState extends State<TripShareDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Dialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
@@ -110,7 +112,7 @@ class _TripShareDialogState extends State<TripShareDialog> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Share Trip',
+                      l10n.shareTrip,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -186,7 +188,7 @@ class _TripShareDialogState extends State<TripShareDialog> {
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Close'),
+                  child: Text(l10n.close),
                 ),
               ),
             ],

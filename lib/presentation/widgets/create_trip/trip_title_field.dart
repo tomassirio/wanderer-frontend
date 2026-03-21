@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Text field for trip title input
 class TripTitleField extends StatelessWidget {
@@ -8,19 +9,20 @@ class TripTitleField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return TextFormField(
       controller: controller,
-      decoration: const InputDecoration(
-        labelText: 'Trip Title *',
-        hintText: 'e.g., European Summer Adventure',
-        border: OutlineInputBorder(),
-        prefixIcon: Icon(Icons.title),
+      decoration: InputDecoration(
+        labelText: l10n.tripTitleLabel,
+        hintText: l10n.tripTitleHint,
+        border: const OutlineInputBorder(),
+        prefixIcon: const Icon(Icons.title),
       ),
       textCapitalization: TextCapitalization.words,
       textInputAction: TextInputAction.next,
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return 'Please enter a title';
+          return l10n.pleaseEnterTitle;
         }
         return null;
       },

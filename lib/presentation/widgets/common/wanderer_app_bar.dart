@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/services/notification_api_service.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
@@ -260,6 +261,7 @@ class _WandererAppBarState extends State<WandererAppBar>
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width >= 600;
+    final l10n = context.l10n;
     return AppBar(
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       centerTitle: isDesktop,
@@ -316,7 +318,7 @@ class _WandererAppBarState extends State<WandererAppBar>
                   isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
                 ),
                 tooltip:
-                    isDark ? 'Switch to light mode' : 'Switch to dark mode',
+                    isDark ? l10n.switchToLightMode : l10n.switchToDarkMode,
                 onPressed: () => ThemeController().setDarkMode(!isDark),
               );
             },
@@ -325,7 +327,7 @@ class _WandererAppBarState extends State<WandererAppBar>
         if (!_isSearchExpanded)
           IconButton(
             icon: const Icon(Icons.search),
-            tooltip: 'Search',
+            tooltip: l10n.search,
             onPressed: _toggleSearch,
           ),
         // Notifications icon with badge (only for logged in users)
@@ -340,7 +342,7 @@ class _WandererAppBarState extends State<WandererAppBar>
               ),
               child: const Icon(Icons.notifications_outlined),
             ),
-            tooltip: 'Notifications',
+            tooltip: l10n.notifications,
             onPressed: _showNotificationsDropdown,
           ),
         if (!widget.isLoggedIn && widget.onLoginPressed != null)
@@ -349,8 +351,8 @@ class _WandererAppBarState extends State<WandererAppBar>
             child: TextButton.icon(
               onPressed: widget.onLoginPressed,
               icon: const Icon(Icons.login, size: 18, color: Colors.white),
-              label: const Text('Login',
-                  style: TextStyle(fontSize: 13, color: Colors.white)),
+              label: Text(l10n.login,
+                  style: const TextStyle(fontSize: 13, color: Colors.white)),
             ),
           ),
         if (widget.isLoggedIn && widget.username != null)
@@ -373,7 +375,7 @@ class _WandererAppBarState extends State<WandererAppBar>
                       )
                     : null,
               ),
-              tooltip: 'Profile',
+              tooltip: l10n.profile,
               onSelected: (value) {
                 switch (value) {
                   case 'profile':
@@ -445,33 +447,34 @@ class _WandererAppBarState extends State<WandererAppBar>
                     ),
                   ),
                 ),
-                const PopupMenuItem<String>(
+                PopupMenuItem<String>(
                   value: 'profile',
                   child: Row(
                     children: [
-                      Icon(Icons.person),
-                      SizedBox(width: 12),
-                      Text('User Profile'),
+                      const Icon(Icons.person),
+                      const SizedBox(width: 12),
+                      Text(l10n.userProfile),
                     ],
                   ),
                 ),
-                const PopupMenuItem<String>(
+                PopupMenuItem<String>(
                   value: 'settings',
                   child: Row(
                     children: [
-                      Icon(Icons.settings),
-                      SizedBox(width: 12),
-                      Text('Settings'),
+                      const Icon(Icons.settings),
+                      const SizedBox(width: 12),
+                      Text(l10n.settings),
                     ],
                   ),
                 ),
-                const PopupMenuItem<String>(
+                PopupMenuItem<String>(
                   value: 'logout',
                   child: Row(
                     children: [
-                      Icon(Icons.logout, color: Colors.red),
-                      SizedBox(width: 12),
-                      Text('Logout', style: TextStyle(color: Colors.red)),
+                      const Icon(Icons.logout, color: Colors.red),
+                      const SizedBox(width: 12),
+                      Text(l10n.logout,
+                          style: const TextStyle(color: Colors.red)),
                     ],
                   ),
                 ),

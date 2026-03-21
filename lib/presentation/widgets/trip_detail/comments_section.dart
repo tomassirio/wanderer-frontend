@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/comment_card.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/comment_input.dart';
@@ -159,6 +160,7 @@ class CommentsSection extends StatelessWidget {
 
   /// Expanded state - full comments section
   Widget _buildExpandedSection(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
       decoration: BoxDecoration(
@@ -213,7 +215,7 @@ class CommentsSection extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '${comments.length}${hasMore ? '+' : ''} Comments',
+                        '${comments.length}${hasMore ? '+' : ''} ${l10n.comments}',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -232,21 +234,21 @@ class CommentsSection extends StatelessWidget {
                         ),
                         onSelected: onSortChanged,
                         itemBuilder: (context) => [
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: CommentSortOption.latest,
-                            child: Text('Latest first'),
+                            child: Text(l10n.latestFirst),
                           ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: CommentSortOption.oldest,
-                            child: Text('Oldest first'),
+                            child: Text(l10n.oldestFirst),
                           ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: CommentSortOption.mostReplies,
-                            child: Text('Most replies'),
+                            child: Text(l10n.mostReplies),
                           ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: CommentSortOption.mostReactions,
-                            child: Text('Most reactions'),
+                            child: Text(l10n.mostReactions),
                           ),
                         ],
                       ),
@@ -370,8 +372,8 @@ class CommentsSection extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: const Text(
-                          'Please log in to comment',
+                        child: Text(
+                          l10n.pleaseLogInToComment,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -389,6 +391,7 @@ class CommentsSection extends StatelessWidget {
   }
 
   Widget _buildLoadMoreButton(BuildContext context) {
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Center(
@@ -407,9 +410,9 @@ class CommentsSection extends StatelessWidget {
                   Icons.expand_more,
                   color: WandererTheme.primaryOrange,
                 ),
-                label: const Text(
-                  'Load more comments',
-                  style: TextStyle(color: WandererTheme.primaryOrange),
+                label: Text(
+                  l10n.loadMoreComments,
+                  style: const TextStyle(color: WandererTheme.primaryOrange),
                 ),
               ),
       ),
@@ -417,6 +420,7 @@ class CommentsSection extends StatelessWidget {
   }
 
   Widget _buildEmptyCommentsState(BuildContext context) {
+    final l10n = context.l10n;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -430,7 +434,7 @@ class CommentsSection extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'No comments yet',
+              l10n.noCommentsYet,
               style: TextStyle(
                 fontSize: 18,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),

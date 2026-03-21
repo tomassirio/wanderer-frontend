@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 
@@ -188,18 +189,16 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
 
   /// Prompts the user to confirm switching to multi-day, then auto-saves.
   Future<void> _confirmAndSwitchToMultiDay() async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Switch to Multi-Day?'),
-        content: const Text(
-          'This action is irreversible. Once a trip is converted to '
-          'multi-day, it cannot be changed back to simple.',
-        ),
+        title: Text(l10n.switchToMultiDay),
+        content: Text(l10n.multiDayConvertConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -207,7 +206,7 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
               backgroundColor: WandererTheme.primaryOrange,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Confirm'),
+            child: Text(l10n.confirm),
           ),
         ],
       ),
@@ -285,6 +284,7 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
   }
 
   Widget _buildExpandedCard(BuildContext context, bool effectiveIsWeb) {
+    final l10n = context.l10n;
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -323,7 +323,7 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Trip Settings',
+                        l10n.tripSettings,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -372,20 +372,20 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
                 if (widget.isOwner && _isEditableStatus) ...[
                   // Trip Type selector — available on all platforms when not
                   // already multi-day (irreversible once set).
-                  _buildSectionLabel(Icons.route, 'Trip Type'),
+                  _buildSectionLabel(Icons.route, l10n.tripType),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
                         child: _buildModalityButton(
-                          label: 'Simple',
+                          label: l10n.simple,
                           modality: TripModality.simple,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: _buildModalityButton(
-                          label: 'Multi-Day',
+                          label: l10n.multiDay,
                           modality: TripModality.multiDay,
                         ),
                       ),
@@ -408,7 +408,7 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Automatic Updates',
+                          l10n.automaticUpdates,
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -443,7 +443,7 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
                     if (!_isTripInProgress && _automaticUpdates) ...[
                       const SizedBox(height: 4),
                       Text(
-                        'Will activate when the trip is started',
+                        l10n.willActivateWhenStarted,
                         style: TextStyle(
                           fontSize: 11,
                           color: Theme.of(context)
@@ -495,7 +495,7 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Location will be automatically updated at this interval when trip is active',
+                        l10n.locationInterval,
                         style: TextStyle(
                           fontSize: 11,
                           color: Theme.of(context)
@@ -521,9 +521,9 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
                               ? null
                               : widget.onTestBackgroundUpdate,
                           icon: const Icon(Icons.bug_report, size: 16),
-                          label: const Text(
-                            '🧪 Test Background Update Now',
-                            style: TextStyle(fontSize: 12),
+                          label: Text(
+                            l10n.testBackgroundUpdate,
+                            style: const TextStyle(fontSize: 12),
                           ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.deepOrange,
@@ -536,8 +536,7 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
                         ),
                       ),
                       Text(
-                        'Fires a one-off WorkManager task immediately '
-                        '(same code path as periodic, no 15 min wait)',
+                        l10n.firesWorkManagerTask,
                         style: TextStyle(
                           fontSize: 10,
                           color: Theme.of(context)
@@ -562,9 +561,9 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
                     child: OutlinedButton.icon(
                       onPressed: widget.isLoading ? null : widget.onDeleteTrip,
                       icon: const Icon(Icons.delete_forever, size: 16),
-                      label: const Text(
-                        'Delete Trip',
-                        style: TextStyle(
+                      label: Text(
+                        l10n.deleteTrip,
+                        style: const TextStyle(
                             fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                       style: OutlinedButton.styleFrom(
@@ -608,7 +607,7 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Show Planned Route',
+              context.l10n.showPlannedRoute,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
@@ -717,9 +716,9 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),
             )
-          : const Text(
-              'Save',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          : Text(
+              context.l10n.save,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
     );
     if (fullWidth) {

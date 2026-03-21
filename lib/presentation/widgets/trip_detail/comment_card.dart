@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/reply_card.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
@@ -38,6 +39,7 @@ class CommentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAuthor = comment.userId == tripUserId;
+    final l10n = context.l10n;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -100,7 +102,7 @@ class CommentCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              'AUTHOR',
+                              l10n.author,
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
@@ -112,7 +114,7 @@ class CommentCard extends StatelessWidget {
                       ],
                     ),
                     Text(
-                      _formatTimestamp(comment.createdAt),
+                      _formatTimestamp(comment.createdAt, l10n),
                       style: TextStyle(
                           fontSize: 11,
                           color: Theme.of(context)
@@ -154,7 +156,7 @@ class CommentCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'React',
+                        l10n.react,
                         style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                       ),
                     ],
@@ -167,7 +169,7 @@ class CommentCard extends StatelessWidget {
                     children: [
                       Icon(Icons.reply, size: 16, color: Colors.grey[600]),
                       const SizedBox(width: 4),
-                      const Text('Reply', style: TextStyle(fontSize: 12)),
+                      Text(l10n.reply, style: const TextStyle(fontSize: 12)),
                     ],
                   ),
                 ),
@@ -307,13 +309,13 @@ class CommentCard extends StatelessWidget {
     }
   }
 
-  String _formatTimestamp(DateTime timestamp) {
+  String _formatTimestamp(DateTime timestamp, AppLocalizations l10n) {
     final local = timestamp.toLocal();
     final now = DateTime.now();
     final difference = now.difference(local);
 
     if (difference.inMinutes < 1) {
-      return 'Just now';
+      return l10n.justNow;
     } else if (difference.inHours < 1) {
       return '${difference.inMinutes}m ago';
     } else if (difference.inDays < 1) {

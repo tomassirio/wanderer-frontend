@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -70,7 +71,7 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
     if (difference.inDays == 0) {
       if (difference.inHours == 0) {
         if (difference.inMinutes == 0) {
-          return 'Just now';
+          return context.l10n.justNow;
         }
         return '${difference.inMinutes} minute${difference.inMinutes == 1 ? '' : 's'} ago';
       }
@@ -104,9 +105,9 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final days = startDay.difference(today).inDays;
-    if (days <= 0) return 'Starting today!';
-    if (days == 1) return 'Starts tomorrow';
-    if (days < 30) return 'Starts in $days days';
+    if (days <= 0) return context.l10n.startingToday;
+    if (days == 1) return context.l10n.startsTomorrow;
+    if (days < 30) return context.l10n.startsInDays(days);
     return 'Starts ${DateFormat('MMM d, yyyy').format(localStart)}';
   }
 
@@ -136,17 +137,13 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
           Icon(Icons.campaign, size: 16, color: Colors.deepPurple.shade700),
           const SizedBox(width: 6),
           Text(
-            'Pre Announced',
+            context.l10n.preAnnounced,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
               color: Colors.deepPurple.shade700,
             ),
           ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildDayBadge(int day) {
     return Container(
@@ -173,7 +170,7 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
               size: 12, color: WandererTheme.primaryOrange),
           const SizedBox(width: 4),
           Text(
-            'Day $day',
+            context.l10n.dayNumber(day),
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,

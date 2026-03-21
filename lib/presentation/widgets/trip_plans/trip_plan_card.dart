@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/data/client/google_maps_api_client.dart';
@@ -162,6 +163,7 @@ class _TripPlanCardState extends State<TripPlanCard> {
 
   Widget _buildInfoContent(BuildContext context) {
     final onSurface = Theme.of(context).colorScheme.onSurface;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -197,7 +199,7 @@ class _TripPlanCardState extends State<TripPlanCard> {
           )
         else
           Text(
-            'No dates set',
+            l10n.noDateSet,
             style: TextStyle(
               fontSize: 12,
               color: onSurface.withOpacity(0.5),
@@ -443,7 +445,7 @@ class _TripPlanCardState extends State<TripPlanCard> {
             ),
             const SizedBox(height: 4),
             Text(
-              'No route set',
+              context.l10n.noRouteSet,
               style: TextStyle(
                 fontSize: 12,
                 color: colorScheme.onSurface.withOpacity(0.5),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Submit button for auth forms
 class AuthSubmitButton extends StatelessWidget {
@@ -15,6 +16,7 @@ class AuthSubmitButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return ElevatedButton(
       onPressed: isLoading ? null : onPressed,
       style: ElevatedButton.styleFrom(
@@ -28,7 +30,7 @@ class AuthSubmitButton extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : Text(
-              isLogin ? 'Sign In' : 'Sign Up',
+              isLogin ? l10n.signIn : l10n.signUp,
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
     );
