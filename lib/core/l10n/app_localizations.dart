@@ -439,6 +439,8 @@ class AppLocalizations {
       ? 'Esta acción es irreversible. Una vez que un viaje se convierte a multi-día, no se puede cambiar de vuelta a simple.'
       : 'This action is irreversible. Once a trip is converted to multi-day, it cannot be changed back to simple.';
 
+  String get notSet => _isEs ? 'No establecido' : 'Not set';
+
   // --- Create trip screen ---
   String get newTripTitle => _isEs ? 'Nuevo Viaje' : 'New Trip';
   String get tripTitleLabel => _isEs ? 'Título del Viaje *' : 'Trip Title *';

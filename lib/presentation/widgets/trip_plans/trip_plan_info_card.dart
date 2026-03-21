@@ -299,7 +299,7 @@ class TripPlanInfoCard extends StatelessWidget {
           child: Text(
             hasLocation
                 ? '${location.lat.toStringAsFixed(4)}, ${location.lon.toStringAsFixed(4)}'
-                : context.l10n.noDateSet,
+                : context.l10n.notSet,
             style: TextStyle(
               fontSize: 13,
               color: hasLocation

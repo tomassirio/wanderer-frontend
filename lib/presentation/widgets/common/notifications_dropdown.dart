@@ -123,14 +123,14 @@ class _NotificationsDropdownContentState
     } on AuthenticationRedirectException {
       if (mounted) {
         setState(() {
-          _error = 'Please log in to view notifications';
+          _error = 'auth';
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Failed to load notifications';
+          _error = 'generic';
           _isLoading = false;
         });
       }
@@ -408,7 +408,7 @@ class _NotificationsDropdownContentState
     if (_error != null) {
       final theme = Theme.of(context);
       final l10n = context.l10n;
-      final errorText = _error == 'Please log in to view notifications'
+      final errorText = _error == 'auth'
           ? l10n.pleaseLogInForNotifications
           : l10n.failedToLoadNotifications;
       return Padding(
