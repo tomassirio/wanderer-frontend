@@ -62,16 +62,38 @@ void main() {
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
+              isLoggedIn: true,
+              username: 'testuser',
+              userId: 'user-123',
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      expect(find.byIcon(Icons.search), findsOneWidget);
+    });
+
+    testWidgets('hides search and dark mode icons for guests', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: WandererAppBar(
               isLoggedIn: false,
             ),
           ),
         ),
       );
 
-      expect(find.byIcon(Icons.search), findsOneWidget);
-    });
+      await tester.pump();
 
-    testWidgets('shows login button when not logged in and callback provided', (
+      expect(find.byIcon(Icons.search), findsNothing);
+      expect(find.byIcon(Icons.dark_mode_outlined), findsNothing);
+      expect(find.byIcon(Icons.light_mode_outlined), findsNothing);
+    });
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
@@ -139,11 +161,15 @@ void main() {
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
-              isLoggedIn: false,
+              isLoggedIn: true,
+              username: 'testuser',
+              userId: 'user-123',
             ),
           ),
         ),
       );
+
+      await tester.pump();
 
       // Initially search icon is visible and title is shown
       expect(find.byIcon(Icons.search), findsOneWidget);
@@ -165,11 +191,15 @@ void main() {
         MaterialApp(
           home: Scaffold(
             appBar: WandererAppBar(
-              isLoggedIn: false,
+              isLoggedIn: true,
+              username: 'testuser',
+              userId: 'user-123',
             ),
           ),
         ),
       );
+
+      await tester.pump();
 
       // Expand search
       await tester.tap(find.byIcon(Icons.search));
