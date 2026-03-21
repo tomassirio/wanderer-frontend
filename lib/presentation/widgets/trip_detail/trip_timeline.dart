@@ -256,7 +256,7 @@ class TripTimeline extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        _formatTimestamp(update.timestamp),
+                        _formatTimestamp(context, update.timestamp),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -507,7 +507,7 @@ class TripTimeline extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        _formatTimestamp(update.timestamp),
+                        _formatTimestamp(context, update.timestamp),
                         style: TextStyle(
                           fontSize: 11,
                           color: markerColor.withOpacity(0.7),
@@ -589,7 +589,7 @@ class TripTimeline extends StatelessWidget {
     );
   }
 
-  String _formatTimestamp(DateTime timestamp) {
+  String _formatTimestamp(BuildContext context, DateTime timestamp) {
     final local = timestamp.toLocal();
     final now = DateTime.now();
     final difference = now.difference(local);

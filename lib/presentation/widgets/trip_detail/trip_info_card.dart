@@ -281,15 +281,15 @@ class TripInfoCard extends StatelessWidget {
                           color: Colors.amber.shade700,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.star,
                               size: 13,
                               color: Colors.white,
                             ),
-                            SizedBox(width: 4),
+                            const SizedBox(width: 4),
                             Text(
                               l10n.promoted,
                               style: const TextStyle(
