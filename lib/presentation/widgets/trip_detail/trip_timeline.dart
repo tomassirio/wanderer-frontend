@@ -593,15 +593,16 @@ class TripTimeline extends StatelessWidget {
     final local = timestamp.toLocal();
     final now = DateTime.now();
     final difference = now.difference(local);
+    final l10n = context.l10n;
 
     if (difference.inMinutes < 1) {
-      return context.l10n.justNow;
+      return l10n.justNow;
     } else if (difference.inHours < 1) {
-      return '${difference.inMinutes}m ago';
+      return l10n.minutesAgoCompact(difference.inMinutes);
     } else if (difference.inDays < 1) {
-      return '${difference.inHours}h ago';
+      return l10n.hoursAgoCompact(difference.inHours);
     } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
+      return l10n.daysAgoCompact(difference.inDays);
     } else {
       return '${local.day}/${local.month}/${local.year} ${local.hour}:${local.minute.toString().padLeft(2, '0')}';
     }

@@ -67,23 +67,30 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
+    final l10n = context.l10n;
 
     if (difference.inDays == 0) {
       if (difference.inHours == 0) {
         if (difference.inMinutes == 0) {
-          return context.l10n.justNow;
+          return l10n.justNow;
         }
-        return '${difference.inMinutes} minute${difference.inMinutes == 1 ? '' : 's'} ago';
+        return difference.inMinutes == 1
+            ? l10n.minuteAgo
+            : l10n.minutesAgo(difference.inMinutes);
       }
-      return '${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
+      return difference.inHours == 1
+          ? l10n.hourAgo
+          : l10n.hoursAgo(difference.inHours);
     } else if (difference.inDays < 7) {
-      return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
+      return difference.inDays == 1
+          ? l10n.dayAgo
+          : l10n.daysAgo(difference.inDays);
     } else if (difference.inDays < 30) {
       final weeks = (difference.inDays / 7).floor();
-      return '$weeks week${weeks == 1 ? '' : 's'} ago';
+      return weeks == 1 ? l10n.weekAgo : l10n.weeksAgo(weeks);
     } else if (difference.inDays < 365) {
       final months = (difference.inDays / 30).floor();
-      return '$months month${months == 1 ? '' : 's'} ago';
+      return months == 1 ? l10n.monthAgo : l10n.monthsAgo(months);
     } else {
       return DateFormat('MMM d, yyyy').format(date);
     }
@@ -655,18 +662,18 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                             ),
                           ],
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.star,
                               size: 14,
                               color: Colors.white,
                             ),
-                            SizedBox(width: 4),
+                            const SizedBox(width: 4),
                             Text(
-                              'Promoted',
-                              style: TextStyle(
+                              context.l10n.promoted,
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,

@@ -1244,6 +1244,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildDiscoverTab() {
+    final l10n = context.l10n;
     final filteredTrips = _getFilteredTrips(_discoverTrips);
 
     // Separate promoted trips (featured) from regular public trips.
@@ -1266,7 +1267,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              'No public trips found',
+              l10n.noPublicTripsFound,
               style: TextStyle(
                 fontSize: 18,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
@@ -1274,7 +1275,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              'Check back later for new adventures!',
+              l10n.checkBackLater,
               style: TextStyle(
                 fontSize: 14,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
@@ -1299,10 +1300,10 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         children: [
           if (promotedTripsList.isNotEmpty) ...[
-            const FeedSectionHeader(
-              title: 'Featured Trips',
+            FeedSectionHeader(
+              title: l10n.featuredTrips,
               icon: Icons.star,
-              subtitle: 'Highlighted adventures from the community',
+              subtitle: l10n.highlightedAdventures,
             ),
             const SizedBox(height: 12),
             _buildTripGrid(promotedTripsList, showRelationship: true),
@@ -1310,10 +1311,10 @@ class _HomeScreenState extends State<HomeScreen>
           ],
           if (nonPromotedTrips.isNotEmpty) ...[
             FeedSectionHeader(
-              title: 'Discover',
+              title: l10n.discover,
               icon: Icons.public,
               count: nonPromotedTrips.length,
-              subtitle: 'Explore public trips from the community',
+              subtitle: l10n.explorePublicTripsSubtitle,
             ),
             const SizedBox(height: 12),
             _buildTripGrid(nonPromotedTrips, showRelationship: true),
@@ -1326,6 +1327,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   // Build discover section for guest users without ListView wrapper
   Widget _buildGuestDiscoverSection() {
+    final l10n = context.l10n;
     final filteredTrips = _getFilteredTrips(_discoverTrips);
 
     // Separate promoted trips (featured) from regular public trips.
@@ -1348,7 +1350,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
               const SizedBox(height: 16),
               Text(
-                'No public trips found',
+                l10n.noPublicTripsFound,
                 style: TextStyle(
                   fontSize: 18,
                   color:
@@ -1357,7 +1359,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
               const SizedBox(height: 8),
               Text(
-                'Check back later for new adventures!',
+                l10n.checkBackLater,
                 style: TextStyle(
                   fontSize: 14,
                   color:
@@ -1374,10 +1376,10 @@ class _HomeScreenState extends State<HomeScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (promotedTripsList.isNotEmpty) ...[
-          const FeedSectionHeader(
-            title: 'Featured Trips',
+          FeedSectionHeader(
+            title: l10n.featuredTrips,
             icon: Icons.star,
-            subtitle: 'Highlighted adventures from the community',
+            subtitle: l10n.highlightedAdventures,
           ),
           const SizedBox(height: 12),
           _buildTripGrid(promotedTripsList, showRelationship: false),
@@ -1385,10 +1387,10 @@ class _HomeScreenState extends State<HomeScreen>
         ],
         if (nonPromotedTrips.isNotEmpty) ...[
           FeedSectionHeader(
-            title: 'Discover',
+            title: l10n.discover,
             icon: Icons.public,
             count: nonPromotedTrips.length,
-            subtitle: 'Explore public trips from the community',
+            subtitle: l10n.explorePublicTripsSubtitle,
           ),
           const SizedBox(height: 12),
           _buildTripGrid(nonPromotedTrips, showRelationship: false),
@@ -1495,6 +1497,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
@@ -1528,7 +1531,7 @@ class _HomeScreenState extends State<HomeScreen>
                           size: 64, color: Colors.red[300]),
                       const SizedBox(height: 16),
                       Text(
-                        'Error loading trips',
+                        l10n.errorLoadingTrips,
                         style: TextStyle(
                           fontSize: 18,
                           color: Theme.of(context)
@@ -1552,7 +1555,7 @@ class _HomeScreenState extends State<HomeScreen>
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _loadTrips,
-                        child: const Text('Retry'),
+                        child: Text(l10n.retry),
                       ),
                     ],
                   ),
@@ -1588,9 +1591,9 @@ class _HomeScreenState extends State<HomeScreen>
                               children: [
                                 const WandererLogo(size: 110),
                                 const SizedBox(height: 24),
-                                const Text(
-                                  'Welcome to Wanderer',
-                                  style: TextStyle(
+                                Text(
+                                  l10n.welcomeToWanderer,
+                                  style: const TextStyle(
                                     fontSize: 32,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: -1,
@@ -1599,7 +1602,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
-                                  'Track your adventures, share your journeys',
+                                  l10n.trackAdventures,
                                   style: TextStyle(
                                     fontSize: 16,
                                     color: Theme.of(context)
@@ -1622,9 +1625,9 @@ class _HomeScreenState extends State<HomeScreen>
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  child: const Text(
-                                    'Log In',
-                                    style: TextStyle(
+                                  child: Text(
+                                    l10n.logIn,
+                                    style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -1664,9 +1667,9 @@ class _HomeScreenState extends State<HomeScreen>
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          const Text(
-                                            'Explore Public Trips',
-                                            style: TextStyle(
+                                          Text(
+                                            l10n.explorePublicTrips,
+                                            style: const TextStyle(
                                               fontSize: 24,
                                               fontWeight: FontWeight.bold,
                                               letterSpacing: -0.5,
@@ -1674,7 +1677,7 @@ class _HomeScreenState extends State<HomeScreen>
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            'Discover adventures from the community',
+                                            l10n.discoverAdventures,
                                             style: TextStyle(
                                               fontSize: 14,
                                               color: Theme.of(context)
@@ -1757,9 +1760,9 @@ class _HomeScreenState extends State<HomeScreen>
                                         Icons.person,
                                       ];
                                       final labels = [
-                                        'Discover',
-                                        'Feed',
-                                        'My Trips'
+                                        l10n.discover,
+                                        l10n.feed,
+                                        l10n.myTrips,
                                       ];
                                       return Expanded(
                                         child: InkWell(

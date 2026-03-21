@@ -146,6 +146,28 @@ class AppLocalizations {
   String get myTrips => _isEs ? 'Mis Viajes' : 'My Trips';
   String get friendsTrips => _isEs ? 'Viajes de Amigos' : 'Friends Trips';
   String get discover => _isEs ? 'Descubrir' : 'Discover';
+  String get featuredTrips => _isEs ? 'Viajes Destacados' : 'Featured Trips';
+  String get highlightedAdventures => _isEs
+      ? 'Aventuras destacadas de la comunidad'
+      : 'Highlighted adventures from the community';
+  String get explorePublicTripsSubtitle => _isEs
+      ? 'Explora viajes públicos de la comunidad'
+      : 'Explore public trips from the community';
+  String get feed => _isEs ? 'Feed' : 'Feed';
+  String get minuteAgo => _isEs ? 'hace 1 minuto' : '1 minute ago';
+  String minutesAgo(int n) =>
+      _isEs ? 'hace $n minutos' : '$n minutes ago';
+  String get hourAgo => _isEs ? 'hace 1 hora' : '1 hour ago';
+  String hoursAgo(int n) => _isEs ? 'hace $n horas' : '$n hours ago';
+  String get dayAgo => _isEs ? 'hace 1 día' : '1 day ago';
+  String daysAgo(int n) => _isEs ? 'hace $n días' : '$n days ago';
+  String get weekAgo => _isEs ? 'hace 1 semana' : '1 week ago';
+  String weeksAgo(int n) => _isEs ? 'hace $n semanas' : '$n weeks ago';
+  String get monthAgo => _isEs ? 'hace 1 mes' : '1 month ago';
+  String monthsAgo(int n) => _isEs ? 'hace $n meses' : '$n months ago';
+  String minutesAgoCompact(int n) => _isEs ? '${n}m' : '${n}m';
+  String hoursAgoCompact(int n) => _isEs ? '${n}h' : '${n}h';
+  String daysAgoCompact(int n) => _isEs ? '${n}d' : '${n}d';
   String get orExplorePublicTrips =>
       _isEs ? 'O explorar viajes públicos:' : 'Or explore public trips:';
 
