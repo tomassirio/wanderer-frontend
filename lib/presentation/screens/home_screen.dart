@@ -785,7 +785,7 @@ class _HomeScreenState extends State<HomeScreen>
   /// Compact EN/ES language toggle for the guest hero overlay (top-left).
   Widget _buildHeroLangToggle() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: ValueListenableBuilder<Locale>(
         valueListenable: LocaleController().locale,
         builder: (context, locale, _) {
