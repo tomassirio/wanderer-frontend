@@ -786,13 +786,13 @@ class TripInfoCard extends StatelessWidget {
   String _localizedStatus(BuildContext context) {
     final l10n = context.l10n;
     switch (trip.status) {
-      case TripStatus.draft:
+      case TripStatus.created:
         return l10n.draft;
-      case TripStatus.live:
+      case TripStatus.inProgress:
         return l10n.live;
       case TripStatus.paused:
         return l10n.paused;
-      case TripStatus.completed:
+      case TripStatus.finished:
         return l10n.completed;
       case TripStatus.resting:
         return l10n.resting;
