@@ -782,78 +782,70 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  /// Compact row showing EN/ES language toggle and dark/light mode toggle.
-  /// Shown at the top of the home screen content area for quick access.
-  Widget _buildQuickControls(AppLocalizations l10n) {
+  /// Compact EN/ES language toggle for the guest hero overlay (top-left).
+  Widget _buildHeroLangToggle() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Language toggle (EN | ES)
-          ValueListenableBuilder<Locale>(
-            valueListenable: LocaleController().locale,
-            builder: (context, locale, _) {
-              final controller = LocaleController();
-              final isSpanish = controller.isSpanish;
-              return Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .surfaceContainerHighest
-                      .withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _quickLangLabel('EN', !isSpanish),
-                    Transform.scale(
-                      scale: 0.65,
-                      child: Switch(
-                        value: isSpanish,
-                        onChanged: (value) => controller.setLocale(
-                          value ? const Locale('es') : const Locale('en'),
-                        ),
-                        activeColor: WandererTheme.primaryOrange,
-                        inactiveThumbColor: WandererTheme.primaryOrange,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
+      child: ValueListenableBuilder<Locale>(
+        valueListenable: LocaleController().locale,
+        builder: (context, locale, _) {
+          final controller = LocaleController();
+          final isSpanish = controller.isSpanish;
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withOpacity(0.6),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _quickLangLabel('EN', !isSpanish),
+                Transform.scale(
+                  scale: 0.65,
+                  child: Switch(
+                    value: isSpanish,
+                    onChanged: (value) => controller.setLocale(
+                      value ? const Locale('es') : const Locale('en'),
                     ),
-                    _quickLangLabel('ES', isSpanish),
-                  ],
+                    activeColor: WandererTheme.primaryOrange,
+                    inactiveThumbColor: WandererTheme.primaryOrange,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                 ),
-              );
-            },
-          ),
-          const SizedBox(width: 4),
-          // Dark / light mode toggle
-          ValueListenableBuilder<ThemeMode>(
-            valueListenable: ThemeController().themeMode,
-            builder: (context, mode, _) {
-              final isDark = mode == ThemeMode.dark;
-              return IconButton(
-                icon: Icon(
-                  isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                  color: WandererTheme.primaryOrange,
-                  size: 20,
-                ),
-                tooltip:
-                    isDark ? l10n.switchToLightMode : l10n.switchToDarkMode,
-                onPressed: () => ThemeController().setDarkMode(!isDark),
-                visualDensity: VisualDensity.compact,
-                constraints: const BoxConstraints(
-                  minWidth: 32,
-                  minHeight: 32,
-                ),
-                padding: EdgeInsets.zero,
-              );
-            },
-          ),
-        ],
+                _quickLangLabel('ES', isSpanish),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Compact dark/light mode toggle for the guest hero overlay (top-right).
+  Widget _buildHeroThemeToggle(AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      child: ValueListenableBuilder<ThemeMode>(
+        valueListenable: ThemeController().themeMode,
+        builder: (context, mode, _) {
+          final isDark = mode == ThemeMode.dark;
+          return IconButton(
+            icon: Icon(
+              isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+              color: WandererTheme.primaryOrange,
+              size: 20,
+            ),
+            tooltip: isDark ? l10n.switchToLightMode : l10n.switchToDarkMode,
+            onPressed: () => ThemeController().setDarkMode(!isDark),
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            padding: EdgeInsets.zero,
+          );
+        },
       ),
     );
   }
@@ -1734,11 +1726,17 @@ class _HomeScreenState extends State<HomeScreen>
                                   ],
                                 ),
                               ),
-                              // Quick controls overlay — top-right corner
+                              // Language toggle — top-left corner
+                              Positioned(
+                                top: 8,
+                                left: 8,
+                                child: _buildHeroLangToggle(),
+                              ),
+                              // Dark/light mode toggle — top-right corner
                               Positioned(
                                 top: 8,
                                 right: 8,
-                                child: _buildQuickControls(l10n),
+                                child: _buildHeroThemeToggle(l10n),
                               ),
                             ],
                           ),
