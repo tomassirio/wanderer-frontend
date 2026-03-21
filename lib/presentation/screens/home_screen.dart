@@ -794,7 +794,8 @@ class _HomeScreenState extends State<HomeScreen>
           ValueListenableBuilder<Locale>(
             valueListenable: LocaleController().locale,
             builder: (context, locale, _) {
-              final isSpanish = LocaleController().isSpanish;
+              final controller = LocaleController();
+              final isSpanish = controller.isSpanish;
               return Container(
                 decoration: BoxDecoration(
                   color: Theme.of(context)
@@ -813,7 +814,7 @@ class _HomeScreenState extends State<HomeScreen>
                       scale: 0.75,
                       child: Switch(
                         value: isSpanish,
-                        onChanged: (value) => LocaleController().setLocale(
+                        onChanged: (value) => controller.setLocale(
                           value ? const Locale('es') : const Locale('en'),
                         ),
                         activeColor: WandererTheme.primaryOrange,
