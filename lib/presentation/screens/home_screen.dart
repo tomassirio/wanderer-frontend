@@ -786,9 +786,10 @@ class _HomeScreenState extends State<HomeScreen>
   /// Shown at the top of the home screen content area for quick access.
   Widget _buildQuickControls(AppLocalizations l10n) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Language toggle (EN | ES)
           ValueListenableBuilder<Locale>(
@@ -802,16 +803,16 @@ class _HomeScreenState extends State<HomeScreen>
                       .colorScheme
                       .surfaceContainerHighest
                       .withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _quickLangLabel('EN', !isSpanish),
                     Transform.scale(
-                      scale: 0.75,
+                      scale: 0.65,
                       child: Switch(
                         value: isSpanish,
                         onChanged: (value) => controller.setLocale(
@@ -828,7 +829,7 @@ class _HomeScreenState extends State<HomeScreen>
               );
             },
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           // Dark / light mode toggle
           ValueListenableBuilder<ThemeMode>(
             valueListenable: ThemeController().themeMode,
@@ -838,11 +839,16 @@ class _HomeScreenState extends State<HomeScreen>
                 icon: Icon(
                   isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
                   color: WandererTheme.primaryOrange,
+                  size: 20,
                 ),
                 tooltip:
                     isDark ? l10n.switchToLightMode : l10n.switchToDarkMode,
                 onPressed: () => ThemeController().setDarkMode(!isDark),
                 visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints(
+                  minWidth: 32,
+                  minHeight: 32,
+                ),
                 padding: EdgeInsets.zero,
               );
             },
@@ -860,7 +866,7 @@ class _HomeScreenState extends State<HomeScreen>
             ? WandererTheme.primaryOrange
             : Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
         fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-        fontSize: 13,
+        fontSize: 11,
       ),
     );
   }
