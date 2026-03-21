@@ -701,7 +701,7 @@ class AppLocalizations {
   String get happeningRightNow =>
       _isEs ? 'Ocurriendo ahora mismo' : 'Happening right now';
   String get friendsTripsSection =>
-      _isEs ? 'Viajes de Amigos' : 'Friends\' Trips';
+      _isEs ? 'Viajes de Amigos' : "Friends' Trips";
   String get fromYourFriends =>
       _isEs ? 'De tus amigos' : 'From your friends';
   String get fromUsersYouFollow =>
