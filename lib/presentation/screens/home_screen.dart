@@ -697,12 +697,12 @@ class _HomeScreenState extends State<HomeScreen>
       builder: (context) => AlertDialog(
         title: Text(l10n.deleteTrip),
         content: Text(
-          'Are you sure you want to delete "${trip.name}"? This action cannot be undone.',
+          '${l10n.deleteTripConfirm} "${trip.name}"? ${l10n.deleteTripWarning}',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -710,7 +710,7 @@ class _HomeScreenState extends State<HomeScreen>
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -867,6 +867,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildFilterChips() {
     final bool isMyTripsTab = _tabController.index == 2;
+    final l10n = context.l10n;
 
     return Container(
       width: double.infinity,
@@ -881,8 +882,8 @@ class _HomeScreenState extends State<HomeScreen>
           _buildFilterChipButton<TripStatus?>(
             value: _statusFilter,
             label: _statusFilter == null
-                ? 'All Status'
-                : _getStatusLabel(_statusFilter!),
+                ? l10n.allStatus
+                : _getStatusLabel(_statusFilter!, l10n),
             icon: _getStatusIcon(_statusFilter),
             iconColor: _getStatusColor(_statusFilter),
             isActive: _statusFilter != null,
@@ -901,7 +902,7 @@ class _HomeScreenState extends State<HomeScreen>
                   children: [
                     Icon(Icons.all_inclusive, size: 18, color: Colors.grey),
                     const SizedBox(width: 8),
-                    const Text('All Status'),
+                    Text(l10n.allStatus),
                   ],
                 ),
               ),
@@ -911,7 +912,7 @@ class _HomeScreenState extends State<HomeScreen>
                   children: [
                     Icon(Icons.circle, size: 18, color: Colors.green),
                     const SizedBox(width: 8),
-                    const Text('Live'),
+                    Text(l10n.live),
                   ],
                 ),
               ),
@@ -921,7 +922,7 @@ class _HomeScreenState extends State<HomeScreen>
                   children: [
                     Icon(Icons.pause, size: 18, color: Colors.orange),
                     const SizedBox(width: 8),
-                    const Text('Paused'),
+                    Text(l10n.paused),
                   ],
                 ),
               ),
@@ -936,7 +937,7 @@ class _HomeScreenState extends State<HomeScreen>
                         color: Colors.blue,
                       ),
                       const SizedBox(width: 8),
-                      const Text('Completed'),
+                      Text(l10n.completed),
                     ],
                   ),
                 ),
@@ -946,7 +947,7 @@ class _HomeScreenState extends State<HomeScreen>
                     children: [
                       Icon(Icons.edit_outlined, size: 18, color: Colors.grey),
                       const SizedBox(width: 8),
-                      const Text('Draft'),
+                      Text(l10n.draft),
                     ],
                   ),
                 ),
@@ -959,8 +960,8 @@ class _HomeScreenState extends State<HomeScreen>
             _buildFilterChipButton<Visibility?>(
               value: _visibilityFilter,
               label: _visibilityFilter == null
-                  ? 'All Visibility'
-                  : _getVisibilityLabel(_visibilityFilter!),
+                  ? l10n.allVisibility
+                  : _getVisibilityLabel(_visibilityFilter!, l10n),
               icon: _getVisibilityIcon(_visibilityFilter),
               iconColor: _getVisibilityColor(_visibilityFilter),
               isActive: _visibilityFilter != null,
@@ -979,7 +980,7 @@ class _HomeScreenState extends State<HomeScreen>
                     children: [
                       Icon(Icons.all_inclusive, size: 18, color: Colors.grey),
                       const SizedBox(width: 8),
-                      const Text('All Visibility'),
+                      Text(l10n.allVisibility),
                     ],
                   ),
                 ),
@@ -989,7 +990,7 @@ class _HomeScreenState extends State<HomeScreen>
                     children: [
                       Icon(Icons.public, size: 18, color: Colors.green),
                       const SizedBox(width: 8),
-                      const Text('Public'),
+                      Text(l10n.publicVisibility),
                     ],
                   ),
                 ),
@@ -999,7 +1000,7 @@ class _HomeScreenState extends State<HomeScreen>
                     children: [
                       Icon(Icons.lock_outline, size: 18, color: Colors.orange),
                       const SizedBox(width: 8),
-                      const Text('Protected'),
+                      Text(l10n.protectedVisibility),
                     ],
                   ),
                 ),
@@ -1009,7 +1010,7 @@ class _HomeScreenState extends State<HomeScreen>
                     children: [
                       Icon(Icons.lock, size: 18, color: Colors.red),
                       const SizedBox(width: 8),
-                      const Text('Private'),
+                      Text(l10n.privateVisibility),
                     ],
                   ),
                 ),
@@ -1053,18 +1054,18 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  String _getStatusLabel(TripStatus status) {
+  String _getStatusLabel(TripStatus status, AppLocalizations l10n) {
     switch (status) {
       case TripStatus.inProgress:
-        return 'Live';
+        return l10n.live;
       case TripStatus.paused:
-        return 'Paused';
+        return l10n.paused;
       case TripStatus.finished:
-        return 'Completed';
+        return l10n.completed;
       case TripStatus.created:
-        return 'Draft';
+        return l10n.draft;
       case TripStatus.resting:
-        return 'Resting';
+        return l10n.resting;
     }
   }
 
@@ -1092,19 +1093,20 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  String _getVisibilityLabel(Visibility visibility) {
+  String _getVisibilityLabel(Visibility visibility, AppLocalizations l10n) {
     switch (visibility) {
       case Visibility.public:
-        return 'Public';
+        return l10n.publicVisibility;
       case Visibility.protected:
-        return 'Protected';
+        return l10n.protectedVisibility;
       case Visibility.private:
-        return 'Private';
+        return l10n.privateVisibility;
     }
   }
 
   Widget _buildMyTripsTab() {
     final filteredTrips = _getFilteredTrips(_myTrips);
+    final l10n = context.l10n;
 
     // Group trips by status
     // Resting trips are shown alongside active trips (like live, but with a resting badge)
@@ -1134,7 +1136,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              'No trips yet',
+              l10n.noTripsYet,
               style: TextStyle(
                 fontSize: 18,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
@@ -1142,7 +1144,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              'Create your first trip to get started!',
+              l10n.createYourFirstTrip,
               style: TextStyle(
                 fontSize: 14,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
@@ -1165,10 +1167,10 @@ class _HomeScreenState extends State<HomeScreen>
         children: [
           if (activeTrips.isNotEmpty) ...[
             FeedSectionHeader(
-              title: 'Active Trips',
+              title: l10n.activeTripsSection,
               icon: Icons.location_on,
               count: activeTrips.length,
-              subtitle: 'Currently in progress',
+              subtitle: l10n.currentlyInProgress,
             ),
             const SizedBox(height: 12),
             _buildTripGrid(activeTrips, showDelete: true),
@@ -1176,10 +1178,10 @@ class _HomeScreenState extends State<HomeScreen>
           ],
           if (pausedTrips.isNotEmpty) ...[
             FeedSectionHeader(
-              title: 'Paused Trips',
+              title: l10n.pausedTripsSection,
               icon: Icons.pause_circle_outline,
               count: pausedTrips.length,
-              subtitle: 'Temporarily stopped',
+              subtitle: l10n.temporarilyStopped,
             ),
             const SizedBox(height: 12),
             _buildTripGrid(pausedTrips, showDelete: true),
@@ -1187,10 +1189,10 @@ class _HomeScreenState extends State<HomeScreen>
           ],
           if (draftTrips.isNotEmpty) ...[
             FeedSectionHeader(
-              title: 'Draft Trips',
+              title: l10n.draftTripsSection,
               icon: Icons.edit_outlined,
               count: draftTrips.length,
-              subtitle: 'Not yet started',
+              subtitle: l10n.notYetStarted,
             ),
             const SizedBox(height: 12),
             _buildTripGrid(draftTrips, showDelete: true),
@@ -1198,10 +1200,10 @@ class _HomeScreenState extends State<HomeScreen>
           ],
           if (completedTrips.isNotEmpty) ...[
             FeedSectionHeader(
-              title: 'Completed Trips',
+              title: l10n.completedTripsSection,
               icon: Icons.check_circle_outline,
               count: completedTrips.length,
-              subtitle: 'Finished adventures',
+              subtitle: l10n.finishedAdventures,
             ),
             const SizedBox(height: 12),
             _buildTripGrid(completedTrips, showDelete: true),
@@ -1213,6 +1215,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildFeedTab() {
     final filteredTrips = _getFilteredTrips(_feedTrips);
+    final l10n = context.l10n;
 
     // Group by live (including resting) and other
     final liveTrips = filteredTrips
@@ -1252,7 +1255,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              'No trips in your feed',
+              l10n.noTripsInYourFeed,
               style: TextStyle(
                 fontSize: 18,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
@@ -1260,7 +1263,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              'Follow users or add friends to see their trips!',
+              l10n.followUsersToSeeFeed,
               style: TextStyle(
                 fontSize: 14,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
@@ -1284,10 +1287,10 @@ class _HomeScreenState extends State<HomeScreen>
         children: [
           if (liveTrips.isNotEmpty) ...[
             FeedSectionHeader(
-              title: 'Live Now',
+              title: l10n.liveNow,
               icon: Icons.flash_on,
               count: liveTrips.length,
-              subtitle: 'Happening right now',
+              subtitle: l10n.happeningRightNow,
             ),
             const SizedBox(height: 12),
             _buildTripGrid(liveTrips, showRelationship: true),
@@ -1295,10 +1298,10 @@ class _HomeScreenState extends State<HomeScreen>
           ],
           if (friendsTrips.isNotEmpty) ...[
             FeedSectionHeader(
-              title: 'Friends\' Trips',
+              title: l10n.friendsTripsSection,
               icon: Icons.people,
               count: friendsTrips.length,
-              subtitle: 'From your friends',
+              subtitle: l10n.fromYourFriends,
             ),
             const SizedBox(height: 12),
             _buildTripGrid(
@@ -1310,10 +1313,10 @@ class _HomeScreenState extends State<HomeScreen>
           ],
           if (followingTrips.isNotEmpty) ...[
             FeedSectionHeader(
-              title: 'Following',
+              title: l10n.following,
               icon: Icons.person_add_alt_1,
               count: followingTrips.length,
-              subtitle: 'From users you follow',
+              subtitle: l10n.fromUsersYouFollow,
             ),
             const SizedBox(height: 12),
             _buildTripGrid(
@@ -1485,6 +1488,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildLoadMoreTripsButton() {
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Center(
@@ -1503,9 +1507,9 @@ class _HomeScreenState extends State<HomeScreen>
                   Icons.expand_more,
                   color: WandererTheme.primaryOrange,
                 ),
-                label: const Text(
-                  'Load more trips',
-                  style: TextStyle(color: WandererTheme.primaryOrange),
+                label: Text(
+                  l10n.loadMoreTrips,
+                  style: const TextStyle(color: WandererTheme.primaryOrange),
                 ),
               ),
       ),
@@ -1922,7 +1926,7 @@ class _HomeScreenState extends State<HomeScreen>
                             child: FloatingActionButton.extended(
                               onPressed: _navigateToCreateTrip,
                               icon: const Icon(Icons.add),
-                              label: const Text('New Trip'),
+                              label: Text(l10n.newTrip),
                             ),
                           ),
                       ],

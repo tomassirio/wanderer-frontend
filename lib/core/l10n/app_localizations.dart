@@ -679,4 +679,41 @@ class AppLocalizations {
       _isEs ? 'Visible para todos' : 'Visible to everyone';
   String get protectedVisibilityHint =>
       _isEs ? 'Visible solo para amigos' : 'Visible to friends only';
+
+  // --- Home screen sections / filter chips ---
+  String get activeTripsSection =>
+      _isEs ? 'Viajes Activos' : 'Active Trips';
+  String get currentlyInProgress =>
+      _isEs ? 'Actualmente en curso' : 'Currently in progress';
+  String get pausedTripsSection =>
+      _isEs ? 'Viajes Pausados' : 'Paused Trips';
+  String get temporarilyStopped =>
+      _isEs ? 'Temporalmente detenido' : 'Temporarily stopped';
+  String get draftTripsSection =>
+      _isEs ? 'Viajes Borrador' : 'Draft Trips';
+  String get notYetStarted =>
+      _isEs ? 'Aún no comenzado' : 'Not yet started';
+  String get completedTripsSection =>
+      _isEs ? 'Viajes Completados' : 'Completed Trips';
+  String get finishedAdventures =>
+      _isEs ? 'Aventuras terminadas' : 'Finished adventures';
+  String get liveNow => _isEs ? 'En Vivo Ahora' : 'Live Now';
+  String get happeningRightNow =>
+      _isEs ? 'Ocurriendo ahora mismo' : 'Happening right now';
+  String get friendsTripsSection =>
+      _isEs ? 'Viajes de Amigos' : 'Friends\' Trips';
+  String get fromYourFriends =>
+      _isEs ? 'De tus amigos' : 'From your friends';
+  String get fromUsersYouFollow =>
+      _isEs ? 'De usuarios que sigues' : 'From users you follow';
+  String get createYourFirstTrip =>
+      _isEs ? '¡Crea tu primer viaje para comenzar!' : 'Create your first trip to get started!';
+  String get noTripsInYourFeed =>
+      _isEs ? 'No hay viajes en tu feed' : 'No trips in your feed';
+  String get followUsersToSeeFeed =>
+      _isEs ? '¡Sigue usuarios o añade amigos para ver sus viajes!' : 'Follow users or add friends to see their trips!';
+  String get deleteTripConfirm =>
+      _isEs ? '¿Estás seguro de que quieres eliminar' : 'Are you sure you want to delete';
+  String get deleteTripWarning =>
+      _isEs ? 'Esta acción no se puede deshacer.' : 'This action cannot be undone.';
 }
