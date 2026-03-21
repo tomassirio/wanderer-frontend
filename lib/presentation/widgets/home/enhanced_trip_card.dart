@@ -144,6 +144,10 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
               color: Colors.deepPurple.shade700,
             ),
           ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildDayBadge(int day) {
     return Container(
