@@ -257,7 +257,7 @@ class AppSidebar extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  _buildLanguageToggle(isSpanish),
+                  if (isLoggedIn) _buildLanguageToggle(isSpanish),
                 ],
               ),
               // Username
