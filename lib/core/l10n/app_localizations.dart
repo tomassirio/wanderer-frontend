@@ -712,8 +712,6 @@ class AppLocalizations {
       _isEs ? 'No hay viajes en tu feed' : 'No trips in your feed';
   String get followUsersToSeeFeed =>
       _isEs ? '¡Sigue usuarios o añade amigos para ver sus viajes!' : 'Follow users or add friends to see their trips!';
-  String get deleteTripConfirm =>
-      _isEs ? '¿Estás seguro de que quieres eliminar' : 'Are you sure you want to delete';
   String get deleteTripWarning =>
       _isEs ? 'Esta acción no se puede deshacer.' : 'This action cannot be undone.';
 }
