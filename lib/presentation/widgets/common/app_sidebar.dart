@@ -174,7 +174,7 @@ class AppSidebar extends StatelessWidget {
   }
 
   /// Custom drawer header that replicates [UserAccountsDrawerHeader] styling
-  /// and adds a language switch at the bottom-left corner.
+  /// and places the language switch inline with the display name row.
   Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
     final isLoggedIn = username != null;
     final isSpanish = LocaleController().isSpanish;
@@ -242,14 +242,23 @@ class AppSidebar extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              // Display name
-              Text(
-                displayName ?? username ?? l10n.guest,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
+              // Display name + language toggle on the same row
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      displayName ?? username ?? l10n.guest,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  _buildLanguageToggle(isSpanish),
+                ],
               ),
               // Username
               if (isLoggedIn)
@@ -261,8 +270,6 @@ class AppSidebar extends StatelessWidget {
                   ),
                 ),
               const SizedBox(height: 4),
-              // Language toggle — bottom-left corner of the orange block
-              _buildLanguageToggle(isSpanish),
             ],
           ),
         ),

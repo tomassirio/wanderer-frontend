@@ -1649,78 +1649,88 @@ class _HomeScreenState extends State<HomeScreen>
                   ? SingleChildScrollView(
                       child: Column(
                         children: [
-                          _buildQuickControls(l10n),
-                          // Hero section with better visuals
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 48,
-                              horizontal: 24,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Theme.of(context)
-                                      .colorScheme
-                                      .primary
-                                      .withOpacity(0.1),
-                                  Theme.of(context)
-                                      .colorScheme
-                                      .primary
-                                      .withOpacity(0.05),
-                                ],
+                          // Hero section — quick controls overlaid top-right
+                          Stack(
+                            children: [
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 48,
+                                  horizontal: 24,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withOpacity(0.1),
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withOpacity(0.05),
+                                    ],
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    const WandererLogo(size: 110),
+                                    const SizedBox(height: 24),
+                                    Text(
+                                      l10n.welcomeToWanderer,
+                                      style: const TextStyle(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: -1,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      l10n.trackAdventures,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withOpacity(0.6),
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 32),
+                                    ElevatedButton(
+                                      onPressed: _navigateToAuth,
+                                      style: ElevatedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 40,
+                                          vertical: 16,
+                                        ),
+                                        elevation: 2,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        l10n.logIn,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            child: Column(
-                              children: [
-                                const WandererLogo(size: 110),
-                                const SizedBox(height: 24),
-                                Text(
-                                  l10n.welcomeToWanderer,
-                                  style: const TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: -1,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  l10n.trackAdventures,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withOpacity(0.6),
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 32),
-                                ElevatedButton(
-                                  onPressed: _navigateToAuth,
-                                  style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 40,
-                                      vertical: 16,
-                                    ),
-                                    elevation: 2,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    l10n.logIn,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                              // Quick controls overlay — top-right corner
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: _buildQuickControls(l10n),
+                              ),
+                            ],
                           ),
                           // Discover section with better header
                           Container(
@@ -1790,7 +1800,6 @@ class _HomeScreenState extends State<HomeScreen>
                       children: [
                         Column(
                           children: [
-                            _buildQuickControls(l10n),
                             _buildFilterChips(),
                             Expanded(
                               child: TabBarView(

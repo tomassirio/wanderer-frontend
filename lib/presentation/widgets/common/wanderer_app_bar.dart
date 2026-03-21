@@ -307,8 +307,8 @@ class _WandererAppBarState extends State<WandererAppBar>
               ],
             ),
       actions: [
-        // Dark mode toggle — hidden while search is expanded
-        if (!_isSearchExpanded)
+        // Dark mode toggle — only for logged in users; hidden while search is expanded
+        if (!_isSearchExpanded && widget.isLoggedIn)
           ValueListenableBuilder<ThemeMode>(
             valueListenable: ThemeController().themeMode,
             builder: (context, mode, _) {
@@ -323,8 +323,8 @@ class _WandererAppBarState extends State<WandererAppBar>
               );
             },
           ),
-        // Search icon (hidden while search is expanded — close is inside the bar)
-        if (!_isSearchExpanded)
+        // Search icon — only for logged in users (hidden while search is expanded)
+        if (!_isSearchExpanded && widget.isLoggedIn)
           IconButton(
             icon: const Icon(Icons.search),
             tooltip: l10n.search,
