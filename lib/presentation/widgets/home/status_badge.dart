@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart' show TripStatus;
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 
 /// Badge widget that displays trip status with live indicator
@@ -53,6 +54,7 @@ class _StatusBadgeState extends State<StatusBadge>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       padding: widget.compact
           ? const EdgeInsets.symmetric(horizontal: 8, vertical: 4)
@@ -103,7 +105,7 @@ class _StatusBadgeState extends State<StatusBadge>
           if (!widget.compact) ...[
             const SizedBox(width: 6),
             Text(
-              _getLabel(),
+              _getLabel(l10n),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
@@ -131,18 +133,18 @@ class _StatusBadgeState extends State<StatusBadge>
     }
   }
 
-  String _getLabel() {
+  String _getLabel(AppLocalizations l10n) {
     switch (widget.status) {
       case TripStatus.created:
-        return 'Draft';
+        return l10n.draft;
       case TripStatus.inProgress:
-        return 'Live';
+        return l10n.live;
       case TripStatus.paused:
-        return 'Paused';
+        return l10n.paused;
       case TripStatus.finished:
-        return 'Completed';
+        return l10n.completed;
       case TripStatus.resting:
-        return 'Resting';
+        return l10n.resting;
     }
   }
 

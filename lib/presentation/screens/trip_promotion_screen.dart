@@ -12,6 +12,7 @@ import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Trip Promotion Management screen for admins
 class TripPromotionScreen extends StatefulWidget {
@@ -189,6 +190,7 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
   }
 
   Future<void> _promoteTrip(Trip trip) async {
+    final l10n = context.l10n;
     final donationLinkController = TextEditingController();
     bool isPreAnnounced = false;
     DateTime? countdownStartDate;
@@ -201,7 +203,7 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
             final isMobile = MediaQuery.of(context).size.width < 600;
 
             return AlertDialog(
-              title: const Text('Promote Trip'),
+              title: Text(l10n.promoteTripTitle),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -222,10 +224,10 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
                     const SizedBox(height: 16),
                     TextField(
                       controller: donationLinkController,
-                      decoration: const InputDecoration(
-                        labelText: 'Donation Link (optional)',
+                      decoration: InputDecoration(
+                        labelText: l10n.donationLink,
                         hintText: 'https://...',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                         isDense: true,
                       ),
                       maxLength: 500,
@@ -245,18 +247,18 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
+                            children: [
                               Text(
-                                'Pre-Announce',
-                                style: TextStyle(
+                                l10n.preAnnounce,
+                                style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: WandererTheme.textPrimary,
                                 ),
                               ),
                               Text(
-                                'Show countdown before trip starts',
-                                style: TextStyle(
+                                l10n.showCountdown,
+                                style: const TextStyle(
                                   fontSize: 11,
                                   color: WandererTheme.textSecondary,
                                 ),
@@ -304,11 +306,11 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
                         ),
                       ),
                       if (countdownStartDate == null)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 4),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
                           child: Text(
-                            'Start date is required for pre-announcements',
-                            style: TextStyle(
+                            l10n.startDateRequired,
+                            style: const TextStyle(
                               color: Colors.red,
                               fontSize: 11,
                             ),
@@ -321,13 +323,13 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.cancel),
                 ),
                 ElevatedButton(
                   onPressed: isPreAnnounced && countdownStartDate == null
                       ? null
                       : () => Navigator.pop(context, true),
-                  child: const Text('Promote'),
+                  child: Text(l10n.promote),
                 ),
               ],
             );
@@ -359,22 +361,23 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
   }
 
   Future<void> _unpromoteTrip(String tripId) async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Unpromote Trip'),
-        content: const Text('Are you sure you want to unpromote this trip?'),
+        title: Text(l10n.unpromoteTripTitle),
+        content: Text(l10n.unpromoteConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
             ),
-            child: const Text('Unpromote'),
+            child: Text(l10n.unpromote),
           ),
         ],
       ),
@@ -461,6 +464,7 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
   }
 
   Widget _buildBody() {
+    final l10n = context.l10n;
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -482,7 +486,7 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadTrips,
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -517,6 +521,7 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
   }
 
   Widget _buildPromotedTripsSection(bool isMobile) {
+    final l10n = context.l10n;
     final cardPadding = isMobile ? 12.0 : 16.0;
     final titleFontSize = isMobile ? 18.0 : 20.0;
 
@@ -532,7 +537,7 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Currently Promoted Trips',
+                    l10n.currentlyPromotedTrips,
                     style: TextStyle(
                       fontSize: titleFontSize,
                       fontWeight: FontWeight.bold,
@@ -545,12 +550,12 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
             if (_isLoadingPromoted)
               const Center(child: CircularProgressIndicator())
             else if (_promotedTrips.isEmpty)
-              const Center(
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.all(32),
+                  padding: const EdgeInsets.all(32),
                   child: Text(
-                    'No promoted trips',
-                    style: TextStyle(color: Colors.grey),
+                    l10n.noPromotedTrips,
+                    style: const TextStyle(color: Colors.grey),
                   ),
                 ),
               )
@@ -572,6 +577,7 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
   }
 
   Widget _buildPromotedTripItem(PromotedTrip promoted, bool isMobile) {
+    final l10n = context.l10n;
     return InkWell(
       onTap: () => _navigateToTrip(promoted.tripId),
       child: Padding(
@@ -623,7 +629,7 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
             IconButton(
               icon: const Icon(Icons.remove_circle, color: Colors.red),
               onPressed: () => _unpromoteTrip(promoted.tripId),
-              tooltip: 'Unpromote',
+              tooltip: l10n.unpromote,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
@@ -634,6 +640,7 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
   }
 
   Widget _buildPromotableTripsSection(bool isMobile) {
+    final l10n = context.l10n;
     final cardPadding = isMobile ? 12.0 : 16.0;
     final titleFontSize = isMobile ? 18.0 : 20.0;
 
@@ -649,7 +656,7 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Promotable Trips',
+                    l10n.promotableTrips,
                     style: TextStyle(
                       fontSize: titleFontSize,
                       fontWeight: FontWeight.bold,
@@ -660,7 +667,7 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Public trips that are created, in progress, or paused',
+              l10n.publicTripsNote,
               style: TextStyle(
                 color: Colors.grey,
                 fontSize: isMobile ? 12 : 14,
@@ -669,23 +676,23 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: _searchController,
-              decoration: const InputDecoration(
-                labelText: 'Search trips',
-                hintText: 'Search by trip name or username',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.searchTrips,
+                hintText: l10n.searchTripsByNameOrUser,
+                prefixIcon: const Icon(Icons.search),
+                border: const OutlineInputBorder(),
                 isDense: true,
               ),
               textCapitalization: TextCapitalization.sentences,
             ),
             const SizedBox(height: 16),
             if (_filteredTrips.isEmpty)
-              const Center(
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.all(32),
+                  padding: const EdgeInsets.all(32),
                   child: Text(
-                    'No promotable trips found',
-                    style: TextStyle(color: Colors.grey),
+                    l10n.noPromotableTripsFound,
+                    style: const TextStyle(color: Colors.grey),
                   ),
                 ),
               )
@@ -721,10 +728,10 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
                             Icons.expand_more,
                             color: WandererTheme.primaryOrange,
                           ),
-                          label: const Text(
-                            'Load more trips',
-                            style:
-                                TextStyle(color: WandererTheme.primaryOrange),
+                          label: Text(
+                            l10n.loadMoreTrips,
+                            style: const TextStyle(
+                                color: WandererTheme.primaryOrange),
                           ),
                         ),
                 ),
@@ -748,6 +755,7 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
   }
 
   Widget _buildMobileTripItem(Trip trip, bool isPromoted) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -799,11 +807,11 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
                     backgroundColor: Colors.red.shade400,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Unpromote'),
+                  child: Text(l10n.unpromote),
                 )
               : ElevatedButton(
                   onPressed: () => _promoteTrip(trip),
-                  child: const Text('Promote'),
+                  child: Text(l10n.promote),
                 ),
         ),
       ],
@@ -811,6 +819,7 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
   }
 
   Widget _buildDesktopTripItem(Trip trip, bool isPromoted) {
+    final l10n = context.l10n;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -857,15 +866,15 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
                     backgroundColor: Colors.red.shade400,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text(
-                    'Unpromote',
+                  child: Text(
+                    l10n.unpromote,
                     textAlign: TextAlign.center,
                   ),
                 )
               : ElevatedButton(
                   onPressed: () => _promoteTrip(trip),
-                  child: const Text(
-                    'Promote',
+                  child: Text(
+                    l10n.promote,
                     textAlign: TextAlign.center,
                   ),
                 ),

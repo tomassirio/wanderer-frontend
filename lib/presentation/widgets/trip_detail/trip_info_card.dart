@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/achievement_models.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
@@ -101,6 +102,7 @@ class TripInfoCard extends StatelessWidget {
 
   /// Expanded state - full info card
   Widget _buildExpandedCard(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -150,7 +152,7 @@ class TripInfoCard extends StatelessWidget {
                       decoration: WandererTheme.statusChipDecoration(
                           trip.status.toJson()),
                       child: Text(
-                        trip.status.displayLabel,
+                        _localizedStatus(context),
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
@@ -279,18 +281,18 @@ class TripInfoCard extends StatelessWidget {
                           color: Colors.amber.shade700,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.star,
                               size: 13,
                               color: Colors.white,
                             ),
-                            SizedBox(width: 4),
+                            const SizedBox(width: 4),
                             Text(
-                              'Promoted',
-                              style: TextStyle(
+                              l10n.promoted,
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -417,7 +419,7 @@ class TripInfoCard extends StatelessWidget {
                       _buildStatChip(
                         context,
                         _getVisibilityIcon(trip.visibility.toJson()),
-                        trip.visibility.toJson(),
+                        _localizedVisibility(context),
                       ),
                     // Day badge pushed to the right for multi-day trips
                     if (trip.tripModality == TripModality.multiDay &&
@@ -434,7 +436,7 @@ class TripInfoCard extends StatelessWidget {
                           ),
                         ),
                         child: Text(
-                          'Day ${trip.currentDay}',
+                          l10n.dayNumber(trip.currentDay!),
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
@@ -505,7 +507,7 @@ class TripInfoCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Achievements Earned',
+                              l10n.achievementsEarned,
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -563,7 +565,8 @@ class TripInfoCard extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            userAchievement.achievement.name,
+            context.l10n.achievementNameFor(
+                userAchievement.achievement.type.toJson()),
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
@@ -574,7 +577,8 @@ class TripInfoCard extends StatelessWidget {
       ),
     );
 
-    final description = userAchievement.achievement.description;
+    final description = context.l10n.achievementDescriptionFor(
+        userAchievement.achievement.type.toJson());
 
     if (kIsWeb) {
       return Tooltip(
@@ -625,7 +629,8 @@ class TripInfoCard extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                userAchievement.achievement.name,
+                context.l10n.achievementNameFor(
+                    userAchievement.achievement.type.toJson()),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -636,7 +641,8 @@ class TripInfoCard extends StatelessWidget {
           ],
         ),
         content: Text(
-          userAchievement.achievement.description,
+          context.l10n.achievementDescriptionFor(
+              userAchievement.achievement.type.toJson()),
           style: TextStyle(
             fontSize: 14,
             color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
@@ -647,7 +653,7 @@ class TripInfoCard extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
-              'OK',
+              context.l10n.ok,
               style: TextStyle(color: Colors.amber.shade700),
             ),
           ),
@@ -672,7 +678,7 @@ class TripInfoCard extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             Text(
-              trip.visibility.toJson(),
+              _localizedVisibility(context),
               style: TextStyle(
                 fontSize: 13,
                 color: WandererTheme.primaryOrange,
@@ -692,6 +698,7 @@ class TripInfoCard extends StatelessWidget {
   }
 
   void _showVisibilityPicker(BuildContext context) {
+    final l10n = context.l10n;
     showModalBottomSheet<Visibility>(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -701,11 +708,11 @@ class TripInfoCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
+            Padding(
+              padding: const EdgeInsets.all(16),
               child: Text(
-                'Change Visibility',
-                style: TextStyle(
+                l10n.changeVisibility,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -713,22 +720,22 @@ class TripInfoCard extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.public, color: Colors.green),
-              title: const Text('Public'),
-              subtitle: const Text('Visible to everyone'),
+              title: Text(l10n.publicVisibility),
+              subtitle: Text(l10n.visibleToEveryone),
               selected: trip.visibility == Visibility.public,
               onTap: () => Navigator.pop(context, Visibility.public),
             ),
             ListTile(
               leading: Icon(Icons.shield, color: Colors.orange.shade700),
-              title: const Text('Protected'),
-              subtitle: const Text('Visible to friends only'),
+              title: Text(l10n.protectedVisibility),
+              subtitle: Text(l10n.visibleToFriendsOnly),
               selected: trip.visibility == Visibility.protected,
               onTap: () => Navigator.pop(context, Visibility.protected),
             ),
             ListTile(
               leading: const Icon(Icons.lock, color: Colors.red),
-              title: const Text('Private'),
-              subtitle: const Text('Only visible to you'),
+              title: Text(l10n.privateVisibility),
+              subtitle: Text(l10n.onlyVisibleToYou),
               selected: trip.visibility == Visibility.private,
               onTap: () => Navigator.pop(context, Visibility.private),
             ),
@@ -777,6 +784,34 @@ class TripInfoCard extends StatelessWidget {
         return Icons.shield;
       default:
         return Icons.visibility;
+    }
+  }
+
+  String _localizedStatus(BuildContext context) {
+    final l10n = context.l10n;
+    switch (trip.status) {
+      case TripStatus.created:
+        return l10n.draft;
+      case TripStatus.inProgress:
+        return l10n.live;
+      case TripStatus.paused:
+        return l10n.paused;
+      case TripStatus.finished:
+        return l10n.completed;
+      case TripStatus.resting:
+        return l10n.resting;
+    }
+  }
+
+  String _localizedVisibility(BuildContext context) {
+    final l10n = context.l10n;
+    switch (trip.visibility) {
+      case Visibility.public:
+        return l10n.publicVisibility;
+      case Visibility.protected:
+        return l10n.protectedVisibility;
+      case Visibility.private:
+        return l10n.privateVisibility;
     }
   }
 }

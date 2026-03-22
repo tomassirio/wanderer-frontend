@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter/services.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 
 /// Dialog that collects all parameters needed to create a trip from a plan.
@@ -56,8 +57,9 @@ class _TripFromPlanDialogState extends State<TripFromPlanDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return AlertDialog(
-      title: const Text('Create Trip'),
+      title: Text(l10n.createTripFromPlan),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -67,27 +69,27 @@ class _TripFromPlanDialogState extends State<TripFromPlanDialog> {
             const SizedBox(height: 16),
 
             // Visibility
-            const Text(
-              'Visibility',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Text(
+              l10n.visibility,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             _buildVisibilityOption(
               icon: Icons.public,
-              title: 'Public',
-              subtitle: 'Visible to everyone',
+              title: l10n.publicVisibility,
+              subtitle: l10n.visibleToEveryone,
               value: Visibility.public,
             ),
             _buildVisibilityOption(
               icon: Icons.group,
-              title: 'Protected',
-              subtitle: 'Visible to friends only',
+              title: l10n.protectedVisibility,
+              subtitle: l10n.visibleToFriendsOnly,
               value: Visibility.protected,
             ),
             _buildVisibilityOption(
               icon: Icons.lock,
-              title: 'Private',
-              subtitle: 'Only visible to you',
+              title: l10n.privateVisibility,
+              subtitle: l10n.onlyVisibleToYou,
               value: Visibility.private,
             ),
             const Divider(height: 24),
@@ -99,9 +101,9 @@ class _TripFromPlanDialogState extends State<TripFromPlanDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Automatic Updates',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      Text(
+                        l10n.automaticUpdates,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -149,11 +151,11 @@ class _TripFromPlanDialogState extends State<TripFromPlanDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, null),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         ElevatedButton(
           onPressed: _submit,
-          child: const Text('Create'),
+          child: Text(l10n.create),
         ),
       ],
     );

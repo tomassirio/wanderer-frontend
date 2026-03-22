@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 
 /// Widget for input field to add comments with glassmorphism styling
@@ -20,6 +21,7 @@ class CommentInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -49,7 +51,7 @@ class CommentInput extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Replying to comment',
+                  l10n.replyingToComment,
                   style: TextStyle(
                     fontSize: 12,
                     fontStyle: FontStyle.italic,
@@ -70,7 +72,7 @@ class CommentInput extends StatelessWidget {
                         .withOpacity(0.6),
                   ),
                   onPressed: onCancelReply,
-                  tooltip: 'Cancel reply',
+                  tooltip: l10n.cancelReply,
                 ),
               ],
             ),
@@ -83,7 +85,7 @@ class CommentInput extends StatelessWidget {
                   controller: controller,
                   decoration: InputDecoration(
                     hintText:
-                        isReplyMode ? 'Write a reply...' : 'Write a comment...',
+                        isReplyMode ? l10n.writeAReply : l10n.writeAComment,
                     hintStyle: TextStyle(
                       color: Theme.of(context)
                           .colorScheme

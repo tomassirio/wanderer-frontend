@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/battery_helpers.dart';
@@ -28,6 +29,7 @@ class TripTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     if (isLoading) {
       return Center(
         child: Column(
@@ -39,7 +41,7 @@ class TripTimeline extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Loading timeline...',
+              l10n.loadingTimeline,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 fontSize: 14,
@@ -71,7 +73,7 @@ class TripTimeline extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                'No updates yet',
+                l10n.noUpdatesYet,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -80,7 +82,7 @@ class TripTimeline extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Trip updates will appear here',
+                l10n.tripUpdatesWillAppear,
                 style: TextStyle(
                   fontSize: 14,
                   color:
@@ -91,7 +93,7 @@ class TripTimeline extends StatelessWidget {
               TextButton.icon(
                 onPressed: onRefresh,
                 icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Refresh'),
+                label: Text(l10n.refresh),
                 style: TextButton.styleFrom(
                   foregroundColor: WandererTheme.primaryOrange,
                 ),
@@ -170,9 +172,9 @@ class TripTimeline extends StatelessWidget {
                   Icons.expand_more,
                   color: WandererTheme.primaryOrange,
                 ),
-                label: const Text(
-                  'Load older updates',
-                  style: TextStyle(color: WandererTheme.primaryOrange),
+                label: Text(
+                  context.l10n.loadOlderUpdates,
+                  style: const TextStyle(color: WandererTheme.primaryOrange),
                 ),
               ),
       ),
@@ -254,7 +256,7 @@ class TripTimeline extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        _formatTimestamp(update.timestamp),
+                        _formatTimestamp(context, update.timestamp),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -405,24 +407,24 @@ class TripTimeline extends StatelessWidget {
       case TripUpdateType.dayStart:
         markerColor = WandererTheme.dayStartColor;
         markerIcon = Icons.wb_sunny_rounded;
-        label = 'Day $dayNumber Started';
+        label = context.l10n.dayNStarted(dayNumber);
       case TripUpdateType.dayEnd:
         markerColor = WandererTheme.dayEndColor;
         markerIcon = Icons.nightlight_round;
-        label = 'Day $dayNumber Ended';
+        label = context.l10n.dayNEnded(dayNumber);
       case TripUpdateType.tripStarted:
         markerColor = WandererTheme.tripStartedColor;
         markerIcon = Icons.flag_rounded;
-        label = 'Trip Started';
+        label = context.l10n.tripStartedLabel;
       case TripUpdateType.tripEnded:
         markerColor = WandererTheme.tripEndedColor;
         markerIcon = Icons.sports_score_rounded;
-        label = 'Trip Ended';
+        label = context.l10n.tripEndedLabel;
       case TripUpdateType.regular:
         // Should not reach here; fall back to neutral styling
         markerColor = Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
         markerIcon = Icons.location_on;
-        label = 'Update';
+        label = context.l10n.updateLabel;
     }
 
     return Row(
@@ -505,7 +507,7 @@ class TripTimeline extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        _formatTimestamp(update.timestamp),
+                        _formatTimestamp(context, update.timestamp),
                         style: TextStyle(
                           fontSize: 11,
                           color: markerColor.withOpacity(0.7),
@@ -587,19 +589,20 @@ class TripTimeline extends StatelessWidget {
     );
   }
 
-  String _formatTimestamp(DateTime timestamp) {
+  String _formatTimestamp(BuildContext context, DateTime timestamp) {
     final local = timestamp.toLocal();
     final now = DateTime.now();
     final difference = now.difference(local);
+    final l10n = context.l10n;
 
     if (difference.inMinutes < 1) {
-      return 'Just now';
+      return l10n.justNow;
     } else if (difference.inHours < 1) {
-      return '${difference.inMinutes}m ago';
+      return l10n.minutesAgoCompact(difference.inMinutes);
     } else if (difference.inDays < 1) {
-      return '${difference.inHours}h ago';
+      return l10n.hoursAgoCompact(difference.inHours);
     } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
+      return l10n.daysAgoCompact(difference.inDays);
     } else {
       return '${local.day}/${local.month}/${local.year} ${local.hour}:${local.minute.toString().padLeft(2, '0')}';
     }

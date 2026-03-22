@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/notification_models.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
@@ -122,14 +123,14 @@ class _NotificationsDropdownContentState
     } on AuthenticationRedirectException {
       if (mounted) {
         setState(() {
-          _error = 'Please log in to view notifications';
+          _error = 'auth';
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Failed to load notifications';
+          _error = 'generic';
           _isLoading = false;
         });
       }
@@ -364,6 +365,7 @@ class _NotificationsDropdownContentState
 
   Widget _buildHeader() {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final countLabel = _notifications.isNotEmpty
         ? ' (${_notifications.length}${_hasMore ? '+' : ''})'
         : '';
@@ -372,7 +374,7 @@ class _NotificationsDropdownContentState
       child: Row(
         children: [
           Text(
-            'Notifications$countLabel',
+            '${l10n.notifications}$countLabel',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -384,7 +386,7 @@ class _NotificationsDropdownContentState
             TextButton.icon(
               onPressed: _markAllAsRead,
               icon: const Icon(Icons.done_all, size: 18),
-              label: const Text('Read all', style: TextStyle(fontSize: 13)),
+              label: Text(l10n.readAll, style: const TextStyle(fontSize: 13)),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 visualDensity: VisualDensity.compact,
@@ -405,6 +407,10 @@ class _NotificationsDropdownContentState
 
     if (_error != null) {
       final theme = Theme.of(context);
+      final l10n = context.l10n;
+      final errorText = _error == 'auth'
+          ? l10n.pleaseLogInForNotifications
+          : l10n.failedToLoadNotifications;
       return Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -414,7 +420,7 @@ class _NotificationsDropdownContentState
                 size: 36, color: theme.colorScheme.onSurface.withOpacity(0.4)),
             const SizedBox(height: 8),
             Text(
-              _error!,
+              errorText,
               style: TextStyle(
                   color: theme.colorScheme.onSurface.withOpacity(0.6),
                   fontSize: 13),
@@ -423,7 +429,7 @@ class _NotificationsDropdownContentState
             const SizedBox(height: 8),
             TextButton(
               onPressed: _loadNotifications,
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -432,6 +438,7 @@ class _NotificationsDropdownContentState
 
     if (_notifications.isEmpty) {
       final theme = Theme.of(context);
+      final l10n = context.l10n;
       return Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
@@ -441,7 +448,7 @@ class _NotificationsDropdownContentState
                 size: 48, color: theme.colorScheme.onSurface.withOpacity(0.4)),
             const SizedBox(height: 12),
             Text(
-              'No notifications yet',
+              l10n.noNotificationsYet,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
@@ -450,7 +457,7 @@ class _NotificationsDropdownContentState
             ),
             const SizedBox(height: 4),
             Text(
-              'When you receive notifications,\nthey\'ll appear here',
+              l10n.notificationsWillAppear,
               style: TextStyle(
                   fontSize: 12,
                   color: theme.colorScheme.onSurface.withOpacity(0.5)),
@@ -477,6 +484,7 @@ class _NotificationsDropdownContentState
   }
 
   Widget _buildLoadMoreButton() {
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Center(
@@ -495,9 +503,9 @@ class _NotificationsDropdownContentState
                   Icons.expand_more,
                   color: WandererTheme.primaryOrange,
                 ),
-                label: const Text(
-                  'Load more notifications',
-                  style: TextStyle(color: WandererTheme.primaryOrange),
+                label: Text(
+                  l10n.loadMoreNotifications,
+                  style: const TextStyle(color: WandererTheme.primaryOrange),
                 ),
               ),
       ),

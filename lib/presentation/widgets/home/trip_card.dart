@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
@@ -54,23 +55,30 @@ class _TripCardState extends State<TripCard> {
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
+    final l10n = context.l10n;
 
     if (difference.inDays == 0) {
       if (difference.inHours == 0) {
         if (difference.inMinutes == 0) {
-          return 'Just now';
+          return l10n.justNow;
         }
-        return '${difference.inMinutes} minute${difference.inMinutes == 1 ? '' : 's'} ago';
+        return difference.inMinutes == 1
+            ? l10n.minuteAgo
+            : l10n.minutesAgo(difference.inMinutes);
       }
-      return '${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
+      return difference.inHours == 1
+          ? l10n.hourAgo
+          : l10n.hoursAgo(difference.inHours);
     } else if (difference.inDays < 7) {
-      return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
+      return difference.inDays == 1
+          ? l10n.dayAgo
+          : l10n.daysAgo(difference.inDays);
     } else if (difference.inDays < 30) {
       final weeks = (difference.inDays / 7).floor();
-      return '$weeks week${weeks == 1 ? '' : 's'} ago';
+      return weeks == 1 ? l10n.weekAgo : l10n.weeksAgo(weeks);
     } else if (difference.inDays < 365) {
       final months = (difference.inDays / 30).floor();
-      return '$months month${months == 1 ? '' : 's'} ago';
+      return months == 1 ? l10n.monthAgo : l10n.monthsAgo(months);
     } else {
       return DateFormat('MMM d, yyyy').format(date);
     }
@@ -530,7 +538,7 @@ class _TripCardState extends State<TripCard> {
 
   /// Build colored status badge
   Widget _buildStatusBadge() {
-    final statusText = widget.trip.status.toJson();
+    final l10n = context.l10n;
     final statusColor = _getStatusColor(widget.trip.status);
 
     return Container(
@@ -556,7 +564,7 @@ class _TripCardState extends State<TripCard> {
           ),
           const SizedBox(width: 4),
           Text(
-            _formatStatus(statusText),
+            _formatStatus(widget.trip.status, l10n),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 9,
@@ -724,20 +732,18 @@ class _TripCardState extends State<TripCard> {
   }
 
   /// Format status text for display
-  String _formatStatus(String status) {
-    switch (status.toUpperCase()) {
-      case 'CREATED':
-        return 'DRAFT';
-      case 'IN_PROGRESS':
-        return 'LIVE';
-      case 'PAUSED':
-        return 'PAUSED';
-      case 'FINISHED':
-        return 'DONE';
-      case 'RESTING':
-        return 'RESTING';
-      default:
-        return status.toUpperCase();
+  String _formatStatus(TripStatus status, AppLocalizations l10n) {
+    switch (status) {
+      case TripStatus.created:
+        return l10n.draft.toUpperCase();
+      case TripStatus.inProgress:
+        return l10n.live.toUpperCase();
+      case TripStatus.paused:
+        return l10n.paused.toUpperCase();
+      case TripStatus.finished:
+        return l10n.completed.toUpperCase();
+      case TripStatus.resting:
+        return l10n.resting.toUpperCase();
     }
   }
 }

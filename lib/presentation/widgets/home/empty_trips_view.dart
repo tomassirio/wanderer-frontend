@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 
 /// Empty state widget when no trips are available
@@ -14,6 +15,7 @@ class EmptyTripsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
@@ -93,7 +95,7 @@ class EmptyTripsView extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: onLoginPressed,
                 icon: const Icon(Icons.login),
-                label: const Text('Login / Register'),
+                label: Text(l10n.loginOrRegister),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: WandererTheme.primaryOrange,
                   foregroundColor: Colors.white,
@@ -137,7 +139,7 @@ class EmptyTripsView extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      'Tap the + button to create a trip',
+                      l10n.tapPlusToCreate,
                       style: TextStyle(
                         fontSize: 14,
                         color: WandererTheme.primaryOrange,

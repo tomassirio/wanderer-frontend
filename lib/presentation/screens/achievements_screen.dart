@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/achievement_models.dart';
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/data/services/auth_service.dart';
@@ -195,36 +196,64 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     }
   }
 
-  String _formatValue(Achievement achievement, double value) {
+  String _localizeCategory(BuildContext context, String category) {
+    final l10n = context.l10n;
+    switch (category) {
+      case 'Distance':
+        return l10n.categoryDistance;
+      case 'Updates':
+        return l10n.categoryUpdates;
+      case 'Duration':
+        return l10n.categoryDuration;
+      case 'Social':
+        return l10n.categorySocial;
+      default:
+        return l10n.categoryOther;
+    }
+  }
+
+  String _formatValue(
+      BuildContext context, Achievement achievement, double value) {
+    final l10n = context.l10n;
     final type = achievement.type.toJson();
     final cappedValue = value > achievement.thresholdValue
         ? achievement.thresholdValue.toDouble()
         : value;
     if (type.startsWith('DISTANCE_')) {
-      return '${cappedValue.toStringAsFixed(1)} km';
+      return l10n.achievementKm(cappedValue);
     }
     if (type.startsWith('DURATION_')) {
-      return '${cappedValue.toInt()} days';
+      return l10n.achievementDays(cappedValue.toInt());
+    }
+    if (type.startsWith('UPDATES_')) {
+      return l10n.achievementUpdatesCount(cappedValue.toInt());
+    }
+    if (type.startsWith('FOLLOWERS_')) {
+      return l10n.achievementFollowers(cappedValue.toInt());
+    }
+    if (type.startsWith('FRIENDS_')) {
+      return l10n.achievementFriends(cappedValue.toInt());
     }
     return cappedValue.toInt().toString();
   }
 
-  String _formatThreshold(Achievement achievement) {
+  String _formatThreshold(BuildContext context, Achievement achievement) {
+    final l10n = context.l10n;
     final type = achievement.type.toJson();
     if (type.startsWith('DISTANCE_')) {
-      return '${achievement.thresholdValue} km';
+      return l10n.achievementKm(achievement.thresholdValue.toDouble());
     }
     if (type.startsWith('DURATION_')) {
-      return '${achievement.thresholdValue} days';
+      return l10n.achievementDays(achievement.thresholdValue.toInt());
     }
     if (type.startsWith('UPDATES_')) {
-      return '${achievement.thresholdValue} updates';
+      return l10n.achievementUpdatesCount(achievement.thresholdValue.toInt());
     }
     if (type.startsWith('FOLLOWERS_')) {
-      return '${achievement.thresholdValue} followers';
+      return l10n.achievementFollowers(achievement.thresholdValue.toInt());
     }
     if (type.startsWith('FRIENDS_')) {
-      return '${achievement.thresholdValue} friends';
+      return l10n.achievementFriends(achievement.thresholdValue.toInt());
     }
     return '${achievement.thresholdValue}';
   }
@@ -258,6 +287,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   }
 
   Widget _buildBody() {
+    final l10n = context.l10n;
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -277,7 +307,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _loadData,
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -285,15 +315,16 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     }
 
     if (_allAchievements.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.emoji_events_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            const Icon(Icons.emoji_events_outlined,
+                size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
             Text(
-              'No achievements available yet',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+              l10n.noAchievementsYet,
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
             ),
           ],
         ),
@@ -324,6 +355,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   }
 
   Widget _buildSummaryCard(int unlocked, int total) {
+    final l10n = context.l10n;
     final progress = total > 0 ? unlocked / total : 0.0;
 
     return Card(
@@ -338,7 +370,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                 const Icon(Icons.emoji_events, color: Colors.amber, size: 28),
                 const SizedBox(width: 12),
                 Text(
-                  'Achievements ($unlocked/$total)',
+                  l10n.achievementsProgress(unlocked, total),
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -381,7 +413,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               Icon(categoryIcon, color: categoryColor, size: 24),
               const SizedBox(width: 8),
               Text(
-                category,
+                _localizeCategory(context, category),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -479,7 +511,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
             // Achievement name
             Flexible(
               child: Text(
-                achievement.name,
+                context.l10n.achievementNameFor(achievement.type.toJson()),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -496,8 +528,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
             // Threshold or achieved value
             Text(
               unlocked && userAchievement != null
-                  ? _formatValue(achievement, userAchievement.valueAchieved)
-                  : _formatThreshold(achievement),
+                  ? _formatValue(context, achievement, userAchievement.valueAchieved)
+                  : _formatThreshold(context, achievement),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -527,6 +559,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
+        final l10n = context.l10n;
         final colorScheme = Theme.of(context).colorScheme;
         return Padding(
           padding: const EdgeInsets.all(24),
@@ -552,7 +585,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                achievement.name,
+                l10n.achievementNameFor(achievement.type.toJson()),
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -563,7 +596,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                achievement.description,
+                l10n.achievementDescriptionFor(achievement.type.toJson()),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -574,7 +607,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               const SizedBox(height: 12),
               if (userAchievement != null) ...[
                 Text(
-                  'Achieved: ${_formatValue(achievement, userAchievement.valueAchieved)}',
+                  l10n.achievedValue(
+                      _formatValue(context, achievement, userAchievement.valueAchieved)),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -583,14 +617,14 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Unlocked on ${_formatDate(userAchievement.unlockedAt)}',
+                  l10n.unlockedOn(_formatDate(userAchievement.unlockedAt)),
                   style: TextStyle(
                       fontSize: 12,
                       color: colorScheme.onSurface.withOpacity(0.6)),
                 ),
               ] else ...[
                 Text(
-                  'Goal: ${_formatThreshold(achievement)}',
+                  l10n.goalValue(_formatThreshold(context, achievement)),
                   style: TextStyle(
                       fontSize: 14,
                       color: colorScheme.onSurface.withOpacity(0.5)),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Username input field with validation
 class UsernameField extends StatelessWidget {
@@ -17,10 +18,11 @@ class UsernameField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(
-        labelText: 'Username',
+        labelText: l10n.usernameLabel,
         prefixIcon: const Icon(Icons.person),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -29,10 +31,10 @@ class UsernameField extends StatelessWidget {
       onFieldSubmitted: onFieldSubmitted,
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return 'Please enter your username';
+          return l10n.pleaseEnterUsername;
         }
         if (!isLogin && value.trim().length < 3) {
-          return 'Username must be at least 3 characters';
+          return l10n.usernameMinLength;
         }
         return null;
       },

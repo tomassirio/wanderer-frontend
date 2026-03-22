@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 
 /// Widget for sending trip updates (location + battery + optional message)
@@ -164,7 +165,7 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Send Update',
+                          context.l10n.sendUpdate,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -206,7 +207,7 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              'Your location and battery level will be shared',
+                              context.l10n.locationShared,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Theme.of(context)
@@ -224,7 +225,7 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
                       TextField(
                         controller: _messageController,
                         decoration: InputDecoration(
-                          hintText: 'Add a message (optional)',
+                          hintText: context.l10n.addMessageOptional,
                           hintStyle: TextStyle(
                             color: Theme.of(context)
                                 .colorScheme
@@ -293,8 +294,7 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
                                   ),
                                 )
                               : const Icon(Icons.send, size: 18),
-                          label:
-                              Text(_isSending ? 'Sending...' : 'Send Update'),
+                          label: Text(_isSending ? context.l10n.sending : context.l10n.sendUpdate),
                         ),
                       ),
                     ],

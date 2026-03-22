@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -66,23 +67,30 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
+    final l10n = context.l10n;
 
     if (difference.inDays == 0) {
       if (difference.inHours == 0) {
         if (difference.inMinutes == 0) {
-          return 'Just now';
+          return l10n.justNow;
         }
-        return '${difference.inMinutes} minute${difference.inMinutes == 1 ? '' : 's'} ago';
+        return difference.inMinutes == 1
+            ? l10n.minuteAgo
+            : l10n.minutesAgo(difference.inMinutes);
       }
-      return '${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
+      return difference.inHours == 1
+          ? l10n.hourAgo
+          : l10n.hoursAgo(difference.inHours);
     } else if (difference.inDays < 7) {
-      return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
+      return difference.inDays == 1
+          ? l10n.dayAgo
+          : l10n.daysAgo(difference.inDays);
     } else if (difference.inDays < 30) {
       final weeks = (difference.inDays / 7).floor();
-      return '$weeks week${weeks == 1 ? '' : 's'} ago';
+      return weeks == 1 ? l10n.weekAgo : l10n.weeksAgo(weeks);
     } else if (difference.inDays < 365) {
       final months = (difference.inDays / 30).floor();
-      return '$months month${months == 1 ? '' : 's'} ago';
+      return months == 1 ? l10n.monthAgo : l10n.monthsAgo(months);
     } else {
       return DateFormat('MMM d, yyyy').format(date);
     }
@@ -104,9 +112,9 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final days = startDay.difference(today).inDays;
-    if (days <= 0) return 'Starting today!';
-    if (days == 1) return 'Starts tomorrow';
-    if (days < 30) return 'Starts in $days days';
+    if (days <= 0) return context.l10n.startingToday;
+    if (days == 1) return context.l10n.startsTomorrow;
+    if (days < 30) return context.l10n.startsInDays(days);
     return 'Starts ${DateFormat('MMM d, yyyy').format(localStart)}';
   }
 
@@ -136,7 +144,7 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
           Icon(Icons.campaign, size: 16, color: Colors.deepPurple.shade700),
           const SizedBox(width: 6),
           Text(
-            'Pre Announced',
+            context.l10n.preAnnounced,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
@@ -173,7 +181,7 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
               size: 12, color: WandererTheme.primaryOrange),
           const SizedBox(width: 4),
           Text(
-            'Day $day',
+            context.l10n.dayNumber(day),
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
@@ -654,18 +662,18 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                             ),
                           ],
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.star,
                               size: 14,
                               color: Colors.white,
                             ),
-                            SizedBox(width: 4),
+                            const SizedBox(width: 4),
                             Text(
-                              'Promoted',
-                              style: TextStyle(
+                              context.l10n.promoted,
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,

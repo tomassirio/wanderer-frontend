@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 
@@ -49,6 +50,7 @@ class TripStatusMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     final transitions = _allowedTransitions;
     if (transitions.isEmpty) return const SizedBox.shrink();
+    final l10n = context.l10n;
 
     return PopupMenuButton<TripStatus>(
       icon: const Icon(Icons.more_vert),
@@ -63,7 +65,7 @@ class TripStatusMenu extends StatelessWidget {
                 color: _getStatusColor(status),
               ),
               const SizedBox(width: 8),
-              Text(_getStatusLabel(status)),
+              Text(_getStatusLabel(status, l10n)),
             ],
           ),
         );
@@ -86,20 +88,20 @@ class TripStatusMenu extends StatelessWidget {
     }
   }
 
-  String _getStatusLabel(TripStatus status) {
+  String _getStatusLabel(TripStatus status, AppLocalizations l10n) {
     switch (status) {
       case TripStatus.inProgress:
         return currentStatus == TripStatus.created
-            ? 'Start Trip'
-            : 'Resume Trip';
+            ? l10n.startTrip
+            : l10n.resumeTrip;
       case TripStatus.paused:
-        return 'Pause Trip';
+        return l10n.pauseTrip;
       case TripStatus.resting:
-        return 'Rest for Night';
+        return l10n.restForNight;
       case TripStatus.finished:
-        return 'Finish Trip';
+        return l10n.finishTrip;
       case TripStatus.created:
-        return 'Created';
+        return l10n.draft;
     }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
@@ -95,11 +96,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
 
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Change Password'),
+          title: Text(l10n.changePasswordTitle),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -107,27 +109,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 TextField(
                   controller: currentPasswordController,
                   obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Current Password',
-                    prefixIcon: Icon(Icons.lock_outline),
+                  decoration: InputDecoration(
+                    labelText: l10n.currentPassword,
+                    prefixIcon: const Icon(Icons.lock_outline),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: newPasswordController,
                   obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'New Password',
-                    prefixIcon: Icon(Icons.lock),
+                  decoration: InputDecoration(
+                    labelText: l10n.newPassword,
+                    prefixIcon: const Icon(Icons.lock),
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: confirmPasswordController,
                   obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Confirm New Password',
-                    prefixIcon: Icon(Icons.lock),
+                  decoration: InputDecoration(
+                    labelText: l10n.confirmNewPassword,
+                    prefixIcon: const Icon(Icons.lock),
                   ),
                 ),
               ],
@@ -136,7 +138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
@@ -199,24 +201,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _handleResetPassword() async {
     final emailController = TextEditingController();
 
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Reset Password'),
+          title: Text(l10n.resetPassword),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Enter your email address and we\'ll send you a link to reset your password.',
-              ),
+              Text(l10n.enterEmailForReset),
               const SizedBox(height: 16),
               TextField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: Icon(Icons.email_outlined),
+                decoration: InputDecoration(
+                  labelText: l10n.emailLabel,
+                  prefixIcon: const Icon(Icons.email_outlined),
                 ),
               ),
             ],
@@ -224,11 +225,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Send Reset Link'),
+              child: Text(l10n.sendResetLink),
             ),
           ],
         );
@@ -288,11 +289,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // --- Danger Zone ---
 
   Future<void> _handleCloseAccount() async {
+    final l10n = context.l10n;
     // First confirmation
     final firstConfirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Close Account'),
+        title: Text(l10n.closeAccount),
         content: const Text(
           'Are you sure you want to permanently delete your account? '
           'This action cannot be undone. All your trips, plans, and data will be lost.',
@@ -300,12 +302,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Continue'),
+            child: Text(l10n.continue_),
           ),
         ],
       ),
@@ -318,19 +320,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final secondConfirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Account Deletion'),
+        title: Text(l10n.confirmAccountDeletion),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Type DELETE to confirm you want to permanently close your account.',
-            ),
+            Text(l10n.typeDELETEConfirm),
             const SizedBox(height: 16),
             TextField(
               controller: confirmController,
-              decoration: const InputDecoration(
-                hintText: 'Type DELETE',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: l10n.typeDELETE,
+                border: const OutlineInputBorder(),
               ),
             ),
           ],
@@ -338,12 +338,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete My Account'),
+            child: Text(l10n.deleteMyAccount),
           ),
         ],
       ),
@@ -383,9 +383,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(l10n.settings),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: _isLoading
@@ -393,56 +394,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
           : ListView(
               padding: const EdgeInsets.symmetric(vertical: 16),
               children: [
-                _buildSectionHeader('Appearance'),
+                _buildSectionHeader(l10n.appearance),
                 _buildSwitchTile(
                   icon: Icons.dark_mode_outlined,
                   iconColor:
                       Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                  title: 'Dark Mode',
-                  subtitle: 'Switch between light and dark theme',
+                  title: l10n.darkMode,
+                  subtitle: l10n.darkModeSubtitle,
                   value: _isDarkMode,
                   onChanged: _toggleDarkMode,
                 ),
                 const SizedBox(height: 8),
-                _buildSectionHeader('Account'),
+                _buildSectionHeader(l10n.account),
                 _buildSettingsTile(
                   icon: Icons.lock_outline,
                   iconColor: WandererTheme.primaryOrange,
-                  title: 'Change Password',
-                  subtitle: 'Update your current password',
+                  title: l10n.changePassword,
+                  subtitle: l10n.changePasswordSubtitle,
                   onTap: _handleChangePassword,
                 ),
                 _buildSettingsTile(
                   icon: Icons.email_outlined,
                   iconColor: WandererTheme.primaryOrange,
-                  title: 'Reset Password',
-                  subtitle: 'Send a password reset link to your email',
+                  title: l10n.resetPassword,
+                  subtitle: l10n.resetPasswordSubtitle,
                   onTap: _handleResetPassword,
                 ),
                 const SizedBox(height: 8),
-                _buildSectionHeader('Notifications'),
+                _buildSectionHeader(l10n.notificationsSection),
                 _buildSwitchTile(
                   icon: Icons.notifications_outlined,
                   iconColor: WandererTheme.primaryOrange,
-                  title: 'Push Notifications',
-                  subtitle: 'Receive alerts for friend requests, comments, '
-                      'achievements, and other activity',
+                  title: l10n.pushNotifications,
+                  subtitle: l10n.pushNotificationsSubtitle,
                   value: _pushEnabled,
                   onChanged: _togglePushNotifications,
                 ),
                 const SizedBox(height: 8),
-                _buildSectionHeader('Support'),
+                _buildSectionHeader(l10n.support),
                 _buildSettingsTile(
                   icon: Icons.help_outline,
                   iconColor: WandererTheme.statusCompleted,
-                  title: 'Contact Support',
-                  subtitle: 'Get help via email',
+                  title: l10n.contactSupport,
+                  subtitle: l10n.contactSupportSubtitle,
                   onTap: _handleContactSupport,
                 ),
                 _buildSettingsTile(
                   icon: Icons.description_outlined,
                   iconColor: WandererTheme.statusCompleted,
-                  title: 'Terms of Service',
+                  title: l10n.termsOfService,
                   subtitle: 'Read our terms and conditions',
                   onTap: () {
                     Navigator.push(
@@ -456,7 +456,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildSettingsTile(
                   icon: Icons.privacy_tip_outlined,
                   iconColor: WandererTheme.statusCompleted,
-                  title: 'Privacy Policy',
+                  title: l10n.privacyPolicy,
                   subtitle: 'Review our privacy practices',
                   onTap: () {
                     Navigator.push(
@@ -473,7 +473,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.info_outline,
                   iconColor:
                       Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                  title: 'App Version',
+                  title: l10n.appVersion,
                   subtitle: _appVersion.isEmpty ? 'Loading...' : _appVersion,
                   onTap: null,
                 ),
@@ -482,8 +482,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildSettingsTile(
                   icon: Icons.delete_forever,
                   iconColor: Colors.red,
-                  title: 'Close Account',
-                  subtitle: 'Permanently delete your account and all data',
+                  title: l10n.closeAccount,
+                  subtitle: l10n.closeAccountSubtitle,
                   onTap: _handleCloseAccount,
                   isDestructive: true,
                 ),

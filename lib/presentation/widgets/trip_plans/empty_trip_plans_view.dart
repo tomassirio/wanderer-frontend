@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Empty state view for trip plans
 class EmptyTripPlansView extends StatelessWidget {
@@ -8,6 +9,7 @@ class EmptyTripPlansView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -17,7 +19,7 @@ class EmptyTripPlansView extends StatelessWidget {
             Icon(Icons.calendar_today, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 24),
             Text(
-              'No Trip Plans Yet',
+              l10n.noTripPlansYet,
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -26,7 +28,7 @@ class EmptyTripPlansView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Start planning your next adventure!',
+              l10n.startPlanningAdventure,
               style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
@@ -34,7 +36,7 @@ class EmptyTripPlansView extends StatelessWidget {
             ElevatedButton.icon(
               onPressed: onCreatePressed,
               icon: const Icon(Icons.add),
-              label: const Text('Create Trip Plan'),
+              label: Text(l10n.createTripPlan),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,

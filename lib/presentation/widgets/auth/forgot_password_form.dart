@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/error_message.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
 
@@ -39,6 +40,7 @@ class ForgotPasswordForm extends StatelessWidget {
   }
 
   Widget _buildEmailForm(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -46,7 +48,7 @@ class ForgotPasswordForm extends StatelessWidget {
         const WandererLogo(size: 80),
         const SizedBox(height: 16),
         Text(
-          'Reset Password',
+          l10n.resetPasswordTitle,
           style: Theme.of(context)
               .textTheme
               .headlineMedium
@@ -55,7 +57,7 @@ class ForgotPasswordForm extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Enter your email address and we\'ll send you a link to reset your password.',
+          l10n.enterEmailForReset,
           style: Theme.of(context)
               .textTheme
               .bodyMedium
@@ -66,7 +68,7 @@ class ForgotPasswordForm extends StatelessWidget {
         TextFormField(
           controller: emailController,
           decoration: InputDecoration(
-            labelText: 'Email',
+            labelText: l10n.emailLabel,
             prefixIcon: const Icon(Icons.email),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -94,18 +96,19 @@ class ForgotPasswordForm extends StatelessWidget {
                   width: 20,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Send Reset Link', style: TextStyle(fontSize: 16)),
+              : Text(l10n.sendResetLink, style: const TextStyle(fontSize: 16)),
         ),
         const SizedBox(height: 16),
         TextButton(
           onPressed: isLoading ? null : onBackToLogin,
-          child: const Text('Back to Login'),
+          child: Text(l10n.backToLogin),
         ),
       ],
     );
   }
 
   Widget _buildSuccessView(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -115,22 +118,20 @@ class ForgotPasswordForm extends StatelessWidget {
           color: Colors.blueAccent,
         ),
         const SizedBox(height: 24),
-        const Text(
-          'Check your email',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        Text(
+          l10n.checkYourEmail,
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         Text(
-          'If an account with ${emailController.text.trim()} exists, '
-          'we\'ve sent a password reset link. Check your inbox and follow '
-          'the instructions to reset your password.',
+          l10n.passwordResetEmailSent(emailController.text.trim()),
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 15),
         ),
         const SizedBox(height: 24),
         TextButton(
           onPressed: onBackToLogin,
-          child: const Text('Back to Login'),
+          child: Text(l10n.backToLogin),
         ),
       ],
     );

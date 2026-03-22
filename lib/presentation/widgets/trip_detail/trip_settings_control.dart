@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 
@@ -182,6 +183,7 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
       return const SizedBox.shrink();
     }
 
+    final l10n = context.l10n;
     final bool isTripInProgress = widget.tripStatus == TripStatus.inProgress;
 
     return Container(
@@ -209,7 +211,7 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Trip Type',
+                  l10n.tripType,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -223,7 +225,7 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
               children: [
                 Expanded(
                   child: _buildModalityButton(
-                    label: 'Simple',
+                    label: l10n.simple,
                     modality: TripModality.simple,
                     disabled: false,
                   ),
@@ -231,7 +233,7 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildModalityButton(
-                    label: 'Multi-Day',
+                    label: l10n.multiDay,
                     modality: TripModality.multiDay,
                     disabled: false,
                   ),
@@ -249,7 +251,7 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
               ),
               const SizedBox(width: 8),
               Text(
-                'Automatic Updates',
+                l10n.automaticUpdates,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -280,7 +282,7 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
           if (!isTripInProgress && _automaticUpdates) ...[
             const SizedBox(height: 4),
             Text(
-              'Will activate when the trip is started',
+              l10n.willActivateWhenStarted,
               style: TextStyle(
                 fontSize: 11,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
@@ -350,9 +352,9 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
                                 AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : const Text(
-                          'Save',
-                          style: TextStyle(
+                      : Text(
+                          l10n.save,
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
@@ -362,7 +364,7 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Location will be automatically updated at this interval when trip is active',
+              l10n.locationInterval,
               style: TextStyle(
                 fontSize: 11,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
@@ -380,9 +382,9 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
                 onPressed:
                     widget.isLoading ? null : widget.onTestBackgroundUpdate,
                 icon: const Icon(Icons.bug_report, size: 16),
-                label: const Text(
-                  '🧪 Test Background Update Now',
-                  style: TextStyle(fontSize: 12),
+                label: Text(
+                  l10n.testBackgroundUpdate,
+                  style: const TextStyle(fontSize: 12),
                 ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.deepOrange,
@@ -395,8 +397,7 @@ class _TripSettingsControlState extends State<TripSettingsControl> {
               ),
             ),
             Text(
-              'Fires a one-off WorkManager task immediately '
-              '(same code path as periodic, no 15 min wait)',
+              l10n.firesWorkManagerTask,
               style: TextStyle(
                 fontSize: 10,
                 color:

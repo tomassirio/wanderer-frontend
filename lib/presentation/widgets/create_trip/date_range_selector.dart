@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/presentation/widgets/create_trip/date_picker_card.dart';
 
 /// Date range selector with start and end date pickers
@@ -22,16 +23,17 @@ class DateRangeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Dates (Optional)',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        Text(
+          l10n.datesOptional,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         DatePickerCard(
-          label: 'Start Date',
+          label: l10n.startDate,
           icon: Icons.calendar_today,
           selectedDate: startDate,
           onTap: onSelectStartDate,
@@ -39,7 +41,7 @@ class DateRangeSelector extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         DatePickerCard(
-          label: 'End Date',
+          label: l10n.endDate,
           icon: Icons.event,
           selectedDate: endDate,
           onTap: onSelectEndDate,

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/services/auth_service.dart';
@@ -90,7 +91,8 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     // Reload data to get updated lists
     _loadData();
     if (mounted) {
-      UiHelpers.showSuccessMessage(context, 'You have a new follower!');
+      final l10n = context.l10n;
+      UiHelpers.showSuccessMessage(context, l10n.newFollowerMsg);
     }
   }
 
@@ -103,7 +105,8 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     // Reload data to get updated lists
     _loadData();
     if (mounted) {
-      UiHelpers.showSuccessMessage(context, 'You received a friend request!');
+      final l10n = context.l10n;
+      UiHelpers.showSuccessMessage(context, l10n.friendRequestReceivedMsg);
     }
   }
 
@@ -111,7 +114,8 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     // Reload data to get updated lists
     _loadData();
     if (mounted) {
-      UiHelpers.showSuccessMessage(context, 'Friend request accepted!');
+      final l10n = context.l10n;
+      UiHelpers.showSuccessMessage(context, l10n.friendRequestAcceptedMsg);
     }
   }
 
@@ -249,12 +253,14 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     try {
       await _userService.followUser(userId);
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, 'Follow request sent!');
+        final l10n = context.l10n;
+        UiHelpers.showSuccessMessage(context, l10n.followRequestSentMsg);
         await _loadData();
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Failed to follow user: $e');
+        final l10n = context.l10n;
+        UiHelpers.showErrorMessage(context, l10n.failedToFollowUser(e.toString()));
       }
     }
   }
@@ -263,12 +269,15 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     try {
       await _userService.unfollowUser(userId);
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, 'Unfollowed user');
+        final l10n = context.l10n;
+        UiHelpers.showSuccessMessage(context, l10n.unfollowedUserMsg);
         await _loadData();
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Failed to unfollow user: $e');
+        final l10n = context.l10n;
+        UiHelpers.showErrorMessage(
+            context, l10n.failedToUnfollowUser(e.toString()));
       }
     }
   }
@@ -277,13 +286,15 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     try {
       await _userService.acceptFriendRequest(requestId);
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, 'Friend request accepted!');
+        final l10n = context.l10n;
+        UiHelpers.showSuccessMessage(context, l10n.friendRequestAcceptedMsg);
         await _loadData();
       }
     } catch (e) {
       if (mounted) {
+        final l10n = context.l10n;
         UiHelpers.showErrorMessage(
-            context, 'Failed to accept friend request: $e');
+            context, l10n.failedToAcceptFriendRequest(e.toString()));
       }
     }
   }
@@ -292,13 +303,15 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     try {
       await _userService.deleteFriendRequest(requestId);
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, 'Friend request declined');
+        final l10n = context.l10n;
+        UiHelpers.showSuccessMessage(context, l10n.friendRequestDeclinedMsg);
         await _loadData();
       }
     } catch (e) {
       if (mounted) {
+        final l10n = context.l10n;
         UiHelpers.showErrorMessage(
-            context, 'Failed to decline friend request: $e');
+            context, l10n.failedToDeclineFriendRequest(e.toString()));
       }
     }
   }
@@ -336,6 +349,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   Widget _buildBody() {
+    final l10n = context.l10n;
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -356,7 +370,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _navigateToAuth,
-                child: const Text('Login'),
+                child: Text(l10n.login),
               ),
             ],
           ],
@@ -379,12 +393,13 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                 isScrollable: false,
                 labelPadding: const EdgeInsets.symmetric(horizontal: 2),
                 tabs: [
-                  _buildTab(Icons.people, 'Friends', _friends.length, isNarrow),
-                  _buildTab(Icons.person_add, 'Followers', _followers.length,
+                  _buildTab(Icons.people, l10n.friends, _friends.length,
                       isNarrow),
-                  _buildTab(Icons.person_outline, 'Following',
+                  _buildTab(Icons.person_add, l10n.followers, _followers.length,
+                      isNarrow),
+                  _buildTab(Icons.person_outline, l10n.following,
                       _following.length, isNarrow),
-                  _buildTab(Icons.notifications, 'Requests',
+                  _buildTab(Icons.notifications, l10n.requestsTab,
                       _receivedRequests.length, isNarrow),
                 ],
               );
@@ -440,21 +455,22 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   Widget _buildFriendsTab() {
+    final l10n = context.l10n;
     if (_friends.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.people_outline, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            const Icon(Icons.people_outline, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
             Text(
-              'No friends yet',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              l10n.noFriendsYet,
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
-              'Send friend requests to connect with others',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+              l10n.sendFriendRequests,
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
           ],
@@ -483,7 +499,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                     ? const Icon(Icons.person)
                     : null,
               ),
-              title: Text(profile?.username ?? 'Unknown User'),
+              title: Text(profile?.username ?? l10n.unknownUser),
               subtitle: profile?.displayName != null
                   ? Text(profile!.displayName!)
                   : null,
@@ -492,7 +508,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                 onPressed: () {
                   UiHelpers.showSuccessMessage(
                     context,
-                    'Messaging coming soon!',
+                    l10n.messagingComingSoon,
                   );
                 },
               ),
@@ -504,16 +520,17 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   Widget _buildFollowersTab() {
+    final l10n = context.l10n;
     if (_followers.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.person_add_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            const Icon(Icons.person_add_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
             Text(
-              'No followers yet',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              l10n.noFollowersYet,
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
           ],
         ),
@@ -546,18 +563,18 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                     ? const Icon(Icons.person)
                     : null,
               ),
-              title: Text(profile?.username ?? 'Unknown User'),
+              title: Text(profile?.username ?? l10n.unknownUser),
               subtitle: profile?.displayName != null
                   ? Text(profile!.displayName!)
                   : null,
               trailing: isFollowingBack
                   ? OutlinedButton(
                       onPressed: () => _handleUnfollowUser(follower.followerId),
-                      child: const Text('Unfollow'),
+                      child: Text(l10n.unfollow),
                     )
                   : ElevatedButton(
                       onPressed: () => _handleFollowUser(follower.followerId),
-                      child: const Text('Follow Back'),
+                      child: Text(l10n.followBack),
                     ),
             ),
           );
@@ -567,16 +584,17 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   Widget _buildFollowingTab() {
+    final l10n = context.l10n;
     if (_following.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.person_outline, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            const Icon(Icons.person_outline, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
             Text(
-              'Not following anyone yet',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              l10n.notFollowingAnyone,
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
           ],
         ),
@@ -604,7 +622,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                     ? const Icon(Icons.person)
                     : null,
               ),
-              title: Text(profile?.username ?? 'Unknown User'),
+              title: Text(profile?.username ?? l10n.unknownUser),
               subtitle: profile?.displayName != null
                   ? Text(profile!.displayName!)
                   : null,
@@ -613,7 +631,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.grey,
                 ),
-                child: const Text('Unfollow'),
+                child: Text(l10n.unfollow),
               ),
             ),
           );
@@ -623,15 +641,16 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   Widget _buildRequestsTab() {
+    final l10n = context.l10n;
     return DefaultTabController(
       length: 2,
       child: Column(
         children: [
-          const TabBar(
+          TabBar(
             labelColor: Colors.black,
             tabs: [
-              Tab(text: 'Received'),
-              Tab(text: 'Sent'),
+              Tab(text: l10n.receivedTab),
+              Tab(text: l10n.sentTab),
             ],
           ),
           Expanded(
@@ -648,16 +667,17 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   Widget _buildReceivedRequestsView() {
+    final l10n = context.l10n;
     if (_receivedRequests.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inbox_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            const Icon(Icons.inbox_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
             Text(
-              'No friend requests',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              l10n.noFriendRequests,
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
           ],
         ),
@@ -685,13 +705,13 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                     ? const Icon(Icons.person)
                     : null,
               ),
-              title: Text(profile?.username ?? 'Unknown User'),
+              title: Text(profile?.username ?? l10n.unknownUser),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (profile?.displayName != null) Text(profile!.displayName!),
                   Text(
-                    'Sent ${_formatDate(request.createdAt)}',
+                    l10n.sentDateLabel(_formatDate(context, request.createdAt)),
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
@@ -717,16 +737,17 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   Widget _buildSentRequestsView() {
+    final l10n = context.l10n;
     if (_sentRequests.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.send_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            const Icon(Icons.send_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
             Text(
-              'No sent requests',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              l10n.noSentRequests,
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
           ],
         ),
@@ -754,13 +775,13 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                     ? const Icon(Icons.person)
                     : null,
               ),
-              title: Text(profile?.username ?? 'Unknown User'),
+              title: Text(profile?.username ?? l10n.unknownUser),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (profile?.displayName != null) Text(profile!.displayName!),
                   Text(
-                    'Sent ${_formatDate(request.createdAt)}',
+                    l10n.sentDateLabel(_formatDate(context, request.createdAt)),
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
@@ -776,20 +797,21 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     );
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(BuildContext context, DateTime date) {
+    final l10n = context.l10n;
     final now = DateTime.now();
     final difference = now.difference(date);
 
     if (difference.inDays > 7) {
       return '${date.day}/${date.month}/${date.year}';
     } else if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
+      return l10n.daysAgoShort(difference.inDays);
     } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
+      return l10n.hoursAgoShort(difference.inHours);
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
+      return l10n.minutesAgoShort(difference.inMinutes);
     } else {
-      return 'just now';
+      return l10n.justNow;
     }
   }
 

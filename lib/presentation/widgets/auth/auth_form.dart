@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/auth_header.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/auth_mode_toggle.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/auth_submit_button.dart';
@@ -38,6 +39,7 @@ class AuthForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Card(
       elevation: 8,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -72,6 +74,7 @@ class AuthForm extends StatelessWidget {
               // Password field
               PasswordField(
                 controller: passwordController,
+                label: l10n.passwordLabel,
                 isLogin: isLogin,
                 textInputAction:
                     isLogin ? TextInputAction.done : TextInputAction.next,
@@ -84,7 +87,7 @@ class AuthForm extends StatelessWidget {
               if (!isLogin) ...[
                 PasswordField(
                   controller: confirmPasswordController,
-                  label: 'Confirm Password',
+                  label: l10n.confirmPassword,
                   isLogin: false,
                   compareController: passwordController,
                   textInputAction: TextInputAction.done,
@@ -99,7 +102,7 @@ class AuthForm extends StatelessWidget {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: isLoading ? null : onForgotPassword,
-                    child: const Text('Forgot Password?'),
+                    child: Text(l10n.forgotPassword),
                   ),
                 ),
 

@@ -8,6 +8,7 @@ import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
 
 /// Screen for creating a new trip with a clean, modern design
@@ -178,10 +179,11 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: const Text('New Trip'),
+        title: Text(l10n.newTripTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -304,6 +306,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
 
   /// Manual trip creation form
   Widget _buildManualForm() {
+    final l10n = context.l10n;
     return Form(
       key: _formKey,
       child: Column(
@@ -315,7 +318,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
           TextFormField(
             controller: _titleController,
             decoration: InputDecoration(
-              hintText: 'e.g., European Summer Adventure',
+              hintText: l10n.tripTitleHint,
               hintStyle: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
               ),
@@ -361,7 +364,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
           TextFormField(
             controller: _descriptionController,
             decoration: InputDecoration(
-              hintText: 'Tell us about your trip... (optional)',
+              hintText: l10n.tripDescriptionHint,
               hintStyle: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
               ),
@@ -396,12 +399,12 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
           ),
           const SizedBox(height: 24),
           // Trip Type toggle
-          _buildSectionLabel('Trip Type'),
+          _buildSectionLabel(l10n.tripType),
           const SizedBox(height: 10),
           _buildTripTypeToggle(),
           const SizedBox(height: 24),
           // Visibility selector
-          _buildSectionLabel('Visibility'),
+          _buildSectionLabel(l10n.visibility),
           const SizedBox(height: 10),
           _buildVisibilitySelector(),
           const SizedBox(height: 24),
@@ -507,6 +510,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
 
   /// Visibility selector with pill buttons
   Widget _buildVisibilitySelector() {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -514,19 +518,19 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
           children: [
             _buildVisibilityPill(
               icon: Icons.public,
-              label: 'Public',
+              label: l10n.publicVisibility,
               visibility: Visibility.public,
             ),
             const SizedBox(width: 8),
             _buildVisibilityPill(
               icon: Icons.group,
-              label: 'Protected',
+              label: l10n.protectedVisibility,
               visibility: Visibility.protected,
             ),
             const SizedBox(width: 8),
             _buildVisibilityPill(
               icon: Icons.lock,
-              label: 'Private',
+              label: l10n.privateVisibility,
               visibility: Visibility.private,
             ),
           ],
@@ -605,6 +609,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
 
   /// Automatic updates toggle with optional interval field
   Widget _buildAutomaticUpdatesSection() {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -619,7 +624,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
             ),
             const SizedBox(width: 8),
             Text(
-              'Automatic Updates',
+              l10n.automaticUpdates,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -661,7 +666,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                   ],
                   decoration: InputDecoration(
                     labelText: 'Update Interval (min $_minIntervalMinutes min)',
-                    hintText: 'e.g., 15',
+                    hintText: l10n.automaticUpdatesIntervalHint,
                     filled: true,
                     fillColor: Theme.of(context).colorScheme.surface,
                     border: OutlineInputBorder(
@@ -842,6 +847,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
   }
 
   Widget _buildSelectedPlanDetails() {
+    final l10n = context.l10n;
     final plan = _selectedTripPlan!;
     return Container(
       padding: const EdgeInsets.all(16),
@@ -864,7 +870,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
               ),
               const SizedBox(width: 6),
               Text(
-                'Plan Details',
+                l10n.planDetails,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Email input field with validation
 class EmailField extends StatelessWidget {
@@ -15,10 +16,11 @@ class EmailField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(
-        labelText: 'Email',
+        labelText: l10n.emailLabel,
         prefixIcon: const Icon(Icons.email),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -28,10 +30,10 @@ class EmailField extends StatelessWidget {
       onFieldSubmitted: onFieldSubmitted,
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return 'Please enter your email';
+          return l10n.pleaseEnterEmail;
         }
         if (!value.contains('@') || !value.contains('.')) {
-          return 'Please enter a valid email';
+          return l10n.pleaseEnterValidEmail;
         }
         return null;
       },

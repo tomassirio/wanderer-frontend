@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/widgets/home/trip_card.dart';
@@ -78,6 +79,7 @@ class HomeContent extends StatelessWidget {
       );
     }
 
+    final l10n = context.l10n;
     final myTrips = _filterMyTrips();
     final friendsTrips = _filterFriendsTrips();
     final publicTrips = _filterPublicTrips();
@@ -108,7 +110,7 @@ class HomeContent extends StatelessWidget {
               if (myTrips.isNotEmpty) ...[
                 _buildSectionHeader(
                   context,
-                  'My Trips',
+                  l10n.myTrips,
                   myTrips.length,
                   Icons.person_outline,
                   WandererTheme.primaryOrange,
@@ -121,7 +123,7 @@ class HomeContent extends StatelessWidget {
               if (friendsTrips.isNotEmpty) ...[
                 _buildSectionHeader(
                   context,
-                  'Friends Trips',
+                  l10n.friendsTrips,
                   friendsTrips.length,
                   Icons.people_outline,
                   Colors.blue,
@@ -134,14 +136,14 @@ class HomeContent extends StatelessWidget {
               if (publicTrips.isNotEmpty) ...[
                 _buildSectionHeader(
                   context,
-                  isLoggedIn ? 'Discover' : 'Discover',
+                  l10n.discover,
                   publicTrips.length,
                   Icons.explore,
                   Colors.green,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Explore public trips from the community',
+                  l10n.explorePublicTrips,
                   style: TextStyle(
                     fontSize: 13,
                     color: Theme.of(context)
@@ -162,6 +164,7 @@ class HomeContent extends StatelessWidget {
 
   /// Build a welcoming header for guest users
   Widget _buildGuestWelcomeHeader(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -203,16 +206,16 @@ class HomeContent extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           // Welcome text
-          const Text(
-            'Welcome to Wanderer',
-            style: TextStyle(
+          Text(
+            l10n.welcomeToWanderer,
+            style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Please log in to see personalized content',
+            l10n.trackAdventures,
             style: TextStyle(
               fontSize: 14,
               color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
@@ -236,9 +239,9 @@ class HomeContent extends StatelessWidget {
                 ),
                 elevation: 0,
               ),
-              child: const Text(
-                'Log In',
-                style: TextStyle(
+              child: Text(
+                l10n.logIn,
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                 ),
@@ -246,7 +249,7 @@ class HomeContent extends StatelessWidget {
             ),
           const SizedBox(height: 12),
           Text(
-            'Or explore public trips:',
+            l10n.orExplorePublicTrips,
             style: TextStyle(
               fontSize: 13,
               color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),

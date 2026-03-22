@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Password input field with visibility toggle
 class PasswordField extends StatefulWidget {
   final TextEditingController controller;
-  final String label;
+  final String? label;
   final bool isLogin;
   final TextEditingController? compareController;
   final TextInputAction? textInputAction;
@@ -12,7 +13,7 @@ class PasswordField extends StatefulWidget {
   const PasswordField({
     super.key,
     required this.controller,
-    this.label = 'Password',
+    this.label,
     this.isLogin = true,
     this.compareController,
     this.textInputAction,
@@ -28,12 +29,14 @@ class _PasswordFieldState extends State<PasswordField> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final labelText = widget.label ?? l10n.passwordLabel;
     return TextFormField(
       controller: widget.controller,
       decoration: InputDecoration(
-        labelText: widget.label,
+        labelText: labelText,
         prefixIcon: Icon(
-          widget.label == 'Password' ? Icons.lock : Icons.lock_outline,
+          widget.compareController == null ? Icons.lock : Icons.lock_outline,
         ),
         suffixIcon: IconButton(
           icon: Icon(
@@ -52,14 +55,14 @@ class _PasswordFieldState extends State<PasswordField> {
       onFieldSubmitted: widget.onFieldSubmitted,
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Please enter your password';
+          return l10n.pleaseEnterPassword;
         }
         if (!widget.isLogin && value.length < 6) {
-          return 'Password must be at least 6 characters';
+          return l10n.passwordMinLength;
         }
         if (widget.compareController != null &&
             value != widget.compareController!.text) {
-          return 'Passwords do not match';
+          return l10n.passwordsDoNotMatch;
         }
         return null;
       },

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Login required view for trip plans
 class LoginRequiredView extends StatelessWidget {
@@ -8,6 +9,7 @@ class LoginRequiredView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -17,7 +19,7 @@ class LoginRequiredView extends StatelessWidget {
             Icon(Icons.calendar_today, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 24),
             Text(
-              'Login Required',
+              l10n.loginRequired,
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -26,7 +28,7 @@ class LoginRequiredView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Please log in to view your trip plans',
+              l10n.pleaseLogInForPlans,
               style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
@@ -34,7 +36,7 @@ class LoginRequiredView extends StatelessWidget {
             ElevatedButton.icon(
               onPressed: onLoginPressed,
               icon: const Icon(Icons.login),
-              label: const Text('Login'),
+              label: Text(l10n.login),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,

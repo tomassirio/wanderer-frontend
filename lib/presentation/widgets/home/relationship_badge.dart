@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Badge widget that displays relationship with the trip owner
 class RelationshipBadge extends StatelessWidget {
@@ -13,6 +14,7 @@ class RelationshipBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       padding: compact
           ? const EdgeInsets.symmetric(horizontal: 8, vertical: 4)
@@ -40,7 +42,7 @@ class RelationshipBadge extends StatelessWidget {
           if (!compact) ...[
             const SizedBox(width: 6),
             Text(
-              _getLabel(),
+              _getLabel(l10n),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
@@ -62,12 +64,12 @@ class RelationshipBadge extends StatelessWidget {
     }
   }
 
-  String _getLabel() {
+  String _getLabel(AppLocalizations l10n) {
     switch (type) {
       case RelationshipType.friend:
-        return 'Friend';
+        return l10n.friend;
       case RelationshipType.following:
-        return 'Following';
+        return l10n.following;
     }
   }
 
