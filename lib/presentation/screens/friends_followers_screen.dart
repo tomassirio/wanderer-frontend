@@ -91,7 +91,8 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     // Reload data to get updated lists
     _loadData();
     if (mounted) {
-      UiHelpers.showSuccessMessage(context, 'You have a new follower!');
+      final l10n = context.l10n;
+      UiHelpers.showSuccessMessage(context, l10n.newFollowerMsg);
     }
   }
 
@@ -104,7 +105,8 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     // Reload data to get updated lists
     _loadData();
     if (mounted) {
-      UiHelpers.showSuccessMessage(context, 'You received a friend request!');
+      final l10n = context.l10n;
+      UiHelpers.showSuccessMessage(context, l10n.friendRequestReceivedMsg);
     }
   }
 
@@ -112,7 +114,8 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     // Reload data to get updated lists
     _loadData();
     if (mounted) {
-      UiHelpers.showSuccessMessage(context, 'Friend request accepted!');
+      final l10n = context.l10n;
+      UiHelpers.showSuccessMessage(context, l10n.friendRequestAcceptedMsg);
     }
   }
 
@@ -250,12 +253,14 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     try {
       await _userService.followUser(userId);
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, 'Follow request sent!');
+        final l10n = context.l10n;
+        UiHelpers.showSuccessMessage(context, l10n.followRequestSentMsg);
         await _loadData();
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Failed to follow user: $e');
+        final l10n = context.l10n;
+        UiHelpers.showErrorMessage(context, l10n.failedToFollowUser(e.toString()));
       }
     }
   }
@@ -264,12 +269,15 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     try {
       await _userService.unfollowUser(userId);
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, 'Unfollowed user');
+        final l10n = context.l10n;
+        UiHelpers.showSuccessMessage(context, l10n.unfollowedUserMsg);
         await _loadData();
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Failed to unfollow user: $e');
+        final l10n = context.l10n;
+        UiHelpers.showErrorMessage(
+            context, l10n.failedToUnfollowUser(e.toString()));
       }
     }
   }
@@ -278,13 +286,15 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     try {
       await _userService.acceptFriendRequest(requestId);
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, 'Friend request accepted!');
+        final l10n = context.l10n;
+        UiHelpers.showSuccessMessage(context, l10n.friendRequestAcceptedMsg);
         await _loadData();
       }
     } catch (e) {
       if (mounted) {
+        final l10n = context.l10n;
         UiHelpers.showErrorMessage(
-            context, 'Failed to accept friend request: $e');
+            context, l10n.failedToAcceptFriendRequest(e.toString()));
       }
     }
   }
@@ -293,13 +303,15 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     try {
       await _userService.deleteFriendRequest(requestId);
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, 'Friend request declined');
+        final l10n = context.l10n;
+        UiHelpers.showSuccessMessage(context, l10n.friendRequestDeclinedMsg);
         await _loadData();
       }
     } catch (e) {
       if (mounted) {
+        final l10n = context.l10n;
         UiHelpers.showErrorMessage(
-            context, 'Failed to decline friend request: $e');
+            context, l10n.failedToDeclineFriendRequest(e.toString()));
       }
     }
   }
@@ -381,12 +393,13 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                 isScrollable: false,
                 labelPadding: const EdgeInsets.symmetric(horizontal: 2),
                 tabs: [
-                  _buildTab(Icons.people, 'Friends', _friends.length, isNarrow),
-                  _buildTab(Icons.person_add, 'Followers', _followers.length,
+                  _buildTab(Icons.people, l10n.friends, _friends.length,
                       isNarrow),
-                  _buildTab(Icons.person_outline, 'Following',
+                  _buildTab(Icons.person_add, l10n.followers, _followers.length,
+                      isNarrow),
+                  _buildTab(Icons.person_outline, l10n.following,
                       _following.length, isNarrow),
-                  _buildTab(Icons.notifications, 'Requests',
+                  _buildTab(Icons.notifications, l10n.requestsTab,
                       _receivedRequests.length, isNarrow),
                 ],
               );
@@ -465,6 +478,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
       );
     }
 
+    final l10n = context.l10n;
     return RefreshIndicator(
       onRefresh: _loadData,
       child: ListView.builder(
@@ -486,7 +500,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                     ? const Icon(Icons.person)
                     : null,
               ),
-              title: Text(profile?.username ?? 'Unknown User'),
+              title: Text(profile?.username ?? l10n.unknownUser),
               subtitle: profile?.displayName != null
                   ? Text(profile!.displayName!)
                   : null,
@@ -495,7 +509,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                 onPressed: () {
                   UiHelpers.showSuccessMessage(
                     context,
-                    'Messaging coming soon!',
+                    l10n.messagingComingSoon,
                   );
                 },
               ),
@@ -524,6 +538,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
       );
     }
 
+    final l10n = context.l10n;
     return RefreshIndicator(
       onRefresh: _loadData,
       child: ListView.builder(
@@ -550,7 +565,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                     ? const Icon(Icons.person)
                     : null,
               ),
-              title: Text(profile?.username ?? 'Unknown User'),
+              title: Text(profile?.username ?? l10n.unknownUser),
               subtitle: profile?.displayName != null
                   ? Text(profile!.displayName!)
                   : null,
@@ -588,6 +603,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
       );
     }
 
+    final l10n = context.l10n;
     return RefreshIndicator(
       onRefresh: _loadData,
       child: ListView.builder(
@@ -609,7 +625,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                     ? const Icon(Icons.person)
                     : null,
               ),
-              title: Text(profile?.username ?? 'Unknown User'),
+              title: Text(profile?.username ?? l10n.unknownUser),
               subtitle: profile?.displayName != null
                   ? Text(profile!.displayName!)
                   : null,
@@ -628,15 +644,16 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   Widget _buildRequestsTab() {
+    final l10n = context.l10n;
     return DefaultTabController(
       length: 2,
       child: Column(
         children: [
-          const TabBar(
+          TabBar(
             labelColor: Colors.black,
             tabs: [
-              Tab(text: 'Received'),
-              Tab(text: 'Sent'),
+              Tab(text: l10n.receivedTab),
+              Tab(text: l10n.sentTab),
             ],
           ),
           Expanded(
@@ -670,6 +687,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
       );
     }
 
+    final l10n = context.l10n;
     return RefreshIndicator(
       onRefresh: _loadData,
       child: ListView.builder(
@@ -691,13 +709,13 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                     ? const Icon(Icons.person)
                     : null,
               ),
-              title: Text(profile?.username ?? 'Unknown User'),
+              title: Text(profile?.username ?? l10n.unknownUser),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (profile?.displayName != null) Text(profile!.displayName!),
                   Text(
-                    'Sent ${_formatDate(request.createdAt)}',
+                    l10n.sentDateLabel(_formatDate(context, request.createdAt)),
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
@@ -740,6 +758,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
       );
     }
 
+    final l10n = context.l10n;
     return RefreshIndicator(
       onRefresh: _loadData,
       child: ListView.builder(
@@ -761,13 +780,13 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                     ? const Icon(Icons.person)
                     : null,
               ),
-              title: Text(profile?.username ?? 'Unknown User'),
+              title: Text(profile?.username ?? l10n.unknownUser),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (profile?.displayName != null) Text(profile!.displayName!),
                   Text(
-                    'Sent ${_formatDate(request.createdAt)}',
+                    l10n.sentDateLabel(_formatDate(context, request.createdAt)),
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
@@ -783,20 +802,21 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     );
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(BuildContext context, DateTime date) {
+    final l10n = context.l10n;
     final now = DateTime.now();
     final difference = now.difference(date);
 
     if (difference.inDays > 7) {
       return '${date.day}/${date.month}/${date.year}';
     } else if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
+      return l10n.daysAgoShort(difference.inDays);
     } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
+      return l10n.hoursAgoShort(difference.inHours);
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
+      return l10n.minutesAgoShort(difference.inMinutes);
     } else {
-      return 'just now';
+      return l10n.justNow;
     }
   }
 

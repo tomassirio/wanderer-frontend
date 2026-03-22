@@ -919,4 +919,36 @@ class AppLocalizations {
       _isEs ? 'Solicitud de amistad cancelada' : 'Friend request cancelled';
   String friendRequestSentTo(String username) =>
       _isEs ? 'Solicitud de amistad enviada a $username' : 'Friend request sent to $username';
+
+  // --- Friends/Followers screen ---
+  String get newFollowerMsg =>
+      _isEs ? '¡Tienes un nuevo seguidor!' : 'You have a new follower!';
+  String get friendRequestReceivedMsg =>
+      _isEs ? '¡Recibiste una solicitud de amistad!' : 'You received a friend request!';
+  String get friendRequestAcceptedMsg =>
+      _isEs ? '¡Solicitud de amistad aceptada!' : 'Friend request accepted!';
+  String get followRequestSentMsg =>
+      _isEs ? '¡Solicitud de seguimiento enviada!' : 'Follow request sent!';
+  String failedToFollowUser(String e) =>
+      _isEs ? 'No se pudo seguir al usuario: $e' : 'Failed to follow user: $e';
+  String get unfollowedUserMsg => _isEs ? 'Dejaste de seguir al usuario' : 'Unfollowed user';
+  String failedToUnfollowUser(String e) =>
+      _isEs ? 'No se pudo dejar de seguir al usuario: $e' : 'Failed to unfollow user: $e';
+  String failedToAcceptFriendRequest(String e) =>
+      _isEs ? 'No se pudo aceptar la solicitud de amistad: $e' : 'Failed to accept friend request: $e';
+  String get friendRequestDeclinedMsg =>
+      _isEs ? 'Solicitud de amistad rechazada' : 'Friend request declined';
+  String failedToDeclineFriendRequest(String e) =>
+      _isEs ? 'No se pudo rechazar la solicitud de amistad: $e' : 'Failed to decline friend request: $e';
+  String get requestsTab => _isEs ? 'Solicitudes' : 'Requests';
+  String get unknownUser => _isEs ? 'Usuario desconocido' : 'Unknown User';
+  String get messagingComingSoon =>
+      _isEs ? '¡Mensajería próximamente!' : 'Messaging coming soon!';
+  String get receivedTab => _isEs ? 'Recibidas' : 'Received';
+  String get sentTab => _isEs ? 'Enviadas' : 'Sent';
+  String sentDateLabel(String date) => _isEs ? 'Enviado $date' : 'Sent $date';
+  String daysAgoShort(int days) => _isEs ? 'hace ${days}d' : '${days}d ago';
+  String hoursAgoShort(int hours) => _isEs ? 'hace ${hours}h' : '${hours}h ago';
+  String minutesAgoShort(int minutes) =>
+      _isEs ? 'hace ${minutes}m' : '${minutes}m ago';
 }
