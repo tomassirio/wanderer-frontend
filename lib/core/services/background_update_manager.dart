@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:flutter/widgets.dart' show WidgetsFlutterBinding;
 import 'package:geolocator_android/geolocator_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,6 +16,9 @@ const String tripUpdateTaskName = 'tripAutoUpdate';
 const String _activeTripIdKey = 'active_trip_id_for_updates';
 
 /// Key for storing the active trip name for notifications
+/// NOTE: The native TripTrackingService reads this key directly from
+/// SharedPreferences (with the "flutter." prefix added by the plugin).
+/// If this key is renamed, update TripTrackingService.PREFS_TRIP_NAME_KEY too.
 const String _activeTripNameKey = 'active_trip_name_for_updates';
 
 /// Key for storing the desired update interval (seconds)
@@ -181,6 +185,13 @@ void callbackDispatcher() {
 /// Android's 15-minute minimum interval for periodic WorkManager tasks.
 /// After each execution, the callback schedules the next one-off task
 /// with the user's desired delay.
+///
+/// A foreground service ([TripTrackingService]) is started alongside the
+/// WorkManager chain.  An active foreground service exempts the app from
+/// Android's Doze mode, which would otherwise defer WorkManager tasks until
+/// the next maintenance window (potentially hours later).  With the service
+/// running the WorkManager tasks fire at the configured interval even while
+/// the phone is locked and the screen is off.
 class BackgroundUpdateManager {
   static final BackgroundUpdateManager _instance =
       BackgroundUpdateManager._internal();
@@ -190,6 +201,11 @@ class BackgroundUpdateManager {
   BackgroundUpdateManager._internal();
 
   bool _isInitialized = false;
+
+  /// MethodChannel used to start/stop the native [TripTrackingService].
+  static const MethodChannel _trackingChannel = MethodChannel(
+    'com.tomassirio.wanderer.wanderer_frontend/trip_tracking',
+  );
 
   /// Check if we're on a supported platform (Android only)
   bool get _isSupported => !kIsWeb && Platform.isAndroid;
@@ -254,7 +270,9 @@ class BackgroundUpdateManager {
           'interval=${intervalSeconds}s (${(intervalSeconds / 60).toStringAsFixed(1)} min), '
           'chainActive=true');
 
-      // Schedule the first one-off task with the desired delay
+      // Schedule the first one-off task with the desired delay.
+      // The foreground service is started AFTER scheduling succeeds so that it
+      // is never left running if the WorkManager registration throws.
       final taskId =
           'trip_update_chain_${DateTime.now().millisecondsSinceEpoch}';
 
@@ -274,6 +292,12 @@ class BackgroundUpdateManager {
         backoffPolicy: BackoffPolicy.linear,
         backoffPolicyDelay: const Duration(minutes: 1),
       );
+
+      // Start the foreground service AFTER WorkManager scheduling succeeds.
+      // An active foreground service keeps the app process out of Doze mode,
+      // ensuring the WorkManager tasks above fire at the configured interval
+      // even when the phone is locked.
+      await _startForegroundService(tripName);
 
       debugPrint(
           'BackgroundUpdateManager: ✅ Started auto updates for trip $tripId '
@@ -298,6 +322,9 @@ class BackgroundUpdateManager {
       await prefs.remove(_activeTripIdKey);
       await prefs.remove(_activeTripNameKey);
       await prefs.remove(_updateIntervalKey);
+
+      // Stop the foreground service so the app can enter Doze when idle
+      await _stopForegroundService();
 
       // Cancel by tag first (more targeted), then cancel all as fallback
       await Workmanager().cancelByTag(_chainedTaskTag);
@@ -365,12 +392,49 @@ class BackgroundUpdateManager {
       await prefs.remove(_activeTripNameKey);
       await prefs.remove(_updateIntervalKey);
 
+      await _stopForegroundService();
+
       await Workmanager().cancelByTag(_chainedTaskTag);
       await Workmanager().cancelAll();
       debugPrint('BackgroundUpdateManager: Stopped all auto updates');
     } catch (e) {
       debugPrint(
           'BackgroundUpdateManager: Failed to stop all auto updates: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Foreground service helpers
+  // ---------------------------------------------------------------------------
+
+  /// Start the native [TripTrackingService] foreground service.
+  ///
+  /// The service shows a persistent "Tracking: [tripName]" notification and
+  /// keeps the app process active (i.e. not subject to Doze mode), which lets
+  /// WorkManager tasks fire at their configured intervals even when the phone
+  /// is locked and the screen is off.
+  Future<void> _startForegroundService(String tripName) async {
+    try {
+      await _trackingChannel
+          .invokeMethod<void>('startTracking', {'tripName': tripName});
+      debugPrint(
+          'BackgroundUpdateManager: 📱 Foreground service started (trip=$tripName)');
+    } catch (e) {
+      // Non-fatal — WorkManager tasks will still run; they may just be deferred
+      // by Doze on some devices.
+      debugPrint(
+          'BackgroundUpdateManager: ⚠️ Could not start foreground service: $e');
+    }
+  }
+
+  /// Stop the native [TripTrackingService] foreground service.
+  Future<void> _stopForegroundService() async {
+    try {
+      await _trackingChannel.invokeMethod<void>('stopTracking');
+      debugPrint('BackgroundUpdateManager: 📱 Foreground service stopped');
+    } catch (e) {
+      debugPrint(
+          'BackgroundUpdateManager: ⚠️ Could not stop foreground service: $e');
     }
   }
 }
