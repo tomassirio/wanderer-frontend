@@ -26,6 +26,14 @@
             android:foregroundServiceType="location"
             android:exported="false" />
 
+        <!-- Keeps the app process alive and Doze-exempt while automatic trip updates
+             are running, so that WorkManager tasks fire at their scheduled intervals
+             even when the phone is locked and the screen is off. -->
+        <service
+            android:name=".TripTrackingService"
+            android:foregroundServiceType="location"
+            android:exported="false" />
+
         <!-- Required for Google Maps on Android 9+ -->
         <uses-library
             android:name="org.apache.http.legacy"
