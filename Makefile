@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 .PHONY: help format analyze test verify clean build run docker clean-verify test-watch
 
 # Default target
@@ -30,7 +31,26 @@ analyze:
 # Run all tests with coverage
 test:
 	@echo "🧪 Running tests..."
-	@flutter test --coverage
+	@flutter test --coverage 2>&1 | tee /tmp/flutter_test_output.log; \
+	TEST_EXIT=$${PIPESTATUS[0]}; \
+	if [ $$TEST_EXIT -ne 0 ]; then \
+		echo ""; \
+		echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \
+		echo "❌ FAILED TESTS SUMMARY"; \
+		echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \
+		FAILED=$$(grep -c '\[E\]' /tmp/flutter_test_output.log 2>/dev/null || echo 0); \
+		echo ""; \
+		echo "$$FAILED test(s) failed:"; \
+		echo ""; \
+		grep '\[E\]' /tmp/flutter_test_output.log | sed 's/^[0-9:.]*[[:space:]]*+[0-9]* -[0-9]*: //' | sed 's/ \[E\]$$//' | awk '{print "  " NR ") " $$0}' || true; \
+		echo ""; \
+		echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \
+		echo "🔁 Re-run commands:"; \
+		echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \
+		grep -E '^\s*(flutter test|.*dart-sdk.*dart test)' /tmp/flutter_test_output.log | sed 's/^[[:space:]]*//' || true; \
+		echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \
+		exit 1; \
+	fi
 
 # Clean build artifacts
 clean:
@@ -50,14 +70,18 @@ run:
 	@flutter run -d chrome
 
 # Build Docker image
-# Build Docker image
+docker:
 	@echo "🐳 Building Docker image..."
-	@echo "🐳 Building Docker image..."
+	@docker build -f docker/Dockerfile -t wanderer-frontend:latest .
 
 # Full clean + verify
+clean-verify: clean verify
+
+# Run tests continuously (re-run on file changes)
+test-watch:
 	@while true; do \
 		clear; \
-		echo "🧪 Running tests... ($(shell date '+%H:%M:%S'))"; \
+		echo "🧪 Running tests... ($$(date '+%H:%M:%S'))"; \
 		flutter test --coverage || true; \
 		echo "\n⏸️  Waiting for changes (press Ctrl+C to stop)..."; \
 		sleep 3; \
