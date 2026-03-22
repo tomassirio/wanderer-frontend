@@ -30,18 +30,18 @@ enum TripSortOption {
   newestFirst,
   oldestFirst;
 
-  String get label {
+  String labelFor(AppLocalizations l10n) {
     switch (this) {
       case TripSortOption.statusPriority:
-        return 'Status';
+        return l10n.sortOptionStatus;
       case TripSortOption.nameAsc:
-        return 'Name (A-Z)';
+        return l10n.sortOptionNameAZ;
       case TripSortOption.nameDesc:
-        return 'Name (Z-A)';
+        return l10n.sortOptionNameZA;
       case TripSortOption.newestFirst:
-        return 'Newest';
+        return l10n.sortOptionNewest;
       case TripSortOption.oldestFirst:
-        return 'Oldest';
+        return l10n.sortOptionOldest;
     }
   }
 
@@ -525,6 +525,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _handleFollowUser() async {
     if (_profile == null) return;
+    final l10n = context.l10n;
 
     // Toggle between follow and unfollow
     if (_isFollowingUser) {
@@ -535,7 +536,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
         if (mounted) {
           UiHelpers.showSuccessMessage(
-              context, 'Unfollowed ${_profile!.username}');
+              context, l10n.unfollowedUser(_profile!.username));
         }
       } catch (e) {
         if (mounted) {
@@ -550,7 +551,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
         if (mounted) {
           UiHelpers.showSuccessMessage(
-              context, 'You are now following ${_profile!.username}');
+              context, l10n.nowFollowingUser(_profile!.username));
         }
       } catch (e) {
         if (mounted) {
@@ -562,6 +563,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _handleSendFriendRequest() async {
     if (_profile == null) return;
+    final l10n = context.l10n;
 
     // If already friends, allow unfriending
     if (_isAlreadyFriends) {
@@ -572,7 +574,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
         if (mounted) {
           UiHelpers.showSuccessMessage(
-              context, 'You are no longer friends with ${_profile!.username}');
+              context, l10n.noLongerFriendsWith(_profile!.username));
         }
       } catch (e) {
         if (mounted) {
@@ -591,7 +593,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _sentFriendRequestId = null;
         });
         if (mounted) {
-          UiHelpers.showSuccessMessage(context, 'Friend request cancelled');
+          UiHelpers.showSuccessMessage(
+              context, l10n.friendRequestCancelled);
         }
       } catch (e) {
         if (mounted) {
@@ -611,7 +614,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
       if (mounted) {
         UiHelpers.showSuccessMessage(
-            context, 'Friend request sent to ${_profile!.username}');
+            context, l10n.friendRequestSentTo(_profile!.username));
       }
     } catch (e) {
       if (mounted) {
@@ -672,11 +675,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, 'Profile updated successfully!');
+        UiHelpers.showSuccessMessage(
+            context, context.l10n.profileUpdatedSuccessfully);
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Failed to update profile: $e');
+        UiHelpers.showErrorMessage(
+            context, context.l10n.failedToUpdateProfile);
       }
     }
   }
@@ -723,7 +728,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Icon(Icons.error_outline, size: 64, color: Colors.red),
             const SizedBox(height: 16),
             Text(
-              _error!,
+              !_isLoggedIn
+                  ? l10n.mustBeLoggedInToViewProfile
+                  : _error!,
               style: const TextStyle(fontSize: 16),
               textAlign: TextAlign.center,
             ),
@@ -759,6 +766,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileHeader() {
+    final l10n = context.l10n;
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Card(
@@ -859,8 +867,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           )
                         : Text(
                             _isViewingOwnProfile
-                                ? 'Tap the pencil to add a bio...'
-                                : 'No bio yet.',
+                                ? l10n.tapPencilToAddBio
+                                : l10n.noBioYet,
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[400],
@@ -919,7 +927,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _isFollowingUser ? Icons.person_remove : Icons.person_add,
             ),
             onPressed: _handleFollowUser,
-            tooltip: _isFollowingUser ? l10n.unfollow : 'Follow',
+            tooltip: _isFollowingUser ? l10n.unfollow : l10n.follow,
             color: _isFollowingUser ? Colors.blue : null,
             iconSize: 20,
           ),
@@ -933,10 +941,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             onPressed: _handleSendFriendRequest,
             tooltip: _isAlreadyFriends
-                ? 'Unfriend'
+                ? l10n.unfriend
                 : _hasSentFriendRequest
-                    ? 'Cancel Friend Request'
-                    : 'Send Friend Request',
+                    ? l10n.cancelFriendRequest
+                    : l10n.sendFriendRequest,
             color: _isAlreadyFriends
                 ? Colors.green
                 : _hasSentFriendRequest
@@ -950,15 +958,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildStatsRow() {
+    final l10n = context.l10n;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _buildStatCard('Trips', _userTrips.length.toString(), null),
-        _buildStatCard('Followers', _followersCount.toString(),
+        _buildStatCard(l10n.trips, _userTrips.length.toString(), null),
+        _buildStatCard(l10n.followers, _followersCount.toString(),
             _isViewingOwnProfile ? _navigateToFriendsFollowers : null),
-        _buildStatCard('Following', _followingCount.toString(),
+        _buildStatCard(l10n.following, _followingCount.toString(),
             _isViewingOwnProfile ? _navigateToFriendsFollowers : null),
-        _buildStatCard('Friends', _friendsCount.toString(),
+        _buildStatCard(l10n.friends, _friendsCount.toString(),
             _isViewingOwnProfile ? _navigateToFriendsFollowers : null),
       ],
     );
@@ -1022,7 +1031,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  _isViewingOwnProfile ? 'My Trips' : 'Trips',
+                  l10n.myTripsLabel(_isViewingOwnProfile),
                   style: const TextStyle(
                       fontSize: 20, fontWeight: FontWeight.bold),
                 ),
@@ -1039,7 +1048,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Text(
                   hasActiveFilters
                       ? '${filtered.length} of ${_userTrips.length}'
-                      : '${_userTrips.length} ${_userTrips.length == 1 ? 'trip' : 'trips'}',
+                      : l10n.tripCountLabel(_userTrips.length),
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -1146,6 +1155,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   /// A sleek dropdown-style sort button.
   Widget _buildSortDropdown() {
+    final l10n = context.l10n;
     return InkWell(
       onTap: () => _showSortBottomSheet(),
       borderRadius: BorderRadius.circular(10),
@@ -1168,7 +1178,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                _tripSortOption.label,
+                _tripSortOption.labelFor(l10n),
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -1253,7 +1263,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     size: 20,
                   ),
                   title: Text(
-                    option.label,
+                    option.labelFor(l10n),
                     style: TextStyle(
                       fontWeight:
                           isSelected ? FontWeight.w600 : FontWeight.normal,
@@ -1432,7 +1442,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      status.displayLabel,
+                      _localizedTripStatus(status),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -1468,6 +1478,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ],
     );
+  }
+
+  /// Returns a localized label for a trip status.
+  String _localizedTripStatus(TripStatus status) {
+    final l10n = context.l10n;
+    switch (status) {
+      case TripStatus.created:
+        return l10n.draft;
+      case TripStatus.inProgress:
+        return l10n.live;
+      case TripStatus.paused:
+        return l10n.paused;
+      case TripStatus.finished:
+        return l10n.completed;
+      case TripStatus.resting:
+        return l10n.resting;
+    }
   }
 
   /// Returns an icon for each trip status.
@@ -1530,6 +1557,23 @@ class _ProfileTripCardState extends State<ProfileTripCard> {
     final apiKey = ApiEndpoints.googleMapsApiKey;
     _mapsClient = GoogleMapsApiClient(apiKey);
     _loadRoute();
+  }
+
+  /// Returns a localized label for a trip status.
+  String _localizedStatus(TripStatus status) {
+    final l10n = context.l10n;
+    switch (status) {
+      case TripStatus.created:
+        return l10n.draft;
+      case TripStatus.inProgress:
+        return l10n.live;
+      case TripStatus.paused:
+        return l10n.paused;
+      case TripStatus.finished:
+        return l10n.completed;
+      case TripStatus.resting:
+        return l10n.resting;
+    }
   }
 
   /// Load the encoded polyline for the miniature map using the shared
@@ -1632,7 +1676,7 @@ class _ProfileTripCardState extends State<ProfileTripCard> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        widget.trip.status.displayLabel,
+                        _localizedStatus(widget.trip.status),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,

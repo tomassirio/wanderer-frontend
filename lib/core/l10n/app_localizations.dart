@@ -882,4 +882,41 @@ class AppLocalizations {
         return typeKey;
     }
   }
+
+  // --- Profile screen ---
+  String get mustBeLoggedInToViewProfile =>
+      _isEs ? 'Debes iniciar sesión para ver tu perfil' : 'You must be logged in to view your profile';
+  String get profileUpdatedSuccessfully =>
+      _isEs ? '¡Perfil actualizado con éxito!' : 'Profile updated successfully!';
+  String get failedToUpdateProfile =>
+      _isEs ? 'No se pudo actualizar el perfil' : 'Failed to update profile';
+  String get tapPencilToAddBio =>
+      _isEs ? 'Toca el lápiz para añadir una bio...' : 'Tap the pencil to add a bio...';
+  String get noBioYet => _isEs ? 'Aún sin bio.' : 'No bio yet.';
+  String get follow => _isEs ? 'Seguir' : 'Follow';
+  String get unfriend => _isEs ? 'Eliminar amigo' : 'Unfriend';
+  String get cancelFriendRequest =>
+      _isEs ? 'Cancelar solicitud de amistad' : 'Cancel Friend Request';
+  String get sendFriendRequest =>
+      _isEs ? 'Enviar solicitud de amistad' : 'Send Friend Request';
+  String get followers => _isEs ? 'Seguidores' : 'Followers';
+  String myTripsLabel(bool isOwn) =>
+      isOwn ? (_isEs ? 'Mis Viajes' : 'My Trips') : (_isEs ? 'Viajes' : 'Trips');
+  String tripCountLabel(int count) =>
+      count == 1 ? (_isEs ? '1 viaje' : '1 trip') : (_isEs ? '$count viajes' : '$count trips');
+  String get sortOptionStatus => _isEs ? 'Estado' : 'Status';
+  String get sortOptionNameAZ => _isEs ? 'Nombre (A-Z)' : 'Name (A-Z)';
+  String get sortOptionNameZA => _isEs ? 'Nombre (Z-A)' : 'Name (Z-A)';
+  String get sortOptionNewest => _isEs ? 'Más reciente' : 'Newest';
+  String get sortOptionOldest => _isEs ? 'Más antiguo' : 'Oldest';
+  String unfollowedUser(String username) =>
+      _isEs ? 'Dejaste de seguir a $username' : 'Unfollowed $username';
+  String nowFollowingUser(String username) =>
+      _isEs ? 'Ahora sigues a $username' : 'You are now following $username';
+  String noLongerFriendsWith(String username) =>
+      _isEs ? 'Ya no eres amigo de $username' : 'You are no longer friends with $username';
+  String get friendRequestCancelled =>
+      _isEs ? 'Solicitud de amistad cancelada' : 'Friend request cancelled';
+  String friendRequestSentTo(String username) =>
+      _isEs ? 'Solicitud de amistad enviada a $username' : 'Friend request sent to $username';
 }
