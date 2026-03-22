@@ -409,7 +409,7 @@ class TripInfoCard extends StatelessWidget {
                     _buildStatChip(
                       context,
                       Icons.comment_outlined,
-                      '${trip.commentsCount} comments',
+                      '${trip.commentsCount} ${l10n.comments}',
                     ),
                     const SizedBox(width: 16),
                     // Visibility
