@@ -565,7 +565,8 @@ class TripInfoCard extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            userAchievement.achievement.name,
+            context.l10n.achievementNameFor(
+                userAchievement.achievement.type.toJson()),
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
@@ -576,7 +577,8 @@ class TripInfoCard extends StatelessWidget {
       ),
     );
 
-    final description = userAchievement.achievement.description;
+    final description = context.l10n.achievementDescriptionFor(
+        userAchievement.achievement.type.toJson());
 
     if (kIsWeb) {
       return Tooltip(
@@ -627,7 +629,8 @@ class TripInfoCard extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                userAchievement.achievement.name,
+                context.l10n.achievementNameFor(
+                    userAchievement.achievement.type.toJson()),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -638,7 +641,8 @@ class TripInfoCard extends StatelessWidget {
           ],
         ),
         content: Text(
-          userAchievement.achievement.description,
+          context.l10n.achievementDescriptionFor(
+              userAchievement.achievement.type.toJson()),
           style: TextStyle(
             fontSize: 14,
             color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),

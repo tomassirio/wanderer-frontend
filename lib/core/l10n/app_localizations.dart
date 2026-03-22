@@ -752,12 +752,134 @@ class AppLocalizations {
   // Achievement units
   String achievementKm(double v) =>
       _isEs ? '${v.toStringAsFixed(1)} km' : '${v.toStringAsFixed(1)} km';
-  String achievementDays(int v) =>
-      _isEs ? '$v días' : '$v days';
+  String achievementDays(int v) => _isEs ? '$v días' : '$v days';
   String achievementUpdatesCount(int v) =>
       _isEs ? '$v actualizaciones' : '$v updates';
   String achievementFollowers(int v) =>
       _isEs ? '$v seguidores' : '$v followers';
-  String achievementFriends(int v) =>
-      _isEs ? '$v amigos' : '$v friends';
+  String achievementFriends(int v) => _isEs ? '$v amigos' : '$v friends';
+
+  // Achievement localized names (keyed by backend type string)
+  String achievementNameFor(String typeKey) {
+    switch (typeKey) {
+      case 'DISTANCE_100KM':
+        return '100 km';
+      case 'DISTANCE_200KM':
+        return '200 km';
+      case 'DISTANCE_500KM':
+        return '500 km';
+      case 'DISTANCE_800KM':
+        return '800 km';
+      case 'DISTANCE_1000KM':
+        return _isEs ? '1.000 km' : '1,000 km';
+      case 'DISTANCE_1600KM':
+        return _isEs ? '1.600 km' : '1,600 km';
+      case 'DISTANCE_2200KM':
+        return _isEs ? '2.200 km' : '2,200 km';
+      case 'UPDATES_10':
+        return _isEs ? '10 Actualizaciones' : '10 Updates';
+      case 'UPDATES_50':
+        return _isEs ? '50 Actualizaciones' : '50 Updates';
+      case 'UPDATES_100':
+        return _isEs ? '100 Actualizaciones' : '100 Updates';
+      case 'DURATION_7_DAYS':
+        return _isEs ? '7 Días' : '7 Days';
+      case 'DURATION_30_DAYS':
+        return _isEs ? '30 Días' : '30 Days';
+      case 'DURATION_45_DAYS':
+        return _isEs ? '45 Días' : '45 Days';
+      case 'DURATION_60_DAYS':
+        return _isEs ? '60 Días' : '60 Days';
+      case 'FOLLOWERS_10':
+        return _isEs ? '10 Seguidores' : '10 Followers';
+      case 'FOLLOWERS_50':
+        return _isEs ? '50 Seguidores' : '50 Followers';
+      case 'FOLLOWERS_100':
+        return _isEs ? '100 Seguidores' : '100 Followers';
+      case 'FRIENDS_5':
+        return _isEs ? '5 Amigos' : '5 Friends';
+      case 'FRIENDS_20':
+        return _isEs ? '20 Amigos' : '20 Friends';
+      case 'FRIENDS_50':
+        return _isEs ? '50 Amigos' : '50 Friends';
+      default:
+        return typeKey;
+    }
+  }
+
+  // Achievement localized descriptions (keyed by backend type string)
+  String achievementDescriptionFor(String typeKey) {
+    switch (typeKey) {
+      case 'DISTANCE_100KM':
+        return _isEs
+            ? 'Camina 100 km en un solo viaje'
+            : 'Walk 100 km in a single trip';
+      case 'DISTANCE_200KM':
+        return _isEs
+            ? 'Camina 200 km en un solo viaje'
+            : 'Walk 200 km in a single trip';
+      case 'DISTANCE_500KM':
+        return _isEs
+            ? 'Camina 500 km en un solo viaje'
+            : 'Walk 500 km in a single trip';
+      case 'DISTANCE_800KM':
+        return _isEs
+            ? 'Camina 800 km en un solo viaje'
+            : 'Walk 800 km in a single trip';
+      case 'DISTANCE_1000KM':
+        return _isEs
+            ? 'Camina 1.000 km en un solo viaje'
+            : 'Walk 1,000 km in a single trip';
+      case 'DISTANCE_1600KM':
+        return _isEs
+            ? 'Camina 1.600 km en un solo viaje'
+            : 'Walk 1,600 km in a single trip';
+      case 'DISTANCE_2200KM':
+        return _isEs
+            ? 'Camina 2.200 km en un solo viaje'
+            : 'Walk 2,200 km in a single trip';
+      case 'UPDATES_10':
+        return _isEs
+            ? 'Publica 10 actualizaciones en un viaje'
+            : 'Post 10 updates in a trip';
+      case 'UPDATES_50':
+        return _isEs
+            ? 'Publica 50 actualizaciones en un viaje'
+            : 'Post 50 updates in a trip';
+      case 'UPDATES_100':
+        return _isEs
+            ? 'Publica 100 actualizaciones en un viaje'
+            : 'Post 100 updates in a trip';
+      case 'DURATION_7_DAYS':
+        return _isEs
+            ? 'Completa un viaje de 7 días'
+            : 'Complete a trip lasting 7 days';
+      case 'DURATION_30_DAYS':
+        return _isEs
+            ? 'Completa un viaje de 30 días'
+            : 'Complete a trip lasting 30 days';
+      case 'DURATION_45_DAYS':
+        return _isEs
+            ? 'Completa un viaje de 45 días'
+            : 'Complete a trip lasting 45 days';
+      case 'DURATION_60_DAYS':
+        return _isEs
+            ? 'Completa un viaje de 60 días'
+            : 'Complete a trip lasting 60 days';
+      case 'FOLLOWERS_10':
+        return _isEs ? 'Consigue 10 seguidores' : 'Reach 10 followers';
+      case 'FOLLOWERS_50':
+        return _isEs ? 'Consigue 50 seguidores' : 'Reach 50 followers';
+      case 'FOLLOWERS_100':
+        return _isEs ? 'Consigue 100 seguidores' : 'Reach 100 followers';
+      case 'FRIENDS_5':
+        return _isEs ? 'Haz 5 amigos' : 'Make 5 friends';
+      case 'FRIENDS_20':
+        return _isEs ? 'Haz 20 amigos' : 'Make 20 friends';
+      case 'FRIENDS_50':
+        return _isEs ? 'Haz 50 amigos' : 'Make 50 friends';
+      default:
+        return typeKey;
+    }
+  }
 }

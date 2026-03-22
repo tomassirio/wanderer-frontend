@@ -212,7 +212,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     }
   }
 
-  String _formatValue(BuildContext context, Achievement achievement, double value) {
+  String _formatValue(
+      BuildContext context, Achievement achievement, double value) {
     final l10n = context.l10n;
     final type = achievement.type.toJson();
     final cappedValue = value > achievement.thresholdValue
@@ -223,6 +224,15 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     }
     if (type.startsWith('DURATION_')) {
       return l10n.achievementDays(cappedValue.toInt());
+    }
+    if (type.startsWith('UPDATES_')) {
+      return l10n.achievementUpdatesCount(cappedValue.toInt());
+    }
+    if (type.startsWith('FOLLOWERS_')) {
+      return l10n.achievementFollowers(cappedValue.toInt());
+    }
+    if (type.startsWith('FRIENDS_')) {
+      return l10n.achievementFriends(cappedValue.toInt());
     }
     return cappedValue.toInt().toString();
   }
@@ -501,7 +511,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
             // Achievement name
             Flexible(
               child: Text(
-                achievement.name,
+                context.l10n.achievementNameFor(achievement.type.toJson()),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -575,7 +585,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                achievement.name,
+                l10n.achievementNameFor(achievement.type.toJson()),
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -586,7 +596,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                achievement.description,
+                l10n.achievementDescriptionFor(achievement.type.toJson()),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
