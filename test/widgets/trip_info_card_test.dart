@@ -159,7 +159,7 @@ void main() {
       );
 
       expect(find.text('Achievements Earned'), findsOneWidget);
-      expect(find.text('First Century'), findsOneWidget);
+      expect(find.text('100 km'), findsOneWidget);
     });
 
     testWidgets('displays share/QR button next to status chip', (
@@ -271,13 +271,13 @@ void main() {
       );
 
       // Tap on the achievement badge
-      await tester.tap(find.text('First Century'));
+      await tester.tap(find.text('100 km'));
       await tester.pumpAndSettle();
 
       // Verify the dialog appears with the description
       expect(find.byType(AlertDialog), findsOneWidget);
       expect(
-        find.text('Walk 100 kilometers in a single trip'),
+        find.text('Walk 100 km in a single trip'),
         findsOneWidget,
       );
 
