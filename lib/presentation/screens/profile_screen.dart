@@ -731,6 +731,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (image == null) return;
 
+      // Validate file format
+      final filename = image.name.toLowerCase();
+      final validFormats = ['.jpg', '.jpeg', '.png', '.webp'];
+      final hasValidExtension = validFormats.any((ext) => filename.endsWith(ext));
+      
+      if (!hasValidExtension) {
+        if (mounted) {
+          UiHelpers.showErrorMessage(
+            context,
+            'Invalid image format. Only JPEG, PNG, and WebP are supported.',
+          );
+        }
+        return;
+      }
+
       // Check file size (5MB max)
       final fileSize = await image.length();
       if (fileSize > 5 * 1024 * 1024) {
