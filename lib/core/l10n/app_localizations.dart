@@ -900,8 +900,8 @@ class AppLocalizations {
   String get sendFriendRequest =>
       _isEs ? 'Enviar solicitud de amistad' : 'Send Friend Request';
   String get followers => _isEs ? 'Seguidores' : 'Followers';
-  String myTripsLabel(bool isOwn) =>
-      isOwn ? (_isEs ? 'Mis Viajes' : 'My Trips') : (_isEs ? 'Viajes' : 'Trips');
+  String myTripsLabel(bool isViewingOwnProfile) =>
+      isViewingOwnProfile ? (_isEs ? 'Mis Viajes' : 'My Trips') : (_isEs ? 'Viajes' : 'Trips');
   String tripCountLabel(int count) =>
       count == 1 ? (_isEs ? '1 viaje' : '1 trip') : (_isEs ? '$count viajes' : '$count trips');
   String get sortOptionStatus => _isEs ? 'Estado' : 'Status';

@@ -22,6 +22,22 @@ import 'trip_detail_screen.dart';
 import 'friends_followers_screen.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
+/// Returns a localized label for a [TripStatus] using the current locale.
+String _localizedTripStatus(TripStatus status, AppLocalizations l10n) {
+  switch (status) {
+    case TripStatus.created:
+      return l10n.draft;
+    case TripStatus.inProgress:
+      return l10n.live;
+    case TripStatus.paused:
+      return l10n.paused;
+    case TripStatus.finished:
+      return l10n.completed;
+    case TripStatus.resting:
+      return l10n.resting;
+  }
+}
+
 /// Sort options for trips in the profile
 enum TripSortOption {
   statusPriority,
@@ -1442,7 +1458,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      _localizedTripStatus(status),
+                      _localizedTripStatus(status, l10n),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -1478,23 +1494,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ],
     );
-  }
-
-  /// Returns a localized label for a trip status.
-  String _localizedTripStatus(TripStatus status) {
-    final l10n = context.l10n;
-    switch (status) {
-      case TripStatus.created:
-        return l10n.draft;
-      case TripStatus.inProgress:
-        return l10n.live;
-      case TripStatus.paused:
-        return l10n.paused;
-      case TripStatus.finished:
-        return l10n.completed;
-      case TripStatus.resting:
-        return l10n.resting;
-    }
   }
 
   /// Returns an icon for each trip status.
@@ -1559,23 +1558,6 @@ class _ProfileTripCardState extends State<ProfileTripCard> {
     _loadRoute();
   }
 
-  /// Returns a localized label for a trip status.
-  String _localizedStatus(TripStatus status) {
-    final l10n = context.l10n;
-    switch (status) {
-      case TripStatus.created:
-        return l10n.draft;
-      case TripStatus.inProgress:
-        return l10n.live;
-      case TripStatus.paused:
-        return l10n.paused;
-      case TripStatus.finished:
-        return l10n.completed;
-      case TripStatus.resting:
-        return l10n.resting;
-    }
-  }
-
   /// Load the encoded polyline for the miniature map using the shared
   /// [TripRouteHelper]. Uses the backend-provided polyline, in-memory cache,
   /// or encodes raw sorted points as straight-line fallback.
@@ -1638,6 +1620,7 @@ class _ProfileTripCardState extends State<ProfileTripCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -1676,7 +1659,7 @@ class _ProfileTripCardState extends State<ProfileTripCard> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        _localizedStatus(widget.trip.status),
+                        _localizedTripStatus(widget.trip.status, l10n),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,
