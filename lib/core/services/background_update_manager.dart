@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:wanderer_frontend/core/services/notification_service.dart';
 import 'package:wanderer_frontend/data/services/trip_update_service.dart';
+import 'package:wanderer_frontend/data/storage/token_refresh_manager.dart';
 import 'package:wanderer_frontend/data/storage/token_storage.dart';
 
 /// Unique task name for trip updates
@@ -106,13 +107,21 @@ void callbackDispatcher() {
         }
 
         final tokenStorage = TokenStorage();
-        await tokenStorage.reloadFromDisk();
-        final accessToken = await tokenStorage.getAccessToken();
 
-        debugPrint('$tag: hasToken=${accessToken != null}');
+        // Refresh the access token if it has expired.  This is necessary
+        // because the background task may run hours after the user last opened
+        // the app, by which point the short-lived access token will have
+        // expired.  ensureValidToken checks expiry and uses the refresh token
+        // to obtain a new access token silently.
+        final tokenValid = await TokenRefreshManager.instance.ensureValidToken(
+          tokenStorage: tokenStorage,
+        );
 
-        if (accessToken == null) {
-          debugPrint('$tag: No access token — user may be logged out');
+        debugPrint('$tag: tokenValid=$tokenValid');
+
+        if (!tokenValid) {
+          debugPrint(
+              '$tag: Could not obtain a valid token — user may need to log in again');
           await notificationService.showUpdateFailure(
             tripName: tripName,
             reason: 'Please open the app and log in again',
