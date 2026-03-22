@@ -9,6 +9,7 @@ import 'package:wanderer_frontend/presentation/widgets/common/notifications_drop
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/search_bar_widget.dart';
+import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 
 /// Reusable AppBar for the Wanderer application
 class WandererAppBar extends StatefulWidget implements PreferredSizeWidget {
@@ -366,7 +367,7 @@ class _WandererAppBarState extends State<WandererAppBar>
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 backgroundImage:
                     widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty
-                        ? NetworkImage(widget.avatarUrl!)
+                        ? NetworkImage(ApiEndpoints.resolveThumbnailUrl(widget.avatarUrl))
                         : null,
                 child: widget.avatarUrl == null || widget.avatarUrl!.isEmpty
                     ? Text(
@@ -408,7 +409,7 @@ class _WandererAppBarState extends State<WandererAppBar>
                                   Theme.of(context).colorScheme.primary,
                               backgroundImage: widget.avatarUrl != null &&
                                       widget.avatarUrl!.isNotEmpty
-                                  ? NetworkImage(widget.avatarUrl!)
+                                  ? NetworkImage(ApiEndpoints.resolveThumbnailUrl(widget.avatarUrl))
                                   : null,
                               child: widget.avatarUrl == null ||
                                       widget.avatarUrl!.isEmpty

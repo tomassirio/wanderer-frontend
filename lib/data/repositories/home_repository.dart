@@ -132,4 +132,9 @@ class HomeRepository {
       );
     }
   }
+
+  /// Gets current user profile
+  Future<dynamic> getMyProfile() async {
+    return await _userService.getMyProfile();
+  }
 }

@@ -1,11 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
+import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/repositories/profile_repository.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
+import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
@@ -91,6 +94,8 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final ProfileRepository _repository = ProfileRepository();
   final UserService _userService = UserService();
+  final WebSocketService _webSocketService = WebSocketService();
+  StreamSubscription? _userEventSubscription;
   UserProfile? _profile;
   List<Trip> _userTrips = [];
   bool _isLoadingProfile = false;
@@ -123,11 +128,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadProfile();
+    _setupUserWebSocket();
   }
 
   @override
   void dispose() {
+    _userEventSubscription?.cancel();
     super.dispose();
+  }
+
+  void _setupUserWebSocket() async {
+    final userId = widget.userId ?? await _repository.getCurrentUserId();
+    if (userId == null) return;
+
+    await _webSocketService.connect();
+    final userStream = _webSocketService.subscribeToUser(userId);
+    
+    _userEventSubscription = userStream.listen((event) {
+      if (event.type == WebSocketEventType.userProfileUpdated && mounted) {
+        _handleUserProfileUpdated();
+      } else if ((event.type == WebSocketEventType.userAvatarUploaded ||
+                  event.type == WebSocketEventType.userAvatarDeleted) && mounted) {
+        _handleUserProfileUpdated();
+      }
+    });
+  }
+
+  void _handleUserProfileUpdated() async {
+    try {
+      final refreshedProfile = await _repository.getMyProfile();
+      if (mounted) {
+        setState(() {
+          _profile = refreshedProfile;
+          _currentAvatarUrl = refreshedProfile.avatarUrl;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to refresh profile after update: $e');
+    }
   }
 
   /// Check if viewing own profile (either no userId passed, or userId matches current user)
@@ -713,17 +751,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final bytes = await image.readAsBytes();
       await _repository.uploadAvatar(bytes, image.name);
 
-      // Refresh profile to get new avatar URL
-      final refreshedProfile = await _repository.getMyProfile();
-      await _repository.refreshUserDetails();
-
-      setState(() {
-        _profile = refreshedProfile;
-        _currentAvatarUrl = refreshedProfile.avatarUrl;
-      });
-
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, 'Avatar updated successfully!');
+        UiHelpers.showSuccessMessage(
+          context,
+          'Avatar uploading... You\'ll see it in a moment!',
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -761,17 +793,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await _repository.deleteAvatar();
 
-      // Refresh profile
-      final refreshedProfile = await _repository.getMyProfile();
-      await _repository.refreshUserDetails();
-
-      setState(() {
-        _profile = refreshedProfile;
-        _currentAvatarUrl = null;
-      });
-
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, 'Avatar deleted successfully!');
+        UiHelpers.showSuccessMessage(
+          context,
+          'Avatar deleting... You\'ll see it removed in a moment!',
+        );
       }
     } catch (e) {
       if (mounted) {

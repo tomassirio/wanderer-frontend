@@ -11,6 +11,7 @@ import 'package:wanderer_frontend/presentation/screens/trip_maintenance_screen.d
 import 'package:wanderer_frontend/presentation/screens/trip_promotion_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 
 /// Sidebar navigation for the app
 class AppSidebar extends StatelessWidget {
@@ -197,7 +198,8 @@ class AppSidebar extends StatelessWidget {
                     radius: 36,
                     backgroundColor: Colors.white,
                     backgroundImage: avatarUrl != null && avatarUrl!.isNotEmpty
-                        ? NetworkImage(avatarUrl!)
+                        ? NetworkImage(
+                            ApiEndpoints.resolveThumbnailUrl(avatarUrl))
                         : null,
                     child: avatarUrl == null || avatarUrl!.isEmpty
                         ? (isLoggedIn

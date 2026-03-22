@@ -204,8 +204,28 @@ class _HomeScreenState extends State<HomeScreen>
         // quick succession) don't hammer the API.
         _debouncedLoadTrips();
         break;
+      case WebSocketEventType.userProfileUpdated:
+      case WebSocketEventType.userAvatarUploaded:
+      case WebSocketEventType.userAvatarDeleted:
+        _refreshCurrentUserProfile();
+        break;
       default:
         break;
+    }
+  }
+
+  Future<void> _refreshCurrentUserProfile() async {
+    if (!_isLoggedIn || _userId == null) return;
+    
+    try {
+      final profile = await _repository.getMyProfile();
+      if (mounted) {
+        setState(() {
+          _avatarUrl = profile.avatarUrl;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to refresh user profile: $e');
     }
   }
 

@@ -92,7 +92,9 @@ data:
         }
 
         # Thumbnails - proxy /thumbnails/* to nginx static file server
-        # Use ^~ to give this priority over regex locations
+        # Strip /thumbnails prefix and proxy to command nginx
+        # Nginx serves from /usr/share/nginx/html/ which is mounted to /data/thumbnails/
+        # So /thumbnails/trips/UUID.png -> /trips/UUID.png -> /usr/share/nginx/html/trips/UUID.png
         location ^~ /thumbnails/ {
             proxy_pass http://wanderer-command{{ .Values.nameSuffix }}-nginx/;
             proxy_set_header Host $host;

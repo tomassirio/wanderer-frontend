@@ -32,24 +32,17 @@ class ApiEndpoints {
   // Resolve thumbnail URL (handles both relative and absolute URLs)
   static String resolveThumbnailUrl(String? thumbnailUrl) {
     if (thumbnailUrl == null || thumbnailUrl.isEmpty) {
-      print('⚠️  Thumbnail URL is null or empty');
       return '';
     }
 
     // If already absolute URL, return as-is
     if (thumbnailUrl.startsWith('http://') ||
         thumbnailUrl.startsWith('https://')) {
-      print('✅ Thumbnail URL is absolute: $thumbnailUrl');
       return thumbnailUrl;
     }
 
     // Relative URL - prepend appBaseUrl
-    final resolved = appBaseUrl + thumbnailUrl;
-    print('🔧 Resolved relative thumbnail URL:');
-    print('   Input: $thumbnailUrl');
-    print('   APP_BASE_URL: $appBaseUrl');
-    print('   Result: $resolved');
-    return resolved;
+    return appBaseUrl + thumbnailUrl;
   }
 
   // Auth endpoints (use authBaseUrl)

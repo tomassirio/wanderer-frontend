@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart' show MediaType;
 import '../models/responses/page_response.dart';
 import '../storage/token_storage.dart';
 import '../storage/token_refresh_manager.dart';
@@ -241,11 +242,15 @@ class ApiClient {
       }
     }
 
+    // Determine content type from file extension
+    String? contentType = _getContentTypeFromFileName(fileName);
+
     // Add the file
     request.files.add(http.MultipartFile.fromBytes(
       fieldName,
       fileBytes,
       filename: fileName,
+      contentType: contentType != null ? MediaType.parse(contentType) : null,
     ));
 
     // Add any additional fields
@@ -270,6 +275,7 @@ class ApiClient {
           fieldName,
           fileBytes,
           filename: fileName,
+          contentType: contentType != null ? MediaType.parse(contentType) : null,
         ));
         if (additionalFields != null) {
           request.fields.addAll(additionalFields);
@@ -282,6 +288,22 @@ class ApiClient {
     }
 
     return response;
+  }
+
+  /// Determine content type from file name extension
+  String? _getContentTypeFromFileName(String fileName) {
+    final extension = fileName.toLowerCase().split('.').last;
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      default:
+        return null;
+    }
   }
 
   /// DELETE request

@@ -33,6 +33,11 @@ enum WebSocketEventType {
   friendshipCreated,
   friendshipRemoved,
 
+  // User profile events
+  userProfileUpdated,
+  userAvatarUploaded,
+  userAvatarDeleted,
+
   // Trip settings events
   tripSettingsUpdated,
 
@@ -124,6 +129,14 @@ class WebSocketEvent {
       // Notification events
       case 'NOTIFICATION_CREATED':
         return WebSocketEventType.notificationCreated;
+
+      // User profile events
+      case 'USER_PROFILE_UPDATED':
+        return WebSocketEventType.userProfileUpdated;
+      case 'USER_AVATAR_UPLOADED':
+        return WebSocketEventType.userAvatarUploaded;
+      case 'USER_AVATAR_DELETED':
+        return WebSocketEventType.userAvatarDeleted;
 
       default:
         return WebSocketEventType.unknown;
