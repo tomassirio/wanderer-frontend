@@ -155,8 +155,7 @@ class AppLocalizations {
       : 'Explore public trips from the community';
   String get feed => _isEs ? 'Feed' : 'Feed';
   String get minuteAgo => _isEs ? 'hace 1 minuto' : '1 minute ago';
-  String minutesAgo(int n) =>
-      _isEs ? 'hace $n minutos' : '$n minutes ago';
+  String minutesAgo(int n) => _isEs ? 'hace $n minutos' : '$n minutes ago';
   String get hourAgo => _isEs ? 'hace 1 hora' : '1 hour ago';
   String hoursAgo(int n) => _isEs ? 'hace $n horas' : '$n hours ago';
   String get dayAgo => _isEs ? 'hace 1 día' : '1 day ago';
@@ -188,8 +187,9 @@ class AppLocalizations {
   String get readAll => _isEs ? 'Marcar todo como leído' : 'Read all';
   String get loadMoreNotifications =>
       _isEs ? 'Cargar más notificaciones' : 'Load more notifications';
-  String get pleaseLogInForNotifications =>
-      _isEs ? 'Por favor inicia sesión para ver notificaciones' : 'Please log in to view notifications';
+  String get pleaseLogInForNotifications => _isEs
+      ? 'Por favor inicia sesión para ver notificaciones'
+      : 'Please log in to view notifications';
   String get failedToLoadNotifications =>
       _isEs ? 'Error al cargar notificaciones' : 'Failed to load notifications';
 
@@ -233,12 +233,15 @@ class AppLocalizations {
   String passwordResetEmailSent(String email) => _isEs
       ? 'Si existe una cuenta con $email, hemos enviado un enlace de restablecimiento. Revisa tu bandeja de entrada y sigue las instrucciones para restablecer tu contraseña.'
       : 'If an account with $email exists, we\'ve sent a password reset link. Check your inbox and follow the instructions to reset your password.';
-  String get pleaseEnterEmail =>
-      _isEs ? 'Por favor ingresa tu correo electrónico' : 'Please enter your email';
-  String get pleaseEnterValidEmail =>
-      _isEs ? 'Por favor ingresa un correo válido' : 'Please enter a valid email';
-  String get pleaseEnterUsername =>
-      _isEs ? 'Por favor ingresa tu nombre de usuario' : 'Please enter your username';
+  String get pleaseEnterEmail => _isEs
+      ? 'Por favor ingresa tu correo electrónico'
+      : 'Please enter your email';
+  String get pleaseEnterValidEmail => _isEs
+      ? 'Por favor ingresa un correo válido'
+      : 'Please enter a valid email';
+  String get pleaseEnterUsername => _isEs
+      ? 'Por favor ingresa tu nombre de usuario'
+      : 'Please enter your username';
   String get usernameMinLength => _isEs
       ? 'El nombre de usuario debe tener al menos 3 caracteres'
       : 'Username must be at least 3 characters';
@@ -445,12 +448,15 @@ class AppLocalizations {
   String get promoted => _isEs ? 'Promovido' : 'Promoted';
   String get justNow => _isEs ? 'Ahora mismo' : 'Just now';
   String get ok => 'OK';
-  String get writeAReply => _isEs ? 'Escribe una respuesta...' : 'Write a reply...';
-  String get writeAComment => _isEs ? 'Escribe un comentario...' : 'Write a comment...';
+  String get writeAReply =>
+      _isEs ? 'Escribe una respuesta...' : 'Write a reply...';
+  String get writeAComment =>
+      _isEs ? 'Escribe un comentario...' : 'Write a comment...';
   String get comments => _isEs ? 'Comentarios' : 'Comments';
   String get resumeTrip => _isEs ? 'Reanudar Viaje' : 'Resume Trip';
   String get pauseTrip => _isEs ? 'Pausar Viaje' : 'Pause Trip';
-  String get restForNight => _isEs ? 'Descansar por la noche' : 'Rest for Night';
+  String get restForNight =>
+      _isEs ? 'Descansar por la noche' : 'Rest for Night';
   String get sending => _isEs ? 'Enviando...' : 'Sending...';
   String get startingToday => _isEs ? '¡Empieza hoy!' : 'Starting today!';
   String get startsTomorrow => _isEs ? 'Empieza mañana' : 'Starts tomorrow';
@@ -483,7 +489,8 @@ class AppLocalizations {
   String get simple => _isEs ? 'Simple' : 'Simple';
   String get singleDayTrip => _isEs ? 'Viaje de un día' : 'Single-day trip';
   String get multiDay => _isEs ? 'Multi-Día' : 'Multi-Day';
-  String get multiDayJourney => _isEs ? 'Viaje de varios días' : 'Multi-day journey';
+  String get multiDayJourney =>
+      _isEs ? 'Viaje de varios días' : 'Multi-day journey';
   String get startDate => _isEs ? 'Fecha de Inicio' : 'Start Date';
   String get endDate => _isEs ? 'Fecha de Fin' : 'End Date';
   String get pleaseEnterTitle =>
@@ -681,18 +688,14 @@ class AppLocalizations {
       _isEs ? 'Visible solo para amigos' : 'Visible to friends only';
 
   // --- Home screen sections / filter chips ---
-  String get activeTripsSection =>
-      _isEs ? 'Viajes Activos' : 'Active Trips';
+  String get activeTripsSection => _isEs ? 'Viajes Activos' : 'Active Trips';
   String get currentlyInProgress =>
       _isEs ? 'Actualmente en curso' : 'Currently in progress';
-  String get pausedTripsSection =>
-      _isEs ? 'Viajes Pausados' : 'Paused Trips';
+  String get pausedTripsSection => _isEs ? 'Viajes Pausados' : 'Paused Trips';
   String get temporarilyStopped =>
       _isEs ? 'Temporalmente detenido' : 'Temporarily stopped';
-  String get draftTripsSection =>
-      _isEs ? 'Viajes Borrador' : 'Draft Trips';
-  String get notYetStarted =>
-      _isEs ? 'Aún no comenzado' : 'Not yet started';
+  String get draftTripsSection => _isEs ? 'Viajes Borrador' : 'Draft Trips';
+  String get notYetStarted => _isEs ? 'Aún no comenzado' : 'Not yet started';
   String get completedTripsSection =>
       _isEs ? 'Viajes Completados' : 'Completed Trips';
   String get finishedAdventures =>
@@ -702,35 +705,35 @@ class AppLocalizations {
       _isEs ? 'Ocurriendo ahora mismo' : 'Happening right now';
   String get friendsTripsSection =>
       _isEs ? 'Viajes de Amigos' : "Friends' Trips";
-  String get fromYourFriends =>
-      _isEs ? 'De tus amigos' : 'From your friends';
+  String get fromYourFriends => _isEs ? 'De tus amigos' : 'From your friends';
   String get fromUsersYouFollow =>
       _isEs ? 'De usuarios que sigues' : 'From users you follow';
-  String get createYourFirstTrip =>
-      _isEs ? '¡Crea tu primer viaje para comenzar!' : 'Create your first trip to get started!';
+  String get createYourFirstTrip => _isEs
+      ? '¡Crea tu primer viaje para comenzar!'
+      : 'Create your first trip to get started!';
   String get noTripsInYourFeed =>
       _isEs ? 'No hay viajes en tu feed' : 'No trips in your feed';
-  String get followUsersToSeeFeed =>
-      _isEs ? '¡Sigue usuarios o añade amigos para ver sus viajes!' : 'Follow users or add friends to see their trips!';
-  String get deleteTripWarning =>
-      _isEs ? 'Esta acción no se puede deshacer.' : 'This action cannot be undone.';
+  String get followUsersToSeeFeed => _isEs
+      ? '¡Sigue usuarios o añade amigos para ver sus viajes!'
+      : 'Follow users or add friends to see their trips!';
+  String get deleteTripWarning => _isEs
+      ? 'Esta acción no se puede deshacer.'
+      : 'This action cannot be undone.';
 
   // Timeline day/trip markers
   String dayNStarted(int day) =>
       _isEs ? 'Día $day Iniciado' : 'Day $day Started';
-  String dayNEnded(int day) =>
-      _isEs ? 'Día $day Finalizado' : 'Day $day Ended';
-  String get tripStartedLabel =>
-      _isEs ? 'Viaje Iniciado' : 'Trip Started';
-  String get tripEndedLabel =>
-      _isEs ? 'Viaje Finalizado' : 'Trip Ended';
+  String dayNEnded(int day) => _isEs ? 'Día $day Finalizado' : 'Day $day Ended';
+  String get tripStartedLabel => _isEs ? 'Viaje Iniciado' : 'Trip Started';
+  String get tripEndedLabel => _isEs ? 'Viaje Finalizado' : 'Trip Ended';
   String get updateLabel => _isEs ? 'Actualización' : 'Update';
 
   // Comments section
   String get beFirstToComment =>
       _isEs ? '¡Sé el primero en comentar!' : 'Be the first to comment!';
-  String get loginToAddComment =>
-      _isEs ? 'Inicia sesión para añadir un comentario' : 'Log in to add a comment';
+  String get loginToAddComment => _isEs
+      ? 'Inicia sesión para añadir un comentario'
+      : 'Log in to add a comment';
 
   // Achievements screen
   String achievementsProgress(int unlocked, int total) =>
@@ -739,8 +742,7 @@ class AppLocalizations {
       _isEs ? 'Logrado: $value' : 'Achieved: $value';
   String unlockedOn(String date) =>
       _isEs ? 'Desbloqueado el $date' : 'Unlocked on $date';
-  String goalValue(String value) =>
-      _isEs ? 'Meta: $value' : 'Goal: $value';
+  String goalValue(String value) => _isEs ? 'Meta: $value' : 'Goal: $value';
 
   // Achievement categories
   String get categoryDistance => _isEs ? 'Distancia' : 'Distance';
@@ -884,14 +886,17 @@ class AppLocalizations {
   }
 
   // --- Profile screen ---
-  String get mustBeLoggedInToViewProfile =>
-      _isEs ? 'Debes iniciar sesión para ver tu perfil' : 'You must be logged in to view your profile';
-  String get profileUpdatedSuccessfully =>
-      _isEs ? '¡Perfil actualizado con éxito!' : 'Profile updated successfully!';
+  String get mustBeLoggedInToViewProfile => _isEs
+      ? 'Debes iniciar sesión para ver tu perfil'
+      : 'You must be logged in to view your profile';
+  String get profileUpdatedSuccessfully => _isEs
+      ? '¡Perfil actualizado con éxito!'
+      : 'Profile updated successfully!';
   String get failedToUpdateProfile =>
       _isEs ? 'No se pudo actualizar el perfil' : 'Failed to update profile';
-  String get tapPencilToAddBio =>
-      _isEs ? 'Toca el lápiz para añadir una bio...' : 'Tap the pencil to add a bio...';
+  String get tapPencilToAddBio => _isEs
+      ? 'Toca el lápiz para añadir una bio...'
+      : 'Tap the pencil to add a bio...';
   String get noBioYet => _isEs ? 'Aún sin bio.' : 'No bio yet.';
   String get follow => _isEs ? 'Seguir' : 'Follow';
   String get unfriend => _isEs ? 'Eliminar amigo' : 'Unfriend';
@@ -900,10 +905,12 @@ class AppLocalizations {
   String get sendFriendRequest =>
       _isEs ? 'Enviar solicitud de amistad' : 'Send Friend Request';
   String get followers => _isEs ? 'Seguidores' : 'Followers';
-  String myTripsLabel(bool isViewingOwnProfile) =>
-      isViewingOwnProfile ? (_isEs ? 'Mis Viajes' : 'My Trips') : (_isEs ? 'Viajes' : 'Trips');
-  String tripCountLabel(int count) =>
-      count == 1 ? (_isEs ? '1 viaje' : '1 trip') : (_isEs ? '$count viajes' : '$count trips');
+  String myTripsLabel(bool isViewingOwnProfile) => isViewingOwnProfile
+      ? (_isEs ? 'Mis Viajes' : 'My Trips')
+      : (_isEs ? 'Viajes' : 'Trips');
+  String tripCountLabel(int count) => count == 1
+      ? (_isEs ? '1 viaje' : '1 trip')
+      : (_isEs ? '$count viajes' : '$count trips');
   String get sortOptionStatus => _isEs ? 'Estado' : 'Status';
   String get sortOptionNameAZ => _isEs ? 'Nombre (A-Z)' : 'Name (A-Z)';
   String get sortOptionNameZA => _isEs ? 'Nombre (Z-A)' : 'Name (Z-A)';
@@ -913,33 +920,40 @@ class AppLocalizations {
       _isEs ? 'Dejaste de seguir a $username' : 'Unfollowed $username';
   String nowFollowingUser(String username) =>
       _isEs ? 'Ahora sigues a $username' : 'You are now following $username';
-  String noLongerFriendsWith(String username) =>
-      _isEs ? 'Ya no eres amigo de $username' : 'You are no longer friends with $username';
+  String noLongerFriendsWith(String username) => _isEs
+      ? 'Ya no eres amigo de $username'
+      : 'You are no longer friends with $username';
   String get friendRequestCancelled =>
       _isEs ? 'Solicitud de amistad cancelada' : 'Friend request cancelled';
-  String friendRequestSentTo(String username) =>
-      _isEs ? 'Solicitud de amistad enviada a $username' : 'Friend request sent to $username';
+  String friendRequestSentTo(String username) => _isEs
+      ? 'Solicitud de amistad enviada a $username'
+      : 'Friend request sent to $username';
 
   // --- Friends/Followers screen ---
   String get newFollowerMsg =>
       _isEs ? '¡Tienes un nuevo seguidor!' : 'You have a new follower!';
-  String get friendRequestReceivedMsg =>
-      _isEs ? '¡Recibiste una solicitud de amistad!' : 'You received a friend request!';
+  String get friendRequestReceivedMsg => _isEs
+      ? '¡Recibiste una solicitud de amistad!'
+      : 'You received a friend request!';
   String get friendRequestAcceptedMsg =>
       _isEs ? '¡Solicitud de amistad aceptada!' : 'Friend request accepted!';
   String get followRequestSentMsg =>
       _isEs ? '¡Solicitud de seguimiento enviada!' : 'Follow request sent!';
   String failedToFollowUser(String e) =>
       _isEs ? 'No se pudo seguir al usuario: $e' : 'Failed to follow user: $e';
-  String get unfollowedUserMsg => _isEs ? 'Dejaste de seguir al usuario' : 'Unfollowed user';
-  String failedToUnfollowUser(String e) =>
-      _isEs ? 'No se pudo dejar de seguir al usuario: $e' : 'Failed to unfollow user: $e';
-  String failedToAcceptFriendRequest(String e) =>
-      _isEs ? 'No se pudo aceptar la solicitud de amistad: $e' : 'Failed to accept friend request: $e';
+  String get unfollowedUserMsg =>
+      _isEs ? 'Dejaste de seguir al usuario' : 'Unfollowed user';
+  String failedToUnfollowUser(String e) => _isEs
+      ? 'No se pudo dejar de seguir al usuario: $e'
+      : 'Failed to unfollow user: $e';
+  String failedToAcceptFriendRequest(String e) => _isEs
+      ? 'No se pudo aceptar la solicitud de amistad: $e'
+      : 'Failed to accept friend request: $e';
   String get friendRequestDeclinedMsg =>
       _isEs ? 'Solicitud de amistad rechazada' : 'Friend request declined';
-  String failedToDeclineFriendRequest(String e) =>
-      _isEs ? 'No se pudo rechazar la solicitud de amistad: $e' : 'Failed to decline friend request: $e';
+  String failedToDeclineFriendRequest(String e) => _isEs
+      ? 'No se pudo rechazar la solicitud de amistad: $e'
+      : 'Failed to decline friend request: $e';
   String get requestsTab => _isEs ? 'Solicitudes' : 'Requests';
   String get unknownUser => _isEs ? 'Usuario desconocido' : 'Unknown User';
   String get messagingComingSoon =>

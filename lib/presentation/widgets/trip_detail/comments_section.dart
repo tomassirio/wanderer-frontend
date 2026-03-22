@@ -442,9 +442,7 @@ class CommentsSection extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              isLoggedIn
-                  ? l10n.beFirstToComment
-                  : l10n.loginToAddComment,
+              isLoggedIn ? l10n.beFirstToComment : l10n.loginToAddComment,
               style: TextStyle(
                 fontSize: 14,
                 color:

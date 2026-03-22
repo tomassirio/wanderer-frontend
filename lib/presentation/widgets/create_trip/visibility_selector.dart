@@ -56,7 +56,8 @@ class VisibilitySelector extends StatelessWidget {
     );
   }
 
-  String _getVisibilityDescription(Visibility visibility, AppLocalizations l10n) {
+  String _getVisibilityDescription(
+      Visibility visibility, AppLocalizations l10n) {
     switch (visibility) {
       case Visibility.private:
         return l10n.privateVisibilityHint;

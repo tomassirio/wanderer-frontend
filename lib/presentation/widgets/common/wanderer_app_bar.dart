@@ -367,7 +367,8 @@ class _WandererAppBarState extends State<WandererAppBar>
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 backgroundImage:
                     widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty
-                        ? NetworkImage(ApiEndpoints.resolveThumbnailUrl(widget.avatarUrl))
+                        ? NetworkImage(
+                            ApiEndpoints.resolveThumbnailUrl(widget.avatarUrl))
                         : null,
                 child: widget.avatarUrl == null || widget.avatarUrl!.isEmpty
                     ? Text(
@@ -409,7 +410,9 @@ class _WandererAppBarState extends State<WandererAppBar>
                                   Theme.of(context).colorScheme.primary,
                               backgroundImage: widget.avatarUrl != null &&
                                       widget.avatarUrl!.isNotEmpty
-                                  ? NetworkImage(ApiEndpoints.resolveThumbnailUrl(widget.avatarUrl))
+                                  ? NetworkImage(
+                                      ApiEndpoints.resolveThumbnailUrl(
+                                          widget.avatarUrl))
                                   : null,
                               child: widget.avatarUrl == null ||
                                       widget.avatarUrl!.isEmpty

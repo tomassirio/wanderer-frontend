@@ -216,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _refreshCurrentUserProfile() async {
     if (!_isLoggedIn || _userId == null) return;
-    
+
     try {
       final profile = await _repository.getMyProfile();
       if (mounted) {

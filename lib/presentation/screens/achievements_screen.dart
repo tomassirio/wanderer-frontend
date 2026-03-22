@@ -528,7 +528,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
             // Threshold or achieved value
             Text(
               unlocked && userAchievement != null
-                  ? _formatValue(context, achievement, userAchievement.valueAchieved)
+                  ? _formatValue(
+                      context, achievement, userAchievement.valueAchieved)
                   : _formatThreshold(context, achievement),
               textAlign: TextAlign.center,
               maxLines: 1,
@@ -607,8 +608,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               const SizedBox(height: 12),
               if (userAchievement != null) ...[
                 Text(
-                  l10n.achievedValue(
-                      _formatValue(context, achievement, userAchievement.valueAchieved)),
+                  l10n.achievedValue(_formatValue(
+                      context, achievement, userAchievement.valueAchieved)),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,

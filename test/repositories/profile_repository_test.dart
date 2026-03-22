@@ -236,7 +236,6 @@ UserProfile createMockProfile(String id, String username) {
     email: '$username@example.com',
     displayName: username,
     bio: 'Test bio',
-    avatarUrl: 'https://example.com/avatar.jpg',
     followersCount: 10,
     followingCount: 5,
     tripsCount: 3,

@@ -16,9 +16,6 @@ import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.d
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import '../../core/constants/enums.dart';
-import '../../data/client/google_maps_api_client.dart';
-import '../helpers/trip_route_helper.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'auth_screen.dart';
 import 'home_screen.dart';
 import 'settings_screen.dart';
@@ -143,12 +140,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     await _webSocketService.connect();
     final userStream = _webSocketService.subscribeToUser(userId);
-    
+
     _userEventSubscription = userStream.listen((event) {
       if (event.type == WebSocketEventType.userProfileUpdated && mounted) {
         _handleUserProfileUpdated();
       } else if ((event.type == WebSocketEventType.userAvatarUploaded ||
-                  event.type == WebSocketEventType.userAvatarDeleted) && mounted) {
+              event.type == WebSocketEventType.userAvatarDeleted) &&
+          mounted) {
         _handleUserProfileUpdated();
       }
     });
@@ -634,8 +632,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _sentFriendRequestId = null;
         });
         if (mounted) {
-          UiHelpers.showSuccessMessage(
-              context, l10n.friendRequestCancelled);
+          UiHelpers.showSuccessMessage(context, l10n.friendRequestCancelled);
         }
       } catch (e) {
         if (mounted) {
@@ -699,7 +696,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               email: _profile!.email,
               displayName: displayName.isEmpty ? null : displayName,
               bio: bio.isEmpty ? null : bio,
-              avatarUrl: _profile!.avatarUrl,
               followersCount: _profile!.followersCount,
               followingCount: _profile!.followingCount,
               friendsCount: _profile!.friendsCount,
@@ -718,8 +714,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(
-            context, context.l10n.failedToUpdateProfile);
+        UiHelpers.showErrorMessage(context, context.l10n.failedToUpdateProfile);
       }
     }
   }
@@ -848,9 +843,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Icon(Icons.error_outline, size: 64, color: Colors.red),
             const SizedBox(height: 16),
             Text(
-              !_isLoggedIn
-                  ? l10n.mustBeLoggedInToViewProfile
-                  : _error!,
+              !_isLoggedIn ? l10n.mustBeLoggedInToViewProfile : _error!,
               style: const TextStyle(fontSize: 16),
               textAlign: TextAlign.center,
             ),
@@ -1023,11 +1016,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // For other users, just show the avatar
       return CircleAvatar(
         radius: 40,
-        backgroundImage: _profile!.avatarUrl != null
+        backgroundImage: _profile!.avatarUrl.isNotEmpty
             ? NetworkImage(
                 ApiEndpoints.resolveThumbnailUrl(_profile!.avatarUrl))
             : null,
-        child: _profile!.avatarUrl == null
+        child: _profile!.avatarUrl.isEmpty
             ? Text(
                 _profile!.username.substring(0, 1).toUpperCase(),
                 style: const TextStyle(fontSize: 32),
@@ -1046,7 +1039,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onExit: (_) => setState(() => isHovering = false),
           child: GestureDetector(
             onTap: () {
-              if (_profile!.avatarUrl != null) {
+              if (_profile!.avatarUrl.isNotEmpty) {
                 // Show options: change or delete
                 showModalBottomSheet(
                   context: context,
@@ -1084,11 +1077,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 CircleAvatar(
                   radius: 40,
-                  backgroundImage: _profile!.avatarUrl != null
+                  backgroundImage: _profile!.avatarUrl.isNotEmpty
                       ? NetworkImage(
                           ApiEndpoints.resolveThumbnailUrl(_profile!.avatarUrl))
                       : null,
-                  child: _profile!.avatarUrl == null
+                  child: _profile!.avatarUrl.isEmpty
                       ? Text(
                           _profile!.username.substring(0, 1).toUpperCase(),
                           style: const TextStyle(fontSize: 32),
@@ -1740,62 +1733,6 @@ class ProfileTripCard extends StatefulWidget {
 }
 
 class _ProfileTripCardState extends State<ProfileTripCard> {
-  String? _encodedPolyline;
-  late final GoogleMapsApiClient _mapsClient;
-
-  @override
-  void initState() {
-    super.initState();
-    final apiKey = ApiEndpoints.googleMapsApiKey;
-    _mapsClient = GoogleMapsApiClient(apiKey);
-    _loadRoute();
-  }
-
-  /// Load the encoded polyline for the miniature map using the shared
-  /// [TripRouteHelper]. Uses the backend-provided polyline, in-memory cache,
-  /// or encodes raw sorted points as straight-line fallback.
-  void _loadRoute() {
-    final encoded = TripRouteHelper.fetchEncodedPolyline(widget.trip);
-    if (mounted && encoded != null) {
-      setState(() {
-        _encodedPolyline = encoded;
-      });
-    }
-  }
-
-  /// Generate static map image URL from Google Maps Static API
-  String _generateStaticMapUrl() {
-    final sorted = TripRouteHelper.getSortedLocations(widget.trip);
-    if (sorted.isEmpty) {
-      return '';
-    }
-
-    final firstLoc = sorted.first;
-    final lastLoc = sorted.last;
-
-    if (sorted.length == 1) {
-      // Single location
-      return _mapsClient.generateStaticMapUrl(
-        center: LatLng(firstLoc.latitude, firstLoc.longitude),
-        markers: [
-          MapMarker(
-            position: LatLng(firstLoc.latitude, firstLoc.longitude),
-            color: 'green',
-          ),
-        ],
-        size: GoogleMapsApiClient.defaultSquareSize,
-      );
-    } else {
-      // Multiple locations - show route
-      return _mapsClient.generateRouteMapUrl(
-        startPoint: LatLng(firstLoc.latitude, firstLoc.longitude),
-        endPoint: LatLng(lastLoc.latitude, lastLoc.longitude),
-        encodedPolyline: _encodedPolyline,
-        size: GoogleMapsApiClient.defaultSquareSize,
-      );
-    }
-  }
-
   Color _getStatusColor(TripStatus status) {
     switch (status) {
       case TripStatus.created:
@@ -1902,7 +1839,10 @@ class _ProfileTripCardState extends State<ProfileTripCard> {
   }
 
   Widget _buildMiniMap() {
-    if (widget.trip.locations == null || widget.trip.locations!.isEmpty) {
+    final thumbnailUrl =
+        ApiEndpoints.resolveThumbnailUrl(widget.trip.thumbnailUrl);
+
+    if (thumbnailUrl.isEmpty) {
       return Container(
         color: Colors.grey[300],
         child: Center(
@@ -1912,7 +1852,7 @@ class _ProfileTripCardState extends State<ProfileTripCard> {
     }
 
     return Image.network(
-      _generateStaticMapUrl(),
+      thumbnailUrl,
       fit: BoxFit.cover,
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) return child;

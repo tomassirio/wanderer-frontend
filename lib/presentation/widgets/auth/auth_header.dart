@@ -24,9 +24,7 @@ class AuthHeader extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          isLogin
-              ? l10n.signInToContinue
-              : l10n.signUpToStart,
+          isLogin ? l10n.signInToContinue : l10n.signUpToStart,
           style: Theme.of(
             context,
           ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),

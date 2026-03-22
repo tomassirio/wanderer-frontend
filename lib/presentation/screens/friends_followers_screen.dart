@@ -320,7 +320,8 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     } catch (e) {
       if (mounted) {
         final l10n = context.l10n;
-        UiHelpers.showErrorMessage(context, l10n.failedToFollowUser(e.toString()));
+        UiHelpers.showErrorMessage(
+            context, l10n.failedToFollowUser(e.toString()));
       }
     }
   }
@@ -453,8 +454,8 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                 isScrollable: false,
                 labelPadding: const EdgeInsets.symmetric(horizontal: 2),
                 tabs: [
-                  _buildTab(Icons.people, l10n.friends, _friends.length,
-                      isNarrow),
+                  _buildTab(
+                      Icons.people, l10n.friends, _friends.length, isNarrow),
                   _buildTab(Icons.person_add, l10n.followers, _followers.length,
                       isNarrow),
                   _buildTab(Icons.person_outline, l10n.following,
@@ -553,7 +554,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
               onTap: () => _navigateToUserProfile(friendship.friendId),
               leading: CircleAvatar(
                 backgroundImage: profile?.avatarUrl != null
-                    ? NetworkImage(profile!.avatarUrl!)
+                    ? NetworkImage(profile!.avatarUrl)
                     : null,
                 child: profile?.avatarUrl == null
                     ? const Icon(Icons.person)
@@ -617,7 +618,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
               onTap: () => _navigateToUserProfile(follower.followerId),
               leading: CircleAvatar(
                 backgroundImage: profile?.avatarUrl != null
-                    ? NetworkImage(profile!.avatarUrl!)
+                    ? NetworkImage(profile!.avatarUrl)
                     : null,
                 child: profile?.avatarUrl == null
                     ? const Icon(Icons.person)
@@ -676,7 +677,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
               onTap: () => _navigateToUserProfile(following.followedId),
               leading: CircleAvatar(
                 backgroundImage: profile?.avatarUrl != null
-                    ? NetworkImage(profile!.avatarUrl!)
+                    ? NetworkImage(profile!.avatarUrl)
                     : null,
                 child: profile?.avatarUrl == null
                     ? const Icon(Icons.person)
@@ -759,7 +760,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
               onTap: () => _navigateToUserProfile(request.senderId),
               leading: CircleAvatar(
                 backgroundImage: profile?.avatarUrl != null
-                    ? NetworkImage(profile!.avatarUrl!)
+                    ? NetworkImage(profile!.avatarUrl)
                     : null,
                 child: profile?.avatarUrl == null
                     ? const Icon(Icons.person)
@@ -829,7 +830,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
               onTap: () => _navigateToUserProfile(request.receiverId),
               leading: CircleAvatar(
                 backgroundImage: profile?.avatarUrl != null
-                    ? NetworkImage(profile!.avatarUrl!)
+                    ? NetworkImage(profile!.avatarUrl)
                     : null,
                 child: profile?.avatarUrl == null
                     ? const Icon(Icons.person)

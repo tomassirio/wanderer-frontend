@@ -275,7 +275,8 @@ class ApiClient {
           fieldName,
           fileBytes,
           filename: fileName,
-          contentType: contentType != null ? MediaType.parse(contentType) : null,
+          contentType:
+              contentType != null ? MediaType.parse(contentType) : null,
         ));
         if (additionalFields != null) {
           request.fields.addAll(additionalFields);
