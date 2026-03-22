@@ -478,7 +478,6 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
       );
     }
 
-    final l10n = context.l10n;
     return RefreshIndicator(
       onRefresh: _loadData,
       child: ListView.builder(
@@ -538,7 +537,6 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
       );
     }
 
-    final l10n = context.l10n;
     return RefreshIndicator(
       onRefresh: _loadData,
       child: ListView.builder(
@@ -603,7 +601,6 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
       );
     }
 
-    final l10n = context.l10n;
     return RefreshIndicator(
       onRefresh: _loadData,
       child: ListView.builder(
@@ -687,7 +684,6 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
       );
     }
 
-    final l10n = context.l10n;
     return RefreshIndicator(
       onRefresh: _loadData,
       child: ListView.builder(
@@ -758,7 +754,6 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
       );
     }
 
-    final l10n = context.l10n;
     return RefreshIndicator(
       onRefresh: _loadData,
       child: ListView.builder(
