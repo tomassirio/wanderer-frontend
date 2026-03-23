@@ -23,6 +23,11 @@ class WandererAppBar extends StatefulWidget implements PreferredSizeWidget {
   final VoidCallback? onSettings;
   final VoidCallback? onLogout;
 
+  /// Called when the user's avatar is updated via WebSocket event.
+  /// Parent screens should use this to update their own avatar state
+  /// (e.g. for the sidebar).
+  final ValueChanged<String?>? onAvatarUpdated;
+
   const WandererAppBar({
     super.key,
     required this.isLoggedIn,
@@ -34,6 +39,7 @@ class WandererAppBar extends StatefulWidget implements PreferredSizeWidget {
     this.onProfile,
     this.onSettings,
     this.onLogout,
+    this.onAvatarUpdated,
   });
 
   @override
@@ -54,6 +60,16 @@ class _WandererAppBarState extends State<WandererAppBar>
   String? _subscribedUserId;
   Timer? _pollTimer;
   Timer? _debounceTimer;
+
+  /// Locally-tracked avatar URL, updated via WebSocket events.
+  /// When non-null, overrides [widget.avatarUrl] so the avatar updates
+  /// immediately without waiting for the parent to rebuild.
+  String? _localAvatarUrl;
+  bool _hasLocalAvatarOverride = false;
+
+  /// The effective avatar URL: local override if available, otherwise widget prop.
+  String? get _effectiveAvatarUrl =>
+      _hasLocalAvatarOverride ? _localAvatarUrl : widget.avatarUrl;
 
   late final AnimationController _searchAnimController;
   late final Animation<double> _searchAnimation;
@@ -111,6 +127,14 @@ class _WandererAppBarState extends State<WandererAppBar>
   @override
   void didUpdateWidget(covariant WandererAppBar oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    // When the parent provides a new avatarUrl, clear the local override
+    // so we use the parent's value (which is now up-to-date).
+    if (widget.avatarUrl != oldWidget.avatarUrl) {
+      _hasLocalAvatarOverride = false;
+      _localAvatarUrl = null;
+    }
+
     if (widget.isLoggedIn && !oldWidget.isLoggedIn) {
       // Just became logged in — fetch the real count from the API
       // to pick up any notifications missed during the async window.
@@ -188,11 +212,67 @@ class _WandererAppBarState extends State<WandererAppBar>
       setState(() {
         _unreadCount++;
       });
+    } else if (event.type == WebSocketEventType.userAvatarUploaded) {
+      _handleAvatarUploaded();
+    } else if (event.type == WebSocketEventType.userAvatarDeleted) {
+      _handleAvatarDeleted();
     } else if (_notificationTriggerEvents.contains(event.type)) {
       // Other events that typically create a notification on the backend.
       // Debounce an API refresh so we don't fire for every single event.
       _debounceFetchUnreadCount();
     }
+  }
+
+  /// Handle avatar uploaded: the image URL path stays the same but the
+  /// content changed, so we bust all caches and force a reload.
+  void _handleAvatarUploaded() {
+    if (!mounted) return;
+    debugPrint('WandererAppBar: _handleAvatarUploaded called');
+    _bustAvatarCache();
+  }
+
+  /// Handle avatar deleted: bust cache to force a reload. The server will
+  /// return a 404 so [NetworkImage] fails and the fallback initial is shown.
+  void _handleAvatarDeleted() {
+    if (!mounted) return;
+    debugPrint('WandererAppBar: _handleAvatarDeleted called');
+    _bustAvatarCache();
+  }
+
+  /// Evict the old avatar from Flutter's image cache, then generate a new
+  /// cache-busted URL with a timestamp so [NetworkImage] fetches fresh.
+  void _bustAvatarCache() {
+    final baseUrl = widget.avatarUrl ?? _localAvatarUrl;
+    if (baseUrl == null || baseUrl.isEmpty) {
+      debugPrint('WandererAppBar: _bustAvatarCache — no base URL, skipping');
+      return;
+    }
+
+    // Evict the old resolved URL from Flutter's in-memory image cache
+    // so the cached pixels are discarded.
+    final oldResolvedUrl = ApiEndpoints.resolveThumbnailUrl(baseUrl);
+    if (oldResolvedUrl.isNotEmpty) {
+      final evicted = PaintingBinding.instance.imageCache
+          .evict(NetworkImage(oldResolvedUrl));
+      debugPrint(
+          'WandererAppBar: Evicted old avatar from imageCache: $evicted ($oldResolvedUrl)');
+    }
+
+    // Build a new URL with a timestamp cache-buster.
+    final cleanUrl = baseUrl.split('?').first;
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final cacheBustedUrl = '$cleanUrl?v=$timestamp';
+
+    debugPrint(
+        'WandererAppBar: Cache-busted avatar URL: $cacheBustedUrl (was: $baseUrl)');
+
+    setState(() {
+      _localAvatarUrl = cacheBustedUrl;
+      _hasLocalAvatarOverride = true;
+    });
+
+    // Notify parent so it can update its own state (e.g. for sidebar).
+    widget.onAvatarUpdated?.call(cacheBustedUrl);
   }
 
   /// Debounce the unread count fetch so rapid-fire events only trigger one call.
@@ -222,6 +302,23 @@ class _WandererAppBarState extends State<WandererAppBar>
   String get _avatarInitial {
     final name = widget.displayName ?? widget.username ?? '';
     return name.isNotEmpty ? name[0].toUpperCase() : '?';
+  }
+
+  /// Build a [NetworkImage] for the avatar. When the URL has been cache-busted
+  /// (contains `?v=`), add no-cache headers so the HTTP client bypasses its
+  /// disk cache and fetches fresh from the server.
+  ImageProvider? _avatarImageProvider() {
+    final url = _effectiveAvatarUrl;
+    if (url == null || url.isEmpty) return null;
+    final resolved = ApiEndpoints.resolveThumbnailUrl(url);
+    if (resolved.isEmpty) return null;
+    final isBusted = url.contains('?v=');
+    return NetworkImage(
+      resolved,
+      headers: isBusted
+          ? const {'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}
+          : null,
+    );
   }
 
   void _toggleSearch() {
@@ -365,20 +462,17 @@ class _WandererAppBarState extends State<WandererAppBar>
             child: PopupMenuButton<String>(
               icon: CircleAvatar(
                 backgroundColor: Theme.of(context).colorScheme.primary,
-                backgroundImage:
-                    widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty
-                        ? NetworkImage(
-                            ApiEndpoints.resolveThumbnailUrl(widget.avatarUrl))
+                backgroundImage: _avatarImageProvider(),
+                child:
+                    _effectiveAvatarUrl == null || _effectiveAvatarUrl!.isEmpty
+                        ? Text(
+                            _avatarInitial,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
                         : null,
-                child: widget.avatarUrl == null || widget.avatarUrl!.isEmpty
-                    ? Text(
-                        _avatarInitial,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )
-                    : null,
               ),
               tooltip: l10n.profile,
               onSelected: (value) {
@@ -408,14 +502,9 @@ class _WandererAppBarState extends State<WandererAppBar>
                             CircleAvatar(
                               backgroundColor:
                                   Theme.of(context).colorScheme.primary,
-                              backgroundImage: widget.avatarUrl != null &&
-                                      widget.avatarUrl!.isNotEmpty
-                                  ? NetworkImage(
-                                      ApiEndpoints.resolveThumbnailUrl(
-                                          widget.avatarUrl))
-                                  : null,
-                              child: widget.avatarUrl == null ||
-                                      widget.avatarUrl!.isEmpty
+                              backgroundImage: _avatarImageProvider(),
+                              child: _effectiveAvatarUrl == null ||
+                                      _effectiveAvatarUrl!.isEmpty
                                   ? Text(
                                       _avatarInitial,
                                       style: const TextStyle(

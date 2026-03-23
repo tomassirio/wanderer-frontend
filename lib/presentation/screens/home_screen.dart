@@ -205,8 +205,6 @@ class _HomeScreenState extends State<HomeScreen>
         _debouncedLoadTrips();
         break;
       case WebSocketEventType.userProfileUpdated:
-      case WebSocketEventType.userAvatarUploaded:
-      case WebSocketEventType.userAvatarDeleted:
         _refreshCurrentUserProfile();
         break;
       default:
@@ -221,7 +219,10 @@ class _HomeScreenState extends State<HomeScreen>
       final profile = await _repository.getMyProfile();
       if (mounted) {
         setState(() {
-          _avatarUrl = profile.avatarUrl;
+          _displayName = profile.displayName;
+          // Don't overwrite _avatarUrl here — avatar updates are handled
+          // exclusively via WandererAppBar's onAvatarUpdated callback
+          // when USER_AVATAR_UPLOADED / USER_AVATAR_DELETED events arrive.
         });
       }
     } catch (e) {
@@ -1679,6 +1680,9 @@ class _HomeScreenState extends State<HomeScreen>
         onProfile: _handleProfile,
         onSettings: _handleSettings,
         onLogout: _logout,
+        onAvatarUpdated: (newUrl) {
+          if (mounted) setState(() => _avatarUrl = newUrl);
+        },
       ),
       drawer: AppSidebar(
         username: _username,

@@ -111,6 +111,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _currentAvatarUrl; // Track the logged-in user's avatar URL
   final int _selectedSidebarIndex = 4; // Profile is index 4
 
+  /// Cache-busting timestamp, set on avatar WebSocket events to force
+  /// [NetworkImage] to reload the image at the same URL.
+  int _avatarVersion = 0;
+
   // Actual counts loaded from API (for own profile)
   int _followersCount = 0;
   int _followingCount = 0;
@@ -147,9 +151,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
       } else if ((event.type == WebSocketEventType.userAvatarUploaded ||
               event.type == WebSocketEventType.userAvatarDeleted) &&
           mounted) {
-        _handleUserProfileUpdated();
+        _handleAvatarChanged();
       }
     });
+  }
+
+  /// Handle avatar upload/delete WebSocket events: evict the old image from
+  /// Flutter's cache and bust the URL so the image is refetched from the server.
+  /// No API call is needed — the avatar URL is a computed getter that never
+  /// changes; only the image content at that URL changes.
+  void _handleAvatarChanged() {
+    debugPrint('ProfileScreen: Avatar WS event received — busting cache');
+
+    // Evict the old resolved URL from Flutter's in-memory image cache.
+    if (_profile != null) {
+      final oldResolvedUrl =
+          ApiEndpoints.resolveThumbnailUrl(_profile!.avatarUrl);
+      if (oldResolvedUrl.isNotEmpty) {
+        // Also evict any previously cache-busted variant.
+        final oldBusted = _cacheBustedAvatarUrl(_profile!.avatarUrl);
+        final oldBustedResolved = ApiEndpoints.resolveThumbnailUrl(oldBusted);
+        PaintingBinding.instance.imageCache.evict(NetworkImage(oldResolvedUrl));
+        if (oldBustedResolved != oldResolvedUrl) {
+          PaintingBinding.instance.imageCache
+              .evict(NetworkImage(oldBustedResolved));
+        }
+        debugPrint('ProfileScreen: Evicted avatar from imageCache');
+      }
+    }
+
+    setState(() {
+      _avatarVersion = DateTime.now().millisecondsSinceEpoch;
+      // Update sidebar/appbar avatar URL with cache buster.
+      if (_profile != null) {
+        _currentAvatarUrl = _cacheBustedAvatarUrl(_profile!.avatarUrl);
+      }
+    });
+
+    debugPrint('ProfileScreen: Cache-busted avatar version: $_avatarVersion');
   }
 
   void _handleUserProfileUpdated() async {
@@ -158,12 +197,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         setState(() {
           _profile = refreshedProfile;
-          _currentAvatarUrl = refreshedProfile.avatarUrl;
+          _currentDisplayName = refreshedProfile.displayName;
+          _currentAvatarUrl = _cacheBustedAvatarUrl(refreshedProfile.avatarUrl);
         });
       }
     } catch (e) {
       debugPrint('Failed to refresh profile after update: $e');
     }
+  }
+
+  /// Append a cache-busting query parameter to the avatar URL so
+  /// [NetworkImage] is forced to refetch the image from the server.
+  String _cacheBustedAvatarUrl(String url) {
+    if (url.isEmpty) return url;
+    final cleanUrl = url.split('?').first;
+    return _avatarVersion > 0 ? '$cleanUrl?v=$_avatarVersion' : cleanUrl;
   }
 
   /// Check if viewing own profile (either no userId passed, or userId matches current user)
@@ -683,7 +731,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _profile = refreshedProfile;
           _currentDisplayName = refreshedProfile.displayName;
-          _currentAvatarUrl = refreshedProfile.avatarUrl;
+          _currentAvatarUrl = _cacheBustedAvatarUrl(refreshedProfile.avatarUrl);
         });
       } catch (_) {
         // If re-fetch fails, optimistically update local state
@@ -734,8 +782,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Validate file format
       final filename = image.name.toLowerCase();
       final validFormats = ['.jpg', '.jpeg', '.png', '.webp'];
-      final hasValidExtension = validFormats.any((ext) => filename.endsWith(ext));
-      
+      final hasValidExtension =
+          validFormats.any((ext) => filename.endsWith(ext));
+
       if (!hasValidExtension) {
         if (mounted) {
           UiHelpers.showErrorMessage(
@@ -829,6 +878,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onProfile: () {},
         onSettings: _handleSettings,
         onLogout: _logout,
+        onAvatarUpdated: (newUrl) {
+          if (mounted) setState(() => _currentAvatarUrl = newUrl);
+        },
       ),
       drawer: AppSidebar(
         username: _currentUsername,
@@ -1027,15 +1079,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildAvatarWidget() {
+    final avatarUrl = _cacheBustedAvatarUrl(_profile!.avatarUrl);
+    final isBusted = avatarUrl.contains('?v=');
+    final avatarImage = avatarUrl.isNotEmpty
+        ? NetworkImage(
+            ApiEndpoints.resolveThumbnailUrl(avatarUrl),
+            headers: isBusted
+                ? const {'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}
+                : null,
+          )
+        : null;
+
     if (!_isViewingOwnProfile) {
       // For other users, just show the avatar
       return CircleAvatar(
         radius: 40,
-        backgroundImage: _profile!.avatarUrl.isNotEmpty
-            ? NetworkImage(
-                ApiEndpoints.resolveThumbnailUrl(_profile!.avatarUrl))
-            : null,
-        child: _profile!.avatarUrl.isEmpty
+        backgroundImage: avatarImage,
+        child: avatarUrl.isEmpty
             ? Text(
                 _profile!.username.substring(0, 1).toUpperCase(),
                 style: const TextStyle(fontSize: 32),
@@ -1092,11 +1152,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 CircleAvatar(
                   radius: 40,
-                  backgroundImage: _profile!.avatarUrl.isNotEmpty
-                      ? NetworkImage(
-                          ApiEndpoints.resolveThumbnailUrl(_profile!.avatarUrl))
-                      : null,
-                  child: _profile!.avatarUrl.isEmpty
+                  backgroundImage: avatarImage,
+                  child: avatarUrl.isEmpty
                       ? Text(
                           _profile!.username.substring(0, 1).toUpperCase(),
                           style: const TextStyle(fontSize: 32),

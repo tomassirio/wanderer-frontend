@@ -199,7 +199,15 @@ class AppSidebar extends StatelessWidget {
                     backgroundColor: Colors.white,
                     backgroundImage: avatarUrl != null && avatarUrl!.isNotEmpty
                         ? NetworkImage(
-                            ApiEndpoints.resolveThumbnailUrl(avatarUrl))
+                            ApiEndpoints.resolveThumbnailUrl(avatarUrl),
+                            headers:
+                                avatarUrl != null && avatarUrl!.contains('?v=')
+                                    ? const {
+                                        'Cache-Control': 'no-cache',
+                                        'Pragma': 'no-cache'
+                                      }
+                                    : null,
+                          )
                         : null,
                     child: avatarUrl == null || avatarUrl!.isEmpty
                         ? (isLoggedIn

@@ -2454,6 +2454,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         onProfile: _handleProfile,
         onSettings: _handleSettings,
         onLogout: _logout,
+        onAvatarUpdated: (newUrl) {
+          if (mounted) setState(() => _avatarUrl = newUrl);
+        },
       ),
       drawer: AppSidebar(
         username: _username,

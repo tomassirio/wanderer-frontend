@@ -51,6 +51,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   String? _error;
   UserProfile? _currentUser;
   bool _isAdmin = false;
+  String? _avatarUrlOverride;
   final int _selectedSidebarIndex = 2; // Friends is index 2
 
   @override
@@ -390,16 +391,19 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
         username: _currentUser?.username,
         userId: _currentUser?.id,
         displayName: _currentUser?.displayName,
-        avatarUrl: _currentUser?.avatarUrl,
+        avatarUrl: _avatarUrlOverride ?? _currentUser?.avatarUrl,
         onProfile: _navigateToProfile,
         onSettings: _handleSettings,
         onLogout: _handleLogout,
+        onAvatarUpdated: (newUrl) {
+          if (mounted) setState(() => _avatarUrlOverride = newUrl);
+        },
       ),
       drawer: AppSidebar(
         username: _currentUser?.username,
         userId: _currentUser?.id,
         displayName: _currentUser?.displayName,
-        avatarUrl: _currentUser?.avatarUrl,
+        avatarUrl: _avatarUrlOverride ?? _currentUser?.avatarUrl,
         selectedIndex: _selectedSidebarIndex,
         onLogout: _handleLogout,
         onSettings: _handleSettings,
