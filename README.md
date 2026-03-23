@@ -103,62 +103,25 @@ flutter run -d chrome
 
 ### Local Development (with Maps)
 
-#### Quick Start with Environment Files
-
-1. **Create your environment file** from the template:
-
-```bash
-# For development
-cp .env.template .env.dev
-# Edit .env.dev with your values
-
-# For production (optional)
-cp .env.template .env.prod
-# Edit .env.prod with your values
-```
-
-2. **Run the application**:
-
-```bash
-# Android emulator (development)
-make run-android-dev
-
-# Android emulator (production)
-make run-android-prod
-
-# Web app (development) - runs on port 51538
-make run-web-dev
-
-# Web app (production)
-make run-web-prod
-```
-
-The `.env.dev` and `.env.prod` files follow this structure:
+Create a `.env` file at the repository root:
 
 ```dotenv
-# Domain without protocol
-DOMAIN=wanderer.localwanderer-dev.com
+GOOGLE_MAPS_API_KEY=your_key_here
 
-# Protocols for Web (use https/wss - ingress handles HTTPS)
-WEB_HTTP_PROTOCOL=https
-WEB_WS_PROTOCOL=wss
-
-# Protocols for Android Emulator (use http/ws - can't handle self-signed certs)
-ANDROID_HTTP_PROTOCOL=http
-ANDROID_WS_PROTOCOL=ws
-
-# Google Maps API Key
-GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
-
-# Android Emulator Device ID (optional, defaults to emulator-5554)
-ANDROID_DEVICE_ID=emulator-5554
+# Optional — defaults shown below
+# COMMAND_BASE_URL=http://localhost:8081/api/1
+# QUERY_BASE_URL=http://localhost:8082/api/1
+# AUTH_BASE_URL=http://localhost:8083/api/1/auth
+# WS_BASE_URL=ws://localhost:8080
 ```
 
-**Note:** Web uses HTTPS (ingress redirects), but Android emulator uses HTTP since it can't easily handle self-signed certificates.
+Then start the development server:
 
-The Makefile automatically constructs URLs using the pattern: `{{PROTOCOL}}://{{DOMAIN}}/api/{{service}}`
+```bash
+./dev.sh          # Injects env vars into web/index.html, runs on port 51538
+```
 
-> **Note:** The `dev.sh` script is now deprecated. Use `make run-web-dev` or `make run-web-prod` instead.
+The script restores the original `index.html` when you stop it.
 
 ### Running Tests
 
@@ -184,10 +147,6 @@ The full list of Makefile targets:
 | `make verify` | Format + analyze + test |
 | `make build` | Build web release |
 | `make run` | Run in Chrome |
-| `make run-android-dev` | Run on Android emulator (dev environment) |
-| `make run-android-prod` | Run on Android emulator (prod environment) |
-| `make run-web-dev` | Run web app (dev environment) |
-| `make run-web-prod` | Run web app (prod environment) |
 | `make clean` | Remove build artifacts |
 
 ## Building for Android

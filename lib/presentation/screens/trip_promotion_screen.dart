@@ -448,9 +448,6 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
         onLogout: _handleLogout,
         onSettings: _handleSettings,
         onProfile: () => AuthNavigationHelper.navigateToOwnProfile(context),
-        onAvatarUpdated: (newUrl) {
-          if (mounted) setState(() => _avatarUrl = newUrl);
-        },
       ),
       drawer: AppSidebar(
         username: _username,

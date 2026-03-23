@@ -254,17 +254,6 @@ class WebSocketService {
         _emitToUserStream(event.recipientId, event);
       }
 
-      // Emit user-profile / avatar events to the user-specific stream.
-      // The backend sends the userId in the `tripId` JSON field for these
-      // events, so we use effectiveTripId as the userId for routing.
-      if (event.type == WebSocketEventType.userProfileUpdated ||
-          event.type == WebSocketEventType.userAvatarUploaded ||
-          event.type == WebSocketEventType.userAvatarDeleted) {
-        if (effectiveTripId != null && effectiveTripId.isNotEmpty) {
-          _emitToUserStream(effectiveTripId, event);
-        }
-      }
-
       debugPrint(
         'WebSocketService: Processed event ${event.type} for trip ${event.tripId}',
       );

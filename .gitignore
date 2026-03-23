@@ -14,12 +14,6 @@ migrate_working_dir/
 
 # Environment variables
 .env
-.env.local
-
-# Keep environment templates
-!.env.template
-!.env.dev
-!.env.prod
 
 # Local development files
 web/index.dev.html
@@ -306,5 +300,3 @@ linux/
 macos/
 windows/
 
-/.env.dev
-/.env.prod

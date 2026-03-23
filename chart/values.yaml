@@ -15,11 +15,6 @@ ingress:
   enabled: true
   className: "nginx"  # or "traefik" if you're using Traefik
   annotations:
-    nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "http://localhost:51538,https://wanderer.localwanderer-dev.com"
-    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
-    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
     # For Cloudflare Tunnel (when ready)
     # external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
     # For local dev with Let's Encrypt (optional)

@@ -271,9 +271,6 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         onProfile: _navigateToProfile,
         onSettings: _handleSettings,
         onLogout: _handleLogout,
-        onAvatarUpdated: (newUrl) {
-          if (mounted) setState(() => _avatarUrl = newUrl);
-        },
       ),
       drawer: AppSidebar(
         username: _username,

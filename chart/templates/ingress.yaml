@@ -23,15 +23,9 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                {{- if .backend }}
-                name: {{ .backend.service }}{{ $.Values.nameSuffix }}
-                port:
-                  number: {{ .backend.port }}
-                {{- else }}
                 name: {{ $.Chart.Name }}{{ $.Values.nameSuffix }}
                 port:
                   number: {{ $.Values.service.port }}
-                {{- end }}
         {{- end }}
   {{- end }}
   {{- if .Values.ingress.tls }}

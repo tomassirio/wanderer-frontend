@@ -1,23 +1,6 @@
 #!/bin/bash
 set -e
 
-# =============================================================================
-# ⚠️  DEPRECATED: This script is deprecated as of 2026-03-23
-# =============================================================================
-# Please use the Makefile targets instead:
-#   - make run-web-dev   (for development environment)
-#   - make run-web-prod  (for production environment)
-#
-# These targets provide the same functionality with better environment
-# management using .env.dev and .env.prod files.
-# =============================================================================
-
-echo "⚠️  WARNING: dev.sh is deprecated!"
-echo "Please use 'make run-web-dev' or 'make run-web-prod' instead."
-echo ""
-echo "Continuing in 5 seconds... (Press Ctrl+C to cancel)"
-sleep 5
-
 # Load environment variables from .env.local if it exists
 if [ ! -f .env ]; then
     echo "Error: .env file not found!"

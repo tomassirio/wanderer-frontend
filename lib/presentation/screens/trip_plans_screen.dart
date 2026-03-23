@@ -256,9 +256,6 @@ class _TripPlansScreenState extends State<TripPlansScreen> {
         onProfile: () {}, // Not used in this screen
         onSettings: _handleSettings,
         onLogout: _logout,
-        onAvatarUpdated: (newUrl) {
-          if (mounted) setState(() => _avatarUrl = newUrl);
-        },
       ),
       drawer: AppSidebar(
         username: _username,
