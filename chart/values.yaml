@@ -27,6 +27,21 @@ ingress:
   hosts:
     - host: wanderer.localwanderer.com  # Will be overridden to wanderer.localwanderer-dev.com in dev
       paths:
+        - path: /api/1/auth
+          pathType: Prefix
+          backend:
+            service: wanderer-auth
+            port: 8083
+        - path: /api/1/command
+          pathType: Prefix
+          backend:
+            service: wanderer-command
+            port: 8081
+        - path: /api/1/query
+          pathType: Prefix
+          backend:
+            service: wanderer-query
+            port: 8082
         - path: /
           pathType: Prefix
   tls: []
