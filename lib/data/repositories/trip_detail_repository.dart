@@ -215,4 +215,19 @@ class TripDetailRepository {
       isAutomatic: false,
     );
   }
+
+  /// Sends a lifecycle trip update (TRIP_STARTED, TRIP_ENDED, DAY_START, DAY_END)
+  /// with GPS location and a specific message.
+  Future<LocationUpdateResult> sendLifecycleUpdate(
+    String tripId, {
+    required TripUpdateType updateType,
+    required String message,
+  }) async {
+    return await _tripUpdateService.sendUpdate(
+      tripId: tripId,
+      message: message,
+      isAutomatic: false,
+      updateType: updateType,
+    );
+  }
 }

@@ -12,6 +12,7 @@ import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/data/models/achievement_models.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
+import 'package:wanderer_frontend/data/models/domain/location_update_result.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
 import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
@@ -131,6 +132,16 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
   // User's current device location (used as fallback for empty maps)
   LatLng? _userLocation;
+
+  /// Timestamp of the last camera animation triggered by a WebSocket event.
+  /// Used to suppress competing animations from API refreshes that may carry
+  /// stale data due to CQRS eventual consistency.
+  DateTime? _lastWsCameraUpdate;
+
+  /// How long after a WebSocket-driven camera animation we should suppress
+  /// API-refresh-driven animations to avoid the map jumping back to a
+  /// stale position.
+  static const Duration _wsCameraGuardDuration = Duration(seconds: 10);
 
   final TextEditingController _commentController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -406,11 +417,35 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     }
   }
 
+  /// Whether a WebSocket event recently animated the camera, meaning
+  /// API-refresh-driven animations should be suppressed to avoid the map
+  /// jumping back to a stale position (CQRS eventual consistency).
+  bool get _isWsCameraGuardActive {
+    if (_lastWsCameraUpdate == null) return false;
+    return DateTime.now().difference(_lastWsCameraUpdate!) <
+        _wsCameraGuardDuration;
+  }
+
   /// Refreshes full trip data from the backend
   Future<void> _refreshTripData() async {
     try {
       final updatedTrip = await _repository.getTripById(_trip.id);
       if (mounted) {
+        // Merge locally-applied WebSocket locations that may not yet appear
+        // in the CQRS query model. This prevents the map from temporarily
+        // losing newly added markers when the backend is still propagating.
+        final apiLocationIds =
+            (updatedTrip.locations ?? []).map((l) => l.id).toSet();
+        final wsOnlyLocations = (_trip.locations ?? [])
+            .where((l) =>
+                l.id.startsWith('ws_') && !apiLocationIds.contains(l.id))
+            .toList();
+
+        final mergedLocations = <TripLocation>[
+          ...updatedTrip.locations ?? [],
+          ...wsOnlyLocations,
+        ];
+
         setState(() {
           // Preserve automaticUpdates / updateRefresh when the backend query
           // model hasn't propagated them yet (CQRS eventual consistency).
@@ -420,13 +455,17 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
             automaticUpdates:
                 updatedTrip.automaticUpdates || _trip.automaticUpdates,
             updateRefresh: updatedTrip.updateRefresh ?? _trip.updateRefresh,
+            locations: mergedLocations,
           );
         });
         _updateMapData();
         // Only animate the camera on subsequent refreshes (e.g. after a
         // WebSocket status change). The very first positioning is handled by
         // _initializeMapPosition with an instant jump.
-        if (_hasInitialMapPosition) {
+        // Skip the animation when a WebSocket event recently positioned the
+        // camera — the WS event has the most up-to-date coordinates,
+        // whereas the API response may still carry stale CQRS data.
+        if (_hasInitialMapPosition && !_isWsCameraGuardActive) {
           _animateMapToLatestLocation(animate: true);
         }
       }
@@ -491,6 +530,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       });
       _updateMapData();
       // Animate the camera to the new location
+      _lastWsCameraUpdate = DateTime.now();
       _animateMapToLocation(LatLng(event.latitude!, event.longitude!));
       debugPrint('TripDetailScreen: Map updated and animated to new location');
     }
@@ -550,6 +590,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       });
       _updateMapData();
       // Animate the camera to the new location
+      _lastWsCameraUpdate = DateTime.now();
       _animateMapToLocation(LatLng(event.latitude!, event.longitude!));
       debugPrint('TripDetailScreen: Map updated and animated to new location');
     }
@@ -591,7 +632,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     // Animate to the latest location on the polyline (only after the initial
     // camera position has been set — during startup, _initializeMapPosition
     // handles the first jump).
-    if (_hasInitialMapPosition) {
+    // Skip when a WebSocket event recently positioned the camera to avoid
+    // jumping back to a stale CQRS-derived position.
+    if (_hasInitialMapPosition && !_isWsCameraGuardActive) {
       _animateMapToLatestLocation(animate: true);
     }
   }
@@ -1130,7 +1173,15 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         size: _updatesPageSize,
       );
       setState(() {
-        _tripUpdates = pageResponse.content;
+        // Preserve WebSocket-added entries that the CQRS query model may
+        // not have propagated yet, so the timeline doesn't temporarily lose
+        // the most recent updates.
+        final apiIds = pageResponse.content.map((l) => l.id).toSet();
+        final wsOnlyUpdates = _tripUpdates
+            .where(
+                (u) => u.id.startsWith('ws_') && !apiIds.contains(u.id))
+            .toList();
+        _tripUpdates = [...wsOnlyUpdates, ...pageResponse.content];
         _hasMoreUpdates = !pageResponse.last;
         _isLoadingUpdates = false;
       });
@@ -1774,6 +1825,33 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
       await _repository.changeTripStatus(_trip.id, newStatus);
 
+      // Send lifecycle trip update with GPS location (fire-and-forget)
+      // Backend no longer auto-creates these, so frontend sends them with location data
+      if (newStatus == TripStatus.inProgress &&
+          previousStatus == TripStatus.created) {
+        _repository
+            .sendLifecycleUpdate(
+              _trip.id,
+              updateType: TripUpdateType.tripStarted,
+              message: 'Trip Started!',
+            )
+            .catchError((e) {
+          debugPrint('Failed to send TRIP_STARTED update: $e');
+          return LocationUpdateResult.failure(LocationFailureReason.unknownError);
+        });
+      } else if (newStatus == TripStatus.finished) {
+        _repository
+            .sendLifecycleUpdate(
+              _trip.id,
+              updateType: TripUpdateType.tripEnded,
+              message: 'Trip finished.',
+            )
+            .catchError((e) {
+          debugPrint('Failed to send TRIP_ENDED update: $e');
+          return LocationUpdateResult.failure(LocationFailureReason.unknownError);
+        });
+      }
+
       // Update local state optimistically - WebSocket will confirm the change
       setState(() {
         _trip = _trip.copyWith(
@@ -1959,6 +2037,18 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       try {
         await _repository.toggleDay(_trip.id);
 
+        // Send DAY_END lifecycle update with GPS location (fire-and-forget)
+        _repository
+            .sendLifecycleUpdate(
+              _trip.id,
+              updateType: TripUpdateType.dayEnd,
+              message: 'Day $_currentDay finished',
+            )
+            .catchError((e) {
+          debugPrint('Failed to send DAY_END update: $e');
+          return LocationUpdateResult.failure(LocationFailureReason.unknownError);
+        });
+
         // Update local state optimistically — WebSocket will confirm
         setState(() {
           _trip = _trip.copyWith(status: TripStatus.resting);
@@ -1990,6 +2080,18 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
       try {
         await _repository.toggleDay(_trip.id);
+
+        // Send DAY_START lifecycle update with GPS location (fire-and-forget)
+        _repository
+            .sendLifecycleUpdate(
+              _trip.id,
+              updateType: TripUpdateType.dayStart,
+              message: 'Day ${_currentDay + 1} started!',
+            )
+            .catchError((e) {
+          debugPrint('Failed to send DAY_START update: $e');
+          return LocationUpdateResult.failure(LocationFailureReason.unknownError);
+        });
 
         // Update local state optimistically — WebSocket will confirm
         setState(() {
@@ -2169,8 +2271,13 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       if (mounted) {
         if (result.isSuccess) {
           UiHelpers.showSuccessMessage(context, 'Update sent successfully!');
-          // Refresh timeline to show the new update
-          await _loadTripUpdates();
+          // Delay the timeline refresh so the CQRS query model has time to
+          // propagate the new update. The WebSocket event handles the
+          // immediate map / marker update; this is only for timeline
+          // consistency.
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) _loadTripUpdates();
+          });
 
           // Reschedule automatic updates after manual update (Android only)
           if (_isAndroid &&
@@ -2287,8 +2394,11 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   /// Ignores lifecycle markers (Day Started/Ended, Trip Started/Ended) since
   /// they have no real location.
   void _handleTimelineUpdateTap(TripLocation update) {
-    if (update.isLifecycleMarker) return;
-    _animateMapToLocation(LatLng(update.latitude, update.longitude));
+    // Zoom to the update location on the map (for all update types)
+    // For lifecycle markers without real location, use fallback coordinates
+    if (update.hasLocation) {
+      _animateMapToLocation(LatLng(update.latitude, update.longitude));
+    }
   }
 
   Future<void> _logout() async {

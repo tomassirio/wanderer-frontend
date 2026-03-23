@@ -734,8 +734,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Validate file format
       final filename = image.name.toLowerCase();
       final validFormats = ['.jpg', '.jpeg', '.png', '.webp'];
-      final hasValidExtension = validFormats.any((ext) => filename.endsWith(ext));
-      
+      final hasValidExtension =
+          validFormats.any((ext) => filename.endsWith(ext));
+
       if (!hasValidExtension) {
         if (mounted) {
           UiHelpers.showErrorMessage(

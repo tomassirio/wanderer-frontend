@@ -143,9 +143,11 @@ void main() {
         ),
       );
 
-      expect(find.text('Day 2 Started'), findsOneWidget);
+      // Lifecycle label should be shown
+      expect(find.text('Day Start'), findsOneWidget);
       expect(find.byIcon(Icons.wb_sunny_rounded), findsAtLeastNWidgets(1));
-      expect(find.text('León'), findsOneWidget);
+      // Location should still show
+      expect(find.text('León, Spain'), findsOneWidget);
     });
 
     testWidgets('renders day end marker with moon icon and label', (
@@ -174,9 +176,10 @@ void main() {
         ),
       );
 
-      expect(find.text('Day 1 Ended'), findsOneWidget);
-      expect(find.byIcon(Icons.nightlight_round), findsAtLeastNWidgets(1));
+      // Message replaces the generic label at the top
       expect(find.text('Good night!'), findsOneWidget);
+      expect(find.text('Day End'), findsNothing);
+      expect(find.byIcon(Icons.nightlight_round), findsAtLeastNWidgets(1));
     });
 
     testWidgets('renders mixed regular and day marker entries', (
@@ -223,9 +226,9 @@ void main() {
         ),
       );
 
-      // Should show both regular location_on icons and day marker labels
-      expect(find.text('Day 2 Ended'), findsOneWidget);
-      expect(find.text('Day 2 Started'), findsOneWidget);
+      // Should show day marker labels
+      expect(find.text('Day End'), findsOneWidget);
+      expect(find.text('Day Start'), findsOneWidget);
       // Regular entries show location_on icons
       expect(find.byIcon(Icons.location_on), findsAtLeastNWidgets(2));
     });
@@ -255,8 +258,8 @@ void main() {
         ),
       );
 
-      // Day marker should show numbered day label, not the full location row
-      expect(find.text('Day 2 Started'), findsOneWidget);
+      // Day marker should show label
+      expect(find.text('Day Start'), findsOneWidget);
       // Should not show full coordinate display location
       expect(find.text('42.8805, -8.5457'), findsNothing);
     });
@@ -290,7 +293,7 @@ void main() {
 
       expect(find.text('Trip Started'), findsOneWidget);
       expect(find.byIcon(Icons.flag_rounded), findsAtLeastNWidgets(1));
-      expect(find.text('Madrid'), findsOneWidget);
+      expect(find.text('Madrid, Spain'), findsOneWidget);
     });
 
     testWidgets('renders trip ended marker with score icon and label', (
@@ -319,9 +322,10 @@ void main() {
         ),
       );
 
-      expect(find.text('Trip Ended'), findsOneWidget);
-      expect(find.byIcon(Icons.sports_score_rounded), findsAtLeastNWidgets(1));
+      // Message replaces the generic label at the top
       expect(find.text('What a journey!'), findsOneWidget);
+      expect(find.text('Trip Ended'), findsNothing);
+      expect(find.byIcon(Icons.sports_score_rounded), findsAtLeastNWidgets(1));
     });
   });
 }

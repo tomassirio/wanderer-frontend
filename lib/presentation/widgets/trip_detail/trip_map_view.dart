@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/domain/trip_location.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_info_window.dart';
 
@@ -281,7 +283,10 @@ class _TripMapViewState extends State<TripMapView> {
                   // Small triangle/arrow pointing down
                   CustomPaint(
                     size: const Size(16, 8),
-                    painter: _TrianglePainter(),
+                    painter: _TrianglePainter(
+                      color:
+                          _triangleColorForLocation(widget.selectedLocation!),
+                    ),
                   ),
                 ],
               ),
@@ -290,14 +295,35 @@ class _TripMapViewState extends State<TripMapView> {
       ],
     );
   }
+
+  /// Returns the triangle arrow color matching the lifecycle marker accent,
+  /// or white for regular updates.
+  static Color _triangleColorForLocation(TripLocation location) {
+    switch (location.updateType) {
+      case TripUpdateType.tripStarted:
+        return WandererTheme.tripStartedColor;
+      case TripUpdateType.tripEnded:
+        return WandererTheme.tripEndedColor;
+      case TripUpdateType.dayStart:
+        return WandererTheme.dayStartColor;
+      case TripUpdateType.dayEnd:
+        return WandererTheme.dayEndColor;
+      default:
+        return Colors.white;
+    }
+  }
 }
 
 /// Paints a small downward-pointing triangle used as the bubble arrow.
 class _TrianglePainter extends CustomPainter {
+  final Color color;
+
+  _TrianglePainter({this.color = Colors.white});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white
+      ..color = color
       ..style = PaintingStyle.fill;
     final path = Path()
       ..moveTo(0, 0)
@@ -308,5 +334,6 @@ class _TrianglePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) =>
+      oldDelegate is _TrianglePainter && oldDelegate.color != color;
 }

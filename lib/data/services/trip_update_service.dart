@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/data/client/command/trip_update_command_client.dart';
 import 'package:wanderer_frontend/data/models/domain/location_update_result.dart';
 import 'package:wanderer_frontend/data/models/requests/trip_update_request.dart';
@@ -29,12 +30,14 @@ class TripUpdateService {
   /// [tripId] - The ID of the trip to update
   /// [message] - Optional message (uses [automaticUpdateMessage] if null and isAutomatic is true)
   /// [isAutomatic] - Whether this is an automatic update
+  /// [updateType] - Optional update type for lifecycle markers (TRIP_STARTED, TRIP_ENDED, etc.)
   ///
   /// Returns a [LocationUpdateResult] indicating success or a specific failure reason.
   Future<LocationUpdateResult> sendUpdate({
     required String tripId,
     String? message,
     bool isAutomatic = false,
+    TripUpdateType? updateType,
   }) async {
     final sw = Stopwatch()..start();
     debugPrint(
@@ -73,6 +76,7 @@ class TripUpdateService {
         longitude: position.longitude,
         message: updateMessage.isNotEmpty ? updateMessage : null,
         battery: batteryLevel,
+        updateType: updateType,
       );
 
       debugPrint(

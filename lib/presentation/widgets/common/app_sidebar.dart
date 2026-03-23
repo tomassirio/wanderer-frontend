@@ -144,18 +144,22 @@ class AppSidebar extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         _langLabel('EN', !isSpanish),
-        Transform.scale(
-          scale: 0.75,
-          child: Switch(
-            value: isSpanish,
-            onChanged: (value) => LocaleController().setLocale(
-              value ? const Locale('es') : const Locale('en'),
+        SizedBox(
+          height: 24,
+          width: 40,
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: Switch(
+              value: isSpanish,
+              onChanged: (value) => LocaleController().setLocale(
+                value ? const Locale('es') : const Locale('en'),
+              ),
+              activeColor: Colors.white,
+              inactiveThumbColor: Colors.white,
+              inactiveTrackColor: Colors.white38,
+              activeTrackColor: Colors.white38,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            activeColor: Colors.white,
-            inactiveThumbColor: Colors.white,
-            inactiveTrackColor: Colors.white38,
-            activeTrackColor: Colors.white38,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ),
         _langLabel('ES', isSpanish),
@@ -243,33 +247,34 @@ class AppSidebar extends StatelessWidget {
                   ],
                 ],
               ),
-              const SizedBox(height: 8),
-              // Display name + language toggle on the same row
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Text(
-                      displayName ?? username ?? l10n.guest,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        fontSize: 16,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (isLoggedIn) _buildLanguageToggle(isSpanish),
-                ],
+              // Display name
+              Text(
+                displayName ?? username ?? l10n.guest,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontSize: 16,
+                  height: 1.2,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
-              // Username
+              // Username + language toggle on the same row
               if (isLoggedIn)
-                Text(
-                  '@${username ?? ''}',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '@${username ?? ''}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          height: 1.2,
+                        ),
+                      ),
+                    ),
+                    _buildLanguageToggle(isSpanish),
+                  ],
                 ),
               const SizedBox(height: 4),
             ],

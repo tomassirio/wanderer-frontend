@@ -62,9 +62,17 @@ class Trip {
   // Multi-day trip data
   final List<TripDay>? tripDays;
   final int? currentDay;
+  // Trip plan reference
+  final String? tripPlanId;
 
-  /// Generate thumbnail URL based on trip ID
-  String get thumbnailUrl => '/thumbnails/trips/$id.png';
+  /// Generate thumbnail URL based on trip ID or trip plan ID
+  String get thumbnailUrl {
+    final hasNoUpdates = locations == null || locations!.isEmpty;
+    if (hasNoUpdates && tripPlanId != null && tripPlanId!.isNotEmpty) {
+      return '/thumbnails/plans/$tripPlanId.png';
+    }
+    return '/thumbnails/trips/$id.png';
+  }
 
   /// Default update refresh interval in seconds (30 minutes)
   static const int defaultUpdateRefresh = 1800;
@@ -108,6 +116,7 @@ class Trip {
     this.polylineUpdatedAt,
     this.tripDays,
     this.currentDay,
+    this.tripPlanId,
   });
 
   factory Trip.fromJson(Map<String, dynamic> json) {
@@ -237,6 +246,7 @@ class Trip {
               .toList()
           : null,
       currentDay: (tripDetails?['currentDay'] ?? json['currentDay']) as int?,
+      tripPlanId: json['tripPlanId'] as String?,
     );
   }
 
@@ -277,6 +287,7 @@ class Trip {
         if (tripDays != null)
           'tripDays': tripDays!.map((day) => day.toJson()).toList(),
         if (currentDay != null) 'currentDay': currentDay,
+        if (tripPlanId != null) 'tripPlanId': tripPlanId,
       };
 
   /// Check if trip has planned route from a trip plan
@@ -316,6 +327,7 @@ class Trip {
     DateTime? polylineUpdatedAt,
     List<TripDay>? tripDays,
     int? currentDay,
+    String? tripPlanId,
   }) {
     return Trip(
       id: id ?? this.id,
@@ -346,6 +358,7 @@ class Trip {
       polylineUpdatedAt: polylineUpdatedAt ?? this.polylineUpdatedAt,
       tripDays: tripDays ?? this.tripDays,
       currentDay: currentDay ?? this.currentDay,
+      tripPlanId: tripPlanId ?? this.tripPlanId,
     );
   }
 }

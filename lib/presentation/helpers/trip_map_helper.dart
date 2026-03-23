@@ -1,8 +1,10 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/client/polyline_codec.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_route_helper.dart';
+import 'package:wanderer_frontend/core/constants/enums.dart';
 
 /// Helper class for managing Google Maps markers and polylines for trips
 class TripMapHelper {
@@ -22,10 +24,9 @@ class TripMapHelper {
       // Sort chronologically (oldest first) so Update 1 = first trip update
       final locations = List<TripLocation>.from(trip.locations!)
         ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
-      // Filter out lifecycle markers with no real location (location: null from backend)
-      final mappableLocations = locations
-          .where((loc) => !loc.isLifecycleMarker || loc.hasLocation)
-          .toList();
+      // Assign fallback positions to lifecycle markers without real coordinates
+      // so all markers (tripStarted, tripEnded, dayStart, dayEnd) appear on map.
+      final mappableLocations = _withLifecycleFallbacks(locations);
       final points = <LatLng>[];
 
       for (int i = 0; i < mappableLocations.length; i++) {
@@ -41,11 +42,7 @@ class TripMapHelper {
                 ? InfoWindow.noText
                 : _buildLocationInfoWindow(location, i),
             onTap: onMarkerTap != null ? () => onMarkerTap(location) : null,
-            icon: i == mappableLocations.length - 1
-                ? BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueGreen,
-                  )
-                : BitmapDescriptor.defaultMarker,
+            icon: _getMarkerIcon(location, i, mappableLocations.length),
           ),
         );
       }
@@ -223,10 +220,9 @@ class TripMapHelper {
       // Sort chronologically (oldest first) so Update 1 = first trip update
       final locations = List<TripLocation>.from(trip.locations!)
         ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
-      // Filter out lifecycle markers with no real location (location: null from backend)
-      final mappableLocations = locations
-          .where((loc) => !loc.isLifecycleMarker || loc.hasLocation)
-          .toList();
+      // Assign fallback positions to lifecycle markers without real coordinates
+      // so all markers (tripStarted, tripEnded, dayStart, dayEnd) appear on map.
+      final mappableLocations = _withLifecycleFallbacks(locations);
       final waypoints = <LatLng>[];
 
       // Create markers only for updates with actual locations
@@ -243,17 +239,8 @@ class TripMapHelper {
                 ? InfoWindow.noText
                 : _buildLocationInfoWindow(location, i),
             onTap: onMarkerTap != null ? () => onMarkerTap(location) : null,
-            icon: i == 0
-                ? BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueRed, // Start point - red
-                  )
-                : i == mappableLocations.length - 1
-                    ? BitmapDescriptor.defaultMarkerWithHue(
-                        BitmapDescriptor.hueGreen, // End point - green
-                      )
-                    : BitmapDescriptor.defaultMarkerWithHue(
-                        BitmapDescriptor.hueOrange, // Waypoints - orange
-                      ),
+            icon: _getMarkerIconWithDirections(
+                location, i, mappableLocations.length),
           ),
         );
       }
@@ -772,8 +759,87 @@ class TripMapHelper {
     return 4;
   }
 
+  /// Filters sorted locations, keeping all lifecycle markers (tripStarted,
+  /// tripEnded, dayStart, dayEnd) even when they lack real coordinates by
+  /// assigning them the nearest real position as a fallback.
+  static List<TripLocation> _withLifecycleFallbacks(
+    List<TripLocation> sorted,
+  ) {
+    final realLocations = sorted.where((loc) => loc.hasLocation).toList();
+    if (realLocations.isEmpty) {
+      // No real locations to use as fallback — keep only those with coords
+      return sorted
+          .where((loc) => !loc.isLifecycleMarker || loc.hasLocation)
+          .toList();
+    }
+
+    final firstReal = realLocations.first;
+    final lastReal = realLocations.last;
+    final result = <TripLocation>[];
+
+    for (int i = 0; i < sorted.length; i++) {
+      final loc = sorted[i];
+      if (!loc.isLifecycleMarker) {
+        // Regular update — always keep
+        result.add(loc);
+      } else if (loc.hasLocation) {
+        // Lifecycle marker with real coordinates — keep as-is
+        result.add(loc);
+      } else {
+        // Lifecycle marker without location — find the best fallback
+        final fallback =
+            _findNearestRealLocation(sorted, i, firstReal, lastReal);
+        result.add(loc.copyWith(
+          latitude: fallback.latitude,
+          longitude: fallback.longitude,
+          city: loc.city ?? fallback.city,
+          country: loc.country ?? fallback.country,
+        ));
+      }
+    }
+    return result;
+  }
+
+  /// Finds the nearest real location to use as a fallback position.
+  /// For tripStarted → first real; for tripEnded → last real.
+  /// For dayStart/dayEnd → nearest preceding or following real location.
+  static TripLocation _findNearestRealLocation(
+    List<TripLocation> sorted,
+    int index,
+    TripLocation firstReal,
+    TripLocation lastReal,
+  ) {
+    final loc = sorted[index];
+    if (loc.updateType == TripUpdateType.tripStarted) return firstReal;
+    if (loc.updateType == TripUpdateType.tripEnded) return lastReal;
+
+    // For day markers, look for the nearest real location (prefer preceding)
+    // Search backward first
+    for (int j = index - 1; j >= 0; j--) {
+      if (sorted[j].hasLocation) return sorted[j];
+    }
+    // Then forward
+    for (int j = index + 1; j < sorted.length; j++) {
+      if (sorted[j].hasLocation) return sorted[j];
+    }
+    return firstReal; // Ultimate fallback
+  }
+
   /// Builds a rich InfoWindow for a location update marker
   static InfoWindow _buildLocationInfoWindow(TripLocation location, int index) {
+    // Lifecycle labels for lifecycle markers
+    final lifecycleLabel = _lifecycleInfoLabel(location.updateType);
+    if (lifecycleLabel != null) {
+      final titleParts = <String>[lifecycleLabel];
+      titleParts.add(_formatMarkerTimestamp(location.timestamp));
+      final title = titleParts.join('  ·  ');
+      final snippetParts = <String>[location.displayLocation];
+      if (location.message != null && location.message!.isNotEmpty) {
+        snippetParts.add(location.message!);
+      }
+      return InfoWindow(title: title, snippet: snippetParts.join('\n'));
+    }
+
     // Title: date/time + battery
     final titleParts = <String>[];
     titleParts.add(_formatMarkerTimestamp(location.timestamp));
@@ -796,12 +862,196 @@ class TripMapHelper {
     );
   }
 
+  /// Returns a label prefix for lifecycle markers, or null for regular updates.
+  static String? _lifecycleInfoLabel(TripUpdateType type) {
+    switch (type) {
+      case TripUpdateType.tripStarted:
+        return '🚩 Trip Started';
+      case TripUpdateType.tripEnded:
+        return '🏁 Trip Ended';
+      case TripUpdateType.dayStart:
+        return '☀️ Day Started';
+      case TripUpdateType.dayEnd:
+        return '🌙 Day Ended';
+      case TripUpdateType.regular:
+        return null;
+    }
+  }
+
   /// Formats a timestamp for display in a marker InfoWindow
   static String _formatMarkerTimestamp(DateTime timestamp) {
     final local = timestamp.toLocal();
     final day = '${local.day}/${local.month}/${local.year}';
     final time = '${local.hour}:${local.minute.toString().padLeft(2, '0')}';
     return '$day  $time';
+  }
+
+  /// Gets the appropriate marker icon for a location based on its type
+  static BitmapDescriptor _getMarkerIcon(
+    TripLocation location,
+    int index,
+    int totalLocations,
+  ) {
+    // On web, use numeric hue values for better compatibility
+    if (kIsWeb) {
+      return _getWebMarkerIcon(location, index, totalLocations);
+    }
+
+    // Check for lifecycle markers first
+    switch (location.updateType) {
+      case TripUpdateType.tripStarted:
+        return BitmapDescriptor.defaultMarkerWithHue(
+          BitmapDescriptor.hueGreen,
+        );
+      case TripUpdateType.tripEnded:
+        return BitmapDescriptor.defaultMarkerWithHue(
+          BitmapDescriptor.hueRed,
+        );
+      case TripUpdateType.dayStart:
+        return BitmapDescriptor.defaultMarkerWithHue(
+          BitmapDescriptor.hueYellow,
+        );
+      case TripUpdateType.dayEnd:
+        return BitmapDescriptor.defaultMarkerWithHue(
+          BitmapDescriptor.hueViolet,
+        );
+      case TripUpdateType.regular:
+        // For regular updates, use red for last (most recent) location
+        if (index == totalLocations - 1) {
+          return BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueRed,
+          );
+        }
+        return BitmapDescriptor.defaultMarkerWithHue(
+          BitmapDescriptor.hueOrange,
+        );
+    }
+  }
+
+  /// Gets marker icon for web platform using numeric hue values
+  static BitmapDescriptor _getWebMarkerIcon(
+    TripLocation location,
+    int index,
+    int totalLocations,
+  ) {
+    double hue;
+    String colorName;
+    
+    switch (location.updateType) {
+      case TripUpdateType.tripStarted:
+        hue = 120.0;
+        colorName = 'GREEN';
+        break;
+      case TripUpdateType.tripEnded:
+        hue = 0.0;
+        colorName = 'RED';
+        break;
+      case TripUpdateType.dayStart:
+        hue = 60.0;
+        colorName = 'YELLOW';
+        break;
+      case TripUpdateType.dayEnd:
+        hue = 270.0;
+        colorName = 'VIOLET';
+        break;
+      case TripUpdateType.regular:
+        if (index == totalLocations - 1) {
+          hue = 0.0;
+          colorName = 'RED (latest)';
+        } else {
+          hue = 30.0;
+          colorName = 'ORANGE (previous)';
+        }
+        break;
+    }
+    
+    debugPrint('WEB: Marker for ${location.updateType} at index $index/$totalLocations -> $colorName (hue: $hue)');
+    return BitmapDescriptor.defaultMarkerWithHue(hue);
+  }
+
+  /// Gets the appropriate marker icon for a location with directions mode
+  static BitmapDescriptor _getMarkerIconWithDirections(
+    TripLocation location,
+    int index,
+    int totalLocations,
+  ) {
+    // On web, use numeric hue values for better compatibility
+    if (kIsWeb) {
+      return _getWebMarkerIconWithDirections(location, index, totalLocations);
+    }
+
+    // Check for lifecycle markers first
+    switch (location.updateType) {
+      case TripUpdateType.tripStarted:
+        return BitmapDescriptor.defaultMarkerWithHue(
+          BitmapDescriptor.hueGreen,
+        );
+      case TripUpdateType.tripEnded:
+        return BitmapDescriptor.defaultMarkerWithHue(
+          BitmapDescriptor.hueRed,
+        );
+      case TripUpdateType.dayStart:
+        return BitmapDescriptor.defaultMarkerWithHue(
+          BitmapDescriptor.hueYellow,
+        );
+      case TripUpdateType.dayEnd:
+        return BitmapDescriptor.defaultMarkerWithHue(
+          BitmapDescriptor.hueViolet,
+        );
+      case TripUpdateType.regular:
+        // For regular updates in directions mode:
+        // - Last (most recent) = red
+        // - Previous = orange
+        if (index == totalLocations - 1) {
+          return BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueRed,
+          );
+        }
+        return BitmapDescriptor.defaultMarkerWithHue(
+          BitmapDescriptor.hueOrange,
+        );
+    }
+  }
+
+  /// Gets marker icon for web platform with directions mode using numeric hue values
+  static BitmapDescriptor _getWebMarkerIconWithDirections(
+    TripLocation location,
+    int index,
+    int totalLocations,
+  ) {
+    double hue;
+    String colorName;
+    
+    switch (location.updateType) {
+      case TripUpdateType.tripStarted:
+        hue = 120.0;
+        colorName = 'GREEN';
+        break;
+      case TripUpdateType.tripEnded:
+        hue = 0.0;
+        colorName = 'RED';
+        break;
+      case TripUpdateType.dayStart:
+        hue = 60.0;
+        colorName = 'YELLOW';
+        break;
+      case TripUpdateType.dayEnd:
+        hue = 270.0;
+        colorName = 'VIOLET';
+        break;
+      case TripUpdateType.regular:
+        if (index == totalLocations - 1) {
+          hue = 0.0;
+          colorName = 'RED (latest)';
+        } else {
+          hue = 30.0;
+          colorName = 'ORANGE (previous)';
+        }
+        break;
+    }
+    
+    debugPrint('WEB-DIR: Marker for ${location.updateType} at index $index/$totalLocations -> $colorName (hue: $hue)');
+    return BitmapDescriptor.defaultMarkerWithHue(hue);
   }
 }
 

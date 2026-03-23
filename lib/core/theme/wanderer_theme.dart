@@ -41,7 +41,7 @@ class WandererTheme {
   static const Color timelineNodeCompleted = Color(0xFF4CAF50);
 
   // Day Marker Colors (multi-day trip timeline)
-  static const Color dayStartColor = Color(0xFFFFA726); // Warm amber/yellow
+  static const Color dayStartColor = Color(0xFFFFCA28); // Yellow/golden
   static const Color dayEndColor = Color(0xFF7E57C2); // Violet/purple
 
   // Trip Lifecycle Marker Colors (timeline)
