@@ -3,6 +3,7 @@ import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
+import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
@@ -253,7 +254,7 @@ class _TripPlansScreenState extends State<TripPlansScreen> {
         userId: _userId,
         displayName: _displayName,
         avatarUrl: _avatarUrl,
-        onProfile: () {}, // Not used in this screen
+        onProfile: () => AuthNavigationHelper.navigateToOwnProfile(context),
         onSettings: _handleSettings,
         onLogout: _logout,
       ),
