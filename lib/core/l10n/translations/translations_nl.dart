@@ -66,24 +66,20 @@ const Map<String, String> translationsNl = {
   'discoverAdventures': 'Ontdek avonturen van de gemeenschap',
   'explorePublicTrips': 'Ontdek Openbare Reizen',
   'noTripsYet': 'Nog geen reizen',
-  'createFirstTrip':
-      'Maak je eerste reis aan om te beginnen!',
+  'createFirstTrip': 'Maak je eerste reis aan om te beginnen!',
   'noTripsInFeed': 'Geen reizen in je feed',
   'followToSeeTrips':
       'Volg gebruikers of voeg vrienden toe om hun reizen te zien!',
   'noPublicTripsFound': 'Geen openbare reizen gevonden',
-  'checkBackLater':
-      'Kom later terug voor nieuwe avonturen!',
+  'checkBackLater': 'Kom later terug voor nieuwe avonturen!',
   'errorLoadingTrips': 'Fout bij het laden van reizen',
   'loadMoreTrips': 'Meer reizen laden',
   'myTrips': 'Mijn Reizen',
   'friendsTrips': 'Reizen van Vrienden',
   'discover': 'Ontdekken',
   'featuredTrips': 'Uitgelichte Reizen',
-  'highlightedAdventures':
-      'Uitgelichte avonturen van de gemeenschap',
-  'explorePublicTripsSubtitle':
-      'Ontdek openbare reizen van de gemeenschap',
+  'highlightedAdventures': 'Uitgelichte avonturen van de gemeenschap',
+  'explorePublicTripsSubtitle': 'Ontdek openbare reizen van de gemeenschap',
   'feed': 'Feed',
   'minuteAgo': '1 minuut geleden',
   'hourAgo': '1 uur geleden',
@@ -94,8 +90,7 @@ const Map<String, String> translationsNl = {
 
   // --- Search ---
   'searchHint': 'Zoeken…',
-  'couldNotLoadResults':
-      'Kon resultaten niet laden. Probeer opnieuw.',
+  'couldNotLoadResults': 'Kon resultaten niet laden. Probeer opnieuw.',
   'noTripsFound': 'Geen reizen gevonden',
 
   // --- Notifications ---
@@ -104,18 +99,14 @@ const Map<String, String> translationsNl = {
       'Wanneer je meldingen ontvangt, verschijnen ze hier',
   'readAll': 'Alles als gelezen markeren',
   'loadMoreNotifications': 'Meer meldingen laden',
-  'pleaseLogInForNotifications':
-      'Log in om meldingen te bekijken',
-  'failedToLoadNotifications':
-      'Meldingen laden mislukt',
+  'pleaseLogInForNotifications': 'Log in om meldingen te bekijken',
+  'failedToLoadNotifications': 'Meldingen laden mislukt',
 
   // --- Auth screen ---
   'welcomeBack': 'Welkom Terug!',
   'createAccount': 'Account Aanmaken',
-  'signInToContinue':
-      'Log in om je reis voort te zetten',
-  'signUpToStart':
-      'Meld je aan om je avonturen bij te houden',
+  'signInToContinue': 'Log in om je reis voort te zetten',
+  'signUpToStart': 'Meld je aan om je avonturen bij te houden',
   'signIn': 'Inloggen',
   'signUp': 'Registreren',
   'alreadyHaveAccount': 'Heb je al een account?',
@@ -127,20 +118,16 @@ const Map<String, String> translationsNl = {
   'usernameLabel': 'Gebruikersnaam',
   'passwordLabel': 'Wachtwoord',
   'pleaseEnterPassword': 'Voer je wachtwoord in',
-  'passwordMinLength':
-      'Wachtwoord moet minstens 6 tekens bevatten',
-  'passwordsDoNotMatch':
-      'Wachtwoorden komen niet overeen',
+  'passwordMinLength': 'Wachtwoord moet minstens 6 tekens bevatten',
+  'passwordsDoNotMatch': 'Wachtwoorden komen niet overeen',
   'resetPasswordTitle': 'Wachtwoord Herstellen',
   'enterEmailForReset':
       'Voer je e-mailadres in en we sturen je een link om je wachtwoord te herstellen.',
   'sendResetLink': 'Herstellink verzenden',
   'pleaseEnterEmail': 'Voer je e-mail in',
-  'pleaseEnterValidEmail':
-      'Voer een geldig e-mailadres in',
+  'pleaseEnterValidEmail': 'Voer een geldig e-mailadres in',
   'pleaseEnterUsername': 'Voer je gebruikersnaam in',
-  'usernameMinLength':
-      'Gebruikersnaam moet minstens 3 tekens bevatten',
+  'usernameMinLength': 'Gebruikersnaam moet minstens 3 tekens bevatten',
   'confirmPassword': 'Wachtwoord Bevestigen',
 
   // --- Verify email ---
@@ -157,16 +144,13 @@ const Map<String, String> translationsNl = {
   // --- Settings screen ---
   'appearance': 'Uiterlijk',
   'darkMode': 'Donkere Modus',
-  'darkModeSubtitle':
-      'Schakelen tussen licht en donker thema',
+  'darkModeSubtitle': 'Schakelen tussen licht en donker thema',
   'language': 'Taal',
   'account': 'Account',
   'changePassword': 'Wachtwoord Wijzigen',
-  'changePasswordSubtitle':
-      'Werk je huidige wachtwoord bij',
+  'changePasswordSubtitle': 'Werk je huidige wachtwoord bij',
   'resetPassword': 'Wachtwoord Herstellen',
-  'resetPasswordSubtitle':
-      'Stuur een herstellink naar je e-mail',
+  'resetPasswordSubtitle': 'Stuur een herstellink naar je e-mail',
   'support': 'Ondersteuning',
   'contactSupport': 'Contact Ondersteuning',
   'contactSupportSubtitle': 'Hulp krijgen via e-mail',
@@ -176,10 +160,8 @@ const Map<String, String> translationsNl = {
   'pushNotificationsSubtitle':
       'Ontvang meldingen voor vriendschapsverzoeken, reacties, prestaties en andere activiteiten',
   'closeAccount': 'Account Sluiten',
-  'closeAccountSubtitle':
-      'Verwijder permanent je account en alle gegevens',
-  'confirmAccountDeletion':
-      'Accountverwijdering bevestigen',
+  'closeAccountSubtitle': 'Verwijder permanent je account en alle gegevens',
+  'confirmAccountDeletion': 'Accountverwijdering bevestigen',
   'deleteMyAccount': 'Mijn account verwijderen',
   'typeDELETE': 'Typ VERWIJDEREN',
   'typeDELETEConfirm':
@@ -196,8 +178,7 @@ const Map<String, String> translationsNl = {
 
   // --- Profile screen ---
   'editProfile': 'Profiel Bewerken',
-  'noProfileData':
-      'Geen profielgegevens beschikbaar',
+  'noProfileData': 'Geen profielgegevens beschikbaar',
   'noTripsMatchFilters':
       'Geen reizen komen overeen met de geselecteerde filters',
   'clearAllFilters': 'Alle filters wissen',
@@ -213,8 +194,7 @@ const Map<String, String> translationsNl = {
   'followBack': 'Terugvolgen',
   'unfollow': 'Ontvolgen',
   'noFollowersYet': 'Nog geen volgers',
-  'notFollowingAnyone':
-      'Je volgt nog niemand',
+  'notFollowingAnyone': 'Je volgt nog niemand',
   'noFriendRequests': 'Geen vriendschapsverzoeken',
   'noFriendsYet': 'Nog geen vrienden',
   'noSentRequests': 'Geen verzonden verzoeken',
@@ -222,8 +202,7 @@ const Map<String, String> translationsNl = {
       'Stuur vriendschapsverzoeken om met anderen in contact te komen',
 
   // --- Achievements screen ---
-  'noAchievementsYet':
-      'Nog geen prestaties beschikbaar',
+  'noAchievementsYet': 'Nog geen prestaties beschikbaar',
 
   // --- Trip detail screen ---
   'loadingTrip': 'Reis laden...',
@@ -243,26 +222,21 @@ const Map<String, String> translationsNl = {
   'automaticUpdates': 'Automatische Updates',
   'locationInterval':
       'Locatie wordt automatisch bijgewerkt op dit interval wanneer de reis actief is',
-  'willActivateWhenStarted':
-      'Wordt geactiveerd wanneer de reis wordt gestart',
+  'willActivateWhenStarted': 'Wordt geactiveerd wanneer de reis wordt gestart',
   'switchToMultiDay': 'Overschakelen naar Meerdaags?',
   'multiDayIrreversible':
       'Deze actie is onomkeerbaar. Zodra een reis is omgezet naar',
-  'testBackgroundUpdate':
-      '🧪 Achtergrondupdate Nu Testen',
-  'firesWorkManagerTask':
-      'Voert direct een WorkManager-taak uit',
+  'testBackgroundUpdate': '🧪 Achtergrondupdate Nu Testen',
+  'firesWorkManagerTask': 'Voert direct een WorkManager-taak uit',
   'loadingMap': 'Kaart laden...',
   'mapLoadingError': 'Fout bij laden van kaart',
   'loadingTimeline': 'Tijdlijn laden...',
   'noUpdatesYet': 'Nog geen updates',
-  'tripUpdatesWillAppear':
-      'Reisupdates verschijnen hier',
+  'tripUpdatesWillAppear': 'Reisupdates verschijnen hier',
   'loadOlderUpdates': 'Oudere updates laden',
   'timeline': 'Tijdlijn',
   'noCommentsYet': 'Nog geen reacties',
-  'pleaseLogInToComment':
-      'Log in om te reageren',
+  'pleaseLogInToComment': 'Log in om te reageren',
   'loadMoreComments': 'Meer reacties laden',
   'latestFirst': 'Nieuwste eerst',
   'oldestFirst': 'Oudste eerst',
@@ -274,17 +248,14 @@ const Map<String, String> translationsNl = {
   'author': 'AUTEUR',
   'replyingToComment': 'Antwoord op reactie',
   'cancelReply': 'Antwoord annuleren',
-  'addMessageOptional':
-      'Voeg een bericht toe (optioneel)',
+  'addMessageOptional': 'Voeg een bericht toe (optioneel)',
   'sendUpdate': 'Update Verzenden',
-  'locationShared':
-      'Je locatie en batterijniveau worden gedeeld',
+  'locationShared': 'Je locatie en batterijniveau worden gedeeld',
   'achievementsEarned': 'Behaalde Prestaties',
   'changeVisibility': 'Zichtbaarheid Wijzigen',
   'onlyVisibleToYou': 'Alleen zichtbaar voor jou',
   'visibleToEveryone': 'Zichtbaar voor iedereen',
-  'visibleToFriendsOnly':
-      'Alleen zichtbaar voor vrienden',
+  'visibleToFriendsOnly': 'Alleen zichtbaar voor vrienden',
   'promoted': 'Gepromoot',
   'justNow': 'Zojuist',
   'ok': 'OK',
@@ -306,8 +277,7 @@ const Map<String, String> translationsNl = {
   'tripTitleLabel': 'Reistitel *',
   'tripTitleHint': 'bijv., Europees Zomeravontuur',
   'tripDescriptionLabel': 'Beschrijving (Optioneel)',
-  'tripDescriptionHint':
-      'Vertel ons over je reis... (optioneel)',
+  'tripDescriptionHint': 'Vertel ons over je reis... (optioneel)',
   'automaticUpdatesIntervalHint': 'bijv., 15',
   'planDetails': 'Plandetails',
   'multiDayTrip': '· Meerdaagse reis',
@@ -324,19 +294,15 @@ const Map<String, String> translationsNl = {
 
   // --- Trip plans screen ---
   'deleteTripPlan': 'Reisplan Verwijderen',
-  'deleteTripPlanConfirm':
-      'Weet je zeker dat je wilt verwijderen ',
+  'deleteTripPlanConfirm': 'Weet je zeker dat je wilt verwijderen ',
   'editTripPlan': 'Reisplan Bewerken',
   'createTripFromPlan': 'Reis Aanmaken',
   'noTripPlansYet': 'Nog geen Reisplannen',
-  'startPlanningAdventure':
-      'Begin met het plannen van je volgende avontuur!',
+  'startPlanningAdventure': 'Begin met het plannen van je volgende avontuur!',
   'createTripPlan': 'Reisplan Aanmaken',
   'loginRequired': 'Inloggen Vereist',
-  'pleaseLogInForPlans':
-      'Log in om je reisplannen te bekijken',
-  'errorLoadingTripPlans':
-      'Fout bij het laden van reisplannen',
+  'pleaseLogInForPlans': 'Log in om je reisplannen te bekijken',
+  'errorLoadingTripPlans': 'Fout bij het laden van reisplannen',
   'noDateSet': 'Geen datums ingesteld',
   'noRouteSet': 'Geen route ingesteld',
   'route': 'Route',
@@ -346,44 +312,32 @@ const Map<String, String> translationsNl = {
   // --- Create trip plan screen ---
   'newTripPlan': 'Nieuw Reisplan',
   'computingRoute': 'Route berekenen...',
-  'tapMapToSetPosition':
-      'Tik op de kaart om een nieuwe positie in te stellen',
+  'tapMapToSetPosition': 'Tik op de kaart om een nieuwe positie in te stellen',
   'dragToReorder': 'Sleep om te herordenen',
   'rePlaceOnMap': 'Opnieuw plaatsen op kaart',
   'removeLastMarker': 'Laatste markering verwijderen',
   'clearAllMarkers': 'Alle markeringen wissen',
   'gettingLocation': 'Locatie ophalen...',
-  'dragMarkerOnMap':
-      'Sleep de markering op de kaart om te verplaatsen',
-  'longPressToDrag':
-      'Lang indrukken en slepen om te herpositioneren',
-  'tapEditToModify':
-      'Tik op Bewerken in de werkbalk om te wijzigen',
-  'noLocationData':
-      'Geen locatiegegevens beschikbaar',
+  'dragMarkerOnMap': 'Sleep de markering op de kaart om te verplaatsen',
+  'longPressToDrag': 'Lang indrukken en slepen om te herpositioneren',
+  'tapEditToModify': 'Tik op Bewerken in de werkbalk om te wijzigen',
+  'noLocationData': 'Geen locatiegegevens beschikbaar',
 
   // --- Trip promotion screen ---
   'tripPromotion2': 'Reispromotie',
-  'currentlyPromotedTrips':
-      'Momenteel Gepromote Reizen',
+  'currentlyPromotedTrips': 'Momenteel Gepromote Reizen',
   'promotableTrips': 'Promootbare Reizen',
   'noPromotedTrips': 'Geen gepromote reizen',
-  'noPromotableTripsFound':
-      'Geen promootbare reizen gevonden',
-  'publicTripsNote':
-      'Openbare reizen die zijn aangemaakt, bezig of gepauzeerd',
+  'noPromotableTripsFound': 'Geen promootbare reizen gevonden',
+  'publicTripsNote': 'Openbare reizen die zijn aangemaakt, bezig of gepauzeerd',
   'promoteTripTitle': 'Reis Promoten',
   'unpromoteTripTitle': 'Reis Degraderen',
-  'unpromoteConfirm':
-      'Weet je zeker dat je deze reis wilt degraderen?',
+  'unpromoteConfirm': 'Weet je zeker dat je deze reis wilt degraderen?',
   'donationLink': 'Donatielink (optioneel)',
   'preAnnounce': 'Vooraankondiging',
-  'showCountdown':
-      'Toon aftelling voor de reis begint',
-  'startDateRequired':
-      'Startdatum is vereist voor vooraankondigingen',
-  'searchTripsByNameOrUser':
-      'Zoeken op reisnaam of gebruikersnaam',
+  'showCountdown': 'Toon aftelling voor de reis begint',
+  'startDateRequired': 'Startdatum is vereist voor vooraankondigingen',
+  'searchTripsByNameOrUser': 'Zoeken op reisnaam of gebruikersnaam',
   'searchTrips': 'Reizen zoeken',
   'loadMoreTrips2': 'Meer reizen laden',
   'preAnnounced': 'Vooraangekondigd',
@@ -397,14 +351,11 @@ const Map<String, String> translationsNl = {
   'promoteToAdmin': 'Promoveren tot Admin',
   'demoteFromAdmin': 'Degraderen van Admin',
   'deleteUser': 'Gebruiker Verwijderen',
-  'deleteUserConfirm':
-      'Weet je zeker dat je permanent wilt verwijderen ',
+  'deleteUserConfirm': 'Weet je zeker dat je permanent wilt verwijderen ',
   'deleteUserNote':
       'Deze actie kan niet ongedaan worden gemaakt. Alle gebruikersgegevens worden verwijderd.',
-  'promoteUserConfirm':
-      'Weet je zeker dat je wilt promoveren ',
-  'demoteUserConfirm':
-      'Weet je zeker dat je de adminrol wilt verwijderen van ',
+  'promoteUserConfirm': 'Weet je zeker dat je wilt promoveren ',
+  'demoteUserConfirm': 'Weet je zeker dat je de adminrol wilt verwijderen van ',
   'sortBy': 'Sorteren op: ',
   'firstPage': 'Eerste pagina',
   'previousPage': 'Vorige pagina',
@@ -423,12 +374,10 @@ const Map<String, String> translationsNl = {
   'needs2Locations': 'Heeft 2+ locaties nodig',
   'recomputePolyline': 'Polylijn Herberekenen',
   'recomputeGeocoding': 'Geocodering Herberekenen',
-  'recomputeAllPolylines':
-      'Alle Polylijnen Herberekenen',
+  'recomputeAllPolylines': 'Alle Polylijnen Herberekenen',
   'recomputeAll': 'Alles Herberekenen',
   'recompute': 'Herberekenen',
-  'searchByNameUsernameId':
-      'Zoeken op naam, gebruiker of reis-ID',
+  'searchByNameUsernameId': 'Zoeken op naam, gebruiker of reis-ID',
   'noTripsFoundMaintenance': 'Geen reizen gevonden',
   'tapTripToView':
       'Tik op een reis om details te bekijken, of de polylijn/geocodering te herberekenen',
@@ -446,8 +395,7 @@ const Map<String, String> translationsNl = {
 
   // --- Home widgets ---
   'seeAll': 'Alles Bekijken',
-  'tapPlusToCreate':
-      'Tik op de + knop om een reis aan te maken',
+  'tapPlusToCreate': 'Tik op de + knop om een reis aan te maken',
   'loginOrRegister': 'Inloggen / Registreren',
   'following': 'Volgend',
   'friend': 'Vriend',
@@ -455,8 +403,7 @@ const Map<String, String> translationsNl = {
   // --- Trip info card ---
   'privateVisibilityHint': 'Alleen zichtbaar voor jou',
   'publicVisibilityHint': 'Zichtbaar voor iedereen',
-  'protectedVisibilityHint':
-      'Alleen zichtbaar voor vrienden',
+  'protectedVisibilityHint': 'Alleen zichtbaar voor vrienden',
 
   // --- Home screen sections / filter chips ---
   'activeTripsSection': 'Actieve Reizen',
@@ -471,15 +418,12 @@ const Map<String, String> translationsNl = {
   'happeningRightNow': 'Gebeurt nu',
   'friendsTripsSection': 'Reizen van Vrienden',
   'fromYourFriends': 'Van je vrienden',
-  'fromUsersYouFollow':
-      'Van gebruikers die je volgt',
-  'createYourFirstTrip':
-      'Maak je eerste reis aan om te beginnen!',
+  'fromUsersYouFollow': 'Van gebruikers die je volgt',
+  'createYourFirstTrip': 'Maak je eerste reis aan om te beginnen!',
   'noTripsInYourFeed': 'Geen reizen in je feed',
   'followUsersToSeeFeed':
       'Volg gebruikers of voeg vrienden toe om hun reizen te zien!',
-  'deleteTripWarning':
-      'Deze actie kan niet ongedaan worden gemaakt.',
+  'deleteTripWarning': 'Deze actie kan niet ongedaan worden gemaakt.',
 
   // Timeline day/trip markers
   'tripStartedLabel': 'Reis Gestart',
@@ -487,10 +431,8 @@ const Map<String, String> translationsNl = {
   'updateLabel': 'Update',
 
   // Comments section
-  'beFirstToComment':
-      'Wees de eerste om te reageren!',
-  'loginToAddComment':
-      'Log in om een reactie toe te voegen',
+  'beFirstToComment': 'Wees de eerste om te reageren!',
+  'loginToAddComment': 'Log in om een reactie toe te voegen',
 
   // Achievement categories
   'categoryDistance': 'Afstand',
@@ -502,12 +444,9 @@ const Map<String, String> translationsNl = {
   // --- Profile screen (extra) ---
   'mustBeLoggedInToViewProfile':
       'Je moet ingelogd zijn om je profiel te bekijken',
-  'profileUpdatedSuccessfully':
-      'Profiel succesvol bijgewerkt!',
-  'failedToUpdateProfile':
-      'Profiel bijwerken mislukt',
-  'tapPencilToAddBio':
-      'Tik op het potlood om een bio toe te voegen...',
+  'profileUpdatedSuccessfully': 'Profiel succesvol bijgewerkt!',
+  'failedToUpdateProfile': 'Profiel bijwerken mislukt',
+  'tapPencilToAddBio': 'Tik op het potlood om een bio toe te voegen...',
   'noBioYet': 'Nog geen bio.',
   'follow': 'Volgen',
   'unfriend': 'Ontvrienden',
@@ -519,19 +458,15 @@ const Map<String, String> translationsNl = {
   'sortOptionNameZA': 'Naam (Z-A)',
   'sortOptionNewest': 'Nieuwste',
   'sortOptionOldest': 'Oudste',
-  'friendRequestCancelled':
-      'Vriendschapsverzoek geannuleerd',
+  'friendRequestCancelled': 'Vriendschapsverzoek geannuleerd',
 
   // --- Friends/Followers screen ---
   'newFollowerMsg': 'Je hebt een nieuwe volger!',
-  'friendRequestReceivedMsg':
-      'Je hebt een vriendschapsverzoek ontvangen!',
-  'friendRequestAcceptedMsg':
-      'Vriendschapsverzoek geaccepteerd!',
+  'friendRequestReceivedMsg': 'Je hebt een vriendschapsverzoek ontvangen!',
+  'friendRequestAcceptedMsg': 'Vriendschapsverzoek geaccepteerd!',
   'followRequestSentMsg': 'Volgverzoek verzonden!',
   'unfollowedUserMsg': 'Gebruiker ontvolgd',
-  'friendRequestDeclinedMsg':
-      'Vriendschapsverzoek geweigerd',
+  'friendRequestDeclinedMsg': 'Vriendschapsverzoek geweigerd',
   'requestsTab': 'Verzoeken',
   'unknownUser': 'Onbekende Gebruiker',
   'messagingComingSoon': 'Berichten binnenkort beschikbaar!',
@@ -544,4 +479,3 @@ const Map<String, String> translationsNl = {
   'languageName_fr': 'Français',
   'languageName_nl': 'Nederlands',
 };
-

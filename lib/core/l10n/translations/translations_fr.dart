@@ -66,24 +66,20 @@ const Map<String, String> translationsFr = {
   'discoverAdventures': 'Découvrez les aventures de la communauté',
   'explorePublicTrips': 'Explorer les Voyages Publics',
   'noTripsYet': 'Pas encore de voyages',
-  'createFirstTrip':
-      'Créez votre premier voyage pour commencer !',
+  'createFirstTrip': 'Créez votre premier voyage pour commencer !',
   'noTripsInFeed': 'Pas de voyages dans votre fil',
   'followToSeeTrips':
       'Suivez des utilisateurs ou ajoutez des amis pour voir leurs voyages !',
   'noPublicTripsFound': 'Aucun voyage public trouvé',
-  'checkBackLater':
-      'Revenez plus tard pour de nouvelles aventures !',
+  'checkBackLater': 'Revenez plus tard pour de nouvelles aventures !',
   'errorLoadingTrips': 'Erreur lors du chargement des voyages',
   'loadMoreTrips': 'Charger plus de voyages',
   'myTrips': 'Mes Voyages',
   'friendsTrips': 'Voyages d\'Amis',
   'discover': 'Découvrir',
   'featuredTrips': 'Voyages en Vedette',
-  'highlightedAdventures':
-      'Aventures mises en avant par la communauté',
-  'explorePublicTripsSubtitle':
-      'Explorez les voyages publics de la communauté',
+  'highlightedAdventures': 'Aventures mises en avant par la communauté',
+  'explorePublicTripsSubtitle': 'Explorez les voyages publics de la communauté',
   'feed': 'Fil',
   'minuteAgo': 'il y a 1 minute',
   'hourAgo': 'il y a 1 heure',
@@ -94,8 +90,7 @@ const Map<String, String> translationsFr = {
 
   // --- Search ---
   'searchHint': 'Rechercher…',
-  'couldNotLoadResults':
-      'Impossible de charger les résultats. Réessayez.',
+  'couldNotLoadResults': 'Impossible de charger les résultats. Réessayez.',
   'noTripsFound': 'Aucun voyage trouvé',
 
   // --- Notifications ---
@@ -106,16 +101,13 @@ const Map<String, String> translationsFr = {
   'loadMoreNotifications': 'Charger plus de notifications',
   'pleaseLogInForNotifications':
       'Veuillez vous connecter pour voir les notifications',
-  'failedToLoadNotifications':
-      'Échec du chargement des notifications',
+  'failedToLoadNotifications': 'Échec du chargement des notifications',
 
   // --- Auth screen ---
   'welcomeBack': 'Bon Retour !',
   'createAccount': 'Créer un Compte',
-  'signInToContinue':
-      'Connectez-vous pour continuer votre voyage',
-  'signUpToStart':
-      'Inscrivez-vous pour commencer à suivre vos aventures',
+  'signInToContinue': 'Connectez-vous pour continuer votre voyage',
+  'signUpToStart': 'Inscrivez-vous pour commencer à suivre vos aventures',
   'signIn': 'Se Connecter',
   'signUp': 'S\'inscrire',
   'alreadyHaveAccount': 'Vous avez déjà un compte ?',
@@ -127,19 +119,15 @@ const Map<String, String> translationsFr = {
   'usernameLabel': 'Nom d\'utilisateur',
   'passwordLabel': 'Mot de passe',
   'pleaseEnterPassword': 'Veuillez entrer votre mot de passe',
-  'passwordMinLength':
-      'Le mot de passe doit contenir au moins 6 caractères',
-  'passwordsDoNotMatch':
-      'Les mots de passe ne correspondent pas',
+  'passwordMinLength': 'Le mot de passe doit contenir au moins 6 caractères',
+  'passwordsDoNotMatch': 'Les mots de passe ne correspondent pas',
   'resetPasswordTitle': 'Réinitialiser le Mot de Passe',
   'enterEmailForReset':
       'Entrez votre adresse e-mail et nous vous enverrons un lien pour réinitialiser votre mot de passe.',
   'sendResetLink': 'Envoyer le lien',
   'pleaseEnterEmail': 'Veuillez entrer votre e-mail',
-  'pleaseEnterValidEmail':
-      'Veuillez entrer un e-mail valide',
-  'pleaseEnterUsername':
-      'Veuillez entrer votre nom d\'utilisateur',
+  'pleaseEnterValidEmail': 'Veuillez entrer un e-mail valide',
+  'pleaseEnterUsername': 'Veuillez entrer votre nom d\'utilisateur',
   'usernameMinLength':
       'Le nom d\'utilisateur doit contenir au moins 3 caractères',
   'confirmPassword': 'Confirmer le Mot de Passe',
@@ -162,11 +150,9 @@ const Map<String, String> translationsFr = {
   'language': 'Langue',
   'account': 'Compte',
   'changePassword': 'Changer le Mot de Passe',
-  'changePasswordSubtitle':
-      'Mettez à jour votre mot de passe actuel',
+  'changePasswordSubtitle': 'Mettez à jour votre mot de passe actuel',
   'resetPassword': 'Réinitialiser le Mot de Passe',
-  'resetPasswordSubtitle':
-      'Envoyer un lien de réinitialisation à votre e-mail',
+  'resetPasswordSubtitle': 'Envoyer un lien de réinitialisation à votre e-mail',
   'support': 'Support',
   'contactSupport': 'Contacter le Support',
   'contactSupportSubtitle': 'Obtenir de l\'aide par e-mail',
@@ -178,8 +164,7 @@ const Map<String, String> translationsFr = {
   'closeAccount': 'Fermer le Compte',
   'closeAccountSubtitle':
       'Supprimer définitivement votre compte et toutes les données',
-  'confirmAccountDeletion':
-      'Confirmer la suppression du compte',
+  'confirmAccountDeletion': 'Confirmer la suppression du compte',
   'deleteMyAccount': 'Supprimer mon compte',
   'typeDELETE': 'Tapez SUPPRIMER',
   'typeDELETEConfirm':
@@ -196,10 +181,8 @@ const Map<String, String> translationsFr = {
 
   // --- Profile screen ---
   'editProfile': 'Modifier le Profil',
-  'noProfileData':
-      'Aucune donnée de profil disponible',
-  'noTripsMatchFilters':
-      'Aucun voyage ne correspond aux filtres sélectionnés',
+  'noProfileData': 'Aucune donnée de profil disponible',
+  'noTripsMatchFilters': 'Aucun voyage ne correspond aux filtres sélectionnés',
   'clearAllFilters': 'Effacer tous les filtres',
   'clearFilters': 'Effacer les filtres',
   'sortTripsBy': 'Trier les voyages par',
@@ -213,8 +196,7 @@ const Map<String, String> translationsFr = {
   'followBack': 'Suivre en retour',
   'unfollow': 'Ne plus suivre',
   'noFollowersYet': 'Pas encore d\'abonnés',
-  'notFollowingAnyone':
-      'Vous ne suivez personne pour le moment',
+  'notFollowingAnyone': 'Vous ne suivez personne pour le moment',
   'noFriendRequests': 'Aucune demande d\'ami',
   'noFriendsYet': 'Pas encore d\'amis',
   'noSentRequests': 'Aucune demande envoyée',
@@ -222,8 +204,7 @@ const Map<String, String> translationsFr = {
       'Envoyez des demandes d\'amis pour vous connecter avec d\'autres',
 
   // --- Achievements screen ---
-  'noAchievementsYet':
-      'Aucune réalisation disponible pour le moment',
+  'noAchievementsYet': 'Aucune réalisation disponible pour le moment',
 
   // --- Trip detail screen ---
   'loadingTrip': 'Chargement du voyage...',
@@ -243,28 +224,21 @@ const Map<String, String> translationsFr = {
   'automaticUpdates': 'Mises à Jour Automatiques',
   'locationInterval':
       'La position sera automatiquement mise à jour à cet intervalle lorsque le voyage est actif',
-  'willActivateWhenStarted':
-      'S\'activera lorsque le voyage sera démarré',
+  'willActivateWhenStarted': 'S\'activera lorsque le voyage sera démarré',
   'switchToMultiDay': 'Passer en Multi-Jours ?',
   'multiDayIrreversible':
       'Cette action est irréversible. Une fois qu\'un voyage est converti en',
-  'testBackgroundUpdate':
-      '🧪 Tester la Mise à Jour en Arrière-Plan',
-  'firesWorkManagerTask':
-      'Lance une tâche WorkManager immédiatement',
+  'testBackgroundUpdate': '🧪 Tester la Mise à Jour en Arrière-Plan',
+  'firesWorkManagerTask': 'Lance une tâche WorkManager immédiatement',
   'loadingMap': 'Chargement de la carte...',
   'mapLoadingError': 'Erreur de chargement de la carte',
-  'loadingTimeline':
-      'Chargement de la chronologie...',
+  'loadingTimeline': 'Chargement de la chronologie...',
   'noUpdatesYet': 'Pas encore de mises à jour',
-  'tripUpdatesWillAppear':
-      'Les mises à jour du voyage apparaîtront ici',
-  'loadOlderUpdates':
-      'Charger les mises à jour précédentes',
+  'tripUpdatesWillAppear': 'Les mises à jour du voyage apparaîtront ici',
+  'loadOlderUpdates': 'Charger les mises à jour précédentes',
   'timeline': 'Chronologie',
   'noCommentsYet': 'Pas encore de commentaires',
-  'pleaseLogInToComment':
-      'Connectez-vous pour commenter',
+  'pleaseLogInToComment': 'Connectez-vous pour commenter',
   'loadMoreComments': 'Charger plus de commentaires',
   'latestFirst': 'Plus récent d\'abord',
   'oldestFirst': 'Plus ancien d\'abord',
@@ -276,17 +250,14 @@ const Map<String, String> translationsFr = {
   'author': 'AUTEUR',
   'replyingToComment': 'Réponse au commentaire',
   'cancelReply': 'Annuler la réponse',
-  'addMessageOptional':
-      'Ajouter un message (optionnel)',
+  'addMessageOptional': 'Ajouter un message (optionnel)',
   'sendUpdate': 'Envoyer la Mise à Jour',
-  'locationShared':
-      'Votre position et niveau de batterie seront partagés',
+  'locationShared': 'Votre position et niveau de batterie seront partagés',
   'achievementsEarned': 'Réalisations Obtenues',
   'changeVisibility': 'Changer la Visibilité',
   'onlyVisibleToYou': 'Visible uniquement par vous',
   'visibleToEveryone': 'Visible par tous',
-  'visibleToFriendsOnly':
-      'Visible uniquement par les amis',
+  'visibleToFriendsOnly': 'Visible uniquement par les amis',
   'promoted': 'Promu',
   'justNow': 'À l\'instant',
   'ok': 'OK',
@@ -308,8 +279,7 @@ const Map<String, String> translationsFr = {
   'tripTitleLabel': 'Titre du Voyage *',
   'tripTitleHint': 'ex., Aventure Européenne d\'Été',
   'tripDescriptionLabel': 'Description (Optionnel)',
-  'tripDescriptionHint':
-      'Parlez-nous de votre voyage... (optionnel)',
+  'tripDescriptionHint': 'Parlez-nous de votre voyage... (optionnel)',
   'automaticUpdatesIntervalHint': 'ex., 15',
   'planDetails': 'Détails du Plan',
   'multiDayTrip': '· Voyage Multi-Jours',
@@ -326,19 +296,16 @@ const Map<String, String> translationsFr = {
 
   // --- Trip plans screen ---
   'deleteTripPlan': 'Supprimer le Plan de Voyage',
-  'deleteTripPlanConfirm':
-      'Êtes-vous sûr de vouloir supprimer ',
+  'deleteTripPlanConfirm': 'Êtes-vous sûr de vouloir supprimer ',
   'editTripPlan': 'Modifier le Plan de Voyage',
   'createTripFromPlan': 'Créer le Voyage',
   'noTripPlansYet': 'Pas encore de Plans de Voyage',
-  'startPlanningAdventure':
-      'Commencez à planifier votre prochaine aventure !',
+  'startPlanningAdventure': 'Commencez à planifier votre prochaine aventure !',
   'createTripPlan': 'Créer un Plan de Voyage',
   'loginRequired': 'Connexion Requise',
   'pleaseLogInForPlans':
       'Veuillez vous connecter pour voir vos plans de voyage',
-  'errorLoadingTripPlans':
-      'Erreur lors du chargement des plans de voyage',
+  'errorLoadingTripPlans': 'Erreur lors du chargement des plans de voyage',
   'noDateSet': 'Aucune date définie',
   'noRouteSet': 'Aucun itinéraire défini',
   'route': 'Itinéraire',
@@ -354,39 +321,28 @@ const Map<String, String> translationsFr = {
   'rePlaceOnMap': 'Replacer sur la carte',
   'removeLastMarker': 'Retirer le dernier marqueur',
   'clearAllMarkers': 'Effacer tous les marqueurs',
-  'gettingLocation':
-      'Obtention de la position...',
-  'dragMarkerOnMap':
-      'Glissez le marqueur sur la carte pour le déplacer',
-  'longPressToDrag':
-      'Appui long et glisser pour repositionner',
+  'gettingLocation': 'Obtention de la position...',
+  'dragMarkerOnMap': 'Glissez le marqueur sur la carte pour le déplacer',
+  'longPressToDrag': 'Appui long et glisser pour repositionner',
   'tapEditToModify':
       'Appuyez sur Modifier dans la barre d\'outils pour modifier',
-  'noLocationData':
-      'Aucune donnée de position disponible',
+  'noLocationData': 'Aucune donnée de position disponible',
 
   // --- Trip promotion screen ---
   'tripPromotion2': 'Promotion de Voyages',
-  'currentlyPromotedTrips':
-      'Voyages Actuellement Promus',
+  'currentlyPromotedTrips': 'Voyages Actuellement Promus',
   'promotableTrips': 'Voyages Promouvables',
   'noPromotedTrips': 'Aucun voyage promu',
-  'noPromotableTripsFound':
-      'Aucun voyage promouvable trouvé',
-  'publicTripsNote':
-      'Voyages publics qui sont créés, en cours ou en pause',
+  'noPromotableTripsFound': 'Aucun voyage promouvable trouvé',
+  'publicTripsNote': 'Voyages publics qui sont créés, en cours ou en pause',
   'promoteTripTitle': 'Promouvoir le Voyage',
   'unpromoteTripTitle': 'Rétrograder le Voyage',
-  'unpromoteConfirm':
-      'Êtes-vous sûr de vouloir rétrograder ce voyage ?',
+  'unpromoteConfirm': 'Êtes-vous sûr de vouloir rétrograder ce voyage ?',
   'donationLink': 'Lien de don (optionnel)',
   'preAnnounce': 'Pré-Annonce',
-  'showCountdown':
-      'Afficher le compte à rebours avant le début du voyage',
-  'startDateRequired':
-      'La date de début est requise pour les pré-annonces',
-  'searchTripsByNameOrUser':
-      'Rechercher par nom de voyage ou utilisateur',
+  'showCountdown': 'Afficher le compte à rebours avant le début du voyage',
+  'startDateRequired': 'La date de début est requise pour les pré-annonces',
+  'searchTripsByNameOrUser': 'Rechercher par nom de voyage ou utilisateur',
   'searchTrips': 'Rechercher des voyages',
   'loadMoreTrips2': 'Charger plus de voyages',
   'preAnnounced': 'Pré-Annoncé',
@@ -400,14 +356,11 @@ const Map<String, String> translationsFr = {
   'promoteToAdmin': 'Promouvoir en Admin',
   'demoteFromAdmin': 'Rétrograder d\'Admin',
   'deleteUser': 'Supprimer l\'Utilisateur',
-  'deleteUserConfirm':
-      'Êtes-vous sûr de vouloir supprimer définitivement ',
+  'deleteUserConfirm': 'Êtes-vous sûr de vouloir supprimer définitivement ',
   'deleteUserNote':
       'Cette action ne peut pas être annulée. Toutes les données de l\'utilisateur seront supprimées.',
-  'promoteUserConfirm':
-      'Êtes-vous sûr de vouloir promouvoir ',
-  'demoteUserConfirm':
-      'Êtes-vous sûr de vouloir retirer le rôle d\'admin de ',
+  'promoteUserConfirm': 'Êtes-vous sûr de vouloir promouvoir ',
+  'demoteUserConfirm': 'Êtes-vous sûr de vouloir retirer le rôle d\'admin de ',
   'sortBy': 'Trier par : ',
   'firstPage': 'Première page',
   'previousPage': 'Page précédente',
@@ -416,8 +369,7 @@ const Map<String, String> translationsFr = {
   'adminBadge': 'ADMIN',
 
   // --- Trip maintenance screen ---
-  'tripDataOverview':
-      'Aperçu des Données de Voyages',
+  'tripDataOverview': 'Aperçu des Données de Voyages',
   'allTrips': 'Tous les Voyages',
   'polylineStats': 'Statistiques de Polylignes',
   'geocodingStats': 'Statistiques de Géocodage',
@@ -427,12 +379,10 @@ const Map<String, String> translationsFr = {
   'needs2Locations': 'Nécessite 2+ positions',
   'recomputePolyline': 'Recalculer la Polyligne',
   'recomputeGeocoding': 'Recalculer le Géocodage',
-  'recomputeAllPolylines':
-      'Recalculer Toutes les Polylignes',
+  'recomputeAllPolylines': 'Recalculer Toutes les Polylignes',
   'recomputeAll': 'Tout Recalculer',
   'recompute': 'Recalculer',
-  'searchByNameUsernameId':
-      'Rechercher par nom, utilisateur ou ID de voyage',
+  'searchByNameUsernameId': 'Rechercher par nom, utilisateur ou ID de voyage',
   'noTripsFoundMaintenance': 'Aucun voyage trouvé',
   'tapTripToView':
       'Appuyez sur un voyage pour voir les détails, ou recalculer sa polyligne/géocodage',
@@ -450,8 +400,7 @@ const Map<String, String> translationsFr = {
 
   // --- Home widgets ---
   'seeAll': 'Voir Tout',
-  'tapPlusToCreate':
-      'Appuyez sur le bouton + pour créer un voyage',
+  'tapPlusToCreate': 'Appuyez sur le bouton + pour créer un voyage',
   'loginOrRegister': 'Connexion / Inscription',
   'following': 'Abonné',
   'friend': 'Ami',
@@ -459,8 +408,7 @@ const Map<String, String> translationsFr = {
   // --- Trip info card ---
   'privateVisibilityHint': 'Visible uniquement par vous',
   'publicVisibilityHint': 'Visible par tous',
-  'protectedVisibilityHint':
-      'Visible uniquement par les amis',
+  'protectedVisibilityHint': 'Visible uniquement par les amis',
 
   // --- Home screen sections / filter chips ---
   'activeTripsSection': 'Voyages Actifs',
@@ -475,16 +423,12 @@ const Map<String, String> translationsFr = {
   'happeningRightNow': 'En ce moment',
   'friendsTripsSection': 'Voyages d\'Amis',
   'fromYourFriends': 'De vos amis',
-  'fromUsersYouFollow':
-      'Des utilisateurs que vous suivez',
-  'createYourFirstTrip':
-      'Créez votre premier voyage pour commencer !',
-  'noTripsInYourFeed':
-      'Pas de voyages dans votre fil',
+  'fromUsersYouFollow': 'Des utilisateurs que vous suivez',
+  'createYourFirstTrip': 'Créez votre premier voyage pour commencer !',
+  'noTripsInYourFeed': 'Pas de voyages dans votre fil',
   'followUsersToSeeFeed':
       'Suivez des utilisateurs ou ajoutez des amis pour voir leurs voyages !',
-  'deleteTripWarning':
-      'Cette action ne peut pas être annulée.',
+  'deleteTripWarning': 'Cette action ne peut pas être annulée.',
 
   // Timeline day/trip markers
   'tripStartedLabel': 'Voyage Démarré',
@@ -492,10 +436,8 @@ const Map<String, String> translationsFr = {
   'updateLabel': 'Mise à jour',
 
   // Comments section
-  'beFirstToComment':
-      'Soyez le premier à commenter !',
-  'loginToAddComment':
-      'Connectez-vous pour ajouter un commentaire',
+  'beFirstToComment': 'Soyez le premier à commenter !',
+  'loginToAddComment': 'Connectez-vous pour ajouter un commentaire',
 
   // Achievement categories
   'categoryDistance': 'Distance',
@@ -507,12 +449,9 @@ const Map<String, String> translationsFr = {
   // --- Profile screen (extra) ---
   'mustBeLoggedInToViewProfile':
       'Vous devez être connecté pour voir votre profil',
-  'profileUpdatedSuccessfully':
-      'Profil mis à jour avec succès !',
-  'failedToUpdateProfile':
-      'Échec de la mise à jour du profil',
-  'tapPencilToAddBio':
-      'Appuyez sur le crayon pour ajouter une bio...',
+  'profileUpdatedSuccessfully': 'Profil mis à jour avec succès !',
+  'failedToUpdateProfile': 'Échec de la mise à jour du profil',
+  'tapPencilToAddBio': 'Appuyez sur le crayon pour ajouter une bio...',
   'noBioYet': 'Pas encore de bio.',
   'follow': 'Suivre',
   'unfriend': 'Retirer l\'ami',
@@ -528,11 +467,9 @@ const Map<String, String> translationsFr = {
 
   // --- Friends/Followers screen ---
   'newFollowerMsg': 'Vous avez un nouvel abonné !',
-  'friendRequestReceivedMsg':
-      'Vous avez reçu une demande d\'ami !',
+  'friendRequestReceivedMsg': 'Vous avez reçu une demande d\'ami !',
   'friendRequestAcceptedMsg': 'Demande d\'ami acceptée !',
-  'followRequestSentMsg':
-      'Demande d\'abonnement envoyée !',
+  'followRequestSentMsg': 'Demande d\'abonnement envoyée !',
   'unfollowedUserMsg': 'Utilisateur désabonné',
   'friendRequestDeclinedMsg': 'Demande d\'ami refusée',
   'requestsTab': 'Demandes',
@@ -547,4 +484,3 @@ const Map<String, String> translationsFr = {
   'languageName_fr': 'Français',
   'languageName_nl': 'Nederlands',
 };
-

@@ -880,8 +880,7 @@ class _HomeScreenState extends State<HomeScreen>
             constraints: const BoxConstraints(),
             tooltip: 'Change language',
             onSelected: (code) => controller.setLocale(Locale(code)),
-            itemBuilder: (_) =>
-                LocaleController.supportedLocales.map((loc) {
+            itemBuilder: (_) => LocaleController.supportedLocales.map((loc) {
               final code = loc.languageCode;
               final locFlag = LocaleController.localeFlags[code] ?? '🌐';
               final locLabel = LocaleController.localeLabels[code] ?? code;
@@ -961,7 +960,6 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
   }
-
 
   Widget _buildFilterChips() {
     final bool isMyTripsTab = _tabController.index == 2;

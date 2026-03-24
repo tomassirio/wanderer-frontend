@@ -231,8 +231,7 @@ class AppLocalizations {
   String get notificationsWillAppear => _tr('notificationsWillAppear');
   String get readAll => _tr('readAll');
   String get loadMoreNotifications => _tr('loadMoreNotifications');
-  String get pleaseLogInForNotifications =>
-      _tr('pleaseLogInForNotifications');
+  String get pleaseLogInForNotifications => _tr('pleaseLogInForNotifications');
   String get failedToLoadNotifications => _tr('failedToLoadNotifications');
 
   // --- Auth screen ---
@@ -677,8 +676,7 @@ class AppLocalizations {
   String get categoryOther => _tr('categoryOther');
 
   // Achievement units
-  String achievementKm(double v) =>
-      '${v.toStringAsFixed(1)} km';
+  String achievementKm(double v) => '${v.toStringAsFixed(1)} km';
   String achievementDays(int v) {
     switch (_lang) {
       case 'es':
@@ -936,10 +934,8 @@ class AppLocalizations {
   }
 
   // --- Profile screen (extra) ---
-  String get mustBeLoggedInToViewProfile =>
-      _tr('mustBeLoggedInToViewProfile');
-  String get profileUpdatedSuccessfully =>
-      _tr('profileUpdatedSuccessfully');
+  String get mustBeLoggedInToViewProfile => _tr('mustBeLoggedInToViewProfile');
+  String get profileUpdatedSuccessfully => _tr('profileUpdatedSuccessfully');
   String get failedToUpdateProfile => _tr('failedToUpdateProfile');
   String get tapPencilToAddBio => _tr('tapPencilToAddBio');
   String get noBioYet => _tr('noBioYet');
@@ -948,9 +944,8 @@ class AppLocalizations {
   String get cancelFriendRequest => _tr('cancelFriendRequest');
   String get sendFriendRequest => _tr('sendFriendRequest');
   String get followers => _tr('followers');
-  String myTripsLabel(bool isViewingOwnProfile) => isViewingOwnProfile
-      ? myTrips
-      : trips;
+  String myTripsLabel(bool isViewingOwnProfile) =>
+      isViewingOwnProfile ? myTrips : trips;
   String tripCountLabel(int count) {
     switch (_lang) {
       case 'es':

@@ -78,8 +78,7 @@ const Map<String, String> translationsEn = {
   'discover': 'Discover',
   'featuredTrips': 'Featured Trips',
   'highlightedAdventures': 'Highlighted adventures from the community',
-  'explorePublicTripsSubtitle':
-      'Explore public trips from the community',
+  'explorePublicTripsSubtitle': 'Explore public trips from the community',
   'feed': 'Feed',
   'minuteAgo': '1 minute ago',
   'hourAgo': '1 hour ago',
@@ -95,12 +94,10 @@ const Map<String, String> translationsEn = {
 
   // --- Notifications ---
   'noNotificationsYet': 'No notifications yet',
-  'notificationsWillAppear':
-      'When you receive notifications, they appear here',
+  'notificationsWillAppear': 'When you receive notifications, they appear here',
   'readAll': 'Read all',
   'loadMoreNotifications': 'Load more notifications',
-  'pleaseLogInForNotifications':
-      'Please log in to view notifications',
+  'pleaseLogInForNotifications': 'Please log in to view notifications',
   'failedToLoadNotifications': 'Failed to load notifications',
 
   // --- Auth screen ---
@@ -139,8 +136,7 @@ const Map<String, String> translationsEn = {
   'verificationToken': 'Verification token',
   'enterVerificationToken':
       'Enter the verification token from the email we sent you.',
-  'accountNowActive':
-      'Your account is now active. Redirecting you to the app…',
+  'accountNowActive': 'Your account is now active. Redirecting you to the app…',
 
   // --- Settings screen ---
   'appearance': 'Appearance',
@@ -161,8 +157,7 @@ const Map<String, String> translationsEn = {
   'pushNotificationsSubtitle':
       'Receive alerts for friend requests, comments, achievements, and other activity',
   'closeAccount': 'Close Account',
-  'closeAccountSubtitle':
-      'Permanently delete your account and all data',
+  'closeAccountSubtitle': 'Permanently delete your account and all data',
   'confirmAccountDeletion': 'Confirm Account Deletion',
   'deleteMyAccount': 'Delete My Account',
   'typeDELETE': 'Type DELETE',
@@ -199,8 +194,7 @@ const Map<String, String> translationsEn = {
   'noFriendRequests': 'No friend requests',
   'noFriendsYet': 'No friends yet',
   'noSentRequests': 'No sent requests',
-  'sendFriendRequests':
-      'Send friend requests to connect with others',
+  'sendFriendRequests': 'Send friend requests to connect with others',
 
   // --- Achievements screen ---
   'noAchievementsYet': 'No achievements available yet',
@@ -223,14 +217,12 @@ const Map<String, String> translationsEn = {
   'automaticUpdates': 'Automatic Updates',
   'locationInterval':
       'Location will be automatically updated at this interval when trip is active',
-  'willActivateWhenStarted':
-      'Will activate when the trip is started',
+  'willActivateWhenStarted': 'Will activate when the trip is started',
   'switchToMultiDay': 'Switch to Multi-Day?',
   'multiDayIrreversible':
       'This action is irreversible. Once a trip is converted to',
   'testBackgroundUpdate': '🧪 Test Background Update Now',
-  'firesWorkManagerTask':
-      'Fires a one-off WorkManager task immediately',
+  'firesWorkManagerTask': 'Fires a one-off WorkManager task immediately',
   'loadingMap': 'Loading map...',
   'mapLoadingError': 'Map Loading Error',
   'loadingTimeline': 'Loading timeline...',
@@ -253,8 +245,7 @@ const Map<String, String> translationsEn = {
   'cancelReply': 'Cancel reply',
   'addMessageOptional': 'Add a message (optional)',
   'sendUpdate': 'Send Update',
-  'locationShared':
-      'Your location and battery level will be shared',
+  'locationShared': 'Your location and battery level will be shared',
   'achievementsEarned': 'Achievements Earned',
   'changeVisibility': 'Change Visibility',
   'onlyVisibleToYou': 'Only visible to you',
@@ -302,12 +293,10 @@ const Map<String, String> translationsEn = {
   'editTripPlan': 'Edit Trip Plan',
   'createTripFromPlan': 'Create Trip',
   'noTripPlansYet': 'No Trip Plans Yet',
-  'startPlanningAdventure':
-      'Start planning your next adventure!',
+  'startPlanningAdventure': 'Start planning your next adventure!',
   'createTripPlan': 'Create Trip Plan',
   'loginRequired': 'Login Required',
-  'pleaseLogInForPlans':
-      'Please log in to view your trip plans',
+  'pleaseLogInForPlans': 'Please log in to view your trip plans',
   'errorLoadingTripPlans': 'Error loading trip plans',
   'noDateSet': 'No dates set',
   'noRouteSet': 'No route set',
@@ -335,17 +324,14 @@ const Map<String, String> translationsEn = {
   'promotableTrips': 'Promotable Trips',
   'noPromotedTrips': 'No promoted trips',
   'noPromotableTripsFound': 'No promotable trips found',
-  'publicTripsNote':
-      'Public trips that are created, in progress, or paused',
+  'publicTripsNote': 'Public trips that are created, in progress, or paused',
   'promoteTripTitle': 'Promote Trip',
   'unpromoteTripTitle': 'Unpromote Trip',
-  'unpromoteConfirm':
-      'Are you sure you want to unpromote this trip?',
+  'unpromoteConfirm': 'Are you sure you want to unpromote this trip?',
   'donationLink': 'Donation Link (optional)',
   'preAnnounce': 'Pre-Announce',
   'showCountdown': 'Show countdown before trip starts',
-  'startDateRequired':
-      'Start date is required for pre-announcements',
+  'startDateRequired': 'Start date is required for pre-announcements',
   'searchTripsByNameOrUser': 'Search by trip name or username',
   'searchTrips': 'Search trips',
   'loadMoreTrips2': 'Load more trips',
@@ -360,13 +346,11 @@ const Map<String, String> translationsEn = {
   'promoteToAdmin': 'Promote to Admin',
   'demoteFromAdmin': 'Demote from Admin',
   'deleteUser': 'Delete User',
-  'deleteUserConfirm':
-      'Are you sure you want to permanently delete ',
+  'deleteUserConfirm': 'Are you sure you want to permanently delete ',
   'deleteUserNote':
       'This action cannot be undone. All user data will be removed.',
   'promoteUserConfirm': 'Are you sure you want to promote ',
-  'demoteUserConfirm':
-      'Are you sure you want to remove admin role from ',
+  'demoteUserConfirm': 'Are you sure you want to remove admin role from ',
   'sortBy': 'Sort by: ',
   'firstPage': 'First page',
   'previousPage': 'Previous page',
@@ -388,15 +372,13 @@ const Map<String, String> translationsEn = {
   'recomputeAllPolylines': 'Recompute All Polylines',
   'recomputeAll': 'Recompute All',
   'recompute': 'Recompute',
-  'searchByNameUsernameId':
-      'Search by name, username, or trip ID',
+  'searchByNameUsernameId': 'Search by name, username, or trip ID',
   'noTripsFoundMaintenance': 'No trips found',
   'tapTripToView':
       'Tap a trip to view details, or recompute its polyline/geocoding',
   'recomputePolylineConfirm':
       'This will fully recompute the encoded polyline from all ',
-  'recomputeGeocodingConfirm':
-      'This will recompute city and country for all ',
+  'recomputeGeocodingConfirm': 'This will recompute city and country for all ',
   'loadMoreTrips3': 'Load more trips',
   'searchTrips2': 'Search trips',
 
@@ -433,8 +415,7 @@ const Map<String, String> translationsEn = {
   'fromUsersYouFollow': 'From users you follow',
   'createYourFirstTrip': 'Create your first trip to get started!',
   'noTripsInYourFeed': 'No trips in your feed',
-  'followUsersToSeeFeed':
-      'Follow users or add friends to see their trips!',
+  'followUsersToSeeFeed': 'Follow users or add friends to see their trips!',
   'deleteTripWarning': 'This action cannot be undone.',
 
   // Timeline day/trip markers
@@ -454,8 +435,7 @@ const Map<String, String> translationsEn = {
   'categoryOther': 'Other',
 
   // --- Profile screen (extra) ---
-  'mustBeLoggedInToViewProfile':
-      'You must be logged in to view your profile',
+  'mustBeLoggedInToViewProfile': 'You must be logged in to view your profile',
   'profileUpdatedSuccessfully': 'Profile updated successfully!',
   'failedToUpdateProfile': 'Failed to update profile',
   'tapPencilToAddBio': 'Tap the pencil to add a bio...',
@@ -491,4 +471,3 @@ const Map<String, String> translationsEn = {
   'languageName_fr': 'Français',
   'languageName_nl': 'Nederlands',
 };
-

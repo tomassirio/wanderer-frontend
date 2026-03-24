@@ -508,7 +508,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           color: WandererTheme.primaryOrange.withOpacity(0.1),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: const Icon(Icons.language, color: WandererTheme.primaryOrange, size: 22),
+        child: const Icon(Icons.language,
+            color: WandererTheme.primaryOrange, size: 22),
       ),
       title: Text(
         l10n.language,
@@ -567,8 +568,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   trailing: isSelected
-                      ? Icon(Icons.check,
-                          color: WandererTheme.primaryOrange)
+                      ? Icon(Icons.check, color: WandererTheme.primaryOrange)
                       : null,
                   onTap: () {
                     controller.setLocale(Locale(code));
