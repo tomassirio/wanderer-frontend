@@ -310,7 +310,7 @@ void main() {
       expect(buyMeACoffeePosition.dy < logInPosition.dy, isTrue);
     });
 
-    testWidgets('language switch is visible in header', (
+    testWidgets('language picker is visible in header', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
@@ -336,15 +336,14 @@ void main() {
       await tester.tap(find.byIcon(Icons.menu));
       await tester.pumpAndSettle();
 
-      // Language toggle labels should be visible in the header
+      // Language picker label should be visible in the header (default EN)
       expect(find.text('EN'), findsOneWidget);
-      expect(find.text('ES'), findsOneWidget);
 
-      // The Switch widget should be present in the header
-      expect(find.byType(Switch), findsOneWidget);
+      // The PopupMenuButton should be present in the header
+      expect(find.byType(PopupMenuButton<String>), findsOneWidget);
     });
 
-    testWidgets('language switch shows Spanish labels after toggle', (
+    testWidgets('language picker switches to Spanish', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
@@ -373,13 +372,46 @@ void main() {
       // Default is English
       expect(find.text('Trips'), findsOneWidget);
 
-      // Toggle to Spanish by tapping the Switch
-      await tester.tap(find.byType(Switch));
+      // Tap the language picker to open the popup menu
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+
+      // Select Spanish from the popup
+      await tester.tap(find.text('ES').last);
       await tester.pumpAndSettle();
 
       // Sidebar should now show Spanish labels
       expect(find.text('Viajes'), findsOneWidget);
       expect(find.text('Amigos'), findsOneWidget);
+    });
+
+    testWidgets('language picker is visible for guest (not logged in) users', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            drawer: AppSidebar(
+              selectedIndex: 0,
+              onLogout: () {},
+              onSettings: () {},
+            ),
+            body: Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byIcon(Icons.menu));
+      await tester.pumpAndSettle();
+
+      // Language picker should still be visible even for guest users
+      expect(find.text('EN'), findsOneWidget);
+      expect(find.byType(PopupMenuButton<String>), findsOneWidget);
     });
   });
 }
