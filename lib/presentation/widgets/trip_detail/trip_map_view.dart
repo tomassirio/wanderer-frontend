@@ -337,8 +337,8 @@ class _TripMapViewState extends State<TripMapView> {
                   CustomPaint(
                     size: const Size(16, 8),
                     painter: _TrianglePainter(
-                      color:
-                          _triangleColorForLocation(widget.selectedLocation!),
+                      color: _triangleColorForLocation(
+                          widget.selectedLocation!, context),
                     ),
                   ),
                 ],
@@ -377,8 +377,9 @@ class _TripMapViewState extends State<TripMapView> {
   }
 
   /// Returns the triangle arrow color matching the lifecycle marker accent,
-  /// or white for regular updates.
-  static Color _triangleColorForLocation(TripLocation location) {
+  /// or the info window background color for regular updates.
+  static Color _triangleColorForLocation(
+      TripLocation location, BuildContext context) {
     switch (location.updateType) {
       case TripUpdateType.tripStarted:
         return WandererTheme.tripStartedColor;
@@ -389,7 +390,9 @@ class _TripMapViewState extends State<TripMapView> {
       case TripUpdateType.dayEnd:
         return WandererTheme.dayEndColor;
       default:
-        return Colors.white;
+        return Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF2C2C2C)
+            : Colors.white;
     }
   }
 }

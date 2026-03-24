@@ -68,18 +68,20 @@ class CustomPlannedInfoWindow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = waypoint.accentColor;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF2C2C2C) : Colors.white;
 
     return Material(
       color: Colors.transparent,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 260),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: bgColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: accent.withOpacity(0.5), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: accent.withOpacity(0.15),
+              color: accent.withOpacity(isDark ? 0.4 : 0.15),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -124,13 +126,19 @@ class CustomPlannedInfoWindow extends StatelessWidget {
             _buildTitleRow(),
             const SizedBox(height: 6),
             // Divider
-            Divider(
-              height: 1,
-              thickness: 0.5,
-              color: Colors.grey.shade200,
-              indent: 14,
-              endIndent: 14,
-            ),
+            Builder(builder: (ctx) {
+              final isDark =
+                  Theme.of(ctx).brightness == Brightness.dark;
+              return Divider(
+                height: 1,
+                thickness: 0.5,
+                color: isDark
+                    ? Colors.white.withOpacity(0.12)
+                    : Colors.grey.shade200,
+                indent: 14,
+                endIndent: 14,
+              );
+            }),
             const SizedBox(height: 8),
             // Coordinates detail row
             Padding(
@@ -140,7 +148,10 @@ class CustomPlannedInfoWindow extends StatelessWidget {
                   Icon(
                     Icons.location_on_outlined,
                     size: 14,
-                    color: Colors.grey.shade500,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.5),
                   ),
                   const SizedBox(width: 4),
                   Text(
@@ -148,7 +159,10 @@ class CustomPlannedInfoWindow extends StatelessWidget {
                     '${waypoint.position.longitude.toStringAsFixed(4)}',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey.shade600,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.6),
                     ),
                   ),
                 ],
@@ -161,35 +175,38 @@ class CustomPlannedInfoWindow extends StatelessWidget {
   }
 
   Widget _buildTitleRow() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 6, 6, 0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Text(
-              waypoint.label,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1A1A1A),
-                letterSpacing: -0.2,
+    return Builder(builder: (context) {
+      final onSurface = Theme.of(context).colorScheme.onSurface;
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(14, 6, 6, 0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                waypoint.label,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: onSurface,
+                  letterSpacing: -0.2,
+                ),
               ),
             ),
-          ),
-          GestureDetector(
-            onTap: onClose,
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Icon(
-                Icons.close,
-                size: 18,
-                color: Colors.grey.shade500,
+            GestureDetector(
+              onTap: onClose,
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(
+                  Icons.close,
+                  size: 18,
+                  color: onSurface.withOpacity(0.5),
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
   }
 }
