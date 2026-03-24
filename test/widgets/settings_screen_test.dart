@@ -89,6 +89,13 @@ void main() {
     testWidgets('renders Terms of Service option', (WidgetTester tester) async {
       await tester.pumpWidget(buildTestWidget());
 
+      await tester.scrollUntilVisible(
+        find.text('Terms of Service'),
+        200,
+        scrollable: find.byType(Scrollable),
+      );
+      await tester.pumpAndSettle();
+
       expect(find.text('Terms of Service'), findsOneWidget);
       expect(find.text('Read our terms and conditions'), findsOneWidget);
     });
