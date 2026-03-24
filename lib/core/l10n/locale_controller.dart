@@ -14,12 +14,36 @@ class LocaleController {
   factory LocaleController() => _instance;
   LocaleController._internal();
 
+  /// All locales supported by the app.
+  static const List<Locale> supportedLocales = [
+    Locale('en'),
+    Locale('es'),
+    Locale('fr'),
+    Locale('nl'),
+  ];
+
+  /// Flag emoji for each supported language code.
+  static const Map<String, String> localeFlags = {
+    'en': '🇬🇧',
+    'es': '🇪🇸',
+    'fr': '🇫🇷',
+    'nl': '🇳🇱',
+  };
+
+  /// Short uppercase label for each supported language code.
+  static const Map<String, String> localeLabels = {
+    'en': 'EN',
+    'es': 'ES',
+    'fr': 'FR',
+    'nl': 'NL',
+  };
+
   /// Reactive holder for the current [Locale].
   final ValueNotifier<Locale> locale =
       ValueNotifier<Locale>(const Locale('en'));
 
-  /// Whether Spanish is currently active.
-  bool get isSpanish => locale.value.languageCode == 'es';
+  /// The current language code (e.g. 'en', 'es', 'fr', 'nl').
+  String get languageCode => locale.value.languageCode;
 
   /// Load the persisted preference from [SharedPreferences].
   ///
@@ -37,9 +61,12 @@ class LocaleController {
     await prefs.setString(_localeKey, newLocale.languageCode);
   }
 
-  /// Toggle between English and Spanish.
-  Future<void> toggleLocale() async {
-    final newLocale = isSpanish ? const Locale('en') : const Locale('es');
-    await setLocale(newLocale);
+  /// Cycle to the next supported locale (EN → ES → FR → NL → EN …).
+  Future<void> nextLocale() async {
+    final idx = supportedLocales.indexWhere(
+      (l) => l.languageCode == locale.value.languageCode,
+    );
+    final next = (idx + 1) % supportedLocales.length;
+    await setLocale(supportedLocales[next]);
   }
 }

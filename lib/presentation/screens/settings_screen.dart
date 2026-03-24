@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
@@ -404,6 +405,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: _isDarkMode,
                   onChanged: _toggleDarkMode,
                 ),
+                _buildLanguageTile(l10n),
                 const SizedBox(height: 8),
                 _buildSectionHeader(l10n.account),
                 _buildSettingsTile(
@@ -489,6 +491,97 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildLanguageTile(AppLocalizations l10n) {
+    final controller = LocaleController();
+    final currentCode = controller.languageCode;
+    final flag = LocaleController.localeFlags[currentCode] ?? '🌐';
+    final nativeName = l10n.languageNameFor(currentCode);
+
+    return ListTile(
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: WandererTheme.primaryOrange.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Icon(Icons.language, color: WandererTheme.primaryOrange, size: 22),
+      ),
+      title: Text(
+        l10n.language,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+      subtitle: Text(
+        '$flag $nativeName',
+        style: TextStyle(
+          fontSize: 13,
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => _showLanguagePicker(l10n),
+    );
+  }
+
+  void _showLanguagePicker(AppLocalizations l10n) {
+    final controller = LocaleController();
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  l10n.language,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              ...LocaleController.supportedLocales.map((locale) {
+                final code = locale.languageCode;
+                final flag = LocaleController.localeFlags[code] ?? '🌐';
+                final name = l10n.languageNameFor(code);
+                final isSelected = code == controller.languageCode;
+                return ListTile(
+                  leading: Text(flag, style: const TextStyle(fontSize: 24)),
+                  title: Text(
+                    name,
+                    style: TextStyle(
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  trailing: isSelected
+                      ? Icon(Icons.check,
+                          color: WandererTheme.primaryOrange)
+                      : null,
+                  onTap: () {
+                    controller.setLocale(Locale(code));
+                    Navigator.pop(ctx);
+                    setState(() {}); // Rebuild to reflect new locale
+                  },
+                );
+              }),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
     );
   }
 

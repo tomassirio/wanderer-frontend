@@ -1,0 +1,526 @@
+/// Spanish translations map.
+const Map<String, String> translationsEs = {
+  // --- Sidebar navigation ---
+  'trips': 'Viajes',
+  'tripPlans': 'Planes de Viaje',
+  'friends': 'Amigos',
+  'achievements': 'Logros',
+  'tripPromotion': 'Promoción de Viajes',
+  'userManagement': 'Gestión de Usuarios',
+  'tripDataMaintenance': 'Mantenimiento de Datos',
+  'buyMeACoffee': 'Cómprame un Café',
+  'logout': 'Cerrar Sesión',
+  'logIn': 'Iniciar Sesión',
+  'guest': 'Invitado',
+  'myProfile': 'Mi Perfil',
+  'settings': 'Configuración',
+
+  // --- App bar / navigation ---
+  'wanderer': 'Wanderer',
+  'login': 'Iniciar Sesión',
+  'notifications': 'Notificaciones',
+  'profile': 'Perfil',
+  'search': 'Buscar',
+  'userProfile': 'Perfil de Usuario',
+  'switchToLightMode': 'Cambiar a modo claro',
+  'switchToDarkMode': 'Cambiar a modo oscuro',
+
+  // --- Common actions ---
+  'cancel': 'Cancelar',
+  'delete': 'Eliminar',
+  'save': 'Guardar',
+  'retry': 'Reintentar',
+  'confirm': 'Confirmar',
+  'edit': 'Editar',
+  'close': 'Cerrar',
+  'create': 'Crear',
+  'minimize': 'Minimizar',
+  'refresh': 'Actualizar',
+  'done': 'Listo',
+  'send': 'Enviar',
+  'remove': 'Quitar',
+  'promote': 'Promover',
+  'unpromote': 'Despromover',
+
+  // --- Trip status ---
+  'allStatus': 'Todos los Estados',
+  'live': 'En Vivo',
+  'paused': 'Pausado',
+  'completed': 'Completado',
+  'draft': 'Borrador',
+  'resting': 'Descansando',
+
+  // --- Visibility ---
+  'allVisibility': 'Toda Visibilidad',
+  'publicVisibility': 'Público',
+  'protectedVisibility': 'Protegido',
+  'privateVisibility': 'Privado',
+  'visibility': 'Visibilidad',
+
+  // --- Home screen ---
+  'newTrip': 'Nuevo Viaje',
+  'deleteTrip': 'Eliminar Viaje',
+  'deleteTripConfirm': '¿Estás seguro de que quieres eliminar ',
+  'welcomeToWanderer': 'Bienvenido a Wanderer',
+  'trackAdventures': 'Rastrea tus aventuras, comparte tus viajes',
+  'discoverAdventures': 'Descubre aventuras de la comunidad',
+  'explorePublicTrips': 'Explorar Viajes Públicos',
+  'noTripsYet': 'Aún no hay viajes',
+  'createFirstTrip': '¡Crea tu primer viaje para empezar!',
+  'noTripsInFeed': 'No hay viajes en tu feed',
+  'followToSeeTrips':
+      '¡Sigue usuarios o agrega amigos para ver sus viajes!',
+  'noPublicTripsFound': 'No se encontraron viajes públicos',
+  'checkBackLater': '¡Vuelve más tarde para nuevas aventuras!',
+  'errorLoadingTrips': 'Error al cargar viajes',
+  'loadMoreTrips': 'Cargar más viajes',
+  'myTrips': 'Mis Viajes',
+  'friendsTrips': 'Viajes de Amigos',
+  'discover': 'Descubrir',
+  'featuredTrips': 'Viajes Destacados',
+  'highlightedAdventures':
+      'Aventuras destacadas de la comunidad',
+  'explorePublicTripsSubtitle':
+      'Explora viajes públicos de la comunidad',
+  'feed': 'Feed',
+  'minuteAgo': 'hace 1 minuto',
+  'hourAgo': 'hace 1 hora',
+  'dayAgo': 'hace 1 día',
+  'weekAgo': 'hace 1 semana',
+  'monthAgo': 'hace 1 mes',
+  'orExplorePublicTrips': 'O explorar viajes públicos:',
+
+  // --- Search ---
+  'searchHint': 'Buscar…',
+  'couldNotLoadResults':
+      'No se pudieron cargar resultados. Inténtalo de nuevo.',
+  'noTripsFound': 'No se encontraron viajes',
+
+  // --- Notifications ---
+  'noNotificationsYet': 'Aún no hay notificaciones',
+  'notificationsWillAppear':
+      'Cuando recibas notificaciones, aparecerán aquí',
+  'readAll': 'Marcar todo como leído',
+  'loadMoreNotifications': 'Cargar más notificaciones',
+  'pleaseLogInForNotifications':
+      'Por favor inicia sesión para ver notificaciones',
+  'failedToLoadNotifications': 'Error al cargar notificaciones',
+
+  // --- Auth screen ---
+  'welcomeBack': '¡Bienvenido de nuevo!',
+  'createAccount': 'Crear Cuenta',
+  'signInToContinue': 'Inicia sesión para continuar tu viaje',
+  'signUpToStart':
+      'Regístrate para empezar a rastrear tus aventuras',
+  'signIn': 'Iniciar Sesión',
+  'signUp': 'Registrarse',
+  'alreadyHaveAccount': '¿Ya tienes una cuenta?',
+  'dontHaveAccount': '¿No tienes una cuenta?',
+  'forgotPassword': '¿Olvidaste tu contraseña?',
+  'backToLogin': 'Volver al inicio de sesión',
+  'checkYourEmail': 'Revisa tu correo electrónico',
+  'emailLabel': 'Correo Electrónico',
+  'usernameLabel': 'Nombre de usuario',
+  'passwordLabel': 'Contraseña',
+  'pleaseEnterPassword': 'Por favor ingresa tu contraseña',
+  'passwordMinLength':
+      'La contraseña debe tener al menos 6 caracteres',
+  'passwordsDoNotMatch': 'Las contraseñas no coinciden',
+  'resetPasswordTitle': 'Restablecer Contraseña',
+  'enterEmailForReset':
+      'Ingresa tu dirección de correo electrónico y te enviaremos un enlace para restablecer tu contraseña.',
+  'sendResetLink': 'Enviar enlace',
+  'pleaseEnterEmail':
+      'Por favor ingresa tu correo electrónico',
+  'pleaseEnterValidEmail': 'Por favor ingresa un correo válido',
+  'pleaseEnterUsername':
+      'Por favor ingresa tu nombre de usuario',
+  'usernameMinLength':
+      'El nombre de usuario debe tener al menos 3 caracteres',
+  'confirmPassword': 'Confirmar Contraseña',
+
+  // --- Verify email ---
+  'verifyYourEmail': 'Verifica tu correo electrónico',
+  'verifyEmail': 'Verificar correo electrónico',
+  'emailVerified': '¡Correo electrónico verificado!',
+  'verifyingEmail': 'Verificando tu correo electrónico…',
+  'verificationToken': 'Token de verificación',
+  'enterVerificationToken':
+      'Ingresa el token de verificación del correo que te enviamos.',
+  'accountNowActive':
+      'Tu cuenta está activa ahora. Redirigiendo a la app…',
+
+  // --- Settings screen ---
+  'appearance': 'Apariencia',
+  'darkMode': 'Modo Oscuro',
+  'darkModeSubtitle': 'Cambiar entre tema claro y oscuro',
+  'language': 'Idioma',
+  'account': 'Cuenta',
+  'changePassword': 'Cambiar Contraseña',
+  'changePasswordSubtitle': 'Actualiza tu contraseña actual',
+  'resetPassword': 'Restablecer Contraseña',
+  'resetPasswordSubtitle':
+      'Envía un enlace de restablecimiento a tu correo',
+  'support': 'Soporte',
+  'contactSupport': 'Contactar Soporte',
+  'contactSupportSubtitle': 'Obtén ayuda por correo electrónico',
+  'termsOfService': 'Términos de Servicio',
+  'privacyPolicy': 'Política de Privacidad',
+  'pushNotifications': 'Notificaciones Push',
+  'pushNotificationsSubtitle':
+      'Recibe alertas de solicitudes de amistad, comentarios, logros y más',
+  'closeAccount': 'Cerrar Cuenta',
+  'closeAccountSubtitle':
+      'Elimina permanentemente tu cuenta y todos los datos',
+  'confirmAccountDeletion': 'Confirmar eliminación de cuenta',
+  'deleteMyAccount': 'Eliminar mi cuenta',
+  'typeDELETE': 'Escribe BORRAR',
+  'typeDELETEConfirm':
+      'Escribe BORRAR para confirmar que quieres cerrar tu cuenta definitivamente.',
+  'areYouSureDeleteAccount':
+      '¿Estás seguro de que quieres eliminar permanentemente tu cuenta?',
+  'currentPassword': 'Contraseña actual',
+  'newPassword': 'Nueva contraseña',
+  'confirmNewPassword': 'Confirmar nueva contraseña',
+  'changePasswordTitle': 'Cambiar Contraseña',
+  'continue_': 'Continuar',
+  'appVersion': 'Versión de la app',
+  'notificationsSection': 'Notificaciones',
+
+  // --- Profile screen ---
+  'editProfile': 'Editar Perfil',
+  'noProfileData': 'No hay datos de perfil disponibles',
+  'noTripsMatchFilters':
+      'Ningún viaje coincide con los filtros seleccionados',
+  'clearAllFilters': 'Borrar todos los filtros',
+  'clearFilters': 'Borrar filtros',
+  'sortTripsBy': 'Ordenar viajes por',
+  'displayName': 'Nombre para mostrar',
+  'yourDisplayName': 'Tu nombre para mostrar',
+  'bio': 'Biografía',
+  'tellUsAboutYourself': 'Cuéntanos sobre ti',
+  'avatarUrl': 'URL del Avatar',
+
+  // --- Friends & Followers screen ---
+  'followBack': 'Seguir de vuelta',
+  'unfollow': 'Dejar de seguir',
+  'noFollowersYet': 'Aún no hay seguidores',
+  'notFollowingAnyone': 'Aún no sigues a nadie',
+  'noFriendRequests': 'No hay solicitudes de amistad',
+  'noFriendsYet': 'Aún no hay amigos',
+  'noSentRequests': 'No hay solicitudes enviadas',
+  'sendFriendRequests':
+      'Envía solicitudes de amistad para conectar con otros',
+
+  // --- Achievements screen ---
+  'noAchievementsYet': 'Aún no hay logros disponibles',
+
+  // --- Trip detail screen ---
+  'loadingTrip': 'Cargando viaje...',
+  'supportTrip': 'Apoya este viaje',
+  'startTrip': 'Iniciar Viaje',
+  'finishTrip': 'Terminar Viaje',
+  'finishDay': 'Terminar Día',
+  'pause': 'Pausar',
+  'resume': 'Reanudar',
+  'finish': 'Terminar',
+  'finishTripConfirm':
+      '¿Estás seguro de que quieres terminar este viaje? Esto marcará el viaje como completado.',
+  'shareTrip': 'Compartir Viaje',
+  'tripSettings': 'Configuración del Viaje',
+  'showPlannedRoute': 'Mostrar Ruta Planificada',
+  'tripType': 'Tipo de Viaje',
+  'automaticUpdates': 'Actualizaciones Automáticas',
+  'locationInterval':
+      'La ubicación se actualizará automáticamente a este intervalo cuando el viaje esté activo',
+  'willActivateWhenStarted':
+      'Se activará cuando el viaje sea iniciado',
+  'switchToMultiDay': '¿Cambiar a Multi-Día?',
+  'multiDayIrreversible':
+      'Esta acción es irreversible. Una vez que un viaje se convierte a',
+  'testBackgroundUpdate':
+      '🧪 Probar Actualización en Segundo Plano Ahora',
+  'firesWorkManagerTask':
+      'Ejecuta una tarea WorkManager inmediatamente',
+  'loadingMap': 'Cargando mapa...',
+  'mapLoadingError': 'Error al cargar el mapa',
+  'loadingTimeline': 'Cargando línea de tiempo...',
+  'noUpdatesYet': 'Aún no hay actualizaciones',
+  'tripUpdatesWillAppear':
+      'Las actualizaciones del viaje aparecerán aquí',
+  'loadOlderUpdates': 'Cargar actualizaciones anteriores',
+  'timeline': 'Línea de Tiempo',
+  'noCommentsYet': 'Aún no hay comentarios',
+  'pleaseLogInToComment': 'Inicia sesión para comentar',
+  'loadMoreComments': 'Cargar más comentarios',
+  'latestFirst': 'Más reciente primero',
+  'oldestFirst': 'Más antiguo primero',
+  'mostReactions': 'Más reacciones',
+  'mostReplies': 'Más respuestas',
+  'chooseReaction': 'Elige una reacción',
+  'react': 'Reaccionar',
+  'reply': 'Responder',
+  'author': 'AUTHOR',
+  'replyingToComment': 'Respondiendo al comentario',
+  'cancelReply': 'Cancelar respuesta',
+  'addMessageOptional': 'Agregar un mensaje (opcional)',
+  'sendUpdate': 'Enviar Actualización',
+  'locationShared':
+      'Tu ubicación y nivel de batería serán compartidos',
+  'achievementsEarned': 'Logros Obtenidos',
+  'changeVisibility': 'Cambiar Visibilidad',
+  'onlyVisibleToYou': 'Solo visible para ti',
+  'visibleToEveryone': 'Visible para todos',
+  'visibleToFriendsOnly': 'Visible solo para amigos',
+  'promoted': 'Promovido',
+  'justNow': 'Ahora mismo',
+  'ok': 'OK',
+  'writeAReply': 'Escribe una respuesta...',
+  'writeAComment': 'Escribe un comentario...',
+  'comments': 'Comentarios',
+  'resumeTrip': 'Reanudar Viaje',
+  'pauseTrip': 'Pausar Viaje',
+  'restForNight': 'Descansar por la noche',
+  'sending': 'Enviando...',
+  'startingToday': '¡Empieza hoy!',
+  'startsTomorrow': 'Empieza mañana',
+  'multiDayConvertConfirm':
+      'Esta acción es irreversible. Una vez que un viaje se convierte a multi-día, no se puede cambiar de vuelta a simple.',
+  'notSet': 'No establecido',
+
+  // --- Create trip screen ---
+  'newTripTitle': 'Nuevo Viaje',
+  'tripTitleLabel': 'Título del Viaje *',
+  'tripTitleHint': 'ej., Aventura Europea de Verano',
+  'tripDescriptionLabel': 'Descripción (Opcional)',
+  'tripDescriptionHint':
+      'Cuéntanos sobre tu viaje... (opcional)',
+  'automaticUpdatesIntervalHint': 'e.g., 15',
+  'planDetails': 'Detalles del Plan',
+  'multiDayTrip': '· Viaje Multi-Día',
+  'datesOptional': 'Fechas (Opcional)',
+  'creating': 'Creando...',
+  'createTrip': 'Crear Viaje',
+  'simple': 'Simple',
+  'singleDayTrip': 'Viaje de un día',
+  'multiDay': 'Multi-Día',
+  'multiDayJourney': 'Viaje de varios días',
+  'startDate': 'Fecha de Inicio',
+  'endDate': 'Fecha de Fin',
+  'pleaseEnterTitle': 'Por favor ingresa un título',
+
+  // --- Trip plans screen ---
+  'deleteTripPlan': 'Eliminar Plan de Viaje',
+  'deleteTripPlanConfirm':
+      '¿Estás seguro de que quieres eliminar ',
+  'editTripPlan': 'Editar Plan de Viaje',
+  'createTripFromPlan': 'Crear Viaje desde Plan',
+  'noTripPlansYet': 'Aún no hay Planes de Viaje',
+  'startPlanningAdventure':
+      '¡Empieza a planificar tu próxima aventura!',
+  'createTripPlan': 'Crear Plan de Viaje',
+  'loginRequired': 'Inicio de Sesión Requerido',
+  'pleaseLogInForPlans':
+      'Por favor inicia sesión para ver tus planes de viaje',
+  'errorLoadingTripPlans':
+      'Error al cargar planes de viaje',
+  'noDateSet': 'Sin fechas establecidas',
+  'noRouteSet': 'Sin ruta establecida',
+  'route': 'Ruta',
+  'createTripFromPlanTitle': 'Crear viaje desde ',
+  'saveChanges': 'Guardar Cambios',
+
+  // --- Create trip plan screen ---
+  'newTripPlan': 'Nuevo Plan de Viaje',
+  'computingRoute': 'Calculando ruta...',
+  'tapMapToSetPosition':
+      'Toca el mapa para establecer una nueva posición',
+  'dragToReorder': 'Arrastra para reordenar',
+  'rePlaceOnMap': 'Volver a colocar en el mapa',
+  'removeLastMarker': 'Quitar último marcador',
+  'clearAllMarkers': 'Borrar todos los marcadores',
+  'gettingLocation': 'Obteniendo ubicación...',
+  'dragMarkerOnMap':
+      'Arrastra el marcador en el mapa para moverlo',
+  'longPressToDrag':
+      'Mantén presionado y arrastra para reposicionar',
+  'tapEditToModify':
+      'Toca Editar en la barra para modificar',
+  'noLocationData':
+      'No hay datos de ubicación disponibles',
+
+  // --- Trip promotion screen ---
+  'tripPromotion2': 'Promoción de Viajes',
+  'currentlyPromotedTrips': 'Viajes Actualmente Promovidos',
+  'promotableTrips': 'Viajes Promovibles',
+  'noPromotedTrips': 'No hay viajes promovidos',
+  'noPromotableTripsFound':
+      'No se encontraron viajes promovibles',
+  'publicTripsNote':
+      'Viajes públicos que están creados, en progreso o pausados',
+  'promoteTripTitle': 'Promover Viaje',
+  'unpromoteTripTitle': 'Despromover Viaje',
+  'unpromoteConfirm':
+      '¿Estás seguro de que quieres despromover este viaje?',
+  'donationLink': 'Enlace de donación (opcional)',
+  'preAnnounce': 'Pre-Anuncio',
+  'showCountdown':
+      'Mostrar cuenta regresiva antes de que el viaje comience',
+  'startDateRequired':
+      'Se requiere fecha de inicio para pre-anuncios',
+  'searchTripsByNameOrUser':
+      'Buscar por nombre de viaje o usuario',
+  'searchTrips': 'Buscar viajes',
+  'loadMoreTrips2': 'Cargar más viajes',
+  'preAnnounced': 'Pre Anunciado',
+  'comingSoon': 'Próximamente',
+
+  // --- Admin users screen ---
+  'userManagementTitle': 'Gestión de Usuarios',
+  'filterResults': 'Filtrar resultados...',
+  'noUsersFound': 'No se encontraron usuarios',
+  'viewProfile': 'Ver Perfil',
+  'promoteToAdmin': 'Promover a Admin',
+  'demoteFromAdmin': 'Quitar rol de Admin',
+  'deleteUser': 'Eliminar Usuario',
+  'deleteUserConfirm':
+      '¿Estás seguro de que quieres eliminar permanentemente a ',
+  'deleteUserNote':
+      'Esta acción no se puede deshacer. Todos los datos del usuario serán eliminados.',
+  'promoteUserConfirm':
+      '¿Estás seguro de que quieres promover a ',
+  'demoteUserConfirm':
+      '¿Estás seguro de que quieres quitar el rol de admin a ',
+  'sortBy': 'Ordenar por: ',
+  'firstPage': 'Primera página',
+  'previousPage': 'Página anterior',
+  'nextPage': 'Siguiente página',
+  'lastPage': 'Última página',
+  'adminBadge': 'ADMIN',
+
+  // --- Trip maintenance screen ---
+  'tripDataOverview': 'Resumen de Datos de Viajes',
+  'allTrips': 'Todos los Viajes',
+  'polylineStats': 'Estadísticas de Polilínea',
+  'geocodingStats': 'Estadísticas de Geocodificación',
+  'polyline': 'Polyline',
+  'geocoding': 'Geocoding',
+  'needs1Location': 'Necesita 1+ ubicación',
+  'needs2Locations': 'Necesita 2+ ubicaciones',
+  'recomputePolyline': 'Recalcular Polilínea',
+  'recomputeGeocoding': 'Recalcular Geocodificación',
+  'recomputeAllPolylines': 'Recalcular Todas las Polilíneas',
+  'recomputeAll': 'Recalcular Todo',
+  'recompute': 'Recalcular',
+  'searchByNameUsernameId':
+      'Buscar por nombre, usuario o ID de viaje',
+  'noTripsFoundMaintenance': 'No se encontraron viajes',
+  'tapTripToView':
+      'Toca un viaje para ver detalles, o recalcular su polilínea/geocodificación',
+  'recomputePolylineConfirm':
+      'Esto recalculará completamente la polilínea codificada de todas las',
+  'recomputeGeocodingConfirm':
+      'Esto recalculará la ciudad y el país de todas las',
+  'loadMoreTrips3': 'Cargar más viajes',
+  'searchTrips2': 'Buscar viajes',
+
+  // --- Deep link screens ---
+  'loadingTripDeepLink': 'Cargando viaje…',
+  'loadingProfileDeepLink': 'Cargando perfil…',
+  'goHome': 'Ir al inicio',
+
+  // --- Home widgets ---
+  'seeAll': 'Ver todo',
+  'tapPlusToCreate': 'Toca el botón + para crear un viaje',
+  'loginOrRegister': 'Iniciar sesión / Registrarse',
+  'following': 'Siguiendo',
+  'friend': 'Amigo',
+
+  // --- Trip info card ---
+  'privateVisibilityHint': 'Solo visible para ti',
+  'publicVisibilityHint': 'Visible para todos',
+  'protectedVisibilityHint': 'Visible solo para amigos',
+
+  // --- Home screen sections / filter chips ---
+  'activeTripsSection': 'Viajes Activos',
+  'currentlyInProgress': 'Actualmente en curso',
+  'pausedTripsSection': 'Viajes Pausados',
+  'temporarilyStopped': 'Temporalmente detenido',
+  'draftTripsSection': 'Viajes Borrador',
+  'notYetStarted': 'Aún no comenzado',
+  'completedTripsSection': 'Viajes Completados',
+  'finishedAdventures': 'Aventuras terminadas',
+  'liveNow': 'En Vivo Ahora',
+  'happeningRightNow': 'Ocurriendo ahora mismo',
+  'friendsTripsSection': 'Viajes de Amigos',
+  'fromYourFriends': 'De tus amigos',
+  'fromUsersYouFollow': 'De usuarios que sigues',
+  'createYourFirstTrip':
+      '¡Crea tu primer viaje para comenzar!',
+  'noTripsInYourFeed': 'No hay viajes en tu feed',
+  'followUsersToSeeFeed':
+      '¡Sigue usuarios o añade amigos para ver sus viajes!',
+  'deleteTripWarning': 'Esta acción no se puede deshacer.',
+
+  // Timeline day/trip markers
+  'tripStartedLabel': 'Viaje Iniciado',
+  'tripEndedLabel': 'Viaje Finalizado',
+  'updateLabel': 'Actualización',
+
+  // Comments section
+  'beFirstToComment': '¡Sé el primero en comentar!',
+  'loginToAddComment': 'Inicia sesión para añadir un comentario',
+
+  // Achievement categories
+  'categoryDistance': 'Distancia',
+  'categoryUpdates': 'Actualizaciones',
+  'categoryDuration': 'Duración',
+  'categorySocial': 'Social',
+  'categoryOther': 'Otro',
+
+  // --- Profile screen (extra) ---
+  'mustBeLoggedInToViewProfile':
+      'Debes iniciar sesión para ver tu perfil',
+  'profileUpdatedSuccessfully':
+      '¡Perfil actualizado con éxito!',
+  'failedToUpdateProfile':
+      'No se pudo actualizar el perfil',
+  'tapPencilToAddBio':
+      'Toca el lápiz para añadir una bio...',
+  'noBioYet': 'Aún sin bio.',
+  'follow': 'Seguir',
+  'unfriend': 'Eliminar amigo',
+  'cancelFriendRequest': 'Cancelar solicitud de amistad',
+  'sendFriendRequest': 'Enviar solicitud de amistad',
+  'followers': 'Seguidores',
+  'sortOptionStatus': 'Estado',
+  'sortOptionNameAZ': 'Nombre (A-Z)',
+  'sortOptionNameZA': 'Nombre (Z-A)',
+  'sortOptionNewest': 'Más reciente',
+  'sortOptionOldest': 'Más antiguo',
+  'friendRequestCancelled': 'Solicitud de amistad cancelada',
+
+  // --- Friends/Followers screen ---
+  'newFollowerMsg': '¡Tienes un nuevo seguidor!',
+  'friendRequestReceivedMsg':
+      '¡Recibiste una solicitud de amistad!',
+  'friendRequestAcceptedMsg':
+      '¡Solicitud de amistad aceptada!',
+  'followRequestSentMsg':
+      '¡Solicitud de seguimiento enviada!',
+  'unfollowedUserMsg': 'Dejaste de seguir al usuario',
+  'friendRequestDeclinedMsg':
+      'Solicitud de amistad rechazada',
+  'requestsTab': 'Solicitudes',
+  'unknownUser': 'Usuario desconocido',
+  'messagingComingSoon': '¡Mensajería próximamente!',
+  'receivedTab': 'Recibidas',
+  'sentTab': 'Enviadas',
+
+  // --- Language names (for the language picker) ---
+  'languageName_en': 'English',
+  'languageName_es': 'Español',
+  'languageName_fr': 'Français',
+  'languageName_nl': 'Nederlands',
+};
+

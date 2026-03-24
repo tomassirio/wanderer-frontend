@@ -864,7 +864,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  /// Compact EN/ES language toggle for the guest hero overlay (top-left).
+  /// Compact language picker for the guest hero overlay (top-left).
   Widget _buildHeroLangToggle() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
@@ -872,34 +872,64 @@ class _HomeScreenState extends State<HomeScreen>
         valueListenable: LocaleController().locale,
         builder: (context, locale, _) {
           final controller = LocaleController();
-          final isSpanish = controller.isSpanish;
-          return Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerHighest
-                  .withOpacity(0.6),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _quickLangLabel('EN', !isSpanish),
-                Transform.scale(
-                  scale: 0.65,
-                  child: Switch(
-                    value: isSpanish,
-                    onChanged: (value) => controller.setLocale(
-                      value ? const Locale('es') : const Locale('en'),
+          final currentCode = controller.languageCode;
+          final flag = LocaleController.localeFlags[currentCode] ?? '🌐';
+          final label = LocaleController.localeLabels[currentCode] ?? 'EN';
+          return PopupMenuButton<String>(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            tooltip: 'Change language',
+            onSelected: (code) => controller.setLocale(Locale(code)),
+            itemBuilder: (_) =>
+                LocaleController.supportedLocales.map((loc) {
+              final code = loc.languageCode;
+              final locFlag = LocaleController.localeFlags[code] ?? '🌐';
+              final locLabel = LocaleController.localeLabels[code] ?? code;
+              return PopupMenuItem<String>(
+                value: code,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(locFlag, style: const TextStyle(fontSize: 16)),
+                    const SizedBox(width: 8),
+                    Text(
+                      locLabel,
+                      style: TextStyle(
+                        fontWeight: code == currentCode
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
                     ),
-                    activeColor: WandererTheme.primaryOrange,
-                    inactiveThumbColor: WandererTheme.primaryOrange,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
+                  ],
                 ),
-                _quickLangLabel('ES', isSpanish),
-              ],
+              );
+            }).toList(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withOpacity(0.6),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(flag, style: const TextStyle(fontSize: 14)),
+                  const SizedBox(width: 4),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: WandererTheme.primaryOrange,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
+                  ),
+                  Icon(Icons.arrow_drop_down,
+                      color: WandererTheme.primaryOrange, size: 16),
+                ],
+              ),
             ),
           );
         },
@@ -932,18 +962,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Text _quickLangLabel(String code, bool isActive) {
-    return Text(
-      code,
-      style: TextStyle(
-        color: isActive
-            ? WandererTheme.primaryOrange
-            : Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-        fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-        fontSize: 11,
-      ),
-    );
-  }
 
   Widget _buildFilterChips() {
     final bool isMyTripsTab = _tabController.index == 2;

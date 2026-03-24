@@ -6,7 +6,7 @@ void main() {
     late AppLocalizations l10n;
 
     setUp(() {
-      l10n = const AppLocalizations('en');
+      l10n = AppLocalizations('en');
     });
 
     test('returns English sidebar labels', () {
@@ -57,7 +57,7 @@ void main() {
     late AppLocalizations l10n;
 
     setUp(() {
-      l10n = const AppLocalizations('es');
+      l10n = AppLocalizations('es');
     });
 
     test('returns Spanish sidebar labels', () {
@@ -101,6 +101,92 @@ void main() {
     test('returns Spanish home screen labels', () {
       expect(l10n.newTrip, 'Nuevo Viaje');
       expect(l10n.deleteTrip, 'Eliminar Viaje');
+    });
+  });
+
+  group('AppLocalizations - French', () {
+    late AppLocalizations l10n;
+
+    setUp(() {
+      l10n = AppLocalizations('fr');
+    });
+
+    test('returns French sidebar labels', () {
+      expect(l10n.trips, 'Voyages');
+      expect(l10n.tripPlans, 'Plans de Voyage');
+      expect(l10n.friends, 'Amis');
+      expect(l10n.achievements, 'Réalisations');
+      expect(l10n.logout, 'Déconnexion');
+      expect(l10n.logIn, 'Se Connecter');
+      expect(l10n.guest, 'Invité');
+      expect(l10n.settings, 'Paramètres');
+    });
+
+    test('returns French common action labels', () {
+      expect(l10n.cancel, 'Annuler');
+      expect(l10n.delete, 'Supprimer');
+      expect(l10n.save, 'Enregistrer');
+      expect(l10n.retry, 'Réessayer');
+    });
+
+    test('returns French status labels', () {
+      expect(l10n.allStatus, 'Tous les Statuts');
+      expect(l10n.live, 'En Direct');
+      expect(l10n.paused, 'En Pause');
+      expect(l10n.completed, 'Terminé');
+      expect(l10n.draft, 'Brouillon');
+    });
+  });
+
+  group('AppLocalizations - Dutch', () {
+    late AppLocalizations l10n;
+
+    setUp(() {
+      l10n = AppLocalizations('nl');
+    });
+
+    test('returns Dutch sidebar labels', () {
+      expect(l10n.trips, 'Reizen');
+      expect(l10n.tripPlans, 'Reisplannen');
+      expect(l10n.friends, 'Vrienden');
+      expect(l10n.achievements, 'Prestaties');
+      expect(l10n.logout, 'Uitloggen');
+      expect(l10n.logIn, 'Inloggen');
+      expect(l10n.guest, 'Gast');
+      expect(l10n.settings, 'Instellingen');
+    });
+
+    test('returns Dutch common action labels', () {
+      expect(l10n.cancel, 'Annuleren');
+      expect(l10n.delete, 'Verwijderen');
+      expect(l10n.save, 'Opslaan');
+      expect(l10n.retry, 'Opnieuw proberen');
+    });
+
+    test('returns Dutch status labels', () {
+      expect(l10n.allStatus, 'Alle Statussen');
+      expect(l10n.live, 'Live');
+      expect(l10n.paused, 'Gepauzeerd');
+      expect(l10n.completed, 'Voltooid');
+      expect(l10n.draft, 'Concept');
+    });
+  });
+
+  group('AppLocalizations - fallback', () {
+    test('unknown language falls back to English', () {
+      final l10n = AppLocalizations('xx');
+      expect(l10n.trips, 'Trips');
+      expect(l10n.cancel, 'Cancel');
+    });
+  });
+
+  group('AppLocalizations - language names', () {
+    test('returns native language names', () {
+      final l10n = AppLocalizations('en');
+      expect(l10n.languageNameFor('en'), 'English');
+      expect(l10n.languageNameFor('es'), 'Español');
+      expect(l10n.languageNameFor('fr'), 'Français');
+      expect(l10n.languageNameFor('nl'), 'Nederlands');
     });
   });
 
