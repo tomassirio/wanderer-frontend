@@ -2768,7 +2768,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                     : AnimatedPositioned(
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeInOut,
-                        left: _isCommentsCollapsed ? 16.0 : leftPanelWidth + 8,
+                        left: _isCommentsCollapsed ? 16.0 : leftPanelWidth - 16,
                         bottom: 16,
                         child: _buildDonationButton(),
                       ),

@@ -137,6 +137,10 @@ class CustomInfoWindow extends StatelessWidget {
             _buildDivider(),
             const SizedBox(height: 8),
             _buildTimestampRow(),
+            if (location.distanceSoFarKm != null) ...[
+              const SizedBox(height: 6),
+              _buildDistanceRow(),
+            ],
             const SizedBox(height: 6),
             _buildMessageBatteryRow(),
           ],
@@ -237,6 +241,30 @@ class CustomInfoWindow extends StatelessWidget {
               ),
             ],
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDistanceRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Row(
+        children: [
+          Icon(
+            Icons.straighten,
+            size: 14,
+            color: Colors.grey.shade600,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '${location.distanceSoFarKm!.toStringAsFixed(1)} km traveled',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade700,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );

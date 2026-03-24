@@ -16,6 +16,7 @@ class TripLocation {
   final double? temperatureCelsius;
   final WeatherCondition? weatherCondition;
   final TripUpdateType updateType;
+  final double? distanceSoFarKm;
 
   TripLocation({
     required this.id,
@@ -31,6 +32,7 @@ class TripLocation {
     this.temperatureCelsius,
     this.weatherCondition,
     this.updateType = TripUpdateType.regular,
+    this.distanceSoFarKm,
   });
 
   factory TripLocation.fromJson(Map<String, dynamic> json) {
@@ -78,6 +80,7 @@ class TripLocation {
       updateType: json['updateType'] != null
           ? TripUpdateType.fromJson(json['updateType'] as String)
           : TripUpdateType.regular,
+      distanceSoFarKm: (json['distanceSoFarKm'] as num?)?.toDouble(),
     );
   }
 
@@ -99,6 +102,7 @@ class TripLocation {
           'weatherCondition': weatherCondition!.toJson(),
         if (updateType != TripUpdateType.regular)
           'updateType': updateType.toJson(),
+        if (distanceSoFarKm != null) 'distanceSoFarKm': distanceSoFarKm,
       };
 
   /// Create a copy with updated place information
@@ -116,6 +120,7 @@ class TripLocation {
     double? temperatureCelsius,
     WeatherCondition? weatherCondition,
     TripUpdateType? updateType,
+    double? distanceSoFarKm,
   }) {
     return TripLocation(
       id: id ?? this.id,
@@ -131,6 +136,7 @@ class TripLocation {
       temperatureCelsius: temperatureCelsius ?? this.temperatureCelsius,
       weatherCondition: weatherCondition ?? this.weatherCondition,
       updateType: updateType ?? this.updateType,
+      distanceSoFarKm: distanceSoFarKm ?? this.distanceSoFarKm,
     );
   }
 

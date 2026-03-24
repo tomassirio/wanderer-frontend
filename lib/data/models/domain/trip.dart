@@ -63,6 +63,8 @@ class Trip {
   final int? currentDay;
   // Trip plan reference
   final String? tripPlanId;
+  // Distance tracking
+  final double? accruedDistanceKm;
 
   /// Generate thumbnail URL based on trip ID or trip plan ID
   String get thumbnailUrl {
@@ -116,6 +118,7 @@ class Trip {
     this.tripDays,
     this.currentDay,
     this.tripPlanId,
+    this.accruedDistanceKm,
   });
 
   factory Trip.fromJson(Map<String, dynamic> json) {
@@ -233,6 +236,7 @@ class Trip {
           : null,
       currentDay: (tripDetails?['currentDay'] ?? json['currentDay']) as int?,
       tripPlanId: json['tripPlanId'] as String?,
+      accruedDistanceKm: (json['accruedDistanceKm'] as num?)?.toDouble(),
     );
   }
 

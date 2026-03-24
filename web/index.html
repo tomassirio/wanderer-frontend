@@ -35,11 +35,11 @@
   <!-- Application Configuration -->
   <script>
     window.appConfig = {
-      commandBaseUrl: 'https://wanderer.localwanderer-dev.com/api/command',
-      queryBaseUrl: 'https://wanderer.localwanderer-dev.com/api/query',
-      authBaseUrl: 'https://wanderer.localwanderer-dev.com/api/auth',
-      wsBaseUrl: 'wss://wanderer.localwanderer-dev.com',
-      googleMapsApiKey: 'AIzaSyBBt410DgACKeYDUFI7uqTtGPVkm3-irYI'
+      commandBaseUrl: '{{COMMAND_BASE_URL}}',
+      queryBaseUrl: '{{QUERY_BASE_URL}}',
+      authBaseUrl: '{{AUTH_BASE_URL}}',
+      wsBaseUrl: '{{WS_BASE_URL}}',
+      googleMapsApiKey: '{{GOOGLE_MAPS_API_KEY}}'
     };
 
     // Signal that Google Maps should initialize
@@ -55,7 +55,7 @@
       console.log('Google Maps API loaded successfully');
     }
   </script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBBt410DgACKeYDUFI7uqTtGPVkm3-irYI&libraries=places,geometry&callback=initGoogleMaps"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key={{GOOGLE_MAPS_API_KEY}}&libraries=places,geometry&callback=initGoogleMaps"></script>
 
   <script src="flutter_bootstrap.js" async></script>
 </body>

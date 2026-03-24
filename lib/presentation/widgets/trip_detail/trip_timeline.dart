@@ -379,6 +379,35 @@ class TripTimeline extends StatelessWidget {
                       ],
                     ),
                   ],
+                  // Distance so far
+                  if (update.distanceSoFarKm != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.straighten,
+                          size: 14,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.6),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${update.distanceSoFarKm!.toStringAsFixed(1)} km traveled',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.6),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   // Message if present (only for regular updates)
                   // Lifecycle markers show the message in the top label instead
                   if (!isLifecycleMarker &&

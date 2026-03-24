@@ -17,6 +17,7 @@ class TimelinePanel extends StatelessWidget {
   final VoidCallback onRefresh;
   final VoidCallback? onLoadMore;
   final Function(TripLocation)? onUpdateTap;
+  final double? totalDistanceKm;
 
   const TimelinePanel({
     super.key,
@@ -29,6 +30,7 @@ class TimelinePanel extends StatelessWidget {
     required this.onRefresh,
     this.onLoadMore,
     this.onUpdateTap,
+    this.totalDistanceKm,
   });
 
   @override
@@ -188,13 +190,30 @@ class TimelinePanel extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                          'Timeline',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Timeline',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            if (totalDistanceKm != null && totalDistanceKm! > 0)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  '${totalDistanceKm!.toStringAsFixed(1)} km',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: WandererTheme.primaryOrange,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                       Container(
