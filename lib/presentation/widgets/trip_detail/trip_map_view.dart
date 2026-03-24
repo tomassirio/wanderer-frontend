@@ -5,6 +5,7 @@ import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/domain/trip_location.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_info_window.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_planned_info_window.dart';
 
 /// Widget displaying the Google Maps view for a trip
 class TripMapView extends StatefulWidget {
@@ -30,6 +31,12 @@ class TripMapView extends StatefulWidget {
   /// Callback to close the custom info window.
   final VoidCallback? onInfoWindowClosed;
 
+  /// The currently selected planned waypoint to show in the custom info window.
+  final PlannedWaypointInfo? selectedPlannedWaypoint;
+
+  /// Callback to close the planned waypoint info window.
+  final VoidCallback? onPlannedInfoWindowClosed;
+
   /// Callback when the map background is tapped (not a marker).
   final VoidCallback? onMapTap;
 
@@ -44,6 +51,8 @@ class TripMapView extends StatefulWidget {
     this.gesturesEnabled = true,
     this.selectedLocation,
     this.onInfoWindowClosed,
+    this.selectedPlannedWaypoint,
+    this.onPlannedInfoWindowClosed,
     this.onMapTap,
   });
 
@@ -60,6 +69,9 @@ class _TripMapViewState extends State<TripMapView> {
   /// Screen position of the selected marker (relative to the map widget).
   Offset? _markerScreenPosition;
 
+  /// Screen position of the selected planned waypoint marker.
+  Offset? _plannedMarkerScreenPosition;
+
   @override
   void didUpdateWidget(covariant TripMapView oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -71,6 +83,16 @@ class _TripMapViewState extends State<TripMapView> {
     // When selection is cleared, clear the cached position.
     if (widget.selectedLocation == null) {
       _markerScreenPosition = null;
+    }
+
+    // When a new planned waypoint is selected, compute its screen position.
+    if (widget.selectedPlannedWaypoint != null &&
+        widget.selectedPlannedWaypoint != oldWidget.selectedPlannedWaypoint) {
+      _updatePlannedMarkerScreenPosition();
+    }
+    // When selection is cleared, clear the cached position.
+    if (widget.selectedPlannedWaypoint == null) {
+      _plannedMarkerScreenPosition = null;
     }
   }
 
@@ -98,6 +120,34 @@ class _TripMapViewState extends State<TripMapView> {
           } else {
             final ratio = MediaQuery.of(context).devicePixelRatio;
             _markerScreenPosition = Offset(
+              screenCoord.x / ratio,
+              screenCoord.y / ratio,
+            );
+          }
+        });
+      }
+    } catch (_) {
+      // Silently fail — bubble won't be positioned.
+    }
+  }
+
+  Future<void> _updatePlannedMarkerScreenPosition() async {
+    final controller = _controller;
+    final wp = widget.selectedPlannedWaypoint;
+    if (controller == null || wp == null) return;
+
+    try {
+      final screenCoord = await controller.getScreenCoordinate(wp.position);
+      if (mounted && widget.selectedPlannedWaypoint == wp) {
+        setState(() {
+          if (kIsWeb) {
+            _plannedMarkerScreenPosition = Offset(
+              screenCoord.x.toDouble(),
+              screenCoord.y.toDouble(),
+            );
+          } else {
+            final ratio = MediaQuery.of(context).devicePixelRatio;
+            _plannedMarkerScreenPosition = Offset(
               screenCoord.x / ratio,
               screenCoord.y / ratio,
             );
@@ -220,6 +270,9 @@ class _TripMapViewState extends State<TripMapView> {
             if (widget.selectedLocation != null) {
               _updateMarkerScreenPosition();
             }
+            if (widget.selectedPlannedWaypoint != null) {
+              _updatePlannedMarkerScreenPosition();
+            }
           },
           myLocationButtonEnabled: widget.isOwner,
           myLocationEnabled: widget.isOwner,
@@ -286,6 +339,33 @@ class _TripMapViewState extends State<TripMapView> {
                     painter: _TrianglePainter(
                       color:
                           _triangleColorForLocation(widget.selectedLocation!),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        // Custom planned waypoint info window bubble
+        if (widget.selectedPlannedWaypoint != null &&
+            widget.onPlannedInfoWindowClosed != null &&
+            _plannedMarkerScreenPosition != null)
+          Positioned(
+            left: _plannedMarkerScreenPosition!.dx - 130,
+            top: _plannedMarkerScreenPosition!.dy - 48,
+            child: Transform.translate(
+              offset: const Offset(0, -100),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CustomPlannedInfoWindow(
+                    waypoint: widget.selectedPlannedWaypoint!,
+                    onClose: widget.onPlannedInfoWindowClosed!,
+                  ),
+                  // Small triangle/arrow pointing down
+                  CustomPaint(
+                    size: const Size(16, 8),
+                    painter: _TrianglePainter(
+                      color: widget.selectedPlannedWaypoint!.accentColor,
                     ),
                   ),
                 ],

@@ -3,6 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/data/client/polyline_codec.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
+import 'package:wanderer_frontend/presentation/helpers/dashed_polyline_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/web_marker_generator.dart';
 
 /// Helper class for managing Google Maps markers and polylines for trip plans
@@ -77,13 +78,12 @@ class TripPlanMapHelper {
 
     // Create polyline connecting all points (straight lines - fallback)
     if (points.length >= 2) {
-      polylines.add(
-        Polyline(
-          polylineId: const PolylineId('route'),
+      polylines.addAll(
+        DashedPolylineHelper.createDashedPolylines(
+          polylineIdPrefix: 'route',
           points: points,
           color: Colors.blue.withOpacity(0.7),
           width: 3,
-          patterns: [PatternItem.dash(20), PatternItem.gap(10)],
         ),
       );
     }
@@ -197,13 +197,12 @@ class TripPlanMapHelper {
     Set<Polyline> polylines,
     List<LatLng> points,
   ) {
-    polylines.add(
-      Polyline(
-        polylineId: const PolylineId('route'),
+    polylines.addAll(
+      DashedPolylineHelper.createDashedPolylines(
+        polylineIdPrefix: 'route',
         points: points,
         color: Colors.blue.withOpacity(0.7),
         width: 3,
-        patterns: [PatternItem.dash(20), PatternItem.gap(10)],
       ),
     );
   }

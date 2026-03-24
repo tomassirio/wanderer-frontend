@@ -9,6 +9,7 @@ import 'package:wanderer_frontend/data/client/polyline_codec.dart';
 import 'package:wanderer_frontend/data/models/requests/create_trip_plan_backend_request.dart';
 import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/presentation/helpers/dashed_polyline_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/web_marker_generator.dart';
 
@@ -216,16 +217,12 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
   void _showStraightLinePolyline(List<LatLng> points) {
     setState(() {
       _polylines.clear();
-      _polylines.add(
-        Polyline(
-          polylineId: const PolylineId('planned_route'),
+      _polylines.addAll(
+        DashedPolylineHelper.createDashedPolylines(
+          polylineIdPrefix: 'planned_route',
           points: points,
           color: Colors.blue.withOpacity(0.5),
           width: 3,
-          patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-          geodesic: false,
-          startCap: Cap.roundCap,
-          endCap: Cap.roundCap,
         ),
       );
     });

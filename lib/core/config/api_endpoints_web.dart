@@ -32,14 +32,21 @@ String getConfigValue(String key, String defaultValue) {
   return defaultValue;
 }
 
-/// Gets the base app URL for the web platform using window.location
+/// Gets the base app URL for the web platform
+/// First checks window.appConfig.appBaseUrl, then falls back to window.location
 String getAppBaseUrl() {
   try {
+    // First try to get from appConfig (Docker/Makefile injection)
+    final configuredAppBaseUrl = getConfigValue('appBaseUrl', '');
+    if (configuredAppBaseUrl.isNotEmpty) {
+      return configuredAppBaseUrl;
+    }
+
     final protocol = _locationProtocol.toDart;
     final host = _locationHost.toDart;
     return '$protocol//$host';
   } catch (e) {
-    return 'https://wanderer.tomassir.io';
+    return 'https://wanderer.localwanderer-dev.com';
   }
 }
 
@@ -59,7 +66,10 @@ String getWebSocketUrl(String relativePath) {
         !configuredWsUrl.contains('{{') &&
         (configuredWsUrl.startsWith('ws://') ||
             configuredWsUrl.startsWith('wss://'))) {
-      return configuredWsUrl + relativePath;
+      return configuredWsUrl.endsWith('/')
+          ? configuredWsUrl.substring(0, configuredWsUrl.length - 1) +
+              relativePath
+          : configuredWsUrl + relativePath;
     }
 
     // If it's a relative path like /ws, construct full URL from window.location

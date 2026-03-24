@@ -100,9 +100,12 @@ class WebSocketClient {
       final wsUrl = _buildWebSocketUrl(token);
 
       // Skip connection if URL appears to be pointing to Flutter dev server
-      // (typically localhost with high port numbers used by Flutter)
+      // ONLY if the path isn't our actual websocket endpoint (/ws)
       final uri = Uri.tryParse(wsUrl);
-      if (uri != null && uri.host == 'localhost' && uri.port > 50000) {
+      if (uri != null &&
+          uri.host == 'localhost' &&
+          uri.port > 50000 &&
+          !uri.path.contains('/ws')) {
         debugPrint(
             'WebSocket: Skipping connection - dev server detected on localhost:${uri.port}');
         _updateConnectionState(WebSocketConnectionState.disconnected);
@@ -220,8 +223,7 @@ class WebSocketClient {
       // Detect if we received HTML instead of JSON (wrong routing)
       if (messageStr.trimLeft().startsWith('<!DOCTYPE') ||
           messageStr.trimLeft().startsWith('<html')) {
-        debugPrint(
-            'WebSocket: ERROR - Received HTML instead of JSON. '
+        debugPrint('WebSocket: ERROR - Received HTML instead of JSON. '
             'Check your ingress/proxy configuration.');
         _handleError('WebSocket endpoint misconfigured - receiving HTML');
         return;

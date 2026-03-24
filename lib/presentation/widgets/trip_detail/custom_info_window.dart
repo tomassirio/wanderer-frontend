@@ -50,8 +50,7 @@ class CustomInfoWindow extends StatelessWidget {
   }
 
   /// Whether this is a lifecycle marker (non-regular update).
-  bool get _isLifecycleMarker =>
-      location.updateType != TripUpdateType.regular;
+  bool get _isLifecycleMarker => location.updateType != TripUpdateType.regular;
 
   /// Returns the icon for lifecycle markers, or null for regular updates.
   IconData? get _lifecycleIcon {

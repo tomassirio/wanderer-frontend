@@ -7,6 +7,7 @@ import 'package:wanderer_frontend/data/client/polyline_codec.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
+import 'package:wanderer_frontend/presentation/helpers/dashed_polyline_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_plan_map_helper.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
@@ -161,16 +162,12 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
     // Show straight-line fallback immediately while loading
     setState(() {
       _editPolylines.clear();
-      _editPolylines.add(
-        Polyline(
-          polylineId: const PolylineId('edit_route'),
+      _editPolylines.addAll(
+        DashedPolylineHelper.createDashedPolylines(
+          polylineIdPrefix: 'edit_route',
           points: points,
           color: Colors.blue.withOpacity(0.5),
           width: 3,
-          patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-          geodesic: false,
-          startCap: Cap.roundCap,
-          endCap: Cap.roundCap,
         ),
       );
       _isEditComputingRoute = true;

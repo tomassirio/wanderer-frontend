@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/client/polyline_codec.dart';
+import 'package:wanderer_frontend/presentation/helpers/dashed_polyline_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_route_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/web_marker_generator.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_planned_info_window.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 
 /// Helper class for managing Google Maps markers and polylines for trips
@@ -15,6 +17,7 @@ class TripMapHelper {
   static MapData createMapData(
     Trip trip, {
     void Function(TripLocation)? onMarkerTap,
+    void Function(PlannedWaypointInfo)? onPlannedMarkerTap,
     bool showPlannedWaypoints = false,
   }) {
     final markers = <Marker>{};
@@ -64,12 +67,14 @@ class TripMapHelper {
 
       // Overlay planned waypoints if enabled
       if (showPlannedWaypoints && trip.hasPlannedRoute) {
-        _addPlannedRouteOverlay(trip, markers, polylines);
+        _addPlannedRouteOverlay(trip, markers, polylines,
+            onPlannedMarkerTap: onPlannedMarkerTap);
       }
     }
     // Fall back to planned route from trip plan (only when toggle is on)
     else if (showPlannedWaypoints && trip.hasPlannedRoute) {
-      final mapData = _createPlannedRouteMapData(trip);
+      final mapData = _createPlannedRouteMapData(trip,
+          onPlannedMarkerTap: onPlannedMarkerTap);
       return mapData;
     }
 
@@ -77,7 +82,10 @@ class TripMapHelper {
   }
 
   /// Creates markers and polylines from planned route (from trip plan)
-  static MapData _createPlannedRouteMapData(Trip trip) {
+  static MapData _createPlannedRouteMapData(
+    Trip trip, {
+    void Function(PlannedWaypointInfo)? onPlannedMarkerTap,
+  }) {
     final markers = <Marker>{};
     final polylines = <Polyline>{};
     final points = <LatLng>[];
@@ -95,7 +103,15 @@ class TripMapHelper {
         Marker(
           markerId: const MarkerId('planned_start'),
           position: startPos,
-          infoWindow: const InfoWindow(title: 'Planned Start'),
+          infoWindow: onPlannedMarkerTap != null
+              ? InfoWindow.noText
+              : const InfoWindow(title: 'Planned Start'),
+          onTap: onPlannedMarkerTap != null
+              ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                    type: PlannedWaypointType.start,
+                    position: startPos,
+                  ))
+              : null,
           icon: _createMarkerWithHue(120.0), // Green
         ),
       );
@@ -112,7 +128,16 @@ class TripMapHelper {
             Marker(
               markerId: MarkerId('planned_waypoint_$i'),
               position: waypointPos,
-              infoWindow: InfoWindow(title: 'Planned Stop ${i + 1}'),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : InfoWindow(title: 'Planned Stop ${i + 1}'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.stop,
+                        position: waypointPos,
+                        stopIndex: i,
+                      ))
+                  : null,
               icon: _createMarkerWithHue(240.0), // Blue
             ),
           );
@@ -133,7 +158,15 @@ class TripMapHelper {
         Marker(
           markerId: const MarkerId('planned_end'),
           position: endPos,
-          infoWindow: const InfoWindow(title: 'Planned End'),
+          infoWindow: onPlannedMarkerTap != null
+              ? InfoWindow.noText
+              : const InfoWindow(title: 'Planned End'),
+          onTap: onPlannedMarkerTap != null
+              ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                    type: PlannedWaypointType.end,
+                    position: endPos,
+                  ))
+              : null,
           icon: _createMarkerWithHue(0.0), // Red
         ),
       );
@@ -147,18 +180,12 @@ class TripMapHelper {
         final routePoints = PolylineCodec.decode(
           trip.plannedEncodedPolyline!,
         );
-        polylines.add(
-          Polyline(
-            polylineId: const PolylineId('planned_route'),
+        polylines.addAll(
+          DashedPolylineHelper.createDashedPolylines(
+            polylineIdPrefix: 'planned_route',
             points: routePoints,
             color: Colors.purple.withOpacity(0.7),
             width: 3,
-            patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-            geodesic: false,
-            visible: true,
-            startCap: Cap.roundCap,
-            endCap: Cap.roundCap,
-            jointType: JointType.round,
           ),
         );
 
@@ -168,7 +195,15 @@ class TripMapHelper {
             Marker(
               markerId: const MarkerId('planned_start'),
               position: routePoints.first,
-              infoWindow: const InfoWindow(title: 'Planned Start'),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : const InfoWindow(title: 'Planned Start'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.start,
+                        position: routePoints.first,
+                      ))
+                  : null,
               icon: _createMarkerWithHue(120.0), // Green
             ),
           );
@@ -176,7 +211,15 @@ class TripMapHelper {
             Marker(
               markerId: const MarkerId('planned_end'),
               position: routePoints.last,
-              infoWindow: const InfoWindow(title: 'Planned End'),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : const InfoWindow(title: 'Planned End'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.end,
+                        position: routePoints.last,
+                      ))
+                  : null,
               icon: _createMarkerWithHue(0.0), // Red
             ),
           );
@@ -204,6 +247,7 @@ class TripMapHelper {
   static MapData createMapDataWithDirections(
     Trip trip, {
     void Function(TripLocation)? onMarkerTap,
+    void Function(PlannedWaypointInfo)? onPlannedMarkerTap,
     bool showPlannedWaypoints = false,
   }) {
     final markers = <Marker>{};
@@ -281,14 +325,16 @@ class TripMapHelper {
 
       // Overlay planned waypoints if enabled
       if (showPlannedWaypoints && trip.hasPlannedRoute) {
-        _addPlannedRouteOverlay(trip, markers, polylines);
+        _addPlannedRouteOverlay(trip, markers, polylines,
+            onPlannedMarkerTap: onPlannedMarkerTap);
       }
 
       return MapData(markers: markers, polylines: polylines);
     }
     // Fall back to planned route with directions (only when toggle is on)
     else if (showPlannedWaypoints && trip.hasPlannedRoute) {
-      return _createPlannedRouteMapDataWithDirections(trip);
+      return _createPlannedRouteMapDataWithDirections(trip,
+          onPlannedMarkerTap: onPlannedMarkerTap);
     }
 
     return MapData(markers: markers, polylines: polylines);
@@ -356,8 +402,9 @@ class TripMapHelper {
   static void _addPlannedRouteOverlay(
     Trip trip,
     Set<Marker> markers,
-    Set<Polyline> polylines,
-  ) {
+    Set<Polyline> polylines, {
+    void Function(PlannedWaypointInfo)? onPlannedMarkerTap,
+  }) {
     final points = <LatLng>[];
 
     // Add planned start marker (green with cyan hue to differentiate)
@@ -373,7 +420,15 @@ class TripMapHelper {
         Marker(
           markerId: const MarkerId('planned_start'),
           position: startPos,
-          infoWindow: const InfoWindow(title: 'Planned Start'),
+          infoWindow: onPlannedMarkerTap != null
+              ? InfoWindow.noText
+              : const InfoWindow(title: 'Planned Start'),
+          onTap: onPlannedMarkerTap != null
+              ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                    type: PlannedWaypointType.start,
+                    position: startPos,
+                  ))
+              : null,
           icon: _createMarkerWithHue(120.0), // Green
         ),
       );
@@ -390,7 +445,16 @@ class TripMapHelper {
             Marker(
               markerId: MarkerId('planned_waypoint_$i'),
               position: waypointPos,
-              infoWindow: InfoWindow(title: 'Planned Stop ${i + 1}'),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : InfoWindow(title: 'Planned Stop ${i + 1}'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.stop,
+                        position: waypointPos,
+                        stopIndex: i,
+                      ))
+                  : null,
               icon: _createMarkerWithHue(270.0), // Violet
             ),
           );
@@ -411,7 +475,15 @@ class TripMapHelper {
         Marker(
           markerId: const MarkerId('planned_end'),
           position: endPos,
-          infoWindow: const InfoWindow(title: 'Planned End'),
+          infoWindow: onPlannedMarkerTap != null
+              ? InfoWindow.noText
+              : const InfoWindow(title: 'Planned End'),
+          onTap: onPlannedMarkerTap != null
+              ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                    type: PlannedWaypointType.end,
+                    position: endPos,
+                  ))
+              : null,
           icon: _createMarkerWithHue(0.0), // Red
         ),
       );
@@ -425,18 +497,12 @@ class TripMapHelper {
         final routePoints = PolylineCodec.decode(
           trip.plannedEncodedPolyline!,
         );
-        polylines.add(
-          Polyline(
-            polylineId: const PolylineId('planned_route'),
+        polylines.addAll(
+          DashedPolylineHelper.createDashedPolylines(
+            polylineIdPrefix: 'planned_route',
             points: routePoints,
             color: Colors.purple,
             width: 4,
-            patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-            geodesic: false,
-            visible: true,
-            startCap: Cap.roundCap,
-            endCap: Cap.roundCap,
-            jointType: JointType.round,
           ),
         );
 
@@ -449,7 +515,15 @@ class TripMapHelper {
             Marker(
               markerId: const MarkerId('planned_start'),
               position: routePoints.first,
-              infoWindow: const InfoWindow(title: 'Planned Start'),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : const InfoWindow(title: 'Planned Start'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.start,
+                        position: routePoints.first,
+                      ))
+                  : null,
               icon: _createMarkerWithHue(120.0), // Green
             ),
           );
@@ -457,7 +531,15 @@ class TripMapHelper {
             Marker(
               markerId: const MarkerId('planned_end'),
               position: routePoints.last,
-              infoWindow: const InfoWindow(title: 'Planned End'),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : const InfoWindow(title: 'Planned End'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.end,
+                        position: routePoints.last,
+                      ))
+                  : null,
               icon: _createMarkerWithHue(0.0), // Red
             ),
           );
@@ -482,25 +564,21 @@ class TripMapHelper {
     Set<Polyline> polylines,
     List<LatLng> points,
   ) {
-    polylines.add(
-      Polyline(
-        polylineId: const PolylineId('planned_route'),
+    polylines.addAll(
+      DashedPolylineHelper.createDashedPolylines(
+        polylineIdPrefix: 'planned_route',
         points: points,
         color: Colors.purple.withOpacity(0.7),
         width: 3,
-        patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-        geodesic: false,
-        visible: true,
-        startCap: Cap.roundCap,
-        endCap: Cap.roundCap,
       ),
     );
   }
 
   /// Creates planned route map data with straight-line polylines
   static MapData _createPlannedRouteMapDataWithDirections(
-    Trip trip,
-  ) {
+    Trip trip, {
+    void Function(PlannedWaypointInfo)? onPlannedMarkerTap,
+  }) {
     final markers = <Marker>{};
     final polylines = <Polyline>{};
     final points = <LatLng>[];
@@ -518,7 +596,15 @@ class TripMapHelper {
         Marker(
           markerId: const MarkerId('planned_start'),
           position: startPos,
-          infoWindow: const InfoWindow(title: 'Planned Start'),
+          infoWindow: onPlannedMarkerTap != null
+              ? InfoWindow.noText
+              : const InfoWindow(title: 'Planned Start'),
+          onTap: onPlannedMarkerTap != null
+              ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                    type: PlannedWaypointType.start,
+                    position: startPos,
+                  ))
+              : null,
           icon: _createMarkerWithHue(120.0), // Green
         ),
       );
@@ -535,7 +621,16 @@ class TripMapHelper {
             Marker(
               markerId: MarkerId('planned_waypoint_$i'),
               position: waypointPos,
-              infoWindow: InfoWindow(title: 'Planned Stop ${i + 1}'),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : InfoWindow(title: 'Planned Stop ${i + 1}'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.stop,
+                        position: waypointPos,
+                        stopIndex: i,
+                      ))
+                  : null,
               icon: _createMarkerWithHue(240.0), // Blue
             ),
           );
@@ -556,7 +651,15 @@ class TripMapHelper {
         Marker(
           markerId: const MarkerId('planned_end'),
           position: endPos,
-          infoWindow: const InfoWindow(title: 'Planned End'),
+          infoWindow: onPlannedMarkerTap != null
+              ? InfoWindow.noText
+              : const InfoWindow(title: 'Planned End'),
+          onTap: onPlannedMarkerTap != null
+              ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                    type: PlannedWaypointType.end,
+                    position: endPos,
+                  ))
+              : null,
           icon: _createMarkerWithHue(0.0), // Red
         ),
       );
@@ -578,18 +681,12 @@ class TripMapHelper {
           'TripMapHelper: Successfully decoded planned polyline '
           'with ${routePoints.length} points',
         );
-        polylines.add(
-          Polyline(
-            polylineId: const PolylineId('planned_route'),
+        polylines.addAll(
+          DashedPolylineHelper.createDashedPolylines(
+            polylineIdPrefix: 'planned_route',
             points: routePoints,
             color: Colors.purple,
             width: 4,
-            patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-            geodesic: false,
-            visible: true,
-            startCap: Cap.roundCap,
-            endCap: Cap.roundCap,
-            jointType: JointType.round,
           ),
         );
 
@@ -599,7 +696,15 @@ class TripMapHelper {
             Marker(
               markerId: const MarkerId('planned_start'),
               position: routePoints.first,
-              infoWindow: const InfoWindow(title: 'Planned Start'),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : const InfoWindow(title: 'Planned Start'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.start,
+                        position: routePoints.first,
+                      ))
+                  : null,
               icon: _createMarkerWithHue(120.0), // Green
             ),
           );
@@ -607,7 +712,15 @@ class TripMapHelper {
             Marker(
               markerId: const MarkerId('planned_end'),
               position: routePoints.last,
-              infoWindow: const InfoWindow(title: 'Planned End'),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : const InfoWindow(title: 'Planned End'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.end,
+                        position: routePoints.last,
+                      ))
+                  : null,
               icon: _createMarkerWithHue(0.0), // Red
             ),
           );
@@ -618,17 +731,12 @@ class TripMapHelper {
           'using straight lines: $e',
         );
         if (points.length >= 2) {
-          polylines.add(
-            Polyline(
-              polylineId: const PolylineId('planned_route'),
+          polylines.addAll(
+            DashedPolylineHelper.createDashedPolylines(
+              polylineIdPrefix: 'planned_route',
               points: points,
               color: Colors.purple,
               width: 4,
-              patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-              geodesic: false,
-              visible: true,
-              startCap: Cap.roundCap,
-              endCap: Cap.roundCap,
             ),
           );
         }
@@ -638,17 +746,12 @@ class TripMapHelper {
         'TripMapHelper: No encoded polyline for trip ${trip.id}, '
         'using straight lines',
       );
-      polylines.add(
-        Polyline(
-          polylineId: const PolylineId('planned_route'),
+      polylines.addAll(
+        DashedPolylineHelper.createDashedPolylines(
+          polylineIdPrefix: 'planned_route',
           points: points,
           color: Colors.purple,
           width: 4,
-          patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-          geodesic: false,
-          visible: true,
-          startCap: Cap.roundCap,
-          endCap: Cap.roundCap,
         ),
       );
     }

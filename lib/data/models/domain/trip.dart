@@ -154,7 +154,6 @@ class Trip {
     // Also check top-level plannedPolyline (backend returns it at root level)
     plannedEncodedPolyline ??= json['plannedPolyline'] as String?;
 
-
     return Trip(
       id: json['id'] as String? ?? '',
       userId: json['userId'] as String? ?? '',

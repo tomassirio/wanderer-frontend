@@ -25,6 +25,7 @@ import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/background_location_disclosure.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_planned_info_window.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/reaction_picker.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_map_view.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/comments_section.dart';
@@ -129,6 +130,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
   // Custom info window: currently selected map marker location
   TripLocation? _selectedMapLocation;
+
+  // Custom info window: currently selected planned waypoint
+  PlannedWaypointInfo? _selectedPlannedWaypoint;
 
   // User's current device location (used as fallback for empty maps)
   LatLng? _userLocation;
@@ -437,8 +441,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         final apiLocationIds =
             (updatedTrip.locations ?? []).map((l) => l.id).toSet();
         final wsOnlyLocations = (_trip.locations ?? [])
-            .where((l) =>
-                l.id.startsWith('ws_') && !apiLocationIds.contains(l.id))
+            .where(
+                (l) => l.id.startsWith('ws_') && !apiLocationIds.contains(l.id))
             .toList();
 
         final mergedLocations = <TripLocation>[
@@ -1178,8 +1182,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         // the most recent updates.
         final apiIds = pageResponse.content.map((l) => l.id).toSet();
         final wsOnlyUpdates = _tripUpdates
-            .where(
-                (u) => u.id.startsWith('ws_') && !apiIds.contains(u.id))
+            .where((u) => u.id.startsWith('ws_') && !apiIds.contains(u.id))
             .toList();
         _tripUpdates = [...wsOnlyUpdates, ...pageResponse.content];
         _hasMoreUpdates = !pageResponse.last;
@@ -1287,6 +1290,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       final mapData = TripMapHelper.createMapDataWithDirections(
         _trip,
         onMarkerTap: _onMapMarkerTapped,
+        onPlannedMarkerTap: _onPlannedMarkerTapped,
         showPlannedWaypoints: _showPlannedWaypoints,
       );
       setState(() {
@@ -1302,6 +1306,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       final mapData = TripMapHelper.createMapData(
         _trip,
         onMarkerTap: _onMapMarkerTapped,
+        onPlannedMarkerTap: _onPlannedMarkerTapped,
         showPlannedWaypoints: _showPlannedWaypoints,
       );
       setState(() {
@@ -1316,12 +1321,21 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   void _onMapMarkerTapped(TripLocation location) {
     setState(() {
       _selectedMapLocation = location;
+      _selectedPlannedWaypoint = null; // clear other selection
+    });
+  }
+
+  void _onPlannedMarkerTapped(PlannedWaypointInfo waypoint) {
+    setState(() {
+      _selectedPlannedWaypoint = waypoint;
+      _selectedMapLocation = null; // clear other selection
     });
   }
 
   void _onInfoWindowClosed() {
     setState(() {
       _selectedMapLocation = null;
+      _selectedPlannedWaypoint = null;
     });
   }
 
@@ -1831,24 +1845,26 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
           previousStatus == TripStatus.created) {
         _repository
             .sendLifecycleUpdate(
-              _trip.id,
-              updateType: TripUpdateType.tripStarted,
-              message: 'Trip Started!',
-            )
+          _trip.id,
+          updateType: TripUpdateType.tripStarted,
+          message: 'Trip Started!',
+        )
             .catchError((e) {
           debugPrint('Failed to send TRIP_STARTED update: $e');
-          return LocationUpdateResult.failure(LocationFailureReason.unknownError);
+          return LocationUpdateResult.failure(
+              LocationFailureReason.unknownError);
         });
       } else if (newStatus == TripStatus.finished) {
         _repository
             .sendLifecycleUpdate(
-              _trip.id,
-              updateType: TripUpdateType.tripEnded,
-              message: 'Trip finished.',
-            )
+          _trip.id,
+          updateType: TripUpdateType.tripEnded,
+          message: 'Trip finished.',
+        )
             .catchError((e) {
           debugPrint('Failed to send TRIP_ENDED update: $e');
-          return LocationUpdateResult.failure(LocationFailureReason.unknownError);
+          return LocationUpdateResult.failure(
+              LocationFailureReason.unknownError);
         });
       }
 
@@ -2040,13 +2056,14 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         // Send DAY_END lifecycle update with GPS location (fire-and-forget)
         _repository
             .sendLifecycleUpdate(
-              _trip.id,
-              updateType: TripUpdateType.dayEnd,
-              message: 'Day $_currentDay finished',
-            )
+          _trip.id,
+          updateType: TripUpdateType.dayEnd,
+          message: 'Day $_currentDay finished',
+        )
             .catchError((e) {
           debugPrint('Failed to send DAY_END update: $e');
-          return LocationUpdateResult.failure(LocationFailureReason.unknownError);
+          return LocationUpdateResult.failure(
+              LocationFailureReason.unknownError);
         });
 
         // Update local state optimistically — WebSocket will confirm
@@ -2084,13 +2101,14 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         // Send DAY_START lifecycle update with GPS location (fire-and-forget)
         _repository
             .sendLifecycleUpdate(
-              _trip.id,
-              updateType: TripUpdateType.dayStart,
-              message: 'Day ${_currentDay + 1} started!',
-            )
+          _trip.id,
+          updateType: TripUpdateType.dayStart,
+          message: 'Day ${_currentDay + 1} started!',
+        )
             .catchError((e) {
           debugPrint('Failed to send DAY_START update: $e');
-          return LocationUpdateResult.failure(LocationFailureReason.unknownError);
+          return LocationUpdateResult.failure(
+              LocationFailureReason.unknownError);
         });
 
         // Update local state optimistically — WebSocket will confirm
@@ -2622,6 +2640,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                       : !_isHoveringOverPanel,
                   selectedLocation: _selectedMapLocation,
                   onInfoWindowClosed: _onInfoWindowClosed,
+                  selectedPlannedWaypoint: _selectedPlannedWaypoint,
+                  onPlannedInfoWindowClosed: _onInfoWindowClosed,
                   onMapTap: _onInfoWindowClosed,
                 ),
               ),
@@ -2766,37 +2786,11 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         _donationLink != null && _donationLink!.contains('buymeacoffee.com');
 
     if (isBuyMeACoffee) {
-      return Material(
-        elevation: 4,
-        borderRadius: BorderRadius.circular(12),
-        color: const Color(0xFFFFDD00), // Buy me a Coffee yellow
-        child: InkWell(
-          onTap: _launchDonationLink,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.network(
-                  'https://cdn.buymeacoffee.com/buttons/bmc-new-btn-logo.svg',
-                  height: 24,
-                  width: 24,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Text('☕', style: TextStyle(fontSize: 20)),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Buy me a Coffee',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-              ],
-            ),
-          ),
+      return GestureDetector(
+        onTap: _launchDonationLink,
+        child: Image.asset(
+          'assets/third_app_logos/buymeacoffee.png',
+          height: 48,
         ),
       );
     }
