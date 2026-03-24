@@ -11,6 +11,7 @@ import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/core/services/background_update_manager.dart';
 import 'package:wanderer_frontend/core/services/navigation_service.dart';
 import 'package:wanderer_frontend/core/services/notification_service.dart';
+import 'package:wanderer_frontend/presentation/helpers/web_marker_generator.dart';
 
 /// Global route observer for detecting when screens become visible again
 final RouteObserver<ModalRoute<void>> routeObserver =
@@ -27,6 +28,9 @@ void main() async {
 
   // Load the persisted locale preference before showing the app
   await LocaleController().initialize();
+
+  // Pre-generate coloured map markers for the web platform
+  await WebMarkerGenerator.init();
 
   // Initialize Android-only services
   if (!kIsWeb && Platform.isAndroid) {

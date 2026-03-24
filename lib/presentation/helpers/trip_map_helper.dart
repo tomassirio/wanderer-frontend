@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/client/polyline_codec.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_route_helper.dart';
+import 'package:wanderer_frontend/presentation/helpers/web_marker_generator.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 
 /// Helper class for managing Google Maps markers and polylines for trips
@@ -95,8 +96,7 @@ class TripMapHelper {
           markerId: const MarkerId('planned_start'),
           position: startPos,
           infoWindow: const InfoWindow(title: 'Planned Start'),
-          icon:
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          icon: _createMarkerWithHue(120.0), // Green
         ),
       );
     }
@@ -113,9 +113,7 @@ class TripMapHelper {
               markerId: MarkerId('planned_waypoint_$i'),
               position: waypointPos,
               infoWindow: InfoWindow(title: 'Planned Stop ${i + 1}'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueBlue,
-              ),
+              icon: _createMarkerWithHue(240.0), // Blue
             ),
           );
         }
@@ -136,7 +134,7 @@ class TripMapHelper {
           markerId: const MarkerId('planned_end'),
           position: endPos,
           infoWindow: const InfoWindow(title: 'Planned End'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          icon: _createMarkerWithHue(0.0), // Red
         ),
       );
     }
@@ -171,9 +169,7 @@ class TripMapHelper {
               markerId: const MarkerId('planned_start'),
               position: routePoints.first,
               infoWindow: const InfoWindow(title: 'Planned Start'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen,
-              ),
+              icon: _createMarkerWithHue(120.0), // Green
             ),
           );
           markers.add(
@@ -181,9 +177,7 @@ class TripMapHelper {
               markerId: const MarkerId('planned_end'),
               position: routePoints.last,
               infoWindow: const InfoWindow(title: 'Planned End'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueRed,
-              ),
+              icon: _createMarkerWithHue(0.0), // Red
             ),
           );
         }
@@ -380,8 +374,7 @@ class TripMapHelper {
           markerId: const MarkerId('planned_start'),
           position: startPos,
           infoWindow: const InfoWindow(title: 'Planned Start'),
-          icon:
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          icon: _createMarkerWithHue(120.0), // Green
         ),
       );
     }
@@ -398,9 +391,7 @@ class TripMapHelper {
               markerId: MarkerId('planned_waypoint_$i'),
               position: waypointPos,
               infoWindow: InfoWindow(title: 'Planned Stop ${i + 1}'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueViolet,
-              ),
+              icon: _createMarkerWithHue(270.0), // Violet
             ),
           );
         }
@@ -421,7 +412,7 @@ class TripMapHelper {
           markerId: const MarkerId('planned_end'),
           position: endPos,
           infoWindow: const InfoWindow(title: 'Planned End'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          icon: _createMarkerWithHue(0.0), // Red
         ),
       );
     }
@@ -459,9 +450,7 @@ class TripMapHelper {
               markerId: const MarkerId('planned_start'),
               position: routePoints.first,
               infoWindow: const InfoWindow(title: 'Planned Start'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen,
-              ),
+              icon: _createMarkerWithHue(120.0), // Green
             ),
           );
           markers.add(
@@ -469,9 +458,7 @@ class TripMapHelper {
               markerId: const MarkerId('planned_end'),
               position: routePoints.last,
               infoWindow: const InfoWindow(title: 'Planned End'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueRed,
-              ),
+              icon: _createMarkerWithHue(0.0), // Red
             ),
           );
         }
@@ -532,8 +519,7 @@ class TripMapHelper {
           markerId: const MarkerId('planned_start'),
           position: startPos,
           infoWindow: const InfoWindow(title: 'Planned Start'),
-          icon:
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          icon: _createMarkerWithHue(120.0), // Green
         ),
       );
     }
@@ -550,9 +536,7 @@ class TripMapHelper {
               markerId: MarkerId('planned_waypoint_$i'),
               position: waypointPos,
               infoWindow: InfoWindow(title: 'Planned Stop ${i + 1}'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueBlue,
-              ),
+              icon: _createMarkerWithHue(240.0), // Blue
             ),
           );
         }
@@ -573,7 +557,7 @@ class TripMapHelper {
           markerId: const MarkerId('planned_end'),
           position: endPos,
           infoWindow: const InfoWindow(title: 'Planned End'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          icon: _createMarkerWithHue(0.0), // Red
         ),
       );
     }
@@ -616,9 +600,7 @@ class TripMapHelper {
               markerId: const MarkerId('planned_start'),
               position: routePoints.first,
               infoWindow: const InfoWindow(title: 'Planned Start'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen,
-              ),
+              icon: _createMarkerWithHue(120.0), // Green
             ),
           );
           markers.add(
@@ -626,9 +608,7 @@ class TripMapHelper {
               markerId: const MarkerId('planned_end'),
               position: routePoints.last,
               infoWindow: const InfoWindow(title: 'Planned End'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueRed,
-              ),
+              icon: _createMarkerWithHue(0.0), // Red
             ),
           );
         }
@@ -886,6 +866,12 @@ class TripMapHelper {
     return '$day  $time';
   }
 
+  /// Creates a marker icon with the specified hue, using the appropriate
+  /// method for the current platform (web vs native).
+  static BitmapDescriptor _createMarkerWithHue(double hue) {
+    return WebMarkerGenerator.markerWithHue(hue);
+  }
+
   /// Gets the appropriate marker icon for a location based on its type
   static BitmapDescriptor _getMarkerIcon(
     TripLocation location,
@@ -900,31 +886,19 @@ class TripMapHelper {
     // Check for lifecycle markers first
     switch (location.updateType) {
       case TripUpdateType.tripStarted:
-        return BitmapDescriptor.defaultMarkerWithHue(
-          BitmapDescriptor.hueGreen,
-        );
+        return _createMarkerWithHue(BitmapDescriptor.hueGreen);
       case TripUpdateType.tripEnded:
-        return BitmapDescriptor.defaultMarkerWithHue(
-          BitmapDescriptor.hueRed,
-        );
+        return _createMarkerWithHue(BitmapDescriptor.hueRed);
       case TripUpdateType.dayStart:
-        return BitmapDescriptor.defaultMarkerWithHue(
-          BitmapDescriptor.hueYellow,
-        );
+        return _createMarkerWithHue(BitmapDescriptor.hueYellow);
       case TripUpdateType.dayEnd:
-        return BitmapDescriptor.defaultMarkerWithHue(
-          BitmapDescriptor.hueViolet,
-        );
+        return _createMarkerWithHue(BitmapDescriptor.hueViolet);
       case TripUpdateType.regular:
         // For regular updates, use red for last (most recent) location
         if (index == totalLocations - 1) {
-          return BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueRed,
-          );
+          return _createMarkerWithHue(BitmapDescriptor.hueRed);
         }
-        return BitmapDescriptor.defaultMarkerWithHue(
-          BitmapDescriptor.hueOrange,
-        );
+        return _createMarkerWithHue(BitmapDescriptor.hueOrange);
     }
   }
 
@@ -936,7 +910,7 @@ class TripMapHelper {
   ) {
     double hue;
     String colorName;
-    
+
     switch (location.updateType) {
       case TripUpdateType.tripStarted:
         hue = 120.0;
@@ -964,9 +938,10 @@ class TripMapHelper {
         }
         break;
     }
-    
-    debugPrint('WEB: Marker for ${location.updateType} at index $index/$totalLocations -> $colorName (hue: $hue)');
-    return BitmapDescriptor.defaultMarkerWithHue(hue);
+
+    debugPrint(
+        'WEB: Marker for ${location.updateType} at index $index/$totalLocations -> $colorName (hue: $hue)');
+    return WebMarkerGenerator.markerWithHue(hue);
   }
 
   /// Gets the appropriate marker icon for a location with directions mode
@@ -983,33 +958,21 @@ class TripMapHelper {
     // Check for lifecycle markers first
     switch (location.updateType) {
       case TripUpdateType.tripStarted:
-        return BitmapDescriptor.defaultMarkerWithHue(
-          BitmapDescriptor.hueGreen,
-        );
+        return _createMarkerWithHue(BitmapDescriptor.hueGreen);
       case TripUpdateType.tripEnded:
-        return BitmapDescriptor.defaultMarkerWithHue(
-          BitmapDescriptor.hueRed,
-        );
+        return _createMarkerWithHue(BitmapDescriptor.hueRed);
       case TripUpdateType.dayStart:
-        return BitmapDescriptor.defaultMarkerWithHue(
-          BitmapDescriptor.hueYellow,
-        );
+        return _createMarkerWithHue(BitmapDescriptor.hueYellow);
       case TripUpdateType.dayEnd:
-        return BitmapDescriptor.defaultMarkerWithHue(
-          BitmapDescriptor.hueViolet,
-        );
+        return _createMarkerWithHue(BitmapDescriptor.hueViolet);
       case TripUpdateType.regular:
         // For regular updates in directions mode:
         // - Last (most recent) = red
         // - Previous = orange
         if (index == totalLocations - 1) {
-          return BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueRed,
-          );
+          return _createMarkerWithHue(BitmapDescriptor.hueRed);
         }
-        return BitmapDescriptor.defaultMarkerWithHue(
-          BitmapDescriptor.hueOrange,
-        );
+        return _createMarkerWithHue(BitmapDescriptor.hueOrange);
     }
   }
 
@@ -1021,7 +984,7 @@ class TripMapHelper {
   ) {
     double hue;
     String colorName;
-    
+
     switch (location.updateType) {
       case TripUpdateType.tripStarted:
         hue = 120.0;
@@ -1049,9 +1012,10 @@ class TripMapHelper {
         }
         break;
     }
-    
-    debugPrint('WEB-DIR: Marker for ${location.updateType} at index $index/$totalLocations -> $colorName (hue: $hue)');
-    return BitmapDescriptor.defaultMarkerWithHue(hue);
+
+    debugPrint(
+        'WEB-DIR: Marker for ${location.updateType} at index $index/$totalLocations -> $colorName (hue: $hue)');
+    return WebMarkerGenerator.markerWithHue(hue);
   }
 }
 

@@ -1246,7 +1246,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
         markerId: const MarkerId('start'),
         position: _editStartLocation!,
         infoWindow: const InfoWindow(title: 'Start Location'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        icon: BitmapDescriptor.defaultMarkerWithHue(120.0), // Green
         draggable: true,
         onDragEnd: (pos) {
           setState(() => _editStartLocation = pos);
@@ -1260,7 +1260,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
         markerId: const MarkerId('end'),
         position: _editEndLocation!,
         infoWindow: const InfoWindow(title: 'End Location'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        icon: BitmapDescriptor.defaultMarkerWithHue(0.0), // Red
         draggable: true,
         onDragEnd: (pos) {
           setState(() => _editEndLocation = pos);
@@ -1274,7 +1274,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
         markerId: MarkerId('waypoint_${i + 1}'),
         position: _editWaypoints[i],
         infoWindow: InfoWindow(title: 'Waypoint ${i + 1}'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+        icon: BitmapDescriptor.defaultMarkerWithHue(240.0), // Blue
         draggable: true,
         onDragEnd: (pos) {
           setState(() => _editWaypoints[i] = pos);

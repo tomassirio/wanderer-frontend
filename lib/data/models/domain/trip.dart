@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show debugPrint;
 import '../../../core/constants/enums.dart';
 import 'comment.dart';
 import 'trip_day.dart';
@@ -155,18 +154,6 @@ class Trip {
     // Also check top-level plannedPolyline (backend returns it at root level)
     plannedEncodedPolyline ??= json['plannedPolyline'] as String?;
 
-    if (plannedEncodedPolyline != null) {
-      debugPrint(
-        'Trip.fromJson: Found plannedEncodedPolyline '
-        'with length ${plannedEncodedPolyline.length}',
-      );
-    } else {
-      debugPrint(
-        'Trip.fromJson: No plannedEncodedPolyline found. '
-        'tripDetails keys: ${tripDetails?.keys.toList()}, '
-        'top-level keys: ${json.keys.toList()}',
-      );
-    }
 
     return Trip(
       id: json['id'] as String? ?? '',

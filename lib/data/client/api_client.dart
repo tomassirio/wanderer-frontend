@@ -380,7 +380,9 @@ class ApiClient {
         tokenStorage: _tokenStorage,
         httpClient: _httpClient,
       );
-      debugPrint('ApiClient: ensureValidToken result: $valid');
+      if (!valid) {
+        debugPrint('ApiClient: ensureValidToken returned false');
+      }
     } catch (e) {
       debugPrint('ApiClient: Error in _ensureValidToken: $e');
       // Fallback to 401 handling will still work

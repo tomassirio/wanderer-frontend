@@ -10,6 +10,7 @@ import 'package:wanderer_frontend/data/models/requests/create_trip_plan_backend_
 import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
+import 'package:wanderer_frontend/presentation/helpers/web_marker_generator.dart';
 
 /// Screen for creating a new trip plan with map integration
 class CreateTripPlanScreen extends StatefulWidget {
@@ -250,7 +251,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
             location,
             'start',
             'Start Location',
-            BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+            WebMarkerGenerator.markerWithHue(120.0), // Green
           );
           // Auto-advance to next unset point
           if (_endLocation == null) {
@@ -267,7 +268,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
             location,
             'end',
             'End Location',
-            BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+            WebMarkerGenerator.markerWithHue(0.0), // Red
           );
           // Auto-advance to waypoints
           _placementMode = _PlacementMode.waypoint;
@@ -279,7 +280,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
             location,
             'waypoint_$waypointNumber',
             'Waypoint $waypointNumber',
-            BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+            WebMarkerGenerator.markerWithHue(240.0), // Blue
           );
           break;
       }
@@ -322,10 +323,10 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
       // Rebuild the moved marker with updated position
       _markers.removeWhere((m) => m.markerId.value == markerId);
       final icon = markerId == 'start'
-          ? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen)
+          ? WebMarkerGenerator.markerWithHue(120.0) // Green
           : markerId == 'end'
-              ? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed)
-              : BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue);
+              ? WebMarkerGenerator.markerWithHue(0.0) // Red
+              : WebMarkerGenerator.markerWithHue(240.0); // Blue
       final title = markerId == 'start'
           ? 'Start Location'
           : markerId == 'end'
@@ -447,7 +448,7 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
         _waypoints[i],
         'waypoint_${i + 1}',
         'Waypoint ${i + 1}',
-        BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+        WebMarkerGenerator.markerWithHue(240.0), // Blue
       );
     }
     // Auto-close panel when no waypoints left

@@ -104,46 +104,30 @@ class WebSocketClient {
       final uri = Uri.tryParse(wsUrl);
       if (uri != null && uri.host == 'localhost' && uri.port > 50000) {
         debugPrint(
-            'WebSocket: Skipping connection - dev server detected ($wsUrl)');
-        debugPrint(
-            'WebSocket: Configure WS_BASE_URL or wsBaseUrl for real WebSocket connection');
+            'WebSocket: Skipping connection - dev server detected on localhost:${uri.port}');
         _updateConnectionState(WebSocketConnectionState.disconnected);
         _shouldReconnect = false;
         return;
       }
 
-      debugPrint(
-          'WebSocket: Connecting to $wsUrl (platform: ${kIsWeb ? "web" : "mobile"})');
-      debugPrint(
-          'WebSocket: Protocol: ${wsUrl.startsWith("wss://") ? "WSS (secure)" : "WS (insecure)"}');
-      debugPrint('WebSocket: Base URL from config: $_baseUrl');
+      // Log connection info without exposing the token
+      final sanitizedUrl =
+          wsUrl.replaceAll(RegExp(r'token=[^&]+'), 'token=***');
+      debugPrint('WebSocket: Connecting to $sanitizedUrl '
+          '(${kIsWeb ? "web" : "mobile"})');
 
       // Use platform-specific WebSocket implementation
-      // IOWebSocketChannel works on mobile (Android/iOS)
-      // WebSocketChannel.connect works on web
       if (kIsWeb) {
         _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
       } else {
-        // Use IOWebSocketChannel for mobile platforms with custom headers
-        debugPrint('WebSocket: Using IOWebSocketChannel for mobile');
-
-        try {
-          _channel = IOWebSocketChannel.connect(
-            wsUrl,
-            pingInterval: const Duration(seconds: 30),
-          );
-        } catch (e) {
-          debugPrint('WebSocket: IOWebSocketChannel.connect failed: $e');
-          rethrow;
-        }
+        _channel = IOWebSocketChannel.connect(
+          wsUrl,
+          pingInterval: const Duration(seconds: 30),
+        );
       }
-
-      debugPrint('WebSocket: Channel created, waiting for ready state...');
 
       // Wait for the connection to be established
       await _channel!.ready;
-
-      debugPrint('WebSocket: Channel ready!');
 
       _updateConnectionState(WebSocketConnectionState.connected);
       _reconnectAttempts = 0;
@@ -158,11 +142,12 @@ class WebSocketClient {
       _startPingTimer();
 
       debugPrint('WebSocket: Connected successfully');
-      debugPrint('WebSocket: Starting message listener...');
     } catch (e, stackTrace) {
       final errorStr = e.toString();
       debugPrint('WebSocket: Connection error: $errorStr');
-      debugPrint('WebSocket: Stack trace: $stackTrace');
+      if (kDebugMode) {
+        debugPrint('WebSocket: Stack trace: $stackTrace');
+      }
 
       // Check if this is a 401 error and we haven't already retried
       if (!isRetryAfterRefresh && errorStr.contains('401')) {
@@ -227,57 +212,45 @@ class WebSocketClient {
       final String messageStr =
           message is String ? message : message.toString();
 
-      debugPrint(
-          'WebSocket: Raw message received (length: ${messageStr.length}, platform: ${kIsWeb ? "web" : "mobile"})');
-
       // Handle ping/pong
       if (messageStr == 'PONG' || messageStr == 'pong') {
-        debugPrint('WebSocket: Received pong');
         return;
       }
 
-      // Detect if we received HTML instead of JSON (wrong routing - frontend served instead of backend)
+      // Detect if we received HTML instead of JSON (wrong routing)
       if (messageStr.trimLeft().startsWith('<!DOCTYPE') ||
           messageStr.trimLeft().startsWith('<html')) {
         debugPrint(
-            'WebSocket: ERROR - Received HTML instead of JSON. The /ws endpoint is being served by the frontend nginx instead of the backend WebSocket server. Check your ingress/proxy configuration.');
+            'WebSocket: ERROR - Received HTML instead of JSON. '
+            'Check your ingress/proxy configuration.');
         _handleError('WebSocket endpoint misconfigured - receiving HTML');
         return;
       }
 
-      debugPrint('WebSocket: Parsing JSON message...');
       final Map<String, dynamic> data = jsonDecode(messageStr);
-      debugPrint(
-          'WebSocket: Received message type: ${data['type']} (platform: ${kIsWeb ? "web" : "mobile"})');
+      if (kDebugMode) {
+        debugPrint('WebSocket: Received message type: ${data['type']}');
+      }
       _messageController.add(data);
-    } catch (e, stackTrace) {
+    } catch (e) {
       debugPrint('WebSocket: Error parsing message: $e');
-      debugPrint('WebSocket: Stack trace: $stackTrace');
     }
   }
 
   void _handleError(dynamic error) {
-    debugPrint(
-        'WebSocket: Error occurred: $error (platform: ${kIsWeb ? "web" : "mobile"})');
-    debugPrint('WebSocket: Connection state before error: $_connectionState');
+    debugPrint('WebSocket: Error: $error');
     _updateConnectionState(WebSocketConnectionState.disconnected);
     // Clear subscription tracking on disconnection so they can be reestablished
     _topicSubscriptions.clear();
-    debugPrint(
-        'WebSocket: Cleared ${_topicSubscriptions.length} topic subscriptions');
     _scheduleReconnect();
   }
 
   void _handleDone() {
-    debugPrint(
-        'WebSocket: Connection closed (platform: ${kIsWeb ? "web" : "mobile"})');
-    debugPrint('WebSocket: Connection state before close: $_connectionState');
+    debugPrint('WebSocket: Connection closed');
     _updateConnectionState(WebSocketConnectionState.disconnected);
     _stopPingTimer();
     // Clear subscription tracking on disconnection so they can be reestablished
     _topicSubscriptions.clear();
-    debugPrint(
-        'WebSocket: Cleared ${_topicSubscriptions.length} topic subscriptions');
     _scheduleReconnect();
   }
 
@@ -328,17 +301,12 @@ class WebSocketClient {
   /// Send a message to the server
   void send(Map<String, dynamic> message) {
     if (!isConnected || _channel == null) {
-      debugPrint(
-          'WebSocket: Cannot send message - not connected (isConnected: $isConnected, channel: ${_channel != null})');
       return;
     }
 
     try {
       final jsonStr = jsonEncode(message);
-      debugPrint(
-          'WebSocket: Sending message: ${message['type']} (platform: ${kIsWeb ? "web" : "mobile"})');
       _channel!.sink.add(jsonStr);
-      debugPrint('WebSocket: Message sent successfully');
     } catch (e) {
       debugPrint('WebSocket: Error sending message: $e');
     }
@@ -346,22 +314,13 @@ class WebSocketClient {
 
   /// Subscribe to a topic
   void subscribe(String topic) {
-    debugPrint(
-        'WebSocket: subscribe() called for topic: $topic (platform: ${kIsWeb ? "web" : "mobile"})');
-    debugPrint('WebSocket: Current connection state: $_connectionState');
-    debugPrint('WebSocket: Channel exists: ${_channel != null}');
-
     // Check if already subscribed to this topic
     if (_topicSubscriptions.containsKey(topic)) {
-      debugPrint(
-          'WebSocket: Already subscribed to $topic with ID ${_topicSubscriptions[topic]}, skipping duplicate subscription');
       return;
     }
 
-    // Check if we're actually connected before subscribing
     if (!isConnected || _channel == null) {
-      debugPrint(
-          'WebSocket: Cannot subscribe to $topic - not connected (isConnected: $isConnected, channel: ${_channel != null})');
+      debugPrint('WebSocket: Cannot subscribe to $topic - not connected');
       return;
     }
 
@@ -369,15 +328,11 @@ class WebSocketClient {
     final subscriptionId = 'sub-${_nextSubscriptionId++}';
     _topicSubscriptions[topic] = subscriptionId;
 
-    final message = {
+    send({
       'type': 'SUBSCRIBE',
       'destination': topic,
       'id': subscriptionId,
-    };
-
-    debugPrint('WebSocket: Sending SUBSCRIBE message: $message');
-    send(message);
-    debugPrint('WebSocket: Subscribed to $topic with ID $subscriptionId');
+    });
   }
 
   /// Unsubscribe from a topic
