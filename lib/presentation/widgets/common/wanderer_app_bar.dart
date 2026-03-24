@@ -22,6 +22,7 @@ class WandererAppBar extends StatefulWidget implements PreferredSizeWidget {
   final VoidCallback? onProfile;
   final VoidCallback? onSettings;
   final VoidCallback? onLogout;
+  final Widget? leading;
 
   const WandererAppBar({
     super.key,
@@ -34,6 +35,7 @@ class WandererAppBar extends StatefulWidget implements PreferredSizeWidget {
     this.onProfile,
     this.onSettings,
     this.onLogout,
+    this.leading,
   });
 
   @override
@@ -269,6 +271,7 @@ class _WandererAppBarState extends State<WandererAppBar>
     return AppBar(
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       centerTitle: isDesktop,
+      leading: widget.leading,
       titleSpacing: _isSearchExpanded ? 8.0 : (isDesktop ? null : 0),
       title: _isSearchExpanded
           ? Align(
