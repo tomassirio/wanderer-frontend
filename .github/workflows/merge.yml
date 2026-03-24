@@ -167,6 +167,7 @@ jobs:
     needs:
       - prepare-release
       - create-release
+      - finalize-release
     if: needs.prepare-release.outputs.skip != 'true'
     runs-on: ubuntu-latest
     environment: prod
@@ -228,6 +229,7 @@ jobs:
     needs:
       - prepare-release
       - deploy-to-production
+      - finalize-release
     if: needs.prepare-release.outputs.skip != 'true'
     runs-on: ubuntu-latest
     environment: prod
