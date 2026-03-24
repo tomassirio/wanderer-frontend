@@ -512,6 +512,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
           ? WeatherCondition.fromJson(event.weatherCondition!)
           : null,
       updateType: parsedUpdateType,
+      distanceSoFarKm: event.distanceSoFarKm,
     );
 
     debugPrint(
@@ -519,6 +520,12 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
     setState(() {
       _tripUpdates = [newUpdate, ..._tripUpdates];
+      // Update trip's accrued distance if provided
+      if (event.distanceSoFarKm != null) {
+        _trip = _trip.copyWith(
+          accruedDistanceKm: event.distanceSoFarKm,
+        );
+      }
     });
 
     // Only update the map for updates with real locations
@@ -574,6 +581,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
           ? WeatherCondition.fromJson(event.weatherCondition!)
           : null,
       updateType: parsedUpdateType,
+      distanceSoFarKm: event.distanceSoFarKm,
     );
 
     debugPrint(
@@ -581,6 +589,12 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
     setState(() {
       _tripUpdates = [newUpdate, ..._tripUpdates];
+      // Update trip's accrued distance if provided
+      if (event.distanceSoFarKm != null) {
+        _trip = _trip.copyWith(
+          accruedDistanceKm: event.distanceSoFarKm,
+        );
+      }
     });
 
     // Only update the map for updates with real locations

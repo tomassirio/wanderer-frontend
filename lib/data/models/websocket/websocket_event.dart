@@ -212,6 +212,7 @@ class TripUpdatedEvent extends WebSocketEvent {
   final double? temperatureCelsius;
   final String? weatherCondition;
   final String? updateType;
+  final double? distanceSoFarKm;
 
   TripUpdatedEvent({
     required String tripId,
@@ -224,6 +225,7 @@ class TripUpdatedEvent extends WebSocketEvent {
     this.temperatureCelsius,
     this.weatherCondition,
     this.updateType,
+    this.distanceSoFarKm,
     required super.payload,
     super.timestamp,
   }) : super(type: WebSocketEventType.tripUpdated, tripId: tripId);
@@ -242,6 +244,7 @@ class TripUpdatedEvent extends WebSocketEvent {
       temperatureCelsius: (payload['temperatureCelsius'] as num?)?.toDouble(),
       weatherCondition: payload['weatherCondition'] as String?,
       updateType: payload['updateType'] as String?,
+      distanceSoFarKm: (payload['distanceSoFarKm'] as num?)?.toDouble(),
       payload: payload,
       timestamp: json['timestamp'] != null
           ? DateTime.tryParse(json['timestamp'] as String)
@@ -480,6 +483,7 @@ class TripUpdateCreatedEvent extends WebSocketEvent {
   final double? temperatureCelsius;
   final String? weatherCondition;
   final String? updateType;
+  final double? distanceSoFarKm;
 
   TripUpdateCreatedEvent({
     required String tripId,
@@ -493,6 +497,7 @@ class TripUpdateCreatedEvent extends WebSocketEvent {
     this.temperatureCelsius,
     this.weatherCondition,
     this.updateType,
+    this.distanceSoFarKm,
     required super.payload,
     super.timestamp,
   }) : super(type: WebSocketEventType.tripUpdateCreated, tripId: tripId);
@@ -517,6 +522,7 @@ class TripUpdateCreatedEvent extends WebSocketEvent {
       temperatureCelsius: (payload['temperatureCelsius'] as num?)?.toDouble(),
       weatherCondition: payload['weatherCondition'] as String?,
       updateType: payload['updateType'] as String?,
+      distanceSoFarKm: (payload['distanceSoFarKm'] as num?)?.toDouble(),
       payload: payload,
       timestamp: json['timestamp'] != null
           ? DateTime.tryParse(json['timestamp'] as String)

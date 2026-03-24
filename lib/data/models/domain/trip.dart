@@ -318,6 +318,7 @@ class Trip {
     List<TripDay>? tripDays,
     int? currentDay,
     String? tripPlanId,
+    double? accruedDistanceKm,
   }) {
     return Trip(
       id: id ?? this.id,
@@ -349,6 +350,7 @@ class Trip {
       tripDays: tripDays ?? this.tripDays,
       currentDay: currentDay ?? this.currentDay,
       tripPlanId: tripPlanId ?? this.tripPlanId,
+      accruedDistanceKm: accruedDistanceKm ?? this.accruedDistanceKm,
     );
   }
 }
