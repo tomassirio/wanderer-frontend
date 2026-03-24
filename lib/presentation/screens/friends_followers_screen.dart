@@ -31,6 +31,9 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
 
   late TabController _tabController;
   StreamSubscription<WebSocketEvent>? _wsSubscription;
+  Timer? _pollTimer;
+  Timer? _debounceTimer;
+  String? _subscribedUserId;
 
   // Data
   List<UserFollow> _followers = [];
@@ -44,9 +47,9 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
 
   // State
   bool _isLoading = false;
+  bool _isLoggedIn = false;
   String? _error;
   UserProfile? _currentUser;
-  bool _isLoggedIn = false;
   bool _isAdmin = false;
   final int _selectedSidebarIndex = 2; // Friends is index 2
 
@@ -55,12 +58,63 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _loadData();
-    _initWebSocket();
+
+    // Listen to the global WebSocket events stream immediately so events
+    // are caught even before the async connect / userId resolution finishes.
+    _wsSubscription = _webSocketService.events.listen(_handleWebSocketEvent);
+
+    // Fire-and-forget: connect to WebSocket server. Once connected the
+    // pending user subscriptions will be activated automatically.
+    _webSocketService.connect();
+
+    // Start periodic polling as a reliable fallback — ensures the
+    // relationship lists stay fresh even when WebSocket events are missed.
+    _startPolling();
   }
 
-  Future<void> _initWebSocket() async {
-    await _webSocketService.connect();
-    _wsSubscription = _webSocketService.events.listen(_handleWebSocketEvent);
+  /// Start periodic polling as a reliable fallback.
+  /// This ensures the relationship data stays fresh even when the WebSocket
+  /// connection is unavailable or events are missed.
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (mounted && _isLoggedIn) {
+        _loadData();
+      }
+    });
+  }
+
+  void _stopPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+    _debounceTimer?.cancel();
+    _debounceTimer = null;
+  }
+
+  /// Ensure the user's WebSocket topic is subscribed so user-scoped events
+  /// (e.g. follow/friend activity) are received on the global stream.
+  void _ensureUserTopicSubscribed(String userId) {
+    if (_subscribedUserId == userId) return;
+    _subscribedUserId = userId;
+
+    // Fire-and-forget: connect then subscribe to the user topic.
+    _webSocketService.connect().then((_) {
+      if (!mounted || _subscribedUserId != userId) return;
+      _webSocketService.subscribeToUser(userId);
+      debugPrint(
+          'FriendsFollowersScreen: Subscribed to user topic for user $userId');
+    });
+  }
+
+  /// Debounce the data refresh so rapid-fire WS events only trigger one
+  /// API call.
+  void _debouncedLoadData() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        _loadData();
+      }
+    });
   }
 
   void _handleWebSocketEvent(WebSocketEvent event) {
@@ -88,7 +142,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   void _handleUserFollowed(UserFollowedEvent event) {
-    // Reload data to get updated lists
+    // Immediate refresh + toast for user-visible events
     _loadData();
     if (mounted) {
       final l10n = context.l10n;
@@ -97,12 +151,12 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   void _handleUserUnfollowed(UserUnfollowedEvent event) {
-    // Reload data to get updated lists
-    _loadData();
+    // Debounce — unfollows can come in bursts and don't need a toast
+    _debouncedLoadData();
   }
 
   void _handleFriendRequestSent(FriendRequestSentEvent event) {
-    // Reload data to get updated lists
+    // Immediate refresh + toast for user-visible events
     _loadData();
     if (mounted) {
       final l10n = context.l10n;
@@ -111,7 +165,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   void _handleFriendRequestAccepted(FriendRequestAcceptedEvent event) {
-    // Reload data to get updated lists
+    // Immediate refresh + toast for user-visible events
     _loadData();
     if (mounted) {
       final l10n = context.l10n;
@@ -120,13 +174,15 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   void _handleFriendRequestDeclined(FriendRequestDeclinedEvent event) {
-    // Reload data to get updated lists
-    _loadData();
+    // Debounce — declines can come in bursts and don't need a toast
+    _debouncedLoadData();
   }
 
   @override
   void dispose() {
     _wsSubscription?.cancel();
+    _wsSubscription = null;
+    _stopPolling();
     _tabController.dispose();
     super.dispose();
   }
@@ -146,6 +202,10 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
         _isLoggedIn = true;
         _isAdmin = isAdmin;
       });
+
+      // Subscribe to the user's WebSocket topic so user-scoped events
+      // (follow/friend activity) arrive on the global stream.
+      _ensureUserTopicSubscribed(profile.id);
 
       // Load all data in parallel
       final results = await Future.wait([
@@ -260,7 +320,8 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     } catch (e) {
       if (mounted) {
         final l10n = context.l10n;
-        UiHelpers.showErrorMessage(context, l10n.failedToFollowUser(e.toString()));
+        UiHelpers.showErrorMessage(
+            context, l10n.failedToFollowUser(e.toString()));
       }
     }
   }
@@ -393,8 +454,8 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                 isScrollable: false,
                 labelPadding: const EdgeInsets.symmetric(horizontal: 2),
                 tabs: [
-                  _buildTab(Icons.people, l10n.friends, _friends.length,
-                      isNarrow),
+                  _buildTab(
+                      Icons.people, l10n.friends, _friends.length, isNarrow),
                   _buildTab(Icons.person_add, l10n.followers, _followers.length,
                       isNarrow),
                   _buildTab(Icons.person_outline, l10n.following,
@@ -493,7 +554,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
               onTap: () => _navigateToUserProfile(friendship.friendId),
               leading: CircleAvatar(
                 backgroundImage: profile?.avatarUrl != null
-                    ? NetworkImage(profile!.avatarUrl!)
+                    ? NetworkImage(profile!.avatarUrl)
                     : null,
                 child: profile?.avatarUrl == null
                     ? const Icon(Icons.person)
@@ -557,7 +618,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
               onTap: () => _navigateToUserProfile(follower.followerId),
               leading: CircleAvatar(
                 backgroundImage: profile?.avatarUrl != null
-                    ? NetworkImage(profile!.avatarUrl!)
+                    ? NetworkImage(profile!.avatarUrl)
                     : null,
                 child: profile?.avatarUrl == null
                     ? const Icon(Icons.person)
@@ -616,7 +677,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
               onTap: () => _navigateToUserProfile(following.followedId),
               leading: CircleAvatar(
                 backgroundImage: profile?.avatarUrl != null
-                    ? NetworkImage(profile!.avatarUrl!)
+                    ? NetworkImage(profile!.avatarUrl)
                     : null,
                 child: profile?.avatarUrl == null
                     ? const Icon(Icons.person)
@@ -699,7 +760,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
               onTap: () => _navigateToUserProfile(request.senderId),
               leading: CircleAvatar(
                 backgroundImage: profile?.avatarUrl != null
-                    ? NetworkImage(profile!.avatarUrl!)
+                    ? NetworkImage(profile!.avatarUrl)
                     : null,
                 child: profile?.avatarUrl == null
                     ? const Icon(Icons.person)
@@ -769,7 +830,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
               onTap: () => _navigateToUserProfile(request.receiverId),
               leading: CircleAvatar(
                 backgroundImage: profile?.avatarUrl != null
-                    ? NetworkImage(profile!.avatarUrl!)
+                    ? NetworkImage(profile!.avatarUrl)
                     : null,
                 child: profile?.avatarUrl == null
                     ? const Icon(Icons.person)

@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
-import 'package:wanderer_frontend/data/client/google_maps_api_client.dart';
-import 'package:wanderer_frontend/data/client/polyline_codec.dart';
 
 /// Card widget for displaying a trip plan with map preview.
 /// Matches the modern EnhancedTripCard design.
@@ -27,59 +24,6 @@ class TripPlanCard extends StatefulWidget {
 }
 
 class _TripPlanCardState extends State<TripPlanCard> {
-  String? _encodedPolyline;
-  late final GoogleMapsApiClient _mapsClient;
-
-  @override
-  void initState() {
-    super.initState();
-    final apiKey = ApiEndpoints.googleMapsApiKey;
-    _mapsClient = GoogleMapsApiClient(apiKey);
-    _loadRoute();
-  }
-
-  /// Load the encoded polyline for the miniature map.
-  /// Prefers the user-provided planned polyline, then the backend-computed
-  /// polyline, falling back to encoding the raw plan points as straight lines.
-  void _loadRoute() {
-    // 1. User-provided planned polyline (best case: zero API calls)
-    final polyline = widget.plan.plannedPolyline ?? widget.plan.encodedPolyline;
-    if (polyline != null && polyline.isNotEmpty) {
-      setState(() {
-        _encodedPolyline = polyline;
-      });
-      return;
-    }
-
-    // 2. Fallback: encode raw plan points as straight lines
-    final waypoints = <LatLng>[];
-
-    if (_hasValidLocation(widget.plan.startLocation)) {
-      waypoints.add(LatLng(
-          widget.plan.startLocation!.lat, widget.plan.startLocation!.lon));
-    }
-
-    for (final wp in widget.plan.waypoints) {
-      if (_hasValidLocation(wp)) {
-        waypoints.add(LatLng(wp.lat, wp.lon));
-      }
-    }
-
-    if (_hasValidLocation(widget.plan.endLocation)) {
-      waypoints.add(
-          LatLng(widget.plan.endLocation!.lat, widget.plan.endLocation!.lon));
-    }
-
-    if (waypoints.length < 2) return;
-
-    try {
-      final encoded = PolylineCodec.encode(waypoints);
-      setState(() {
-        _encodedPolyline = encoded;
-      });
-    } catch (_) {}
-  }
-
   String _formatDate(DateTime date) {
     return '${date.month}/${date.day}/${date.year}';
   }
@@ -92,53 +36,6 @@ class _TripPlanCardState extends State<TripPlanCard> {
     return _hasValidLocation(widget.plan.startLocation) ||
         _hasValidLocation(widget.plan.endLocation) ||
         widget.plan.waypoints.any((wp) => _hasValidLocation(wp));
-  }
-
-  String _generateStaticMapUrl() {
-    final apiKey = ApiEndpoints.googleMapsApiKey;
-    if (apiKey.isEmpty) return '';
-
-    // Collect all valid points in order: start → waypoints → end
-    final allPoints = <LatLng>[];
-    if (_hasValidLocation(widget.plan.startLocation)) {
-      allPoints.add(LatLng(
-          widget.plan.startLocation!.lat, widget.plan.startLocation!.lon));
-    }
-    for (final wp in widget.plan.waypoints) {
-      if (_hasValidLocation(wp)) {
-        allPoints.add(LatLng(wp.lat, wp.lon));
-      }
-    }
-    if (_hasValidLocation(widget.plan.endLocation)) {
-      allPoints.add(
-          LatLng(widget.plan.endLocation!.lat, widget.plan.endLocation!.lon));
-    }
-
-    if (allPoints.isEmpty) return '';
-
-    // Single point: just show a marker
-    if (allPoints.length == 1) {
-      return _mapsClient.generateStaticMapUrl(
-        center: allPoints.first,
-        markers: [
-          MapMarker(position: allPoints.first, color: 'green', label: 'A'),
-        ],
-        zoom: 10,
-      );
-    }
-
-    // Multiple points: show route with A (first) and B (last) markers
-    // If we have a road-snapped polyline, use it; otherwise encode the
-    // raw points so the map still renders a path through all waypoints.
-    final polyline = _encodedPolyline ?? PolylineCodec.encode(allPoints);
-
-    return _mapsClient.generateRouteMapUrl(
-      startPoint: allPoints.first,
-      endPoint: allPoints.last,
-      startLabel: 'A',
-      endLabel: 'B',
-      encodedPolyline: polyline,
-    );
   }
 
   IconData _getPlanTypeIcon(String planType) {
@@ -229,37 +126,47 @@ class _TripPlanCardState extends State<TripPlanCard> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (_hasMapData && _generateStaticMapUrl().isNotEmpty)
-                    Image.network(
-                      _generateStaticMapUrl(),
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Theme.of(context).colorScheme.surface,
-                                Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                              ],
-                            ),
-                          ),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                            ),
-                          ),
+                  if (_hasMapData)
+                    Builder(
+                      builder: (context) {
+                        final thumbnailUrl = ApiEndpoints.resolveThumbnailUrl(
+                            widget.plan.thumbnailUrl);
+                        if (thumbnailUrl.isEmpty) {
+                          return _buildPlaceholderMap();
+                        }
+                        return Image.network(
+                          thumbnailUrl,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Theme.of(context).colorScheme.surface,
+                                    Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainerHighest,
+                                  ],
+                                ),
+                              ),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes !=
+                                          null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                      : null,
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildPlaceholderMap();
+                          },
                         );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return _buildPlaceholderMap();
                       },
                     )
                   else

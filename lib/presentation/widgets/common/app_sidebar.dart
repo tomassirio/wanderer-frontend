@@ -11,6 +11,7 @@ import 'package:wanderer_frontend/presentation/screens/trip_maintenance_screen.d
 import 'package:wanderer_frontend/presentation/screens/trip_promotion_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 
 /// Sidebar navigation for the app
 class AppSidebar extends StatelessWidget {
@@ -137,38 +138,62 @@ class AppSidebar extends StatelessWidget {
     }
   }
 
-  /// Language toggle widget placed at the bottom-left of the header.
-  Widget _buildLanguageToggle(bool isSpanish) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _langLabel('EN', !isSpanish),
-        Transform.scale(
-          scale: 0.75,
-          child: Switch(
-            value: isSpanish,
-            onChanged: (value) => LocaleController().setLocale(
-              value ? const Locale('es') : const Locale('en'),
-            ),
-            activeColor: Colors.white,
-            inactiveThumbColor: Colors.white,
-            inactiveTrackColor: Colors.white38,
-            activeTrackColor: Colors.white38,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ),
-        _langLabel('ES', isSpanish),
-      ],
-    );
-  }
+  /// Language picker widget placed at the bottom-left of the header.
+  Widget _buildLanguagePicker() {
+    final controller = LocaleController();
+    final currentCode = controller.languageCode;
+    final flag = LocaleController.localeFlags[currentCode] ?? '🌐';
+    final label = LocaleController.localeLabels[currentCode] ?? 'EN';
 
-  Widget _langLabel(String code, bool isActive) {
-    return Text(
-      code,
-      style: TextStyle(
-        color: isActive ? Colors.white : Colors.white54,
-        fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-        fontSize: 13,
+    return PopupMenuButton<String>(
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(),
+      tooltip: 'Change language',
+      onSelected: (code) => controller.setLocale(Locale(code)),
+      itemBuilder: (_) => LocaleController.supportedLocales.map((locale) {
+        final code = locale.languageCode;
+        final localeFlag = LocaleController.localeFlags[code] ?? '🌐';
+        final localeLabel = LocaleController.localeLabels[code] ?? code;
+        return PopupMenuItem<String>(
+          value: code,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(localeFlag, style: const TextStyle(fontSize: 16)),
+              const SizedBox(width: 8),
+              Text(
+                localeLabel,
+                style: TextStyle(
+                  fontWeight:
+                      code == currentCode ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white24,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(flag, style: const TextStyle(fontSize: 14)),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+            const Icon(Icons.arrow_drop_down, color: Colors.white, size: 16),
+          ],
+        ),
       ),
     );
   }
@@ -177,7 +202,6 @@ class AppSidebar extends StatelessWidget {
   /// and places the language switch inline with the display name row.
   Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
     final isLoggedIn = username != null;
-    final isSpanish = LocaleController().isSpanish;
 
     return Container(
       color: Theme.of(context).colorScheme.primary,
@@ -197,7 +221,8 @@ class AppSidebar extends StatelessWidget {
                     radius: 36,
                     backgroundColor: Colors.white,
                     backgroundImage: avatarUrl != null && avatarUrl!.isNotEmpty
-                        ? NetworkImage(avatarUrl!)
+                        ? NetworkImage(
+                            ApiEndpoints.resolveThumbnailUrl(avatarUrl))
                         : null,
                     child: avatarUrl == null || avatarUrl!.isEmpty
                         ? (isLoggedIn
@@ -241,34 +266,37 @@ class AppSidebar extends StatelessWidget {
                   ],
                 ],
               ),
-              const SizedBox(height: 8),
-              // Display name + language toggle on the same row
+              // Display name
+              Text(
+                displayName ?? username ?? l10n.guest,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontSize: 16,
+                  height: 1.2,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+              // Username + language picker on the same row
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Expanded(
-                    child: Text(
-                      displayName ?? username ?? l10n.guest,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        fontSize: 16,
+                  if (isLoggedIn)
+                    Expanded(
+                      child: Text(
+                        '@${username ?? ''}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          height: 1.2,
+                        ),
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (isLoggedIn) _buildLanguageToggle(isSpanish),
+                    )
+                  else
+                    const Spacer(),
+                  _buildLanguagePicker(),
                 ],
               ),
-              // Username
-              if (isLoggedIn)
-                Text(
-                  '@${username ?? ''}',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
               const SizedBox(height: 4),
             ],
           ),

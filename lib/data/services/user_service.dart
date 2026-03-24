@@ -115,6 +115,18 @@ class UserService {
     return await _userCommandClient.updateProfile(request);
   }
 
+  /// Upload avatar for current user
+  /// Returns the user ID from 202 Accepted response
+  Future<String> uploadAvatar(List<int> fileBytes, String fileName) async {
+    return await _userCommandClient.uploadAvatar(fileBytes, fileName);
+  }
+
+  /// Delete avatar for current user
+  /// Returns the user ID from 202 Accepted response
+  Future<String> deleteAvatar() async {
+    return await _userCommandClient.deleteAvatar();
+  }
+
   /// Delete own account
   /// Returns the ID from the response. Any authenticated user can delete their own account.
   Future<String> deleteMyAccount() async {

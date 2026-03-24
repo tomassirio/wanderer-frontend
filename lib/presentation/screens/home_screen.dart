@@ -48,6 +48,9 @@ class _HomeScreenState extends State<HomeScreen>
   final PushNotificationManager _pushNotificationManager =
       PushNotificationManager();
   StreamSubscription<WebSocketEvent>? _wsSubscription;
+  Timer? _pollTimer;
+  Timer? _debounceTimer;
+  String? _subscribedUserId;
 
   late TabController _tabController;
 
@@ -84,7 +87,18 @@ class _HomeScreenState extends State<HomeScreen>
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_onTabChanged);
     _initializeData();
-    _initWebSocket();
+
+    // Listen to the global WebSocket events stream immediately so events
+    // are caught even before the async connect / userId resolution finishes.
+    _wsSubscription = _webSocketService.events.listen(_handleWebSocketEvent);
+
+    // Fire-and-forget: connect to WebSocket server. Once connected the
+    // pending trip / user subscriptions will be activated automatically.
+    _webSocketService.connect();
+
+    // Start periodic polling as a reliable fallback — ensures the trip
+    // list stays fresh even when WebSocket events are missed or delayed.
+    _startPolling();
   }
 
   @override
@@ -127,9 +141,50 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  Future<void> _initWebSocket() async {
-    await _webSocketService.connect();
-    _wsSubscription = _webSocketService.events.listen(_handleWebSocketEvent);
+  /// Start periodic polling as a reliable fallback.
+  /// This ensures the trip list stays fresh even when the WebSocket connection
+  /// is unavailable (e.g. dev server, firewall, or events are missed).
+  /// Reduced from 15s to 5 minutes - WebSocket provides real-time updates.
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      if (mounted) {
+        debugPrint('HomeScreen: Polling fallback triggered (every 5 min)');
+        _loadTrips();
+      }
+    });
+  }
+
+  void _stopPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+    _debounceTimer?.cancel();
+    _debounceTimer = null;
+  }
+
+  /// Ensure the user's WebSocket topic is subscribed so user-scoped events
+  /// (e.g. notifications, friend activity) are received on the global stream.
+  void _ensureUserTopicSubscribed(String userId) {
+    if (_subscribedUserId == userId) return;
+    _subscribedUserId = userId;
+
+    // Fire-and-forget: connect then subscribe to the user topic.
+    _webSocketService.connect().then((_) {
+      if (!mounted || _subscribedUserId != userId) return;
+      _webSocketService.subscribeToUser(userId);
+      debugPrint('HomeScreen: Subscribed to user topic for user $userId');
+    });
+  }
+
+  /// Debounce the trip list refresh so rapid-fire WS events only trigger
+  /// one API call.
+  void _debouncedLoadTrips() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        _loadTrips();
+      }
+    });
   }
 
   void _handleWebSocketEvent(WebSocketEvent event) {
@@ -145,10 +200,32 @@ class _HomeScreenState extends State<HomeScreen>
       case WebSocketEventType.tripUpdated:
       case WebSocketEventType.tripCreated:
       case WebSocketEventType.tripDeleted:
-        _loadTrips();
+        // Debounce so rapid-fire events (e.g. multiple trip updates in
+        // quick succession) don't hammer the API.
+        _debouncedLoadTrips();
+        break;
+      case WebSocketEventType.userProfileUpdated:
+      case WebSocketEventType.userAvatarUploaded:
+      case WebSocketEventType.userAvatarDeleted:
+        _refreshCurrentUserProfile();
         break;
       default:
         break;
+    }
+  }
+
+  Future<void> _refreshCurrentUserProfile() async {
+    if (!_isLoggedIn || _userId == null) return;
+
+    try {
+      final profile = await _repository.getMyProfile();
+      if (mounted) {
+        setState(() {
+          _avatarUrl = profile.avatarUrl;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to refresh user profile: $e');
     }
   }
 
@@ -238,6 +315,8 @@ class _HomeScreenState extends State<HomeScreen>
   void dispose() {
     routeObserver.unsubscribe(this);
     _wsSubscription?.cancel();
+    _wsSubscription = null;
+    _stopPolling();
     _webSocketService.unsubscribeFromAllTrips();
     _pushNotificationManager.stop();
     _tabController.removeListener(_onTabChanged);
@@ -262,6 +341,9 @@ class _HomeScreenState extends State<HomeScreen>
     // Start push notification listener when logged in with a valid userId
     if (isLoggedIn && userId != null) {
       _pushNotificationManager.start(userId);
+      // Subscribe to the user's WebSocket topic so user-scoped events
+      // (e.g. friend activity, notifications) arrive on the global stream.
+      _ensureUserTopicSubscribed(userId);
     } else {
       _pushNotificationManager.stop();
     }
@@ -782,7 +864,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  /// Compact EN/ES language toggle for the guest hero overlay (top-left).
+  /// Compact language picker for the guest hero overlay (top-left).
   Widget _buildHeroLangToggle() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
@@ -790,34 +872,63 @@ class _HomeScreenState extends State<HomeScreen>
         valueListenable: LocaleController().locale,
         builder: (context, locale, _) {
           final controller = LocaleController();
-          final isSpanish = controller.isSpanish;
-          return Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerHighest
-                  .withOpacity(0.6),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _quickLangLabel('EN', !isSpanish),
-                Transform.scale(
-                  scale: 0.65,
-                  child: Switch(
-                    value: isSpanish,
-                    onChanged: (value) => controller.setLocale(
-                      value ? const Locale('es') : const Locale('en'),
+          final currentCode = controller.languageCode;
+          final flag = LocaleController.localeFlags[currentCode] ?? '🌐';
+          final label = LocaleController.localeLabels[currentCode] ?? 'EN';
+          return PopupMenuButton<String>(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            tooltip: 'Change language',
+            onSelected: (code) => controller.setLocale(Locale(code)),
+            itemBuilder: (_) => LocaleController.supportedLocales.map((loc) {
+              final code = loc.languageCode;
+              final locFlag = LocaleController.localeFlags[code] ?? '🌐';
+              final locLabel = LocaleController.localeLabels[code] ?? code;
+              return PopupMenuItem<String>(
+                value: code,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(locFlag, style: const TextStyle(fontSize: 16)),
+                    const SizedBox(width: 8),
+                    Text(
+                      locLabel,
+                      style: TextStyle(
+                        fontWeight: code == currentCode
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
                     ),
-                    activeColor: WandererTheme.primaryOrange,
-                    inactiveThumbColor: WandererTheme.primaryOrange,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
+                  ],
                 ),
-                _quickLangLabel('ES', isSpanish),
-              ],
+              );
+            }).toList(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withOpacity(0.6),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(flag, style: const TextStyle(fontSize: 14)),
+                  const SizedBox(width: 4),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: WandererTheme.primaryOrange,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
+                  ),
+                  Icon(Icons.arrow_drop_down,
+                      color: WandererTheme.primaryOrange, size: 16),
+                ],
+              ),
             ),
           );
         },
@@ -846,19 +957,6 @@ class _HomeScreenState extends State<HomeScreen>
             padding: EdgeInsets.zero,
           );
         },
-      ),
-    );
-  }
-
-  Text _quickLangLabel(String code, bool isActive) {
-    return Text(
-      code,
-      style: TextStyle(
-        color: isActive
-            ? WandererTheme.primaryOrange
-            : Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-        fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-        fontSize: 11,
       ),
     );
   }
@@ -1566,6 +1664,7 @@ class _HomeScreenState extends State<HomeScreen>
             }
 
             return EnhancedTripCard(
+              key: ValueKey(trip.id), // Prevents unnecessary rebuilds
               trip: trip,
               onTap: () => _navigateToTripDetail(trip),
               onDelete: showDelete && trip.userId == _userId

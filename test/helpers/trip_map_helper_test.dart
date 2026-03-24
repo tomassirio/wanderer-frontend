@@ -162,6 +162,170 @@ void main() {
         expect(result.longitude, -71.0);
       });
     });
+
+    group('createMapData - tripStarted/tripEnded on map', () {
+      test('tripStarted with real location appears as marker', () {
+        final trip = _createTrip(locations: [
+          TripLocation(
+            id: 'trip-start',
+            latitude: 40.0,
+            longitude: -74.0,
+            timestamp: DateTime(2025, 1, 1, 8, 0),
+            updateType: TripUpdateType.tripStarted,
+          ),
+          _createLocation(
+            id: 'loc1',
+            lat: 40.5,
+            lng: -73.5,
+            timestamp: DateTime(2025, 1, 1, 12, 0),
+          ),
+        ]);
+        final mapData = TripMapHelper.createMapData(trip);
+        // Both the tripStarted marker and the regular update should be present
+        expect(mapData.markers.length, 2);
+        expect(
+          mapData.markers.any((m) => m.markerId.value == 'trip-start'),
+          true,
+        );
+      });
+
+      test('tripEnded with real location appears as marker', () {
+        final trip = _createTrip(locations: [
+          _createLocation(
+            id: 'loc1',
+            lat: 40.0,
+            lng: -74.0,
+            timestamp: DateTime(2025, 1, 1, 8, 0),
+          ),
+          TripLocation(
+            id: 'trip-end',
+            latitude: 41.0,
+            longitude: -73.0,
+            timestamp: DateTime(2025, 1, 1, 18, 0),
+            updateType: TripUpdateType.tripEnded,
+          ),
+        ]);
+        final mapData = TripMapHelper.createMapData(trip);
+        expect(mapData.markers.length, 2);
+        expect(
+          mapData.markers.any((m) => m.markerId.value == 'trip-end'),
+          true,
+        );
+      });
+
+      test('tripStarted without location gets fallback to first real location',
+          () {
+        final trip = _createTrip(locations: [
+          TripLocation(
+            id: 'trip-start',
+            latitude: 0.0,
+            longitude: 0.0,
+            timestamp: DateTime(2025, 1, 1, 8, 0),
+            updateType: TripUpdateType.tripStarted,
+          ),
+          TripLocation(
+            id: 'loc1',
+            latitude: 40.0,
+            longitude: -74.0,
+            timestamp: DateTime(2025, 1, 1, 12, 0),
+            city: 'New York',
+            country: 'United States',
+          ),
+        ]);
+        final mapData = TripMapHelper.createMapData(trip);
+        // tripStarted should be present with fallback position
+        expect(mapData.markers.length, 2);
+        final startMarker =
+            mapData.markers.firstWhere((m) => m.markerId.value == 'trip-start');
+        expect(startMarker.position.latitude, 40.0);
+        expect(startMarker.position.longitude, -74.0);
+      });
+
+      test('tripEnded without location gets fallback to last real location',
+          () {
+        final trip = _createTrip(locations: [
+          _createLocation(
+            id: 'loc1',
+            lat: 40.0,
+            lng: -74.0,
+            timestamp: DateTime(2025, 1, 1, 8, 0),
+          ),
+          TripLocation(
+            id: 'loc2',
+            latitude: 41.0,
+            longitude: -73.0,
+            timestamp: DateTime(2025, 1, 1, 14, 0),
+            city: 'Newark',
+            country: 'United States',
+          ),
+          TripLocation(
+            id: 'trip-end',
+            latitude: 0.0,
+            longitude: 0.0,
+            timestamp: DateTime(2025, 1, 1, 18, 0),
+            updateType: TripUpdateType.tripEnded,
+          ),
+        ]);
+        final mapData = TripMapHelper.createMapData(trip);
+        expect(mapData.markers.length, 3);
+        final endMarker =
+            mapData.markers.firstWhere((m) => m.markerId.value == 'trip-end');
+        // Should fallback to last real location (loc2)
+        expect(endMarker.position.latitude, 41.0);
+        expect(endMarker.position.longitude, -73.0);
+      });
+
+      test('dayStart/dayEnd without location get fallback positions', () {
+        final trip = _createTrip(locations: [
+          TripLocation(
+            id: 'day-start',
+            latitude: 0.0,
+            longitude: 0.0,
+            timestamp: DateTime(2025, 1, 1, 7, 0),
+            updateType: TripUpdateType.dayStart,
+          ),
+          TripLocation(
+            id: 'loc1',
+            latitude: 40.0,
+            longitude: -74.0,
+            timestamp: DateTime(2025, 1, 1, 12, 0),
+            city: 'New York',
+            country: 'United States',
+          ),
+          TripLocation(
+            id: 'day-end',
+            latitude: 0.0,
+            longitude: 0.0,
+            timestamp: DateTime(2025, 1, 1, 22, 0),
+            updateType: TripUpdateType.dayEnd,
+          ),
+        ]);
+        final mapData = TripMapHelper.createMapData(trip);
+        // All three markers should appear (dayStart, regular, dayEnd)
+        expect(mapData.markers.length, 3);
+        expect(
+          mapData.markers.any((m) => m.markerId.value == 'day-start'),
+          true,
+        );
+        expect(
+          mapData.markers.any((m) => m.markerId.value == 'loc1'),
+          true,
+        );
+        expect(
+          mapData.markers.any((m) => m.markerId.value == 'day-end'),
+          true,
+        );
+        // dayStart/dayEnd should have fallback positions from nearest real loc
+        final dayStartMarker =
+            mapData.markers.firstWhere((m) => m.markerId.value == 'day-start');
+        expect(dayStartMarker.position.latitude, 40.0);
+        expect(dayStartMarker.position.longitude, -74.0);
+        final dayEndMarker =
+            mapData.markers.firstWhere((m) => m.markerId.value == 'day-end');
+        expect(dayEndMarker.position.latitude, 40.0);
+        expect(dayEndMarker.position.longitude, -74.0);
+      });
+    });
   });
 }
 

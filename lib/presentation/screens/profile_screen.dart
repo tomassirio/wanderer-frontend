@@ -1,10 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
+import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/repositories/profile_repository.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
+import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
@@ -12,9 +16,6 @@ import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.d
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import '../../core/constants/enums.dart';
-import '../../data/client/google_maps_api_client.dart';
-import '../helpers/trip_route_helper.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'auth_screen.dart';
 import 'home_screen.dart';
 import 'settings_screen.dart';
@@ -90,6 +91,8 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final ProfileRepository _repository = ProfileRepository();
   final UserService _userService = UserService();
+  final WebSocketService _webSocketService = WebSocketService();
+  StreamSubscription? _userEventSubscription;
   UserProfile? _profile;
   List<Trip> _userTrips = [];
   bool _isLoadingProfile = false;
@@ -122,11 +125,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadProfile();
+    _setupUserWebSocket();
   }
 
   @override
   void dispose() {
+    _userEventSubscription?.cancel();
     super.dispose();
+  }
+
+  void _setupUserWebSocket() async {
+    final userId = widget.userId ?? await _repository.getCurrentUserId();
+    if (userId == null) return;
+
+    await _webSocketService.connect();
+    final userStream = _webSocketService.subscribeToUser(userId);
+
+    _userEventSubscription = userStream.listen((event) {
+      if (event.type == WebSocketEventType.userProfileUpdated && mounted) {
+        _handleUserProfileUpdated();
+      } else if ((event.type == WebSocketEventType.userAvatarUploaded ||
+              event.type == WebSocketEventType.userAvatarDeleted) &&
+          mounted) {
+        _handleUserProfileUpdated();
+      }
+    });
+  }
+
+  void _handleUserProfileUpdated() async {
+    try {
+      final refreshedProfile = await _repository.getMyProfile();
+      if (mounted) {
+        setState(() {
+          _profile = refreshedProfile;
+          _currentAvatarUrl = refreshedProfile.avatarUrl;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to refresh profile after update: $e');
+    }
   }
 
   /// Check if viewing own profile (either no userId passed, or userId matches current user)
@@ -468,9 +505,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       text: _profile!.displayName,
     );
     final bioController = TextEditingController(text: _profile!.bio);
-    final avatarUrlController = TextEditingController(
-      text: _profile!.avatarUrl,
-    );
 
     final result = await showDialog<bool>(
       context: context,
@@ -498,15 +532,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 maxLines: 3,
                 textCapitalization: TextCapitalization.sentences,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: avatarUrlController,
-                decoration: InputDecoration(
-                  labelText: l10n.avatarUrl,
-                  hintText: 'https://example.com/avatar.jpg',
-                ),
-                textCapitalization: TextCapitalization.none,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => Navigator.pop(context, true),
               ),
@@ -530,13 +555,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _updateProfile(
         displayNameController.text,
         bioController.text,
-        avatarUrlController.text,
       );
     }
 
     displayNameController.dispose();
     bioController.dispose();
-    avatarUrlController.dispose();
   }
 
   Future<void> _handleFollowUser() async {
@@ -609,8 +632,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _sentFriendRequestId = null;
         });
         if (mounted) {
-          UiHelpers.showSuccessMessage(
-              context, l10n.friendRequestCancelled);
+          UiHelpers.showSuccessMessage(context, l10n.friendRequestCancelled);
         }
       } catch (e) {
         if (mounted) {
@@ -643,13 +665,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _updateProfile(
     String displayName,
     String bio,
-    String avatarUrl,
   ) async {
     try {
       final request = UpdateProfileRequest(
         displayName: displayName.isEmpty ? null : displayName,
         bio: bio.isEmpty ? null : bio,
-        avatarUrl: avatarUrl.isEmpty ? null : avatarUrl,
       );
 
       // PATCH returns 202 Accepted with just a UUID
@@ -676,7 +696,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               email: _profile!.email,
               displayName: displayName.isEmpty ? null : displayName,
               bio: bio.isEmpty ? null : bio,
-              avatarUrl: avatarUrl.isEmpty ? null : avatarUrl,
               followersCount: _profile!.followersCount,
               followingCount: _profile!.followingCount,
               friendsCount: _profile!.friendsCount,
@@ -685,7 +704,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               createdAt: _profile!.createdAt,
             );
             _currentDisplayName = displayName.isEmpty ? null : displayName;
-            _currentAvatarUrl = avatarUrl.isEmpty ? null : avatarUrl;
           });
         }
       }
@@ -696,8 +714,105 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(
-            context, context.l10n.failedToUpdateProfile);
+        UiHelpers.showErrorMessage(context, context.l10n.failedToUpdateProfile);
+      }
+    }
+  }
+
+  Future<void> _handleAvatarUpload() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+
+      // Validate file format
+      final filename = image.name.toLowerCase();
+      final validFormats = ['.jpg', '.jpeg', '.png', '.webp'];
+      final hasValidExtension =
+          validFormats.any((ext) => filename.endsWith(ext));
+
+      if (!hasValidExtension) {
+        if (mounted) {
+          UiHelpers.showErrorMessage(
+            context,
+            'Invalid image format. Only JPEG, PNG, and WebP are supported.',
+          );
+        }
+        return;
+      }
+
+      // Check file size (5MB max)
+      final fileSize = await image.length();
+      if (fileSize > 5 * 1024 * 1024) {
+        if (mounted) {
+          UiHelpers.showErrorMessage(
+            context,
+            'Image too large. Maximum size is 5MB.',
+          );
+        }
+        return;
+      }
+
+      final bytes = await image.readAsBytes();
+      await _repository.uploadAvatar(bytes, image.name);
+
+      if (mounted) {
+        UiHelpers.showSuccessMessage(
+          context,
+          'Avatar uploading... You\'ll see it in a moment!',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        UiHelpers.showErrorMessage(context, 'Failed to upload avatar: $e');
+      }
+    }
+  }
+
+  Future<void> _handleAvatarDelete() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Avatar'),
+        content:
+            const Text('Are you sure you want to delete your profile picture?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _repository.deleteAvatar();
+
+      if (mounted) {
+        UiHelpers.showSuccessMessage(
+          context,
+          'Avatar deleting... You\'ll see it removed in a moment!',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        UiHelpers.showErrorMessage(context, 'Failed to delete avatar: $e');
       }
     }
   }
@@ -744,9 +859,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Icon(Icons.error_outline, size: 64, color: Colors.red),
             const SizedBox(height: 16),
             Text(
-              !_isLoggedIn
-                  ? l10n.mustBeLoggedInToViewProfile
-                  : _error!,
+              !_isLoggedIn ? l10n.mustBeLoggedInToViewProfile : _error!,
               style: const TextStyle(fontSize: 16),
               textAlign: TextAlign.center,
             ),
@@ -795,18 +908,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             final userInfoSection = Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundImage: _profile!.avatarUrl != null
-                      ? NetworkImage(_profile!.avatarUrl!)
-                      : null,
-                  child: _profile!.avatarUrl == null
-                      ? Text(
-                          _profile!.username.substring(0, 1).toUpperCase(),
-                          style: const TextStyle(fontSize: 32),
-                        )
-                      : null,
-                ),
+                _buildAvatarWidget(),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -922,6 +1024,106 @@ class _ProfileScreenState extends State<ProfileScreen> {
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildAvatarWidget() {
+    if (!_isViewingOwnProfile) {
+      // For other users, just show the avatar
+      return CircleAvatar(
+        radius: 40,
+        backgroundImage: _profile!.avatarUrl.isNotEmpty
+            ? NetworkImage(
+                ApiEndpoints.resolveThumbnailUrl(_profile!.avatarUrl))
+            : null,
+        child: _profile!.avatarUrl.isEmpty
+            ? Text(
+                _profile!.username.substring(0, 1).toUpperCase(),
+                style: const TextStyle(fontSize: 32),
+              )
+            : null,
+      );
+    }
+
+    // For own profile, make it clickable with hover effect
+    bool isHovering = false;
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => setState(() => isHovering = true),
+          onExit: (_) => setState(() => isHovering = false),
+          child: GestureDetector(
+            onTap: () {
+              if (_profile!.avatarUrl.isNotEmpty) {
+                // Show options: change or delete
+                showModalBottomSheet(
+                  context: context,
+                  builder: (context) => SafeArea(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.photo_camera),
+                          title: const Text('Change Avatar'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _handleAvatarUpload();
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.delete, color: Colors.red),
+                          title: const Text('Delete Avatar',
+                              style: TextStyle(color: Colors.red)),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _handleAvatarDelete();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              } else {
+                // No avatar, just upload
+                _handleAvatarUpload();
+              }
+            },
+            child: Stack(
+              children: [
+                CircleAvatar(
+                  radius: 40,
+                  backgroundImage: _profile!.avatarUrl.isNotEmpty
+                      ? NetworkImage(
+                          ApiEndpoints.resolveThumbnailUrl(_profile!.avatarUrl))
+                      : null,
+                  child: _profile!.avatarUrl.isEmpty
+                      ? Text(
+                          _profile!.username.substring(0, 1).toUpperCase(),
+                          style: const TextStyle(fontSize: 32),
+                        )
+                      : null,
+                ),
+                // Hover overlay with camera icon
+                if (isHovering)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.black.withOpacity(0.5),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1547,62 +1749,6 @@ class ProfileTripCard extends StatefulWidget {
 }
 
 class _ProfileTripCardState extends State<ProfileTripCard> {
-  String? _encodedPolyline;
-  late final GoogleMapsApiClient _mapsClient;
-
-  @override
-  void initState() {
-    super.initState();
-    final apiKey = ApiEndpoints.googleMapsApiKey;
-    _mapsClient = GoogleMapsApiClient(apiKey);
-    _loadRoute();
-  }
-
-  /// Load the encoded polyline for the miniature map using the shared
-  /// [TripRouteHelper]. Uses the backend-provided polyline, in-memory cache,
-  /// or encodes raw sorted points as straight-line fallback.
-  void _loadRoute() {
-    final encoded = TripRouteHelper.fetchEncodedPolyline(widget.trip);
-    if (mounted && encoded != null) {
-      setState(() {
-        _encodedPolyline = encoded;
-      });
-    }
-  }
-
-  /// Generate static map image URL from Google Maps Static API
-  String _generateStaticMapUrl() {
-    final sorted = TripRouteHelper.getSortedLocations(widget.trip);
-    if (sorted.isEmpty) {
-      return '';
-    }
-
-    final firstLoc = sorted.first;
-    final lastLoc = sorted.last;
-
-    if (sorted.length == 1) {
-      // Single location
-      return _mapsClient.generateStaticMapUrl(
-        center: LatLng(firstLoc.latitude, firstLoc.longitude),
-        markers: [
-          MapMarker(
-            position: LatLng(firstLoc.latitude, firstLoc.longitude),
-            color: 'green',
-          ),
-        ],
-        size: GoogleMapsApiClient.defaultSquareSize,
-      );
-    } else {
-      // Multiple locations - show route
-      return _mapsClient.generateRouteMapUrl(
-        startPoint: LatLng(firstLoc.latitude, firstLoc.longitude),
-        endPoint: LatLng(lastLoc.latitude, lastLoc.longitude),
-        encodedPolyline: _encodedPolyline,
-        size: GoogleMapsApiClient.defaultSquareSize,
-      );
-    }
-  }
-
   Color _getStatusColor(TripStatus status) {
     switch (status) {
       case TripStatus.created:
@@ -1709,7 +1855,10 @@ class _ProfileTripCardState extends State<ProfileTripCard> {
   }
 
   Widget _buildMiniMap() {
-    if (widget.trip.locations == null || widget.trip.locations!.isEmpty) {
+    final thumbnailUrl =
+        ApiEndpoints.resolveThumbnailUrl(widget.trip.thumbnailUrl);
+
+    if (thumbnailUrl.isEmpty) {
       return Container(
         color: Colors.grey[300],
         child: Center(
@@ -1719,7 +1868,7 @@ class _ProfileTripCardState extends State<ProfileTripCard> {
     }
 
     return Image.network(
-      _generateStaticMapUrl(),
+      thumbnailUrl,
       fit: BoxFit.cover,
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) return child;

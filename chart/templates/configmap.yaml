@@ -91,6 +91,23 @@ data:
             proxy_read_timeout 60s;
         }
 
+        # Thumbnails - proxy /thumbnails/* to nginx static file server
+        # Strip /thumbnails prefix and proxy to command nginx
+        # Nginx serves from /usr/share/nginx/html/ which is mounted to /data/thumbnails/
+        # So /thumbnails/trips/UUID.png -> /trips/UUID.png -> /usr/share/nginx/html/trips/UUID.png
+        location ^~ /thumbnails/ {
+            proxy_pass http://wanderer-command{{ .Values.nameSuffix }}-nginx/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_connect_timeout 30s;
+            proxy_send_timeout 30s;
+            proxy_read_timeout 30s;
+            # Allow caching
+            proxy_cache_valid 200 30d;
+        }
+
         # Handle Flutter web routing
         location / {
             try_files $uri $uri/ /index.html;

@@ -29,6 +29,22 @@ class ApiEndpoints {
   // Trip deep link URL
   static String tripDeepLink(String tripId) => '$appBaseUrl/trip/$tripId';
 
+  // Resolve thumbnail URL (handles both relative and absolute URLs)
+  static String resolveThumbnailUrl(String? thumbnailUrl) {
+    if (thumbnailUrl == null || thumbnailUrl.isEmpty) {
+      return '';
+    }
+
+    // If already absolute URL, return as-is
+    if (thumbnailUrl.startsWith('http://') ||
+        thumbnailUrl.startsWith('https://')) {
+      return thumbnailUrl;
+    }
+
+    // Relative URL - prepend appBaseUrl
+    return appBaseUrl + thumbnailUrl;
+  }
+
   // Auth endpoints (use authBaseUrl)
   static const String authRegister = '/register';
   static const String authVerifyEmail = '/verify-email';
@@ -61,6 +77,8 @@ class ApiEndpoints {
   // User Command endpoints (use commandBaseUrl)
   static const String usersCreate = '/users';
   static const String usersUpdate = '/users/me';
+  static const String usersAvatarUpload = '/users/me/avatar';
+  static const String usersAvatarDelete = '/users/me/avatar';
   static const String usersFriendRequests = '/users/friends/requests';
   static String usersFriendRequestAccept(String requestId) =>
       '/users/friends/requests/$requestId/accept';

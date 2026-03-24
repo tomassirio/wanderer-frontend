@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.4.7-SNAPSHOT
+version: 1.5.0-SNAPSHOT
 
 environment:
   sdk: ^3.5.0
@@ -39,6 +39,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   http: ^1.2.0
+  http_parser: ^4.0.0
   shared_preferences: ^2.2.2
   google_maps_flutter: ^2.5.0
   google_maps_flutter_web: ^0.6.1
@@ -52,6 +53,7 @@ dependencies:
   flutter_local_notifications: ^21.0.0
   qr_flutter: ^4.1.0
   package_info_plus: ^9.0.0
+  image_picker: ^1.0.7
 
 dev_dependencies:
   flutter_test:
@@ -90,6 +92,7 @@ flutter:
   assets:
     - assets/images/
     - assets/legal/
+    - assets/third_app_logos/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

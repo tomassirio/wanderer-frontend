@@ -647,10 +647,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     radius: 28,
                     backgroundColor:
                         Theme.of(context).colorScheme.primaryContainer,
-                    backgroundImage: user.avatarUrl != null
-                        ? NetworkImage(user.avatarUrl!)
+                    backgroundImage: user.avatarUrl.isNotEmpty
+                        ? NetworkImage(user.avatarUrl)
                         : null,
-                    child: user.avatarUrl == null
+                    child: user.avatarUrl.isEmpty
                         ? Text(
                             user.username.isNotEmpty
                                 ? user.username[0].toUpperCase()
@@ -938,8 +938,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       leading: CircleAvatar(
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         backgroundImage:
-            user.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
-        child: user.avatarUrl == null
+            user.avatarUrl.isNotEmpty ? NetworkImage(user.avatarUrl) : null,
+        child: user.avatarUrl.isEmpty
             ? Text(
                 user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
                 style: TextStyle(

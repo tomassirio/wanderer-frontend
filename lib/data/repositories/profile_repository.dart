@@ -34,6 +34,18 @@ class ProfileRepository {
     return await _userService.updateProfile(request);
   }
 
+  /// Uploads avatar for the current user
+  /// Returns the user ID from 202 Accepted response
+  Future<String> uploadAvatar(List<int> fileBytes, String fileName) async {
+    return await _userService.uploadAvatar(fileBytes, fileName);
+  }
+
+  /// Deletes avatar for the current user
+  /// Returns the user ID from 202 Accepted response
+  Future<String> deleteAvatar() async {
+    return await _userService.deleteAvatar();
+  }
+
   /// Gets trips for the current logged-in user (all trips regardless of visibility)
   Future<List<Trip>> getMyTrips() async {
     return await _tripService.getMyTrips();

@@ -29,6 +29,9 @@ class TripPlan {
   final DateTime? polylineUpdatedAt;
   final DateTime createdTimestamp;
 
+  /// Generate thumbnail URL based on trip plan ID
+  String get thumbnailUrl => '/thumbnails/plans/$id.png';
+
   TripPlan({
     required this.id,
     required this.userId,

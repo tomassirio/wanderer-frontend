@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart' show MediaType;
 import '../models/responses/page_response.dart';
 import '../storage/token_storage.dart';
 import '../storage/token_refresh_manager.dart';
@@ -216,6 +217,96 @@ class ApiClient {
     return response;
   }
 
+  /// POST request with multipart/form-data for file uploads
+  Future<http.Response> postMultipart(
+    String endpoint, {
+    required List<int> fileBytes,
+    required String fileName,
+    required String fieldName,
+    bool requireAuth = false,
+    Map<String, String>? additionalFields,
+  }) async {
+    // Proactively refresh token if expired
+    if (requireAuth) {
+      await _ensureValidToken();
+    }
+
+    final uri = Uri.parse('$baseUrl$endpoint');
+    var request = http.MultipartRequest('POST', uri);
+
+    // Add authorization header if needed
+    if (requireAuth) {
+      final token = await _tokenStorage.getAccessToken();
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+    }
+
+    // Determine content type from file extension
+    String? contentType = _getContentTypeFromFileName(fileName);
+
+    // Add the file
+    request.files.add(http.MultipartFile.fromBytes(
+      fieldName,
+      fileBytes,
+      filename: fileName,
+      contentType: contentType != null ? MediaType.parse(contentType) : null,
+    ));
+
+    // Add any additional fields
+    if (additionalFields != null) {
+      request.fields.addAll(additionalFields);
+    }
+
+    var streamedResponse = await request.send();
+    var response = await http.Response.fromStream(streamedResponse);
+
+    // Handle 401 with token refresh
+    if (response.statusCode == 401 && requireAuth) {
+      final refreshed = await _refreshTokenIfNeeded();
+      if (refreshed) {
+        // Retry with new token
+        request = http.MultipartRequest('POST', uri);
+        final newToken = await _tokenStorage.getAccessToken();
+        if (newToken != null) {
+          request.headers['Authorization'] = 'Bearer $newToken';
+        }
+        request.files.add(http.MultipartFile.fromBytes(
+          fieldName,
+          fileBytes,
+          filename: fileName,
+          contentType:
+              contentType != null ? MediaType.parse(contentType) : null,
+        ));
+        if (additionalFields != null) {
+          request.fields.addAll(additionalFields);
+        }
+        streamedResponse = await request.send();
+        response = await http.Response.fromStream(streamedResponse);
+      } else {
+        _handleUnauthorized();
+      }
+    }
+
+    return response;
+  }
+
+  /// Determine content type from file name extension
+  String? _getContentTypeFromFileName(String fileName) {
+    final extension = fileName.toLowerCase().split('.').last;
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      default:
+        return null;
+    }
+  }
+
   /// DELETE request
   Future<http.Response> delete(
     String endpoint, {
@@ -289,7 +380,9 @@ class ApiClient {
         tokenStorage: _tokenStorage,
         httpClient: _httpClient,
       );
-      debugPrint('ApiClient: ensureValidToken result: $valid');
+      if (!valid) {
+        debugPrint('ApiClient: ensureValidToken returned false');
+      }
     } catch (e) {
       debugPrint('ApiClient: Error in _ensureValidToken: $e');
       // Fallback to 401 handling will still work

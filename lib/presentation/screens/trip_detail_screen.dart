@@ -12,6 +12,7 @@ import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/data/models/achievement_models.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
+import 'package:wanderer_frontend/data/models/domain/location_update_result.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
 import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
@@ -24,6 +25,7 @@ import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/background_location_disclosure.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_planned_info_window.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/reaction_picker.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_map_view.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/comments_section.dart';
@@ -55,6 +57,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   GoogleMapController? _mapController;
   final Completer<GoogleMapController> _mapControllerCompleter = Completer();
   StreamSubscription<WebSocketEvent>? _wsSubscription;
+  StreamSubscription<WebSocketEvent>? _globalWsSubscription;
   late Trip _trip;
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
@@ -101,6 +104,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
   // Trip achievements
   List<UserAchievement> _tripAchievements = [];
+  Timer? _achievementRefreshTimer;
+  Timer? _achievementPollTimer;
 
   // Collapsible panel states
   bool _isTimelineCollapsed = false;
@@ -126,8 +131,21 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   // Custom info window: currently selected map marker location
   TripLocation? _selectedMapLocation;
 
+  // Custom info window: currently selected planned waypoint
+  PlannedWaypointInfo? _selectedPlannedWaypoint;
+
   // User's current device location (used as fallback for empty maps)
   LatLng? _userLocation;
+
+  /// Timestamp of the last camera animation triggered by a WebSocket event.
+  /// Used to suppress competing animations from API refreshes that may carry
+  /// stale data due to CQRS eventual consistency.
+  DateTime? _lastWsCameraUpdate;
+
+  /// How long after a WebSocket-driven camera animation we should suppress
+  /// API-refresh-driven animations to avoid the map jumping back to a
+  /// stale position.
+  static const Duration _wsCameraGuardDuration = Duration(seconds: 10);
 
   final TextEditingController _commentController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -238,8 +256,105 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     // Subscribe to events for this specific trip
     final tripStream = _webSocketService.subscribeToTrip(_trip.id);
     _wsSubscription = tripStream.listen(_handleWebSocketEvent);
+
+    // Listen to the global events stream for notification events
+    // (e.g. ACHIEVEMENT_UNLOCKED) that arrive on the user topic, not
+    // the trip topic.
+    _globalWsSubscription =
+        _webSocketService.events.listen(_handleGlobalWebSocketEvent);
+
+    // Subscribe to the user topic so NOTIFICATION_CREATED events
+    // (including ACHIEVEMENT_UNLOCKED) are received. The userId may
+    // not be available yet (loaded async in _loadUserInfo), so we
+    // try now and also retry in _loadUserInfo via _subscribeUserTopic.
+    _subscribeUserTopic();
+
+    // Start periodic achievement polling as a reliable fallback.
+    // WebSocket events may be delayed or missed; polling ensures the
+    // achievements section updates within a reasonable window.
+    _startAchievementPolling();
+
     debugPrint(
         'TripDetailScreen: WebSocket initialized and listening for trip ${_trip.id}');
+  }
+
+  /// Subscribe to the current user's WebSocket topic if userId is known.
+  /// Safe to call multiple times — no-ops when already subscribed.
+  void _subscribeUserTopic() {
+    final userId = _userId;
+    if (userId == null) return;
+    _webSocketService.subscribeToUser(userId);
+    debugPrint('TripDetailScreen: Subscribed to user topic for user $userId');
+  }
+
+  /// Start periodic polling for trip achievements as a reliable fallback.
+  void _startAchievementPolling() {
+    _achievementPollTimer?.cancel();
+    _achievementPollTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) {
+        if (mounted) {
+          _loadTripAchievements();
+        }
+      },
+    );
+  }
+
+  /// Handle events from the global WebSocket stream that are relevant
+  /// to the trip detail screen but may arrive on non-trip topics (e.g.
+  /// user topic) or fail to route to the trip-specific stream (e.g.
+  /// because the backend didn't include tripId at the expected JSON level).
+  ///
+  /// This acts as a reliable fallback: if an event was already handled by
+  /// the trip-specific listener it will be a no-op because the state is
+  /// already up-to-date.
+  void _handleGlobalWebSocketEvent(WebSocketEvent event) {
+    if (!mounted) return;
+
+    if (event is NotificationCreatedEvent) {
+      final notifType = event.notificationType.toUpperCase();
+      if (notifType == 'ACHIEVEMENT_UNLOCKED') {
+        debugPrint(
+            'TripDetailScreen: Received ACHIEVEMENT_UNLOCKED notification');
+        _loadTripAchievements();
+      }
+      return;
+    }
+
+    // For trip-scoped events, only process if they belong to this trip.
+    // Extract tripId from the event itself or from the raw payload.
+    final eventTripId =
+        event.tripId ?? (event.payload['tripId'] as String?) ?? '';
+    if (eventTripId.isEmpty || eventTripId != _trip.id) return;
+
+    switch (event.type) {
+      case WebSocketEventType.tripUpdateCreated:
+        _handleTripUpdateCreatedEvent(event as TripUpdateCreatedEvent);
+        _debouncedAchievementRefresh();
+        break;
+      case WebSocketEventType.tripUpdated:
+        _handleTripUpdatedEvent(event as TripUpdatedEvent);
+        break;
+      case WebSocketEventType.tripStatusChanged:
+        _handleTripStatusChanged(event as TripStatusChangedEvent);
+        break;
+      case WebSocketEventType.polylineUpdated:
+        _handlePolylineUpdatedEvent(event as PolylineUpdatedEvent);
+        break;
+      case WebSocketEventType.commentAdded:
+        _handleCommentAdded(event as CommentAddedEvent);
+        break;
+      case WebSocketEventType.commentReactionAdded:
+      case WebSocketEventType.commentReactionRemoved:
+      case WebSocketEventType.commentReactionReplaced:
+        _handleCommentReaction(event as CommentReactionEvent);
+        break;
+      case WebSocketEventType.tripSettingsUpdated:
+        _handleTripSettingsUpdated(event as TripSettingsUpdatedEvent);
+        break;
+      default:
+        break;
+    }
   }
 
   void _handleWebSocketEvent(WebSocketEvent event) {
@@ -251,6 +366,13 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         break;
       case WebSocketEventType.tripUpdated:
         _handleTripUpdatedEvent(event as TripUpdatedEvent);
+        break;
+      case WebSocketEventType.tripUpdateCreated:
+        _handleTripUpdateCreatedEvent(event as TripUpdateCreatedEvent);
+        // Achievements are evaluated server-side after trip updates
+        // (distance milestones, time-based, etc.). Debounce a refresh
+        // so rapid-fire updates don't hammer the API.
+        _debouncedAchievementRefresh();
         break;
       case WebSocketEventType.polylineUpdated:
         _handlePolylineUpdatedEvent(event as PolylineUpdatedEvent);
@@ -299,11 +421,35 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     }
   }
 
+  /// Whether a WebSocket event recently animated the camera, meaning
+  /// API-refresh-driven animations should be suppressed to avoid the map
+  /// jumping back to a stale position (CQRS eventual consistency).
+  bool get _isWsCameraGuardActive {
+    if (_lastWsCameraUpdate == null) return false;
+    return DateTime.now().difference(_lastWsCameraUpdate!) <
+        _wsCameraGuardDuration;
+  }
+
   /// Refreshes full trip data from the backend
   Future<void> _refreshTripData() async {
     try {
       final updatedTrip = await _repository.getTripById(_trip.id);
       if (mounted) {
+        // Merge locally-applied WebSocket locations that may not yet appear
+        // in the CQRS query model. This prevents the map from temporarily
+        // losing newly added markers when the backend is still propagating.
+        final apiLocationIds =
+            (updatedTrip.locations ?? []).map((l) => l.id).toSet();
+        final wsOnlyLocations = (_trip.locations ?? [])
+            .where(
+                (l) => l.id.startsWith('ws_') && !apiLocationIds.contains(l.id))
+            .toList();
+
+        final mergedLocations = <TripLocation>[
+          ...updatedTrip.locations ?? [],
+          ...wsOnlyLocations,
+        ];
+
         setState(() {
           // Preserve automaticUpdates / updateRefresh when the backend query
           // model hasn't propagated them yet (CQRS eventual consistency).
@@ -313,13 +459,17 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
             automaticUpdates:
                 updatedTrip.automaticUpdates || _trip.automaticUpdates,
             updateRefresh: updatedTrip.updateRefresh ?? _trip.updateRefresh,
+            locations: mergedLocations,
           );
         });
         _updateMapData();
         // Only animate the camera on subsequent refreshes (e.g. after a
         // WebSocket status change). The very first positioning is handled by
         // _initializeMapPosition with an instant jump.
-        if (_hasInitialMapPosition) {
+        // Skip the animation when a WebSocket event recently positioned the
+        // camera — the WS event has the most up-to-date coordinates,
+        // whereas the API response may still carry stale CQRS data.
+        if (_hasInitialMapPosition && !_isWsCameraGuardActive) {
           _animateMapToLatestLocation(animate: true);
         }
       }
@@ -338,8 +488,18 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     // have location: null. Add them to the timeline but don't create map pins.
     final hasLocation = event.latitude != null && event.longitude != null;
 
+    final updateId = 'ws_${event.timestamp.millisecondsSinceEpoch}';
+
+    // Guard against duplicate processing (event can arrive from both the
+    // trip-specific and global streams).
+    if (_tripUpdates.any((u) => u.id == updateId)) {
+      debugPrint(
+          'TripDetailScreen: Skipping duplicate TRIP_UPDATED event with id $updateId');
+      return;
+    }
+
     final newUpdate = TripLocation(
-      id: 'ws_${event.timestamp.millisecondsSinceEpoch}',
+      id: updateId,
       latitude: event.latitude ?? 0.0,
       longitude: event.longitude ?? 0.0,
       timestamp: event.timestamp,
@@ -352,10 +512,20 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
           ? WeatherCondition.fromJson(event.weatherCondition!)
           : null,
       updateType: parsedUpdateType,
+      distanceSoFarKm: event.distanceSoFarKm,
     );
+
+    debugPrint(
+        'TripDetailScreen: Processing TRIP_UPDATED - hasLocation: $hasLocation, lat: ${event.latitude}, lng: ${event.longitude}');
 
     setState(() {
       _tripUpdates = [newUpdate, ..._tripUpdates];
+      // Update trip's accrued distance if provided
+      if (event.distanceSoFarKm != null) {
+        _trip = _trip.copyWith(
+          accruedDistanceKm: event.distanceSoFarKm,
+        );
+      }
     });
 
     // Only update the map for updates with real locations
@@ -371,27 +541,102 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       });
       _updateMapData();
       // Animate the camera to the new location
+      _lastWsCameraUpdate = DateTime.now();
       _animateMapToLocation(LatLng(event.latitude!, event.longitude!));
+      debugPrint('TripDetailScreen: Map updated and animated to new location');
+    }
+  }
+
+  void _handleTripUpdateCreatedEvent(TripUpdateCreatedEvent event) {
+    // Parse the update type from the event payload (if available)
+    final parsedUpdateType = event.updateType != null
+        ? TripUpdateType.fromJson(event.updateType!)
+        : TripUpdateType.regular;
+
+    final hasLocation = event.latitude != null && event.longitude != null;
+
+    final updateId = event.tripUpdateId.isNotEmpty
+        ? event.tripUpdateId
+        : 'ws_${event.timestamp.millisecondsSinceEpoch}';
+
+    // Guard against duplicate processing (event can arrive from both the
+    // trip-specific and global streams).
+    if (_tripUpdates.any((u) => u.id == updateId)) {
+      debugPrint(
+          'TripDetailScreen: Skipping duplicate TRIP_UPDATE_CREATED event with id $updateId');
+      return;
+    }
+
+    final newUpdate = TripLocation(
+      id: updateId,
+      latitude: event.latitude ?? 0.0,
+      longitude: event.longitude ?? 0.0,
+      timestamp: event.timestamp,
+      battery: hasLocation ? event.batteryLevel : null,
+      message: event.message,
+      city: hasLocation ? event.city : null,
+      country: hasLocation ? event.country : null,
+      temperatureCelsius: hasLocation ? event.temperatureCelsius : null,
+      weatherCondition: hasLocation && event.weatherCondition != null
+          ? WeatherCondition.fromJson(event.weatherCondition!)
+          : null,
+      updateType: parsedUpdateType,
+      distanceSoFarKm: event.distanceSoFarKm,
+    );
+
+    debugPrint(
+        'TripDetailScreen: Processing TRIP_UPDATE_CREATED - hasLocation: $hasLocation, lat: ${event.latitude}, lng: ${event.longitude}');
+
+    setState(() {
+      _tripUpdates = [newUpdate, ..._tripUpdates];
+      // Update trip's accrued distance if provided
+      if (event.distanceSoFarKm != null) {
+        _trip = _trip.copyWith(
+          accruedDistanceKm: event.distanceSoFarKm,
+        );
+      }
+    });
+
+    // Only update the map for updates with real locations
+    if (hasLocation) {
+      final updatedLocations = <TripLocation>[
+        ...(_trip.locations ?? []),
+        newUpdate,
+      ];
+      setState(() {
+        _trip = _trip.copyWith(locations: updatedLocations);
+      });
+      _updateMapData();
+      // Animate the camera to the new location
+      _lastWsCameraUpdate = DateTime.now();
+      _animateMapToLocation(LatLng(event.latitude!, event.longitude!));
+      debugPrint('TripDetailScreen: Map updated and animated to new location');
     }
   }
 
   void _handlePolylineUpdatedEvent(PolylineUpdatedEvent event) {
     // Validate that we have the required data
     if (event.tripId == null || event.tripId!.isEmpty) {
-      debugPrint('PolylineUpdatedEvent: Missing tripId, ignoring event');
+      debugPrint(
+          'TripDetailScreen: PolylineUpdatedEvent missing tripId, ignoring');
       return;
     }
 
     if (event.encodedPolyline.isEmpty) {
       debugPrint(
-          'PolylineUpdatedEvent: Empty encodedPolyline for trip ${event.tripId}, ignoring event');
+          'TripDetailScreen: PolylineUpdatedEvent has empty encodedPolyline for trip ${event.tripId}, ignoring');
       return;
     }
 
     // Only update if this event is for the current trip
     if (event.tripId != _trip.id) {
+      debugPrint(
+          'TripDetailScreen: PolylineUpdatedEvent for different trip (${event.tripId}), ignoring');
       return;
     }
+
+    debugPrint(
+        'TripDetailScreen: Processing POLYLINE_UPDATED - updating encoded polyline');
 
     // Update the trip's encoded polyline and refresh the map
     setState(() {
@@ -400,11 +645,14 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
     // Redraw the polyline on the map
     _updateMapData();
+    debugPrint('TripDetailScreen: Polyline updated on map');
 
     // Animate to the latest location on the polyline (only after the initial
     // camera position has been set — during startup, _initializeMapPosition
     // handles the first jump).
-    if (_hasInitialMapPosition) {
+    // Skip when a WebSocket event recently positioned the camera to avoid
+    // jumping back to a stale CQRS-derived position.
+    if (_hasInitialMapPosition && !_isWsCameraGuardActive) {
       _animateMapToLatestLocation(animate: true);
     }
   }
@@ -845,7 +1093,10 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   void dispose() {
     debugPrint('TripDetailScreen: Disposing for trip ${_trip.id}');
     _wsSubscription?.cancel();
-    debugPrint('TripDetailScreen: Cancelled WebSocket subscription');
+    _globalWsSubscription?.cancel();
+    _achievementRefreshTimer?.cancel();
+    _achievementPollTimer?.cancel();
+    debugPrint('TripDetailScreen: Cancelled WebSocket subscriptions');
     _webSocketService.unsubscribeFromTrip(_trip.id);
     debugPrint('TripDetailScreen: Unsubscribed from trip');
     _commentController.dispose();
@@ -873,6 +1124,10 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       _avatarUrl = avatarUrl;
       _isAdmin = isAdmin;
     });
+
+    // Now that userId is available, ensure we're subscribed to the
+    // user topic for NOTIFICATION_CREATED events (achievements, etc.)
+    _subscribeUserTopic();
 
     // If logged in and viewing another user's trip, check social status
     if (userId != null && _trip.userId != userId) {
@@ -936,7 +1191,14 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         size: _updatesPageSize,
       );
       setState(() {
-        _tripUpdates = pageResponse.content;
+        // Preserve WebSocket-added entries that the CQRS query model may
+        // not have propagated yet, so the timeline doesn't temporarily lose
+        // the most recent updates.
+        final apiIds = pageResponse.content.map((l) => l.id).toSet();
+        final wsOnlyUpdates = _tripUpdates
+            .where((u) => u.id.startsWith('ws_') && !apiIds.contains(u.id))
+            .toList();
+        _tripUpdates = [...wsOnlyUpdates, ...pageResponse.content];
         _hasMoreUpdates = !pageResponse.last;
         _isLoadingUpdates = false;
       });
@@ -1008,6 +1270,19 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     }
   }
 
+  /// Debounce achievement refresh so rapid-fire trip updates don't
+  /// hammer the API. Waits 3 seconds after the last trigger.
+  void _debouncedAchievementRefresh() {
+    _achievementRefreshTimer?.cancel();
+    _achievementRefreshTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        debugPrint(
+            'TripDetailScreen: Debounced achievement refresh for trip ${_trip.id}');
+        _loadTripAchievements();
+      }
+    });
+  }
+
   Future<void> _loadTripAchievements() async {
     try {
       final achievements =
@@ -1023,39 +1298,58 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   }
 
   void _updateMapData() {
+    debugPrint(
+        'TripDetailScreen: Updating map data - locations: ${_trip.locations?.length}, encodedPolyline length: ${_trip.encodedPolyline?.length}');
     try {
       final mapData = TripMapHelper.createMapDataWithDirections(
         _trip,
         onMarkerTap: _onMapMarkerTapped,
+        onPlannedMarkerTap: _onPlannedMarkerTapped,
         showPlannedWaypoints: _showPlannedWaypoints,
       );
       setState(() {
         _markers = mapData.markers;
         _polylines = mapData.polylines;
       });
+      debugPrint(
+          'TripDetailScreen: Map updated - markers: ${_markers.length}, polylines: ${_polylines.length}');
     } catch (e) {
+      debugPrint(
+          'TripDetailScreen: Error in createMapDataWithDirections, falling back to straight lines: $e');
       // Fallback to straight lines if decoding fails
       final mapData = TripMapHelper.createMapData(
         _trip,
         onMarkerTap: _onMapMarkerTapped,
+        onPlannedMarkerTap: _onPlannedMarkerTapped,
         showPlannedWaypoints: _showPlannedWaypoints,
       );
       setState(() {
         _markers = mapData.markers;
         _polylines = mapData.polylines;
       });
+      debugPrint(
+          'TripDetailScreen: Fallback map updated - markers: ${_markers.length}, polylines: ${_polylines.length}');
     }
   }
 
   void _onMapMarkerTapped(TripLocation location) {
     setState(() {
       _selectedMapLocation = location;
+      _selectedPlannedWaypoint = null; // clear other selection
+    });
+  }
+
+  void _onPlannedMarkerTapped(PlannedWaypointInfo waypoint) {
+    setState(() {
+      _selectedPlannedWaypoint = waypoint;
+      _selectedMapLocation = null; // clear other selection
     });
   }
 
   void _onInfoWindowClosed() {
     setState(() {
       _selectedMapLocation = null;
+      _selectedPlannedWaypoint = null;
     });
   }
 
@@ -1559,6 +1853,35 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
       await _repository.changeTripStatus(_trip.id, newStatus);
 
+      // Send lifecycle trip update with GPS location (fire-and-forget)
+      // Backend no longer auto-creates these, so frontend sends them with location data
+      if (newStatus == TripStatus.inProgress &&
+          previousStatus == TripStatus.created) {
+        _repository
+            .sendLifecycleUpdate(
+          _trip.id,
+          updateType: TripUpdateType.tripStarted,
+          message: 'Trip Started!',
+        )
+            .catchError((e) {
+          debugPrint('Failed to send TRIP_STARTED update: $e');
+          return LocationUpdateResult.failure(
+              LocationFailureReason.unknownError);
+        });
+      } else if (newStatus == TripStatus.finished) {
+        _repository
+            .sendLifecycleUpdate(
+          _trip.id,
+          updateType: TripUpdateType.tripEnded,
+          message: 'Trip finished.',
+        )
+            .catchError((e) {
+          debugPrint('Failed to send TRIP_ENDED update: $e');
+          return LocationUpdateResult.failure(
+              LocationFailureReason.unknownError);
+        });
+      }
+
       // Update local state optimistically - WebSocket will confirm the change
       setState(() {
         _trip = _trip.copyWith(
@@ -1744,6 +2067,19 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       try {
         await _repository.toggleDay(_trip.id);
 
+        // Send DAY_END lifecycle update with GPS location (fire-and-forget)
+        _repository
+            .sendLifecycleUpdate(
+          _trip.id,
+          updateType: TripUpdateType.dayEnd,
+          message: 'Day $_currentDay finished',
+        )
+            .catchError((e) {
+          debugPrint('Failed to send DAY_END update: $e');
+          return LocationUpdateResult.failure(
+              LocationFailureReason.unknownError);
+        });
+
         // Update local state optimistically — WebSocket will confirm
         setState(() {
           _trip = _trip.copyWith(status: TripStatus.resting);
@@ -1775,6 +2111,19 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
       try {
         await _repository.toggleDay(_trip.id);
+
+        // Send DAY_START lifecycle update with GPS location (fire-and-forget)
+        _repository
+            .sendLifecycleUpdate(
+          _trip.id,
+          updateType: TripUpdateType.dayStart,
+          message: 'Day ${_currentDay + 1} started!',
+        )
+            .catchError((e) {
+          debugPrint('Failed to send DAY_START update: $e');
+          return LocationUpdateResult.failure(
+              LocationFailureReason.unknownError);
+        });
 
         // Update local state optimistically — WebSocket will confirm
         setState(() {
@@ -1954,8 +2303,13 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       if (mounted) {
         if (result.isSuccess) {
           UiHelpers.showSuccessMessage(context, 'Update sent successfully!');
-          // Refresh timeline to show the new update
-          await _loadTripUpdates();
+          // Delay the timeline refresh so the CQRS query model has time to
+          // propagate the new update. The WebSocket event handles the
+          // immediate map / marker update; this is only for timeline
+          // consistency.
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) _loadTripUpdates();
+          });
 
           // Reschedule automatic updates after manual update (Android only)
           if (_isAndroid &&
@@ -2072,8 +2426,11 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   /// Ignores lifecycle markers (Day Started/Ended, Trip Started/Ended) since
   /// they have no real location.
   void _handleTimelineUpdateTap(TripLocation update) {
-    if (update.isLifecycleMarker) return;
-    _animateMapToLocation(LatLng(update.latitude, update.longitude));
+    // Zoom to the update location on the map (for all update types)
+    // For lifecycle markers without real location, use fallback coordinates
+    if (update.hasLocation) {
+      _animateMapToLocation(LatLng(update.latitude, update.longitude));
+    }
   }
 
   Future<void> _logout() async {
@@ -2297,6 +2654,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                       : !_isHoveringOverPanel,
                   selectedLocation: _selectedMapLocation,
                   onInfoWindowClosed: _onInfoWindowClosed,
+                  selectedPlannedWaypoint: _selectedPlannedWaypoint,
+                  onPlannedInfoWindowClosed: _onInfoWindowClosed,
                   onMapTap: _onInfoWindowClosed,
                 ),
               ),
@@ -2423,7 +2782,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                     : AnimatedPositioned(
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeInOut,
-                        left: _isCommentsCollapsed ? 16.0 : leftPanelWidth + 8,
+                        left: _isCommentsCollapsed ? 16.0 : leftPanelWidth - 16,
                         bottom: 16,
                         child: _buildDonationButton(),
                       ),
@@ -2441,37 +2800,11 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         _donationLink != null && _donationLink!.contains('buymeacoffee.com');
 
     if (isBuyMeACoffee) {
-      return Material(
-        elevation: 4,
-        borderRadius: BorderRadius.circular(12),
-        color: const Color(0xFFFFDD00), // Buy me a Coffee yellow
-        child: InkWell(
-          onTap: _launchDonationLink,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.network(
-                  'https://cdn.buymeacoffee.com/buttons/bmc-new-btn-logo.svg',
-                  height: 24,
-                  width: 24,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Text('☕', style: TextStyle(fontSize: 20)),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Buy me a Coffee',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-              ],
-            ),
-          ),
+      return GestureDetector(
+        onTap: _launchDonationLink,
+        child: Image.asset(
+          'assets/third_app_logos/buymeacoffee.png',
+          height: 48,
         ),
       );
     }

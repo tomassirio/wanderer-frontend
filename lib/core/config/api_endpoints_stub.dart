@@ -39,7 +39,9 @@ String getConfigValue(String key, String defaultValue) {
 const String _appBaseUrl = String.fromEnvironment('APP_BASE_URL');
 
 String getAppBaseUrl() {
-  return _appBaseUrl.isNotEmpty ? _appBaseUrl : 'https://wanderer.tomassir.io';
+  return _appBaseUrl.isNotEmpty
+      ? _appBaseUrl
+      : 'https://wanderer.localwanderer-dev.com';
 }
 
 /// Gets the WebSocket URL for non-web platforms

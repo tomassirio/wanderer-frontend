@@ -5,7 +5,6 @@ class UserProfile {
   final String email;
   final String? displayName;
   final String? bio;
-  final String? avatarUrl;
   final int followersCount;
   final int followingCount;
   final int friendsCount;
@@ -13,13 +12,15 @@ class UserProfile {
   final bool isFollowing;
   final DateTime createdAt;
 
+  /// Generate avatar URL based on user ID
+  String get avatarUrl => '/thumbnails/profiles/$id.png';
+
   UserProfile({
     required this.id,
     required this.username,
     required this.email,
     this.displayName,
     this.bio,
-    this.avatarUrl,
     required this.followersCount,
     required this.followingCount,
     this.friendsCount = 0,
@@ -29,7 +30,7 @@ class UserProfile {
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
-    // Backend nests displayName, bio, avatarUrl under 'userDetails'.
+    // Backend nests displayName, bio under 'userDetails'.
     // Fall back to flat fields for backward compatibility.
     final userDetails = json['userDetails'] as Map<String, dynamic>?;
 
@@ -40,8 +41,6 @@ class UserProfile {
       displayName: userDetails?['displayName'] as String? ??
           json['displayName'] as String?,
       bio: userDetails?['bio'] as String? ?? json['bio'] as String?,
-      avatarUrl:
-          userDetails?['avatarUrl'] as String? ?? json['avatarUrl'] as String?,
       followersCount: json['followersCount'] as int? ?? 0,
       followingCount: json['followingCount'] as int? ?? 0,
       friendsCount: json['friendsCount'] as int? ?? 0,
@@ -58,7 +57,6 @@ class UserProfile {
         'email': email,
         if (displayName != null) 'displayName': displayName,
         if (bio != null) 'bio': bio,
-        if (avatarUrl != null) 'avatarUrl': avatarUrl,
         'followersCount': followersCount,
         'followingCount': followingCount,
         'friendsCount': friendsCount,

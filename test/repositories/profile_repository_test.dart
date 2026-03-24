@@ -48,7 +48,6 @@ void main() {
         final request = UpdateProfileRequest(
           displayName: 'New Name',
           bio: 'New bio',
-          avatarUrl: 'https://example.com/avatar.jpg',
         );
         mockUserService.mockProfile = createMockProfile('user-1', 'testuser');
 
@@ -237,7 +236,6 @@ UserProfile createMockProfile(String id, String username) {
     email: '$username@example.com',
     displayName: username,
     bio: 'Test bio',
-    avatarUrl: 'https://example.com/avatar.jpg',
     followersCount: 10,
     followingCount: 5,
     tripsCount: 3,

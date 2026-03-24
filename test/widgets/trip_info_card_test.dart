@@ -36,7 +36,7 @@ void main() {
 
       expect(find.text('Test Trip'), findsOneWidget);
       expect(find.text('@testuser'), findsOneWidget);
-      expect(find.text('5 comments'), findsOneWidget);
+      expect(find.text('5 Comments'), findsOneWidget);
     });
 
     testWidgets('username is clickable and has correct styling', (

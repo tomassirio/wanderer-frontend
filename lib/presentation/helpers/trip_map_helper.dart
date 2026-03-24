@@ -1,8 +1,13 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/client/polyline_codec.dart';
+import 'package:wanderer_frontend/presentation/helpers/dashed_polyline_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_route_helper.dart';
+import 'package:wanderer_frontend/presentation/helpers/web_marker_generator.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_planned_info_window.dart';
+import 'package:wanderer_frontend/core/constants/enums.dart';
 
 /// Helper class for managing Google Maps markers and polylines for trips
 class TripMapHelper {
@@ -12,6 +17,7 @@ class TripMapHelper {
   static MapData createMapData(
     Trip trip, {
     void Function(TripLocation)? onMarkerTap,
+    void Function(PlannedWaypointInfo)? onPlannedMarkerTap,
     bool showPlannedWaypoints = false,
   }) {
     final markers = <Marker>{};
@@ -22,10 +28,9 @@ class TripMapHelper {
       // Sort chronologically (oldest first) so Update 1 = first trip update
       final locations = List<TripLocation>.from(trip.locations!)
         ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
-      // Filter out lifecycle markers with no real location (location: null from backend)
-      final mappableLocations = locations
-          .where((loc) => !loc.isLifecycleMarker || loc.hasLocation)
-          .toList();
+      // Assign fallback positions to lifecycle markers without real coordinates
+      // so all markers (tripStarted, tripEnded, dayStart, dayEnd) appear on map.
+      final mappableLocations = _withLifecycleFallbacks(locations);
       final points = <LatLng>[];
 
       for (int i = 0; i < mappableLocations.length; i++) {
@@ -41,11 +46,7 @@ class TripMapHelper {
                 ? InfoWindow.noText
                 : _buildLocationInfoWindow(location, i),
             onTap: onMarkerTap != null ? () => onMarkerTap(location) : null,
-            icon: i == mappableLocations.length - 1
-                ? BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueGreen,
-                  )
-                : BitmapDescriptor.defaultMarker,
+            icon: _getMarkerIcon(location, i, mappableLocations.length),
           ),
         );
       }
@@ -66,12 +67,14 @@ class TripMapHelper {
 
       // Overlay planned waypoints if enabled
       if (showPlannedWaypoints && trip.hasPlannedRoute) {
-        _addPlannedRouteOverlay(trip, markers, polylines);
+        _addPlannedRouteOverlay(trip, markers, polylines,
+            onPlannedMarkerTap: onPlannedMarkerTap);
       }
     }
     // Fall back to planned route from trip plan (only when toggle is on)
     else if (showPlannedWaypoints && trip.hasPlannedRoute) {
-      final mapData = _createPlannedRouteMapData(trip);
+      final mapData = _createPlannedRouteMapData(trip,
+          onPlannedMarkerTap: onPlannedMarkerTap);
       return mapData;
     }
 
@@ -79,7 +82,10 @@ class TripMapHelper {
   }
 
   /// Creates markers and polylines from planned route (from trip plan)
-  static MapData _createPlannedRouteMapData(Trip trip) {
+  static MapData _createPlannedRouteMapData(
+    Trip trip, {
+    void Function(PlannedWaypointInfo)? onPlannedMarkerTap,
+  }) {
     final markers = <Marker>{};
     final polylines = <Polyline>{};
     final points = <LatLng>[];
@@ -97,9 +103,16 @@ class TripMapHelper {
         Marker(
           markerId: const MarkerId('planned_start'),
           position: startPos,
-          infoWindow: const InfoWindow(title: 'Planned Start'),
-          icon:
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          infoWindow: onPlannedMarkerTap != null
+              ? InfoWindow.noText
+              : const InfoWindow(title: 'Planned Start'),
+          onTap: onPlannedMarkerTap != null
+              ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                    type: PlannedWaypointType.start,
+                    position: startPos,
+                  ))
+              : null,
+          icon: _createMarkerWithHue(120.0), // Green
         ),
       );
     }
@@ -115,10 +128,17 @@ class TripMapHelper {
             Marker(
               markerId: MarkerId('planned_waypoint_$i'),
               position: waypointPos,
-              infoWindow: InfoWindow(title: 'Planned Stop ${i + 1}'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueBlue,
-              ),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : InfoWindow(title: 'Planned Stop ${i + 1}'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.stop,
+                        position: waypointPos,
+                        stopIndex: i,
+                      ))
+                  : null,
+              icon: _createMarkerWithHue(240.0), // Blue
             ),
           );
         }
@@ -138,8 +158,16 @@ class TripMapHelper {
         Marker(
           markerId: const MarkerId('planned_end'),
           position: endPos,
-          infoWindow: const InfoWindow(title: 'Planned End'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          infoWindow: onPlannedMarkerTap != null
+              ? InfoWindow.noText
+              : const InfoWindow(title: 'Planned End'),
+          onTap: onPlannedMarkerTap != null
+              ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                    type: PlannedWaypointType.end,
+                    position: endPos,
+                  ))
+              : null,
+          icon: _createMarkerWithHue(0.0), // Red
         ),
       );
     }
@@ -152,18 +180,12 @@ class TripMapHelper {
         final routePoints = PolylineCodec.decode(
           trip.plannedEncodedPolyline!,
         );
-        polylines.add(
-          Polyline(
-            polylineId: const PolylineId('planned_route'),
+        polylines.addAll(
+          DashedPolylineHelper.createDashedPolylines(
+            polylineIdPrefix: 'planned_route',
             points: routePoints,
             color: Colors.purple.withOpacity(0.7),
             width: 3,
-            patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-            geodesic: false,
-            visible: true,
-            startCap: Cap.roundCap,
-            endCap: Cap.roundCap,
-            jointType: JointType.round,
           ),
         );
 
@@ -173,20 +195,32 @@ class TripMapHelper {
             Marker(
               markerId: const MarkerId('planned_start'),
               position: routePoints.first,
-              infoWindow: const InfoWindow(title: 'Planned Start'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen,
-              ),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : const InfoWindow(title: 'Planned Start'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.start,
+                        position: routePoints.first,
+                      ))
+                  : null,
+              icon: _createMarkerWithHue(120.0), // Green
             ),
           );
           markers.add(
             Marker(
               markerId: const MarkerId('planned_end'),
               position: routePoints.last,
-              infoWindow: const InfoWindow(title: 'Planned End'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueRed,
-              ),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : const InfoWindow(title: 'Planned End'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.end,
+                        position: routePoints.last,
+                      ))
+                  : null,
+              icon: _createMarkerWithHue(0.0), // Red
             ),
           );
         }
@@ -213,6 +247,7 @@ class TripMapHelper {
   static MapData createMapDataWithDirections(
     Trip trip, {
     void Function(TripLocation)? onMarkerTap,
+    void Function(PlannedWaypointInfo)? onPlannedMarkerTap,
     bool showPlannedWaypoints = false,
   }) {
     final markers = <Marker>{};
@@ -223,10 +258,9 @@ class TripMapHelper {
       // Sort chronologically (oldest first) so Update 1 = first trip update
       final locations = List<TripLocation>.from(trip.locations!)
         ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
-      // Filter out lifecycle markers with no real location (location: null from backend)
-      final mappableLocations = locations
-          .where((loc) => !loc.isLifecycleMarker || loc.hasLocation)
-          .toList();
+      // Assign fallback positions to lifecycle markers without real coordinates
+      // so all markers (tripStarted, tripEnded, dayStart, dayEnd) appear on map.
+      final mappableLocations = _withLifecycleFallbacks(locations);
       final waypoints = <LatLng>[];
 
       // Create markers only for updates with actual locations
@@ -243,17 +277,8 @@ class TripMapHelper {
                 ? InfoWindow.noText
                 : _buildLocationInfoWindow(location, i),
             onTap: onMarkerTap != null ? () => onMarkerTap(location) : null,
-            icon: i == 0
-                ? BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueRed, // Start point - red
-                  )
-                : i == mappableLocations.length - 1
-                    ? BitmapDescriptor.defaultMarkerWithHue(
-                        BitmapDescriptor.hueGreen, // End point - green
-                      )
-                    : BitmapDescriptor.defaultMarkerWithHue(
-                        BitmapDescriptor.hueOrange, // Waypoints - orange
-                      ),
+            icon: _getMarkerIconWithDirections(
+                location, i, mappableLocations.length),
           ),
         );
       }
@@ -300,14 +325,16 @@ class TripMapHelper {
 
       // Overlay planned waypoints if enabled
       if (showPlannedWaypoints && trip.hasPlannedRoute) {
-        _addPlannedRouteOverlay(trip, markers, polylines);
+        _addPlannedRouteOverlay(trip, markers, polylines,
+            onPlannedMarkerTap: onPlannedMarkerTap);
       }
 
       return MapData(markers: markers, polylines: polylines);
     }
     // Fall back to planned route with directions (only when toggle is on)
     else if (showPlannedWaypoints && trip.hasPlannedRoute) {
-      return _createPlannedRouteMapDataWithDirections(trip);
+      return _createPlannedRouteMapDataWithDirections(trip,
+          onPlannedMarkerTap: onPlannedMarkerTap);
     }
 
     return MapData(markers: markers, polylines: polylines);
@@ -375,8 +402,9 @@ class TripMapHelper {
   static void _addPlannedRouteOverlay(
     Trip trip,
     Set<Marker> markers,
-    Set<Polyline> polylines,
-  ) {
+    Set<Polyline> polylines, {
+    void Function(PlannedWaypointInfo)? onPlannedMarkerTap,
+  }) {
     final points = <LatLng>[];
 
     // Add planned start marker (green with cyan hue to differentiate)
@@ -392,9 +420,16 @@ class TripMapHelper {
         Marker(
           markerId: const MarkerId('planned_start'),
           position: startPos,
-          infoWindow: const InfoWindow(title: 'Planned Start'),
-          icon:
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          infoWindow: onPlannedMarkerTap != null
+              ? InfoWindow.noText
+              : const InfoWindow(title: 'Planned Start'),
+          onTap: onPlannedMarkerTap != null
+              ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                    type: PlannedWaypointType.start,
+                    position: startPos,
+                  ))
+              : null,
+          icon: _createMarkerWithHue(120.0), // Green
         ),
       );
     }
@@ -410,10 +445,17 @@ class TripMapHelper {
             Marker(
               markerId: MarkerId('planned_waypoint_$i'),
               position: waypointPos,
-              infoWindow: InfoWindow(title: 'Planned Stop ${i + 1}'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueViolet,
-              ),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : InfoWindow(title: 'Planned Stop ${i + 1}'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.stop,
+                        position: waypointPos,
+                        stopIndex: i,
+                      ))
+                  : null,
+              icon: _createMarkerWithHue(270.0), // Violet
             ),
           );
         }
@@ -433,8 +475,16 @@ class TripMapHelper {
         Marker(
           markerId: const MarkerId('planned_end'),
           position: endPos,
-          infoWindow: const InfoWindow(title: 'Planned End'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          infoWindow: onPlannedMarkerTap != null
+              ? InfoWindow.noText
+              : const InfoWindow(title: 'Planned End'),
+          onTap: onPlannedMarkerTap != null
+              ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                    type: PlannedWaypointType.end,
+                    position: endPos,
+                  ))
+              : null,
+          icon: _createMarkerWithHue(0.0), // Red
         ),
       );
     }
@@ -447,18 +497,12 @@ class TripMapHelper {
         final routePoints = PolylineCodec.decode(
           trip.plannedEncodedPolyline!,
         );
-        polylines.add(
-          Polyline(
-            polylineId: const PolylineId('planned_route'),
+        polylines.addAll(
+          DashedPolylineHelper.createDashedPolylines(
+            polylineIdPrefix: 'planned_route',
             points: routePoints,
             color: Colors.purple,
             width: 4,
-            patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-            geodesic: false,
-            visible: true,
-            startCap: Cap.roundCap,
-            endCap: Cap.roundCap,
-            jointType: JointType.round,
           ),
         );
 
@@ -471,20 +515,32 @@ class TripMapHelper {
             Marker(
               markerId: const MarkerId('planned_start'),
               position: routePoints.first,
-              infoWindow: const InfoWindow(title: 'Planned Start'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen,
-              ),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : const InfoWindow(title: 'Planned Start'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.start,
+                        position: routePoints.first,
+                      ))
+                  : null,
+              icon: _createMarkerWithHue(120.0), // Green
             ),
           );
           markers.add(
             Marker(
               markerId: const MarkerId('planned_end'),
               position: routePoints.last,
-              infoWindow: const InfoWindow(title: 'Planned End'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueRed,
-              ),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : const InfoWindow(title: 'Planned End'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.end,
+                        position: routePoints.last,
+                      ))
+                  : null,
+              icon: _createMarkerWithHue(0.0), // Red
             ),
           );
         }
@@ -508,25 +564,21 @@ class TripMapHelper {
     Set<Polyline> polylines,
     List<LatLng> points,
   ) {
-    polylines.add(
-      Polyline(
-        polylineId: const PolylineId('planned_route'),
+    polylines.addAll(
+      DashedPolylineHelper.createDashedPolylines(
+        polylineIdPrefix: 'planned_route',
         points: points,
         color: Colors.purple.withOpacity(0.7),
         width: 3,
-        patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-        geodesic: false,
-        visible: true,
-        startCap: Cap.roundCap,
-        endCap: Cap.roundCap,
       ),
     );
   }
 
   /// Creates planned route map data with straight-line polylines
   static MapData _createPlannedRouteMapDataWithDirections(
-    Trip trip,
-  ) {
+    Trip trip, {
+    void Function(PlannedWaypointInfo)? onPlannedMarkerTap,
+  }) {
     final markers = <Marker>{};
     final polylines = <Polyline>{};
     final points = <LatLng>[];
@@ -544,9 +596,16 @@ class TripMapHelper {
         Marker(
           markerId: const MarkerId('planned_start'),
           position: startPos,
-          infoWindow: const InfoWindow(title: 'Planned Start'),
-          icon:
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          infoWindow: onPlannedMarkerTap != null
+              ? InfoWindow.noText
+              : const InfoWindow(title: 'Planned Start'),
+          onTap: onPlannedMarkerTap != null
+              ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                    type: PlannedWaypointType.start,
+                    position: startPos,
+                  ))
+              : null,
+          icon: _createMarkerWithHue(120.0), // Green
         ),
       );
     }
@@ -562,10 +621,17 @@ class TripMapHelper {
             Marker(
               markerId: MarkerId('planned_waypoint_$i'),
               position: waypointPos,
-              infoWindow: InfoWindow(title: 'Planned Stop ${i + 1}'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueBlue,
-              ),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : InfoWindow(title: 'Planned Stop ${i + 1}'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.stop,
+                        position: waypointPos,
+                        stopIndex: i,
+                      ))
+                  : null,
+              icon: _createMarkerWithHue(240.0), // Blue
             ),
           );
         }
@@ -585,8 +651,16 @@ class TripMapHelper {
         Marker(
           markerId: const MarkerId('planned_end'),
           position: endPos,
-          infoWindow: const InfoWindow(title: 'Planned End'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          infoWindow: onPlannedMarkerTap != null
+              ? InfoWindow.noText
+              : const InfoWindow(title: 'Planned End'),
+          onTap: onPlannedMarkerTap != null
+              ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                    type: PlannedWaypointType.end,
+                    position: endPos,
+                  ))
+              : null,
+          icon: _createMarkerWithHue(0.0), // Red
         ),
       );
     }
@@ -607,18 +681,12 @@ class TripMapHelper {
           'TripMapHelper: Successfully decoded planned polyline '
           'with ${routePoints.length} points',
         );
-        polylines.add(
-          Polyline(
-            polylineId: const PolylineId('planned_route'),
+        polylines.addAll(
+          DashedPolylineHelper.createDashedPolylines(
+            polylineIdPrefix: 'planned_route',
             points: routePoints,
             color: Colors.purple,
             width: 4,
-            patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-            geodesic: false,
-            visible: true,
-            startCap: Cap.roundCap,
-            endCap: Cap.roundCap,
-            jointType: JointType.round,
           ),
         );
 
@@ -628,20 +696,32 @@ class TripMapHelper {
             Marker(
               markerId: const MarkerId('planned_start'),
               position: routePoints.first,
-              infoWindow: const InfoWindow(title: 'Planned Start'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen,
-              ),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : const InfoWindow(title: 'Planned Start'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.start,
+                        position: routePoints.first,
+                      ))
+                  : null,
+              icon: _createMarkerWithHue(120.0), // Green
             ),
           );
           markers.add(
             Marker(
               markerId: const MarkerId('planned_end'),
               position: routePoints.last,
-              infoWindow: const InfoWindow(title: 'Planned End'),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueRed,
-              ),
+              infoWindow: onPlannedMarkerTap != null
+                  ? InfoWindow.noText
+                  : const InfoWindow(title: 'Planned End'),
+              onTap: onPlannedMarkerTap != null
+                  ? () => onPlannedMarkerTap(PlannedWaypointInfo(
+                        type: PlannedWaypointType.end,
+                        position: routePoints.last,
+                      ))
+                  : null,
+              icon: _createMarkerWithHue(0.0), // Red
             ),
           );
         }
@@ -651,17 +731,12 @@ class TripMapHelper {
           'using straight lines: $e',
         );
         if (points.length >= 2) {
-          polylines.add(
-            Polyline(
-              polylineId: const PolylineId('planned_route'),
+          polylines.addAll(
+            DashedPolylineHelper.createDashedPolylines(
+              polylineIdPrefix: 'planned_route',
               points: points,
               color: Colors.purple,
               width: 4,
-              patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-              geodesic: false,
-              visible: true,
-              startCap: Cap.roundCap,
-              endCap: Cap.roundCap,
             ),
           );
         }
@@ -671,17 +746,12 @@ class TripMapHelper {
         'TripMapHelper: No encoded polyline for trip ${trip.id}, '
         'using straight lines',
       );
-      polylines.add(
-        Polyline(
-          polylineId: const PolylineId('planned_route'),
+      polylines.addAll(
+        DashedPolylineHelper.createDashedPolylines(
+          polylineIdPrefix: 'planned_route',
           points: points,
           color: Colors.purple,
           width: 4,
-          patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-          geodesic: false,
-          visible: true,
-          startCap: Cap.roundCap,
-          endCap: Cap.roundCap,
         ),
       );
     }
@@ -772,8 +842,87 @@ class TripMapHelper {
     return 4;
   }
 
+  /// Filters sorted locations, keeping all lifecycle markers (tripStarted,
+  /// tripEnded, dayStart, dayEnd) even when they lack real coordinates by
+  /// assigning them the nearest real position as a fallback.
+  static List<TripLocation> _withLifecycleFallbacks(
+    List<TripLocation> sorted,
+  ) {
+    final realLocations = sorted.where((loc) => loc.hasLocation).toList();
+    if (realLocations.isEmpty) {
+      // No real locations to use as fallback — keep only those with coords
+      return sorted
+          .where((loc) => !loc.isLifecycleMarker || loc.hasLocation)
+          .toList();
+    }
+
+    final firstReal = realLocations.first;
+    final lastReal = realLocations.last;
+    final result = <TripLocation>[];
+
+    for (int i = 0; i < sorted.length; i++) {
+      final loc = sorted[i];
+      if (!loc.isLifecycleMarker) {
+        // Regular update — always keep
+        result.add(loc);
+      } else if (loc.hasLocation) {
+        // Lifecycle marker with real coordinates — keep as-is
+        result.add(loc);
+      } else {
+        // Lifecycle marker without location — find the best fallback
+        final fallback =
+            _findNearestRealLocation(sorted, i, firstReal, lastReal);
+        result.add(loc.copyWith(
+          latitude: fallback.latitude,
+          longitude: fallback.longitude,
+          city: loc.city ?? fallback.city,
+          country: loc.country ?? fallback.country,
+        ));
+      }
+    }
+    return result;
+  }
+
+  /// Finds the nearest real location to use as a fallback position.
+  /// For tripStarted → first real; for tripEnded → last real.
+  /// For dayStart/dayEnd → nearest preceding or following real location.
+  static TripLocation _findNearestRealLocation(
+    List<TripLocation> sorted,
+    int index,
+    TripLocation firstReal,
+    TripLocation lastReal,
+  ) {
+    final loc = sorted[index];
+    if (loc.updateType == TripUpdateType.tripStarted) return firstReal;
+    if (loc.updateType == TripUpdateType.tripEnded) return lastReal;
+
+    // For day markers, look for the nearest real location (prefer preceding)
+    // Search backward first
+    for (int j = index - 1; j >= 0; j--) {
+      if (sorted[j].hasLocation) return sorted[j];
+    }
+    // Then forward
+    for (int j = index + 1; j < sorted.length; j++) {
+      if (sorted[j].hasLocation) return sorted[j];
+    }
+    return firstReal; // Ultimate fallback
+  }
+
   /// Builds a rich InfoWindow for a location update marker
   static InfoWindow _buildLocationInfoWindow(TripLocation location, int index) {
+    // Lifecycle labels for lifecycle markers
+    final lifecycleLabel = _lifecycleInfoLabel(location.updateType);
+    if (lifecycleLabel != null) {
+      final titleParts = <String>[lifecycleLabel];
+      titleParts.add(_formatMarkerTimestamp(location.timestamp));
+      final title = titleParts.join('  ·  ');
+      final snippetParts = <String>[location.displayLocation];
+      if (location.message != null && location.message!.isNotEmpty) {
+        snippetParts.add(location.message!);
+      }
+      return InfoWindow(title: title, snippet: snippetParts.join('\n'));
+    }
+
     // Title: date/time + battery
     final titleParts = <String>[];
     titleParts.add(_formatMarkerTimestamp(location.timestamp));
@@ -796,12 +945,180 @@ class TripMapHelper {
     );
   }
 
+  /// Returns a label prefix for lifecycle markers, or null for regular updates.
+  static String? _lifecycleInfoLabel(TripUpdateType type) {
+    switch (type) {
+      case TripUpdateType.tripStarted:
+        return '🚩 Trip Started';
+      case TripUpdateType.tripEnded:
+        return '🏁 Trip Ended';
+      case TripUpdateType.dayStart:
+        return '☀️ Day Started';
+      case TripUpdateType.dayEnd:
+        return '🌙 Day Ended';
+      case TripUpdateType.regular:
+        return null;
+    }
+  }
+
   /// Formats a timestamp for display in a marker InfoWindow
   static String _formatMarkerTimestamp(DateTime timestamp) {
     final local = timestamp.toLocal();
     final day = '${local.day}/${local.month}/${local.year}';
     final time = '${local.hour}:${local.minute.toString().padLeft(2, '0')}';
     return '$day  $time';
+  }
+
+  /// Creates a marker icon with the specified hue, using the appropriate
+  /// method for the current platform (web vs native).
+  static BitmapDescriptor _createMarkerWithHue(double hue) {
+    return WebMarkerGenerator.markerWithHue(hue);
+  }
+
+  /// Gets the appropriate marker icon for a location based on its type
+  static BitmapDescriptor _getMarkerIcon(
+    TripLocation location,
+    int index,
+    int totalLocations,
+  ) {
+    // On web, use numeric hue values for better compatibility
+    if (kIsWeb) {
+      return _getWebMarkerIcon(location, index, totalLocations);
+    }
+
+    // Check for lifecycle markers first
+    switch (location.updateType) {
+      case TripUpdateType.tripStarted:
+        return _createMarkerWithHue(BitmapDescriptor.hueGreen);
+      case TripUpdateType.tripEnded:
+        return _createMarkerWithHue(BitmapDescriptor.hueRed);
+      case TripUpdateType.dayStart:
+        return _createMarkerWithHue(BitmapDescriptor.hueYellow);
+      case TripUpdateType.dayEnd:
+        return _createMarkerWithHue(BitmapDescriptor.hueViolet);
+      case TripUpdateType.regular:
+        // For regular updates, use red for last (most recent) location
+        if (index == totalLocations - 1) {
+          return _createMarkerWithHue(BitmapDescriptor.hueRed);
+        }
+        return _createMarkerWithHue(BitmapDescriptor.hueOrange);
+    }
+  }
+
+  /// Gets marker icon for web platform using numeric hue values
+  static BitmapDescriptor _getWebMarkerIcon(
+    TripLocation location,
+    int index,
+    int totalLocations,
+  ) {
+    double hue;
+    String colorName;
+
+    switch (location.updateType) {
+      case TripUpdateType.tripStarted:
+        hue = 120.0;
+        colorName = 'GREEN';
+        break;
+      case TripUpdateType.tripEnded:
+        hue = 0.0;
+        colorName = 'RED';
+        break;
+      case TripUpdateType.dayStart:
+        hue = 60.0;
+        colorName = 'YELLOW';
+        break;
+      case TripUpdateType.dayEnd:
+        hue = 270.0;
+        colorName = 'VIOLET';
+        break;
+      case TripUpdateType.regular:
+        if (index == totalLocations - 1) {
+          hue = 0.0;
+          colorName = 'RED (latest)';
+        } else {
+          hue = 30.0;
+          colorName = 'ORANGE (previous)';
+        }
+        break;
+    }
+
+    debugPrint(
+        'WEB: Marker for ${location.updateType} at index $index/$totalLocations -> $colorName (hue: $hue)');
+    return WebMarkerGenerator.markerWithHue(hue);
+  }
+
+  /// Gets the appropriate marker icon for a location with directions mode
+  static BitmapDescriptor _getMarkerIconWithDirections(
+    TripLocation location,
+    int index,
+    int totalLocations,
+  ) {
+    // On web, use numeric hue values for better compatibility
+    if (kIsWeb) {
+      return _getWebMarkerIconWithDirections(location, index, totalLocations);
+    }
+
+    // Check for lifecycle markers first
+    switch (location.updateType) {
+      case TripUpdateType.tripStarted:
+        return _createMarkerWithHue(BitmapDescriptor.hueGreen);
+      case TripUpdateType.tripEnded:
+        return _createMarkerWithHue(BitmapDescriptor.hueRed);
+      case TripUpdateType.dayStart:
+        return _createMarkerWithHue(BitmapDescriptor.hueYellow);
+      case TripUpdateType.dayEnd:
+        return _createMarkerWithHue(BitmapDescriptor.hueViolet);
+      case TripUpdateType.regular:
+        // For regular updates in directions mode:
+        // - Last (most recent) = red
+        // - Previous = orange
+        if (index == totalLocations - 1) {
+          return _createMarkerWithHue(BitmapDescriptor.hueRed);
+        }
+        return _createMarkerWithHue(BitmapDescriptor.hueOrange);
+    }
+  }
+
+  /// Gets marker icon for web platform with directions mode using numeric hue values
+  static BitmapDescriptor _getWebMarkerIconWithDirections(
+    TripLocation location,
+    int index,
+    int totalLocations,
+  ) {
+    double hue;
+    String colorName;
+
+    switch (location.updateType) {
+      case TripUpdateType.tripStarted:
+        hue = 120.0;
+        colorName = 'GREEN';
+        break;
+      case TripUpdateType.tripEnded:
+        hue = 0.0;
+        colorName = 'RED';
+        break;
+      case TripUpdateType.dayStart:
+        hue = 60.0;
+        colorName = 'YELLOW';
+        break;
+      case TripUpdateType.dayEnd:
+        hue = 270.0;
+        colorName = 'VIOLET';
+        break;
+      case TripUpdateType.regular:
+        if (index == totalLocations - 1) {
+          hue = 0.0;
+          colorName = 'RED (latest)';
+        } else {
+          hue = 30.0;
+          colorName = 'ORANGE (previous)';
+        }
+        break;
+    }
+
+    debugPrint(
+        'WEB-DIR: Marker for ${location.updateType} at index $index/$totalLocations -> $colorName (hue: $hue)');
+    return WebMarkerGenerator.markerWithHue(hue);
   }
 }
 

@@ -3,14 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:intl/intl.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/constants/enums.dart';
 import '../../../core/theme/wanderer_theme.dart';
-import '../../../data/client/google_maps_api_client.dart';
 import '../../helpers/auth_navigation_helper.dart';
-import '../../helpers/trip_route_helper.dart';
 import '../common/user_avatar.dart';
 import 'visibility_badge.dart';
 import 'status_badge.dart';
@@ -41,27 +38,9 @@ class EnhancedTripCard extends StatefulWidget {
 }
 
 class _EnhancedTripCardState extends State<EnhancedTripCard> {
-  String? _encodedPolyline;
-  late final GoogleMapsApiClient _mapsClient;
-
   @override
   void initState() {
     super.initState();
-    final apiKey = ApiEndpoints.googleMapsApiKey;
-    _mapsClient = GoogleMapsApiClient(apiKey);
-    _loadRoute();
-  }
-
-  /// Load the encoded polyline for the miniature map using the shared
-  /// [TripRouteHelper]. Uses the backend-provided polyline, in-memory cache,
-  /// or encodes raw sorted points as straight-line fallback.
-  void _loadRoute() {
-    final encoded = TripRouteHelper.fetchEncodedPolyline(widget.trip);
-    if (mounted && encoded != null) {
-      setState(() {
-        _encodedPolyline = encoded;
-      });
-    }
   }
 
   String _formatDate(DateTime date) {
@@ -95,8 +74,6 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
       return DateFormat('MMM d, yyyy').format(date);
     }
   }
-
-  bool get _hasPlannedRoute => widget.trip.hasPlannedRoute;
 
   /// Whether this card should show the coming-soon blur+countdown overlay.
   bool get _isPreAnnouncedCreated =>
@@ -190,106 +167,6 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
           ),
         ],
       ),
-    );
-  }
-
-  String _generateStaticMapUrl() {
-    final sorted = TripRouteHelper.getSortedLocations(widget.trip);
-    if (sorted.isNotEmpty) {
-      final firstLoc = sorted.first;
-      final lastLoc = sorted.last;
-
-      if (sorted.length == 1) {
-        return _mapsClient.generateStaticMapUrl(
-          center: LatLng(firstLoc.latitude, firstLoc.longitude),
-          markers: [
-            MapMarker(
-              position: LatLng(firstLoc.latitude, firstLoc.longitude),
-              color: 'green',
-            ),
-          ],
-        );
-      } else {
-        return _mapsClient.generateRouteMapUrl(
-          startPoint: LatLng(firstLoc.latitude, firstLoc.longitude),
-          endPoint: LatLng(lastLoc.latitude, lastLoc.longitude),
-          encodedPolyline: _encodedPolyline,
-        );
-      }
-    }
-
-    if (_hasPlannedRoute) {
-      return _generatePlannedRouteMapUrl();
-    }
-
-    return '';
-  }
-
-  String _generatePlannedRouteMapUrl() {
-    final markers = <MapMarker>[];
-
-    if (widget.trip.plannedStartLocation != null &&
-        widget.trip.plannedStartLocation!.latitude != 0 &&
-        widget.trip.plannedStartLocation!.longitude != 0) {
-      markers.add(MapMarker(
-        position: LatLng(
-          widget.trip.plannedStartLocation!.latitude,
-          widget.trip.plannedStartLocation!.longitude,
-        ),
-        color: 'green',
-        label: 'S',
-      ));
-    }
-
-    if (widget.trip.plannedWaypoints != null) {
-      for (int i = 0; i < widget.trip.plannedWaypoints!.length; i++) {
-        final wp = widget.trip.plannedWaypoints![i];
-        if (wp.latitude != 0 && wp.longitude != 0) {
-          markers.add(MapMarker(
-            position: LatLng(wp.latitude, wp.longitude),
-            color: 'blue',
-            label: '${i + 1}',
-          ));
-        }
-      }
-    }
-
-    if (widget.trip.plannedEndLocation != null &&
-        widget.trip.plannedEndLocation!.latitude != 0 &&
-        widget.trip.plannedEndLocation!.longitude != 0) {
-      markers.add(MapMarker(
-        position: LatLng(
-          widget.trip.plannedEndLocation!.latitude,
-          widget.trip.plannedEndLocation!.longitude,
-        ),
-        color: 'red',
-        label: 'E',
-      ));
-    }
-
-    if (markers.isEmpty) return '';
-
-    if (widget.trip.plannedStartLocation != null &&
-        widget.trip.plannedEndLocation != null &&
-        widget.trip.plannedStartLocation!.latitude != 0 &&
-        widget.trip.plannedEndLocation!.latitude != 0) {
-      return _mapsClient.generateRouteMapUrl(
-        startPoint: LatLng(
-          widget.trip.plannedStartLocation!.latitude,
-          widget.trip.plannedStartLocation!.longitude,
-        ),
-        endPoint: LatLng(
-          widget.trip.plannedEndLocation!.latitude,
-          widget.trip.plannedEndLocation!.longitude,
-        ),
-        encodedPolyline: widget.trip.plannedEncodedPolyline,
-      );
-    }
-
-    return _mapsClient.generateStaticMapUrl(
-      center: markers.first.position,
-      markers: markers,
-      zoom: 10,
     );
   }
 
@@ -453,10 +330,6 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
 
   @override
   Widget build(BuildContext context) {
-    final hasMapData =
-        TripRouteHelper.getSortedLocations(widget.trip).isNotEmpty ||
-            _hasPlannedRoute;
-
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: 3,
@@ -474,12 +347,15 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (hasMapData)
+                  if (widget.trip.thumbnailUrl.isNotEmpty)
                     Image.network(
-                      _generateStaticMapUrl(),
+                      ApiEndpoints.resolveThumbnailUrl(
+                          widget.trip.thumbnailUrl),
                       fit: BoxFit.cover,
                       loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
+                        if (loadingProgress == null) {
+                          return child;
+                        }
                         return Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(

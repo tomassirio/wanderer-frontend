@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/io.dart';
 import '../storage/token_storage.dart';
 import '../storage/token_refresh_manager.dart';
 import '../../core/constants/api_endpoints.dart';
@@ -99,21 +100,34 @@ class WebSocketClient {
       final wsUrl = _buildWebSocketUrl(token);
 
       // Skip connection if URL appears to be pointing to Flutter dev server
-      // (typically localhost with high port numbers used by Flutter)
+      // ONLY if the path isn't our actual websocket endpoint (/ws)
       final uri = Uri.tryParse(wsUrl);
-      if (uri != null && uri.host == 'localhost' && uri.port > 50000) {
+      if (uri != null &&
+          uri.host == 'localhost' &&
+          uri.port > 50000 &&
+          !uri.path.contains('/ws')) {
         debugPrint(
-            'WebSocket: Skipping connection - dev server detected ($wsUrl)');
-        debugPrint(
-            'WebSocket: Configure WS_BASE_URL or wsBaseUrl for real WebSocket connection');
+            'WebSocket: Skipping connection - dev server detected on localhost:${uri.port}');
         _updateConnectionState(WebSocketConnectionState.disconnected);
         _shouldReconnect = false;
         return;
       }
 
-      debugPrint('WebSocket: Connecting to $wsUrl');
+      // Log connection info without exposing the token
+      final sanitizedUrl =
+          wsUrl.replaceAll(RegExp(r'token=[^&]+'), 'token=***');
+      debugPrint('WebSocket: Connecting to $sanitizedUrl '
+          '(${kIsWeb ? "web" : "mobile"})');
 
-      _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      // Use platform-specific WebSocket implementation
+      if (kIsWeb) {
+        _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      } else {
+        _channel = IOWebSocketChannel.connect(
+          wsUrl,
+          pingInterval: const Duration(seconds: 30),
+        );
+      }
 
       // Wait for the connection to be established
       await _channel!.ready;
@@ -131,9 +145,12 @@ class WebSocketClient {
       _startPingTimer();
 
       debugPrint('WebSocket: Connected successfully');
-    } catch (e) {
+    } catch (e, stackTrace) {
       final errorStr = e.toString();
       debugPrint('WebSocket: Connection error: $errorStr');
+      if (kDebugMode) {
+        debugPrint('WebSocket: Stack trace: $stackTrace');
+      }
 
       // Check if this is a 401 error and we haven't already retried
       if (!isRetryAfterRefresh && errorStr.contains('401')) {
@@ -200,21 +217,22 @@ class WebSocketClient {
 
       // Handle ping/pong
       if (messageStr == 'PONG' || messageStr == 'pong') {
-        debugPrint('WebSocket: Received pong');
         return;
       }
 
-      // Detect if we received HTML instead of JSON (wrong routing - frontend served instead of backend)
+      // Detect if we received HTML instead of JSON (wrong routing)
       if (messageStr.trimLeft().startsWith('<!DOCTYPE') ||
           messageStr.trimLeft().startsWith('<html')) {
-        debugPrint(
-            'WebSocket: ERROR - Received HTML instead of JSON. The /ws endpoint is being served by the frontend nginx instead of the backend WebSocket server. Check your ingress/proxy configuration.');
+        debugPrint('WebSocket: ERROR - Received HTML instead of JSON. '
+            'Check your ingress/proxy configuration.');
         _handleError('WebSocket endpoint misconfigured - receiving HTML');
         return;
       }
 
       final Map<String, dynamic> data = jsonDecode(messageStr);
-      debugPrint('WebSocket: Received message: ${data['type']}');
+      if (kDebugMode) {
+        debugPrint('WebSocket: Received message type: ${data['type']}');
+      }
       _messageController.add(data);
     } catch (e) {
       debugPrint('WebSocket: Error parsing message: $e');
@@ -285,14 +303,12 @@ class WebSocketClient {
   /// Send a message to the server
   void send(Map<String, dynamic> message) {
     if (!isConnected || _channel == null) {
-      debugPrint('WebSocket: Cannot send message - not connected');
       return;
     }
 
     try {
       final jsonStr = jsonEncode(message);
       _channel!.sink.add(jsonStr);
-      debugPrint('WebSocket: Sent message: ${message['type']}');
     } catch (e) {
       debugPrint('WebSocket: Error sending message: $e');
     }
@@ -302,12 +318,9 @@ class WebSocketClient {
   void subscribe(String topic) {
     // Check if already subscribed to this topic
     if (_topicSubscriptions.containsKey(topic)) {
-      debugPrint(
-          'WebSocket: Already subscribed to $topic with ID ${_topicSubscriptions[topic]}, skipping duplicate subscription');
       return;
     }
 
-    // Check if we're actually connected before subscribing
     if (!isConnected || _channel == null) {
       debugPrint('WebSocket: Cannot subscribe to $topic - not connected');
       return;
@@ -322,7 +335,6 @@ class WebSocketClient {
       'destination': topic,
       'id': subscriptionId,
     });
-    debugPrint('WebSocket: Subscribed to $topic with ID $subscriptionId');
   }
 
   /// Unsubscribe from a topic

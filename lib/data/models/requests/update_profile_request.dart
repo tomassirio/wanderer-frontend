@@ -2,13 +2,11 @@
 class UpdateProfileRequest {
   final String? displayName;
   final String? bio;
-  final String? avatarUrl;
 
-  UpdateProfileRequest({this.displayName, this.bio, this.avatarUrl});
+  UpdateProfileRequest({this.displayName, this.bio});
 
   Map<String, dynamic> toJson() => {
         if (displayName != null) 'displayName': displayName,
         if (bio != null) 'bio': bio,
-        if (avatarUrl != null) 'avatarUrl': avatarUrl,
       };
 }

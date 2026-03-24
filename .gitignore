@@ -300,3 +300,5 @@ linux/
 macos/
 windows/
 
+/.env.dev
+/.env.prod

@@ -36,6 +36,7 @@ class CommentsSection extends StatelessWidget {
   final VoidCallback onSendComment;
   final VoidCallback onCancelReply;
   final VoidCallback? onLoadMore;
+  final Widget? bottomWidget;
 
   const CommentsSection({
     super.key,
@@ -63,6 +64,7 @@ class CommentsSection extends StatelessWidget {
     required this.onSendComment,
     required this.onCancelReply,
     this.onLoadMore,
+    this.bottomWidget,
   });
 
   @override
@@ -382,6 +384,15 @@ class CommentsSection extends StatelessWidget {
                       ),
                     ),
                   ),
+                if (bottomWidget != null)
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: 12,
+                      right: 12,
+                      bottom: 12,
+                    ),
+                    child: Center(child: bottomWidget!),
+                  ),
               ],
             ),
           ),
@@ -442,9 +453,7 @@ class CommentsSection extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              isLoggedIn
-                  ? l10n.beFirstToComment
-                  : l10n.loginToAddComment,
+              isLoggedIn ? l10n.beFirstToComment : l10n.loginToAddComment,
               style: TextStyle(
                 fontSize: 14,
                 color:

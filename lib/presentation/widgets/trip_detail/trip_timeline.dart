@@ -117,16 +117,6 @@ class TripTimeline extends StatelessWidget {
           final update = updates[index];
           final isLast = index == updates.length - 1;
           final isFirst = index == 0;
-          final isDayMarker = update.updateType == TripUpdateType.dayStart ||
-              update.updateType == TripUpdateType.dayEnd ||
-              update.updateType == TripUpdateType.tripStarted ||
-              update.updateType == TripUpdateType.tripEnded;
-
-          if (isDayMarker) {
-            final dayNumber = _computeDayNumber(index);
-            return _buildDayMarkerEntry(
-                context, update, isFirst, isLast, dayNumber);
-          }
 
           return _buildRegularEntry(context, update, isFirst, isLast);
         },
@@ -134,22 +124,37 @@ class TripTimeline extends StatelessWidget {
     );
   }
 
-  /// Compute which day number a marker at [markerIndex] belongs to.
-  /// We walk the updates list in chronological order (reverse of display)
-  /// and count DAY_START events to track the current day.
-  /// Day 1 = trip start. Each DAY_START bumps the day number.
-  int _computeDayNumber(int markerIndex) {
-    // Walk in reverse (chronological order, oldest first)
-    int day = 1;
-    for (int i = updates.length - 1; i >= 0; i--) {
-      final t = updates[i].updateType;
-      // DAY_START means a new day begins → increment before checking
-      if (t == TripUpdateType.dayStart) {
-        day++;
-      }
-      if (i == markerIndex) return day;
+  /// Returns the accent color for lifecycle markers, or null for regular updates.
+  /// Matches the colors used in CustomInfoWindow and map markers.
+  Color? _getLifecycleColor(TripUpdateType? updateType) {
+    switch (updateType) {
+      case TripUpdateType.tripStarted:
+        return WandererTheme.tripStartedColor;
+      case TripUpdateType.tripEnded:
+        return WandererTheme.tripEndedColor;
+      case TripUpdateType.dayStart:
+        return WandererTheme.dayStartColor;
+      case TripUpdateType.dayEnd:
+        return WandererTheme.dayEndColor;
+      default:
+        return null;
     }
-    return day;
+  }
+
+  /// Returns the icon for lifecycle markers, or null for regular updates.
+  IconData? _getLifecycleIcon(TripUpdateType? updateType) {
+    switch (updateType) {
+      case TripUpdateType.tripStarted:
+        return Icons.flag_rounded;
+      case TripUpdateType.tripEnded:
+        return Icons.sports_score_rounded;
+      case TripUpdateType.dayStart:
+        return Icons.wb_sunny_rounded;
+      case TripUpdateType.dayEnd:
+        return Icons.nightlight_round;
+      default:
+        return null;
+    }
   }
 
   /// Build the "Load older updates" button at the bottom of the timeline
@@ -184,6 +189,20 @@ class TripTimeline extends StatelessWidget {
   /// Build a regular timeline entry (location update)
   Widget _buildRegularEntry(
       BuildContext context, TripLocation update, bool isFirst, bool isLast) {
+    final lifecycleColor = _getLifecycleColor(update.updateType);
+    final lifecycleIcon = _getLifecycleIcon(update.updateType);
+    final isLifecycleMarker = lifecycleColor != null;
+    final nodeColor = lifecycleColor ??
+        (isFirst
+            ? WandererTheme.primaryOrange
+            : WandererTheme.timelineConnector);
+    final borderColor = lifecycleColor?.withOpacity(0.3) ??
+        (isFirst
+            ? WandererTheme.primaryOrange.withOpacity(0.3)
+            : WandererTheme.glassBorderColorFor(context));
+    final accentColor =
+        lifecycleColor ?? (isFirst ? WandererTheme.primaryOrange : null);
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -204,14 +223,10 @@ class TripTimeline extends StatelessWidget {
                 width: 12,
                 height: 12,
                 decoration: BoxDecoration(
-                  color: isFirst
-                      ? WandererTheme.primaryOrange
-                      : WandererTheme.timelineConnector,
+                  color: nodeColor,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isFirst
-                        ? WandererTheme.primaryOrange
-                        : Colors.grey.shade400,
+                    color: nodeColor,
                     width: 2,
                   ),
                 ),
@@ -238,20 +253,46 @@ class TripTimeline extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isFirst
+                color: isLifecycleMarker || isFirst
                     ? Theme.of(context).colorScheme.surface
                     : Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius:
                     BorderRadius.circular(WandererTheme.glassRadiusSmall),
                 border: Border.all(
-                  color: isFirst
-                      ? WandererTheme.primaryOrange.withOpacity(0.3)
-                      : WandererTheme.glassBorderColorFor(context),
+                  color: borderColor,
                 ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Lifecycle label (for non-regular updates)
+                  // Use the message (e.g., "Day 6 started!") if available
+                  if (isLifecycleMarker) ...[
+                    Row(
+                      children: [
+                        Icon(
+                          lifecycleIcon,
+                          size: 14,
+                          color: lifecycleColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            (update.message != null &&
+                                    update.message!.isNotEmpty)
+                                ? update.message!
+                                : update.updateType.displayLabel,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: lifecycleColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                  ],
                   // Header: timestamp, weather, and battery
                   Row(
                     children: [
@@ -260,9 +301,8 @@ class TripTimeline extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: isFirst
-                              ? WandererTheme.primaryOrange
-                              : Theme.of(context)
+                          color: accentColor ??
+                              Theme.of(context)
                                   .colorScheme
                                   .onSurface
                                   .withOpacity(0.6),
@@ -312,33 +352,67 @@ class TripTimeline extends StatelessWidget {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  // Location
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.location_on,
-                        size: 14,
-                        color: WandererTheme.primaryOrange,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          update.displayLocation,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontWeight: update.city != null
-                                ? FontWeight.w500
-                                : FontWeight.normal,
+                  // Location (hide raw coordinates for lifecycle markers)
+                  if (!isLifecycleMarker || update.city != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.location_on,
+                          size: 14,
+                          color: WandererTheme.primaryOrange,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            update.displayLocation,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontWeight: update.city != null
+                                  ? FontWeight.w500
+                                  : FontWeight.normal,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  // Message if present
-                  if (update.message != null && update.message!.isNotEmpty) ...[
+                      ],
+                    ),
+                  ],
+                  // Distance so far
+                  if (update.distanceSoFarKm != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.straighten,
+                          size: 14,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.6),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${update.distanceSoFarKm!.toStringAsFixed(1)} km traveled',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.6),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  // Message if present (only for regular updates)
+                  // Lifecycle markers show the message in the top label instead
+                  if (!isLifecycleMarker &&
+                      update.message != null &&
+                      update.message!.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Container(
                       width: double.infinity,
@@ -389,168 +463,6 @@ class TripTimeline extends StatelessWidget {
                   ],
                 ],
               ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Build a day/trip marker timeline entry (Day Start / Day End / Trip Started / Trip Ended)
-  Widget _buildDayMarkerEntry(BuildContext context, TripLocation update,
-      bool isFirst, bool isLast, int dayNumber) {
-    final Color markerColor;
-    final IconData markerIcon;
-    final String label;
-
-    switch (update.updateType) {
-      case TripUpdateType.dayStart:
-        markerColor = WandererTheme.dayStartColor;
-        markerIcon = Icons.wb_sunny_rounded;
-        label = context.l10n.dayNStarted(dayNumber);
-      case TripUpdateType.dayEnd:
-        markerColor = WandererTheme.dayEndColor;
-        markerIcon = Icons.nightlight_round;
-        label = context.l10n.dayNEnded(dayNumber);
-      case TripUpdateType.tripStarted:
-        markerColor = WandererTheme.tripStartedColor;
-        markerIcon = Icons.flag_rounded;
-        label = context.l10n.tripStartedLabel;
-      case TripUpdateType.tripEnded:
-        markerColor = WandererTheme.tripEndedColor;
-        markerIcon = Icons.sports_score_rounded;
-        label = context.l10n.tripEndedLabel;
-      case TripUpdateType.regular:
-        // Should not reach here; fall back to neutral styling
-        markerColor = Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
-        markerIcon = Icons.location_on;
-        label = context.l10n.updateLabel;
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Timeline connector with themed node
-        SizedBox(
-          width: 24,
-          child: Column(
-            children: [
-              if (!isFirst)
-                Container(
-                  width: 2,
-                  height: 8,
-                  color: WandererTheme.timelineConnector,
-                ),
-              // Larger themed node for day markers
-              Container(
-                width: 18,
-                height: 18,
-                decoration: BoxDecoration(
-                  color: markerColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: markerColor,
-                    width: 2,
-                  ),
-                ),
-                child: Icon(
-                  markerIcon,
-                  size: 10,
-                  color: Colors.white,
-                ),
-              ),
-              if (!isLast)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Container(
-                    width: 2,
-                    height: 40,
-                    color: WandererTheme.timelineConnector,
-                  ),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 12),
-        // Day marker card — not tappable (lifecycle markers have no real location)
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: markerColor.withOpacity(0.08),
-              borderRadius:
-                  BorderRadius.circular(WandererTheme.glassRadiusSmall),
-              border: Border.all(
-                color: markerColor.withOpacity(0.3),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  markerIcon,
-                  size: 18,
-                  color: markerColor,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        label,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: markerColor,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _formatTimestamp(context, update.timestamp),
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: markerColor.withOpacity(0.7),
-                        ),
-                      ),
-                      if (update.message != null &&
-                          update.message!.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          update.message!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.6),
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                if (update.city != null) ...[
-                  const SizedBox(width: 8),
-                  Icon(
-                    Icons.location_on,
-                    size: 12,
-                    color: markerColor.withOpacity(0.5),
-                  ),
-                  const SizedBox(width: 2),
-                  Flexible(
-                    child: Text(
-                      update.city!,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: markerColor.withOpacity(0.7),
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ],
             ),
           ),
         ),

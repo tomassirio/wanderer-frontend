@@ -294,7 +294,9 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
                                   ),
                                 )
                               : const Icon(Icons.send, size: 18),
-                          label: Text(_isSending ? context.l10n.sending : context.l10n.sendUpdate),
+                          label: Text(_isSending
+                              ? context.l10n.sending
+                              : context.l10n.sendUpdate),
                         ),
                       ),
                     ],

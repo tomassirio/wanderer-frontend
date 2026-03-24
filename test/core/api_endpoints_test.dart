@@ -262,7 +262,8 @@ void main() {
       test('appBaseUrl returns production URL as default', () {
         // On non-web platforms without APP_BASE_URL dart-define set,
         // the stub returns the default production URL
-        expect(ApiEndpoints.appBaseUrl, 'https://wanderer.tomassir.io');
+        expect(
+            ApiEndpoints.appBaseUrl, 'https://wanderer.localwanderer-dev.com');
       });
     });
 

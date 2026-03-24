@@ -5,11 +5,20 @@ import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/data/client/google_directions_api_client.dart';
 import 'package:wanderer_frontend/data/client/polyline_codec.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
+import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
+import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
+import 'package:wanderer_frontend/presentation/helpers/dashed_polyline_helper.dart';
+import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_plan_map_helper.dart';
+import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_plan_info_card.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
@@ -31,10 +40,20 @@ class TripPlanDetailScreen extends StatefulWidget {
 class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
   final TripPlanService _tripPlanService = TripPlanService();
   final TripService _tripService = TripService();
+  final HomeRepository _homeRepository = HomeRepository();
   late final GoogleDirectionsApiClient _directionsClient;
   late TripPlan _tripPlan;
   bool _isEditing = false;
   bool _isLoading = false;
+
+  // User state for WandererAppBar & AppSidebar
+  String? _username;
+  String? _userId;
+  String? _displayName;
+  String? _avatarUrl;
+  bool _isLoggedIn = false;
+  bool _isAdmin = false;
+  final int _selectedSidebarIndex = -1; // Not a sidebar item
 
   late TextEditingController _nameController;
   late String _selectedPlanType;
@@ -87,6 +106,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
     _endDate = _tripPlan.endDate;
     _initEditLocations();
     _updateMapData();
+    _loadUserInfo();
   }
 
   @override
@@ -95,6 +115,64 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
     _mapController?.dispose();
     _directionsClient.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadUserInfo() async {
+    final username = await _homeRepository.getCurrentUsername();
+    final userId = await _homeRepository.getCurrentUserId();
+    final isLoggedIn = await _homeRepository.isLoggedIn();
+    final isAdmin = await _homeRepository.isAdmin();
+
+    if (isLoggedIn) {
+      await _homeRepository.refreshUserDetails();
+    }
+
+    final displayName = await _homeRepository.getCurrentDisplayName();
+    final avatarUrl = await _homeRepository.getCurrentAvatarUrl();
+
+    if (mounted) {
+      setState(() {
+        _username = username;
+        _userId = userId;
+        _displayName = displayName;
+        _avatarUrl = avatarUrl;
+        _isLoggedIn = isLoggedIn;
+        _isAdmin = isAdmin;
+      });
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    final confirm = await DialogHelper.showLogoutConfirmation(context);
+
+    if (confirm) {
+      await _homeRepository.logout();
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          (route) => false,
+        );
+      }
+    }
+  }
+
+  void _handleSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+    );
+  }
+
+  Future<void> _navigateToAuth() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AuthScreen()),
+    );
+
+    if (result == true && mounted) {
+      await _loadUserInfo();
+    }
   }
 
   /// Updates map data using backend polyline or straight-line fallback
@@ -161,16 +239,12 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
     // Show straight-line fallback immediately while loading
     setState(() {
       _editPolylines.clear();
-      _editPolylines.add(
-        Polyline(
-          polylineId: const PolylineId('edit_route'),
+      _editPolylines.addAll(
+        DashedPolylineHelper.createDashedPolylines(
+          polylineIdPrefix: 'edit_route',
           points: points,
           color: Colors.blue.withOpacity(0.5),
           width: 3,
-          patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-          geodesic: false,
-          startCap: Cap.roundCap,
-          endCap: Cap.roundCap,
         ),
       );
       _isEditComputingRoute = true;
@@ -532,121 +606,144 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
 
     // Normal view with fullscreen map and floating info card
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: Text(_tripPlan.name),
-        backgroundColor: WandererTheme.primaryOrange.withOpacity(0.9),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.play_arrow_rounded),
-            onPressed: _createTripFromPlan,
-            tooltip: l10n.createTripFromPlan,
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              _initEditLocations();
-              setState(() {
-                _isEditing = true;
-                _editFormExpanded = false;
-                _showEditWaypointsList = false;
-              });
-            },
-            tooltip: 'Edit',
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: _deleteTripPlan,
-            tooltip: 'Delete',
-          ),
-        ],
+      appBar: WandererAppBar(
+        isLoggedIn: _isLoggedIn,
+        onLoginPressed: _navigateToAuth,
+        username: _username,
+        userId: _userId,
+        displayName: _displayName,
+        avatarUrl: _avatarUrl,
+        onProfile: () => AuthNavigationHelper.navigateToOwnProfile(context),
+        onSettings: _handleSettings,
+        onLogout: _handleLogout,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      body: Stack(
-        children: [
-          // Fullscreen Map
-          Positioned.fill(
-            child: hasMapData
-                ? GoogleMap(
-                    initialCameraPosition: CameraPosition(
-                      target: TripPlanMapHelper.getInitialLocation(_tripPlan),
-                      zoom: 10,
-                    ),
-                    markers: _markers,
-                    polylines: _polylines,
-                    onMapCreated: (controller) {
-                      _mapController = controller;
-                      // Fit bounds to show all markers
-                      if (_markers.length >= 2) {
-                        _fitBounds();
-                      }
+      drawer: AppSidebar(
+        username: _username,
+        userId: _userId,
+        displayName: _displayName,
+        avatarUrl: _avatarUrl,
+        selectedIndex: _selectedSidebarIndex,
+        onLogout: _handleLogout,
+        onSettings: _handleSettings,
+        isAdmin: _isAdmin,
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isDesktop = constraints.maxWidth >= 600;
+          return Stack(
+            children: [
+              // Fullscreen Map
+              Positioned.fill(
+                child: hasMapData
+                    ? GoogleMap(
+                        initialCameraPosition: CameraPosition(
+                          target:
+                              TripPlanMapHelper.getInitialLocation(_tripPlan),
+                          zoom: 10,
+                        ),
+                        markers: _markers,
+                        polylines: _polylines,
+                        onMapCreated: (controller) {
+                          _mapController = controller;
+                          // Fit bounds to show all markers
+                          if (_markers.length >= 2) {
+                            _fitBounds();
+                          }
+                        },
+                        myLocationEnabled: false,
+                        zoomControlsEnabled: true,
+                        mapToolbarEnabled: false,
+                      )
+                    : Container(
+                        color: Colors.grey.shade200,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.map_outlined,
+                                size: 64,
+                                color: Colors.grey.shade400,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                l10n.noLocationData,
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+              ),
+              // Floating Info Card — top-right on desktop, bottom-center on mobile
+              if (isDesktop)
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  child: TripPlanInfoCard(
+                    tripPlan: _tripPlan,
+                    isCollapsed: _isInfoCollapsed,
+                    onToggleCollapse: () {
+                      setState(() {
+                        _isInfoCollapsed = !_isInfoCollapsed;
+                      });
                     },
-                    myLocationEnabled: false,
-                    zoomControlsEnabled: true,
-                    mapToolbarEnabled: false,
-                    padding: EdgeInsets.only(
-                      top: MediaQuery.of(context).padding.top + kToolbarHeight,
-                    ),
-                  )
-                : Container(
-                    color: Colors.grey.shade200,
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.map_outlined,
-                            size: 64,
-                            color: Colors.grey.shade400,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            l10n.noLocationData,
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
+                    onEdit: () {
+                      _initEditLocations();
+                      _initEditPolylines();
+                      setState(() {
+                        _isEditing = true;
+                        _editFormExpanded = false;
+                        _showEditWaypointsList = false;
+                      });
+                    },
+                    onDelete: _deleteTripPlan,
+                    onCreateTrip: _createTripFromPlan,
+                  ),
+                )
+              else
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: SafeArea(
+                    child: Align(
+                      alignment: _isInfoCollapsed
+                          ? Alignment.bottomLeft
+                          : Alignment.bottomCenter,
+                      child: TripPlanInfoCard(
+                        tripPlan: _tripPlan,
+                        isCollapsed: _isInfoCollapsed,
+                        onToggleCollapse: () {
+                          setState(() {
+                            _isInfoCollapsed = !_isInfoCollapsed;
+                          });
+                        },
+                        onEdit: () {
+                          _initEditLocations();
+                          _initEditPolylines();
+                          setState(() {
+                            _isEditing = true;
+                            _editFormExpanded = false;
+                            _showEditWaypointsList = false;
+                          });
+                        },
+                        onDelete: _deleteTripPlan,
+                        onCreateTrip: _createTripFromPlan,
                       ),
                     ),
                   ),
-          ),
-          // Floating Info Card (centered at bottom)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: SafeArea(
-              child: Align(
-                alignment: _isInfoCollapsed
-                    ? Alignment.bottomLeft
-                    : Alignment.bottomCenter,
-                child: TripPlanInfoCard(
-                  tripPlan: _tripPlan,
-                  isCollapsed: _isInfoCollapsed,
-                  onToggleCollapse: () {
-                    setState(() {
-                      _isInfoCollapsed = !_isInfoCollapsed;
-                    });
-                  },
-                  onEdit: () {
-                    _initEditLocations();
-                    _initEditPolylines();
-                    setState(() {
-                      _isEditing = true;
-                      _editFormExpanded = false;
-                      _showEditWaypointsList = false;
-                    });
-                  },
-                  onDelete: _deleteTripPlan,
-                  onCreateTrip: _createTripFromPlan,
                 ),
-              ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -703,33 +800,30 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
     const double panelWidth = 400.0;
     return Scaffold(
       backgroundColor: WandererTheme.backgroundLight,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: Text(l10n.editTripPlan),
-        backgroundColor: WandererTheme.primaryOrange.withOpacity(0.9),
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: WandererAppBar(
+        isLoggedIn: _isLoggedIn,
+        onLoginPressed: _navigateToAuth,
+        username: _username,
+        userId: _userId,
+        displayName: _displayName,
+        avatarUrl: _avatarUrl,
+        onProfile: () => AuthNavigationHelper.navigateToOwnProfile(context),
+        onSettings: _handleSettings,
+        onLogout: _handleLogout,
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(Icons.arrow_back),
           onPressed: _cancelEditing,
-          tooltip: 'Cancel',
         ),
-        actions: [
-          IconButton(
-            icon: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.check_rounded),
-            onPressed: _isLoading ? null : _saveChanges,
-            tooltip: 'Save',
-          ),
-        ],
+      ),
+      drawer: AppSidebar(
+        username: _username,
+        userId: _userId,
+        displayName: _displayName,
+        avatarUrl: _avatarUrl,
+        selectedIndex: _selectedSidebarIndex,
+        onLogout: _handleLogout,
+        onSettings: _handleSettings,
+        isAdmin: _isAdmin,
       ),
       body: Stack(
         children: [
@@ -756,14 +850,13 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
               zoomControlsEnabled: true,
               mapToolbarEnabled: false,
               padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + kToolbarHeight,
                 left: _isEditPanelCollapsed ? 88 : panelWidth,
               ),
             ),
           ),
           // Location chips (offset to right of panel)
           Positioned(
-            top: MediaQuery.of(context).padding.top + kToolbarHeight + 8,
+            top: 8,
             left: (_isEditPanelCollapsed ? 88 : panelWidth) + 16,
             right: 16,
             child: Listener(
@@ -775,7 +868,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
           // Route computing indicator
           if (_isEditComputingRoute)
             Positioned(
-              top: MediaQuery.of(context).padding.top + kToolbarHeight + 44,
+              top: 44,
               right: 16,
               child: Listener(
                 behavior: HitTestBehavior.opaque,
@@ -820,7 +913,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
           // Floating waypoints reorder panel (to the right of side panel)
           if (_showEditWaypointsList && _editWaypoints.isNotEmpty)
             Positioned(
-              top: MediaQuery.of(context).padding.top + kToolbarHeight + 44,
+              top: 44,
               left: (_isEditPanelCollapsed ? 88 : panelWidth) + 12,
               right: 12,
               bottom: 16,
@@ -901,14 +994,13 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
   Widget _buildExpandedEditPanel() {
     final l10n = context.l10n;
     final screenHeight = MediaQuery.of(context).size.height;
-    // topOffset = statusBar + appBar + panel top margin (8) + panel bottom margin (16)
-    final topOffset =
-        MediaQuery.of(context).padding.top + kToolbarHeight + 8 + 16;
+    // topOffset = appBar + panel top margin (8) + panel bottom margin (16)
+    final topOffset = kToolbarHeight + 8 + 16;
     final maxPanelHeight = screenHeight - topOffset - 16;
     return Container(
-      margin: EdgeInsets.only(
+      margin: const EdgeInsets.only(
         left: 16,
-        top: MediaQuery.of(context).padding.top + kToolbarHeight + 8,
+        top: 8,
         bottom: 16,
       ),
       decoration: BoxDecoration(
@@ -973,6 +1065,60 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
                             ),
                           ),
                         ),
+                        // Cancel button
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: IconButton(
+                            icon: Icon(
+                              Icons.close,
+                              size: 18,
+                              color: Colors.red.shade400,
+                            ),
+                            onPressed: _cancelEditing,
+                            tooltip: l10n.cancel,
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        // Save button
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: IconButton(
+                            icon: _isLoading
+                                ? SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: WandererTheme.primaryOrange,
+                                    ),
+                                  )
+                                : Icon(
+                                    Icons.check_rounded,
+                                    size: 18,
+                                    color: WandererTheme.primaryOrange,
+                                  ),
+                            onPressed: _isLoading ? null : _saveChanges,
+                            tooltip: l10n.saveChanges,
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        // Collapse button
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.5),
@@ -1103,33 +1249,31 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
         kToolbarHeight;
     return Scaffold(
       backgroundColor: WandererTheme.backgroundLight,
-      extendBodyBehindAppBar: true,
       resizeToAvoidBottomInset: false,
-      appBar: AppBar(
-        title: Text(l10n.editTripPlan),
-        backgroundColor: Colors.white.withOpacity(0.9),
-        elevation: 0,
+      appBar: WandererAppBar(
+        isLoggedIn: _isLoggedIn,
+        onLoginPressed: _navigateToAuth,
+        username: _username,
+        userId: _userId,
+        displayName: _displayName,
+        avatarUrl: _avatarUrl,
+        onProfile: () => AuthNavigationHelper.navigateToOwnProfile(context),
+        onSettings: _handleSettings,
+        onLogout: _handleLogout,
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(Icons.arrow_back),
           onPressed: _cancelEditing,
-          tooltip: 'Cancel',
         ),
-        actions: [
-          IconButton(
-            icon: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: WandererTheme.primaryOrange,
-                    ),
-                  )
-                : const Icon(Icons.check_rounded),
-            onPressed: _isLoading ? null : _saveChanges,
-            tooltip: 'Save',
-          ),
-        ],
+      ),
+      drawer: AppSidebar(
+        username: _username,
+        userId: _userId,
+        displayName: _displayName,
+        avatarUrl: _avatarUrl,
+        selectedIndex: _selectedSidebarIndex,
+        onLogout: _handleLogout,
+        onSettings: _handleSettings,
+        isAdmin: _isAdmin,
       ),
       body: Stack(
         children: [
@@ -1157,7 +1301,6 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
                 myLocationButtonEnabled: true,
                 zoomControlsEnabled: false,
                 padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).padding.top + 56,
                   bottom: _editFormExpanded ? expandedHeight : 200,
                 ),
               ),
@@ -1165,7 +1308,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
           ),
           // Location chips
           Positioned(
-            top: MediaQuery.of(context).padding.top + 64,
+            top: 8,
             left: 16,
             right: 16,
             child: Listener(
@@ -1177,7 +1320,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
           // Route computing indicator
           if (_isEditComputingRoute)
             Positioned(
-              top: MediaQuery.of(context).padding.top + 110,
+              top: 48,
               right: 16,
               child: Listener(
                 behavior: HitTestBehavior.opaque,
@@ -1222,7 +1365,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
           // Floating waypoints reorder panel
           if (_showEditWaypointsList && _editWaypoints.isNotEmpty)
             Positioned(
-              top: MediaQuery.of(context).padding.top + 100,
+              top: 48,
               left: 12,
               right: 12,
               bottom: _editFormExpanded ? expandedHeight + 10 : 210,
@@ -1246,7 +1389,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
         markerId: const MarkerId('start'),
         position: _editStartLocation!,
         infoWindow: const InfoWindow(title: 'Start Location'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        icon: BitmapDescriptor.defaultMarkerWithHue(120.0), // Green
         draggable: true,
         onDragEnd: (pos) {
           setState(() => _editStartLocation = pos);
@@ -1260,7 +1403,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
         markerId: const MarkerId('end'),
         position: _editEndLocation!,
         infoWindow: const InfoWindow(title: 'End Location'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        icon: BitmapDescriptor.defaultMarkerWithHue(0.0), // Red
         draggable: true,
         onDragEnd: (pos) {
           setState(() => _editEndLocation = pos);
@@ -1274,7 +1417,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
         markerId: MarkerId('waypoint_${i + 1}'),
         position: _editWaypoints[i],
         infoWindow: InfoWindow(title: 'Waypoint ${i + 1}'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+        icon: BitmapDescriptor.defaultMarkerWithHue(240.0), // Blue
         draggable: true,
         onDragEnd: (pos) {
           setState(() => _editWaypoints[i] = pos);

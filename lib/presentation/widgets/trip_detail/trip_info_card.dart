@@ -409,7 +409,7 @@ class TripInfoCard extends StatelessWidget {
                     _buildStatChip(
                       context,
                       Icons.comment_outlined,
-                      '${trip.commentsCount} comments',
+                      '${trip.commentsCount} ${l10n.comments}',
                     ),
                     const SizedBox(width: 16),
                     // Visibility
@@ -447,6 +447,16 @@ class TripInfoCard extends StatelessWidget {
                     ],
                   ],
                 ),
+                // Distance stat if available
+                if (trip.accruedDistanceKm != null && trip.accruedDistanceKm! > 0) ...[
+                  const SizedBox(height: 8),
+                  _buildStatChip(
+                    context,
+                    Icons.straighten,
+                    '${trip.accruedDistanceKm!.toStringAsFixed(1)} km traveled',
+                    color: WandererTheme.primaryOrange,
+                  ),
+                ],
                 // Description if present
                 if (trip.description != null &&
                     trip.description!.isNotEmpty) ...[
@@ -565,8 +575,8 @@ class TripInfoCard extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            context.l10n.achievementNameFor(
-                userAchievement.achievement.type.toJson()),
+            context.l10n
+                .achievementNameFor(userAchievement.achievement.type.toJson()),
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
@@ -577,8 +587,8 @@ class TripInfoCard extends StatelessWidget {
       ),
     );
 
-    final description = context.l10n.achievementDescriptionFor(
-        userAchievement.achievement.type.toJson());
+    final description = context.l10n
+        .achievementDescriptionFor(userAchievement.achievement.type.toJson());
 
     if (kIsWeb) {
       return Tooltip(
@@ -752,14 +762,21 @@ class TripInfoCard extends StatelessWidget {
     });
   }
 
-  Widget _buildStatChip(BuildContext context, IconData icon, String value) {
+  Widget _buildStatChip(
+    BuildContext context,
+    IconData icon,
+    String value, {
+    Color? color,
+  }) {
+    final effectiveColor =
+        color ?? Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
           icon,
           size: 14,
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          color: effectiveColor,
         ),
         const SizedBox(width: 4),
         Text(
@@ -767,7 +784,7 @@ class TripInfoCard extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            color: effectiveColor,
           ),
         ),
       ],

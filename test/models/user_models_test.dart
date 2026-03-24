@@ -28,7 +28,8 @@ void main() {
         expect(profile.username, 'johndoe');
         expect(profile.displayName, 'John Doe');
         expect(profile.bio, 'Walking the Camino');
-        expect(profile.avatarUrl, 'https://example.com/avatar.png');
+        // avatarUrl is now a computed getter based on user ID
+        expect(profile.avatarUrl, '/thumbnails/profiles/user-123.png');
       });
 
       test('fromJson handles null fields in userDetails', () {
@@ -47,7 +48,8 @@ void main() {
 
         expect(profile.displayName, isNull);
         expect(profile.bio, isNull);
-        expect(profile.avatarUrl, isNull);
+        // avatarUrl is now a computed getter based on user ID, never null
+        expect(profile.avatarUrl, '/thumbnails/profiles/user-123.png');
       });
 
       test('fromJson falls back to flat fields when userDetails is absent', () {
@@ -64,7 +66,8 @@ void main() {
 
         expect(profile.displayName, 'Flat Name');
         expect(profile.bio, 'Flat Bio');
-        expect(profile.avatarUrl, 'https://example.com/flat.png');
+        // avatarUrl is now a computed getter based on user ID
+        expect(profile.avatarUrl, '/thumbnails/profiles/user-123.png');
       });
 
       test(
@@ -87,7 +90,8 @@ void main() {
 
         expect(profile.displayName, 'Nested Name');
         expect(profile.bio, 'Nested Bio');
-        expect(profile.avatarUrl, 'https://example.com/nested.png');
+        // avatarUrl is now a computed getter based on user ID
+        expect(profile.avatarUrl, '/thumbnails/profiles/user-123.png');
       });
     });
 

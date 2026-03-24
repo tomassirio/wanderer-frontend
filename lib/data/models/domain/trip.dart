@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show debugPrint;
 import '../../../core/constants/enums.dart';
 import 'comment.dart';
 import 'trip_day.dart';
@@ -62,6 +61,19 @@ class Trip {
   // Multi-day trip data
   final List<TripDay>? tripDays;
   final int? currentDay;
+  // Trip plan reference
+  final String? tripPlanId;
+  // Distance tracking
+  final double? accruedDistanceKm;
+
+  /// Generate thumbnail URL based on trip ID or trip plan ID
+  String get thumbnailUrl {
+    final hasNoUpdates = locations == null || locations!.isEmpty;
+    if (hasNoUpdates && tripPlanId != null && tripPlanId!.isNotEmpty) {
+      return '/thumbnails/plans/$tripPlanId.png';
+    }
+    return '/thumbnails/trips/$id.png';
+  }
 
   /// Default update refresh interval in seconds (30 minutes)
   static const int defaultUpdateRefresh = 1800;
@@ -105,6 +117,8 @@ class Trip {
     this.polylineUpdatedAt,
     this.tripDays,
     this.currentDay,
+    this.tripPlanId,
+    this.accruedDistanceKm,
   });
 
   factory Trip.fromJson(Map<String, dynamic> json) {
@@ -142,19 +156,6 @@ class Trip {
 
     // Also check top-level plannedPolyline (backend returns it at root level)
     plannedEncodedPolyline ??= json['plannedPolyline'] as String?;
-
-    if (plannedEncodedPolyline != null) {
-      debugPrint(
-        'Trip.fromJson: Found plannedEncodedPolyline '
-        'with length ${plannedEncodedPolyline.length}',
-      );
-    } else {
-      debugPrint(
-        'Trip.fromJson: No plannedEncodedPolyline found. '
-        'tripDetails keys: ${tripDetails?.keys.toList()}, '
-        'top-level keys: ${json.keys.toList()}',
-      );
-    }
 
     return Trip(
       id: json['id'] as String? ?? '',
@@ -234,6 +235,8 @@ class Trip {
               .toList()
           : null,
       currentDay: (tripDetails?['currentDay'] ?? json['currentDay']) as int?,
+      tripPlanId: json['tripPlanId'] as String?,
+      accruedDistanceKm: (json['accruedDistanceKm'] as num?)?.toDouble(),
     );
   }
 
@@ -274,6 +277,7 @@ class Trip {
         if (tripDays != null)
           'tripDays': tripDays!.map((day) => day.toJson()).toList(),
         if (currentDay != null) 'currentDay': currentDay,
+        if (tripPlanId != null) 'tripPlanId': tripPlanId,
       };
 
   /// Check if trip has planned route from a trip plan
@@ -313,6 +317,8 @@ class Trip {
     DateTime? polylineUpdatedAt,
     List<TripDay>? tripDays,
     int? currentDay,
+    String? tripPlanId,
+    double? accruedDistanceKm,
   }) {
     return Trip(
       id: id ?? this.id,
@@ -343,6 +349,8 @@ class Trip {
       polylineUpdatedAt: polylineUpdatedAt ?? this.polylineUpdatedAt,
       tripDays: tripDays ?? this.tripDays,
       currentDay: currentDay ?? this.currentDay,
+      tripPlanId: tripPlanId ?? this.tripPlanId,
+      accruedDistanceKm: accruedDistanceKm ?? this.accruedDistanceKm,
     );
   }
 }

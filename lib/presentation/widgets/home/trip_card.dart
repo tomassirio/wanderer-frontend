@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:intl/intl.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import '../../../core/constants/api_endpoints.dart';
-import '../../../data/client/google_maps_api_client.dart';
 import '../../helpers/auth_navigation_helper.dart';
-import '../../helpers/trip_route_helper.dart';
 import '../common/user_avatar.dart';
 
 class TripCard extends StatefulWidget {
@@ -29,29 +26,6 @@ class TripCard extends StatefulWidget {
 }
 
 class _TripCardState extends State<TripCard> {
-  String? _encodedPolyline;
-  late final GoogleMapsApiClient _mapsClient;
-
-  @override
-  void initState() {
-    super.initState();
-    final apiKey = ApiEndpoints.googleMapsApiKey;
-    _mapsClient = GoogleMapsApiClient(apiKey);
-    _loadRoute();
-  }
-
-  /// Load the encoded polyline for the miniature map using the shared
-  /// [TripRouteHelper]. Uses the backend-provided polyline, in-memory cache,
-  /// or encodes raw sorted points as straight-line fallback.
-  void _loadRoute() {
-    final encoded = TripRouteHelper.fetchEncodedPolyline(widget.trip);
-    if (mounted && encoded != null) {
-      setState(() {
-        _encodedPolyline = encoded;
-      });
-    }
-  }
-
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
@@ -84,129 +58,8 @@ class _TripCardState extends State<TripCard> {
     }
   }
 
-  /// Check if trip has valid planned route
-  bool get _hasPlannedRoute {
-    return widget.trip.hasPlannedRoute;
-  }
-
-  /// Generate static map image URL from Google Maps Static API
-  String _generateStaticMapUrl() {
-    // First try actual trip locations (sorted chronologically, excluding lifecycle markers)
-    final sorted = TripRouteHelper.getSortedLocations(widget.trip);
-    if (sorted.isNotEmpty) {
-      final firstLoc = sorted.first;
-      final lastLoc = sorted.last;
-
-      if (sorted.length == 1) {
-        // Single location
-        return _mapsClient.generateStaticMapUrl(
-          center: LatLng(firstLoc.latitude, firstLoc.longitude),
-          markers: [
-            MapMarker(
-              position: LatLng(firstLoc.latitude, firstLoc.longitude),
-              color: 'green',
-            ),
-          ],
-        );
-      } else {
-        // Multiple locations - show route
-        return _mapsClient.generateRouteMapUrl(
-          startPoint: LatLng(firstLoc.latitude, firstLoc.longitude),
-          endPoint: LatLng(lastLoc.latitude, lastLoc.longitude),
-          encodedPolyline: _encodedPolyline,
-        );
-      }
-    }
-
-    // Fall back to planned route from trip plan
-    if (_hasPlannedRoute) {
-      return _generatePlannedRouteMapUrl();
-    }
-
-    // No location data
-    return '';
-  }
-
-  /// Generate static map URL for planned route
-  String _generatePlannedRouteMapUrl() {
-    final markers = <MapMarker>[];
-
-    // Add start marker (green with "S" label)
-    if (widget.trip.plannedStartLocation != null &&
-        widget.trip.plannedStartLocation!.latitude != 0 &&
-        widget.trip.plannedStartLocation!.longitude != 0) {
-      markers.add(MapMarker(
-        position: LatLng(
-          widget.trip.plannedStartLocation!.latitude,
-          widget.trip.plannedStartLocation!.longitude,
-        ),
-        color: 'green',
-        label: 'S',
-      ));
-    }
-
-    // Add waypoint markers (blue with numbered labels to distinguish from trip updates)
-    if (widget.trip.plannedWaypoints != null) {
-      for (int i = 0; i < widget.trip.plannedWaypoints!.length; i++) {
-        final wp = widget.trip.plannedWaypoints![i];
-        if (wp.latitude != 0 && wp.longitude != 0) {
-          markers.add(MapMarker(
-            position: LatLng(wp.latitude, wp.longitude),
-            color: 'blue',
-            label: '${i + 1}',
-          ));
-        }
-      }
-    }
-
-    // Add end marker (red with "E" label)
-    if (widget.trip.plannedEndLocation != null &&
-        widget.trip.plannedEndLocation!.latitude != 0 &&
-        widget.trip.plannedEndLocation!.longitude != 0) {
-      markers.add(MapMarker(
-        position: LatLng(
-          widget.trip.plannedEndLocation!.latitude,
-          widget.trip.plannedEndLocation!.longitude,
-        ),
-        color: 'red',
-        label: 'E',
-      ));
-    }
-
-    if (markers.isEmpty) return '';
-
-    // If we have start and end, use route map with the plan's polyline
-    if (widget.trip.plannedStartLocation != null &&
-        widget.trip.plannedEndLocation != null &&
-        widget.trip.plannedStartLocation!.latitude != 0 &&
-        widget.trip.plannedEndLocation!.latitude != 0) {
-      return _mapsClient.generateRouteMapUrl(
-        startPoint: LatLng(
-          widget.trip.plannedStartLocation!.latitude,
-          widget.trip.plannedStartLocation!.longitude,
-        ),
-        endPoint: LatLng(
-          widget.trip.plannedEndLocation!.latitude,
-          widget.trip.plannedEndLocation!.longitude,
-        ),
-        encodedPolyline: widget.trip.plannedEncodedPolyline,
-      );
-    }
-
-    // Otherwise show markers
-    return _mapsClient.generateStaticMapUrl(
-      center: markers.first.position,
-      markers: markers,
-      zoom: 10,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final hasMapData =
-        TripRouteHelper.getSortedLocations(widget.trip).isNotEmpty ||
-            _hasPlannedRoute;
-
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -238,14 +91,17 @@ class _TripCardState extends State<TripCard> {
                     fit: StackFit.expand,
                     children: [
                       // Map or placeholder
-                      if (hasMapData)
+                      if (widget.trip.thumbnailUrl.isNotEmpty)
                         Image.network(
-                          _generateStaticMapUrl(),
+                          ApiEndpoints.resolveThumbnailUrl(
+                              widget.trip.thumbnailUrl),
                           fit: BoxFit.cover,
                           width: double.infinity,
                           height: double.infinity,
                           loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
+                            if (loadingProgress == null) {
+                              return child;
+                            }
                             return _buildLoadingPlaceholder();
                           },
                           errorBuilder: (context, error, stackTrace) {

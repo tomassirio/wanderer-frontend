@@ -1036,5 +1036,171 @@ void main() {
         expect(loc.hasLocation, true);
       });
     });
+
+    group('Trip tripPlanId and thumbnail', () {
+      test('thumbnailUrl returns trip thumbnail when no tripPlanId', () {
+        final trip = Trip(
+          id: 'trip123',
+          userId: 'user456',
+          username: 'testuser',
+          name: 'Test Trip',
+          visibility: Visibility.public,
+          status: TripStatus.inProgress,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        expect(trip.thumbnailUrl, '/thumbnails/trips/trip123.png');
+      });
+
+      test('thumbnailUrl returns trip thumbnail when trip has updates', () {
+        final trip = Trip(
+          id: 'trip123',
+          userId: 'user456',
+          username: 'testuser',
+          name: 'Test Trip',
+          visibility: Visibility.public,
+          status: TripStatus.inProgress,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          tripPlanId: 'plan456',
+          locations: [
+            TripLocation(
+              id: 'loc1',
+              latitude: 40.0,
+              longitude: -74.0,
+              timestamp: DateTime.now(),
+              updateType: TripUpdateType.regular,
+            ),
+          ],
+        );
+
+        expect(trip.thumbnailUrl, '/thumbnails/trips/trip123.png');
+      });
+
+      test(
+          'thumbnailUrl returns plan thumbnail when no updates and has tripPlanId',
+          () {
+        final trip = Trip(
+          id: 'trip123',
+          userId: 'user456',
+          username: 'testuser',
+          name: 'Test Trip',
+          visibility: Visibility.public,
+          status: TripStatus.created,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          tripPlanId: 'plan456',
+        );
+
+        expect(trip.thumbnailUrl, '/thumbnails/plans/plan456.png');
+      });
+
+      test('thumbnailUrl returns plan thumbnail when empty updates list', () {
+        final trip = Trip(
+          id: 'trip123',
+          userId: 'user456',
+          username: 'testuser',
+          name: 'Test Trip',
+          visibility: Visibility.public,
+          status: TripStatus.created,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          tripPlanId: 'plan456',
+          locations: [],
+        );
+
+        expect(trip.thumbnailUrl, '/thumbnails/plans/plan456.png');
+      });
+
+      test('fromJson parses tripPlanId', () {
+        final json = {
+          'id': 'trip123',
+          'userId': 'user456',
+          'username': 'testuser',
+          'name': 'Test Trip',
+          'visibility': 'PUBLIC',
+          'status': 'CREATED',
+          'createdAt': '2024-01-01T00:00:00.000Z',
+          'updatedAt': '2024-01-02T00:00:00.000Z',
+          'tripPlanId': 'plan456',
+        };
+
+        final trip = Trip.fromJson(json);
+
+        expect(trip.tripPlanId, 'plan456');
+      });
+
+      test('toJson includes tripPlanId when set', () {
+        final trip = Trip(
+          id: 'trip123',
+          userId: 'user456',
+          username: 'testuser',
+          name: 'Test Trip',
+          visibility: Visibility.public,
+          status: TripStatus.created,
+          createdAt: DateTime(2024, 1, 1),
+          updatedAt: DateTime(2024, 1, 2),
+          tripPlanId: 'plan456',
+        );
+
+        final json = trip.toJson();
+
+        expect(json['tripPlanId'], 'plan456');
+      });
+
+      test('toJson excludes tripPlanId when null', () {
+        final trip = Trip(
+          id: 'trip123',
+          userId: 'user456',
+          username: 'testuser',
+          name: 'Test Trip',
+          visibility: Visibility.public,
+          status: TripStatus.created,
+          createdAt: DateTime(2024, 1, 1),
+          updatedAt: DateTime(2024, 1, 2),
+        );
+
+        final json = trip.toJson();
+
+        expect(json.containsKey('tripPlanId'), false);
+      });
+
+      test('copyWith preserves tripPlanId when not overridden', () {
+        final trip = Trip(
+          id: 'trip123',
+          userId: 'user456',
+          username: 'testuser',
+          name: 'Test Trip',
+          visibility: Visibility.public,
+          status: TripStatus.created,
+          createdAt: DateTime(2024, 1, 1),
+          updatedAt: DateTime(2024, 1, 2),
+          tripPlanId: 'plan456',
+        );
+
+        final updated = trip.copyWith(name: 'Updated Trip');
+
+        expect(updated.tripPlanId, 'plan456');
+      });
+
+      test('copyWith updates tripPlanId when provided', () {
+        final trip = Trip(
+          id: 'trip123',
+          userId: 'user456',
+          username: 'testuser',
+          name: 'Test Trip',
+          visibility: Visibility.public,
+          status: TripStatus.created,
+          createdAt: DateTime(2024, 1, 1),
+          updatedAt: DateTime(2024, 1, 2),
+          tripPlanId: 'plan456',
+        );
+
+        final updated = trip.copyWith(tripPlanId: 'plan789');
+
+        expect(updated.tripPlanId, 'plan789');
+      });
+    });
   });
 }

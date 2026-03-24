@@ -47,6 +47,7 @@ class TripDetailLayoutData {
   final bool isPromoted; // Track if trip is promoted
   final String? donationLink; // Donation link for promoted trips
   final List<UserAchievement> tripAchievements; // Achievements earned on trip
+  final Widget? donationButton; // Pre-built donation button for promoted trips
 
   // Callbacks
   final VoidCallback onToggleTripInfo;
@@ -112,6 +113,7 @@ class TripDetailLayoutData {
     this.isPromoted = false,
     this.donationLink,
     this.tripAchievements = const [],
+    this.donationButton,
     this.showPlannedWaypoints = false,
     this.onTogglePlannedWaypoints,
     required this.onToggleTripInfo,
@@ -231,6 +233,7 @@ abstract class TripDetailLayoutStrategy {
       onSendComment: data.onSendComment,
       onCancelReply: data.onCancelReply,
       onLoadMore: data.onLoadMoreComments,
+      bottomWidget: data.donationButton,
     );
   }
 
@@ -247,6 +250,7 @@ abstract class TripDetailLayoutStrategy {
       onRefresh: data.onRefreshTimeline,
       onLoadMore: data.onLoadMoreUpdates,
       onUpdateTap: data.onTimelineUpdateTap,
+      totalDistanceKm: data.trip.accruedDistanceKm,
     );
   }
 
