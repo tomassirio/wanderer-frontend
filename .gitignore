@@ -302,3 +302,4 @@ windows/
 
 /.env.dev
 /.env.prod
+/.build_number

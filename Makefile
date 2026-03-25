@@ -13,7 +13,7 @@ define check_env
 	fi
 endef
 
-.PHONY: help verify format analyze test clean build run docker clean-verify test-watch run-android run-web run-android-dev run-android-prod run-web-dev run-web-prod
+.PHONY: help verify format analyze test clean build run docker clean-verify test-watch run-android run-web run-android-dev run-android-prod run-web-dev run-web-prod bundle bundle-dev bundle-prod
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -114,6 +114,25 @@ run-web: ## Run on Web (usage: make run-web TARGET_ENV=dev)
 	trap 'cp web/index.html.template web/index.html' EXIT INT TERM && \
 	flutter run -d web-server --web-port=51538 --web-hostname=0.0.0.0
 
+bundle: ## Build Android App Bundle (usage: make bundle TARGET_ENV=prod)
+	$(call check_env,$(ENV_FILE))
+	@BUILD_NUM=$$(cat .build_number 2>/dev/null || echo 0) && \
+	BUILD_NUM=$$((BUILD_NUM + 1)) && \
+	echo $$BUILD_NUM > .build_number && \
+	echo "📦 Building App Bundle ($(TARGET_ENV)) — build-number: $$BUILD_NUM" && \
+	source $(ENV_FILE) && \
+	API_PATH=$${API_PATH:-/api/1} && \
+	flutter build appbundle --release \
+		--build-number=$$BUILD_NUM \
+		--dart-define=COMMAND_BASE_URL=$${ANDROID_HTTP_PROTOCOL}://$${DOMAIN}$${API_PATH}/command \
+		--dart-define=QUERY_BASE_URL=$${ANDROID_HTTP_PROTOCOL}://$${DOMAIN}$${API_PATH}/query \
+		--dart-define=AUTH_BASE_URL=$${ANDROID_HTTP_PROTOCOL}://$${DOMAIN}$${API_PATH}/auth \
+		--dart-define=WS_BASE_URL=$${ANDROID_WS_PROTOCOL}://$${DOMAIN} \
+		--dart-define=APP_BASE_URL=$${ANDROID_HTTP_PROTOCOL}://$${DOMAIN} \
+		--dart-define=GOOGLE_MAPS_API_KEY=$${GOOGLE_MAPS_API_KEY} && \
+	echo "✅ App Bundle built successfully (build-number: $$BUILD_NUM)" && \
+	echo "📍 Output: build/app/outputs/bundle/release/app-release.aab"
+
 # Shortcuts
 run-android-dev: ## Run android dev environment
 	@$(MAKE) run-android TARGET_ENV=dev
@@ -126,3 +145,10 @@ run-web-dev: ## Run web dev environment
 
 run-web-prod: ## Run web prod environment
 	@$(MAKE) run-web TARGET_ENV=prod
+
+bundle-dev: ## Build App Bundle for dev environment
+	@$(MAKE) bundle TARGET_ENV=dev
+
+bundle-prod: ## Build App Bundle for prod environment
+	@$(MAKE) bundle TARGET_ENV=prod
+
