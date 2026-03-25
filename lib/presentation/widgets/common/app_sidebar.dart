@@ -266,6 +266,7 @@ class AppSidebar extends StatelessWidget {
                   ],
                 ],
               ),
+              const SizedBox(height: 12),
               // Display name
               Text(
                 displayName ?? username ?? l10n.guest,

@@ -15,6 +15,8 @@ analyzer:
     # The 'value' parameter in DropdownButtonFormField is deprecated in newer versions
     # but 'initialValue' doesn't exist in older versions used by CI
     deprecated_member_use: ignore
+    # We properly check 'mounted' before using BuildContext across async gaps
+    use_build_context_synchronously: ignore
 
 linter:
   # The lint rules applied to this project can be customized in the

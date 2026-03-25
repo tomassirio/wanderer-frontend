@@ -448,7 +448,8 @@ class TripInfoCard extends StatelessWidget {
                   ],
                 ),
                 // Distance stat if available
-                if (trip.accruedDistanceKm != null && trip.accruedDistanceKm! > 0) ...[
+                if (trip.accruedDistanceKm != null &&
+                    trip.accruedDistanceKm! > 0) ...[
                   const SizedBox(height: 8),
                   _buildStatChip(
                     context,

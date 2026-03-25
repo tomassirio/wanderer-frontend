@@ -327,7 +327,7 @@ void main() {
       );
     });
 
-    testWidgets('App Version has no chevron_right trailing icon', (
+    testWidgets('App Version has chevron_right trailing icon', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(buildTestWidget());
@@ -340,12 +340,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Find the ListTile for App Version and verify it has no trailing
+      // Find the ListTile for App Version and verify it has a chevron trailing
       final appVersionTile = find.widgetWithText(ListTile, 'App Version');
       expect(appVersionTile, findsOneWidget);
 
       final listTile = tester.widget<ListTile>(appVersionTile);
-      expect(listTile.trailing, isNull);
+      expect(listTile.trailing, isNotNull);
+      expect(listTile.trailing, isA<Icon>());
     });
 
     testWidgets('renders Appearance section header', (

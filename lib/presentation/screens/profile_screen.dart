@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
@@ -109,6 +111,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _currentUsername; // Track the logged-in user's username
   String? _currentDisplayName; // Track the logged-in user's display name
   String? _currentAvatarUrl; // Track the logged-in user's avatar URL
+  Uint8List?
+      _optimisticAvatarBytes; // Optimistic avatar while backend processes
   final int _selectedSidebarIndex = 4; // Profile is index 4
 
   // Actual counts loaded from API (for own profile)
@@ -138,28 +142,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final userId = widget.userId ?? await _repository.getCurrentUserId();
     if (userId == null) return;
 
+    debugPrint('ProfileScreen: Setting up WebSocket for user $userId');
     await _webSocketService.connect();
     final userStream = _webSocketService.subscribeToUser(userId);
 
     _userEventSubscription = userStream.listen((event) {
+      debugPrint('ProfileScreen: Received WebSocket event: ${event.type}');
       if (event.type == WebSocketEventType.userProfileUpdated && mounted) {
+        debugPrint('ProfileScreen: Handling userProfileUpdated event');
         _handleUserProfileUpdated();
       } else if ((event.type == WebSocketEventType.userAvatarUploaded ||
               event.type == WebSocketEventType.userAvatarDeleted) &&
           mounted) {
+        debugPrint('ProfileScreen: Handling avatar event: ${event.type}');
         _handleUserProfileUpdated();
       }
     });
   }
 
   void _handleUserProfileUpdated() async {
+    debugPrint('ProfileScreen: _handleUserProfileUpdated called');
+
+    // If we have an optimistic avatar, wait a bit before fetching to ensure backend is ready
+    if (_optimisticAvatarBytes != null) {
+      debugPrint(
+          'ProfileScreen: Optimistic avatar present, waiting 2 seconds before fetching');
+      await Future.delayed(const Duration(seconds: 2));
+    }
+
     try {
       final refreshedProfile = await _repository.getMyProfile();
+      debugPrint(
+          'ProfileScreen: Fetched refreshed profile, avatarUrl: ${refreshedProfile.avatarUrl}');
+      // Refresh user details (display name, avatar URL) in local storage
+      await _repository.refreshUserDetails();
       if (mounted) {
         setState(() {
           _profile = refreshedProfile;
-          _currentAvatarUrl = refreshedProfile.avatarUrl;
+          // Clear optimistic state and use real avatar URL with cache bust
+          _optimisticAvatarBytes = null;
+          _currentAvatarUrl = refreshedProfile.avatarUrl.isNotEmpty
+              ? '${refreshedProfile.avatarUrl}?t=${DateTime.now().millisecondsSinceEpoch}'
+              : '';
         });
+
+        // Force image cache eviction to show new avatar immediately
+        if (refreshedProfile.avatarUrl.isNotEmpty) {
+          final baseUrl =
+              ApiEndpoints.resolveThumbnailUrl(refreshedProfile.avatarUrl);
+          debugPrint('ProfileScreen: Evicting image cache for $baseUrl');
+          NetworkImage(baseUrl).evict();
+          // Also evict the cache-busted version
+          NetworkImage('$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}')
+              .evict();
+        }
       }
     } catch (e) {
       debugPrint('Failed to refresh profile after update: $e');
@@ -719,14 +755,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // ignore: use_build_context_synchronously
   Future<void> _handleAvatarUpload() async {
+    // Capture context at the start to avoid async gap issues
+    final capturedContext = context;
+
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
       );
 
       if (image == null) return;
@@ -740,7 +777,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!hasValidExtension) {
         if (mounted) {
           UiHelpers.showErrorMessage(
-            context,
+            capturedContext,
             'Invalid image format. Only JPEG, PNG, and WebP are supported.',
           );
         }
@@ -752,25 +789,88 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (fileSize > 5 * 1024 * 1024) {
         if (mounted) {
           UiHelpers.showErrorMessage(
-            context,
+            capturedContext,
             'Image too large. Maximum size is 5MB.',
           );
         }
         return;
       }
 
-      final bytes = await image.readAsBytes();
-      await _repository.uploadAvatar(bytes, image.name);
+      // Crop image to square/circle
+      final CroppedFile? croppedFile = await ImageCropper().cropImage(
+        sourcePath: image.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        compressQuality: 85,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Avatar',
+            toolbarColor: WandererTheme.primaryOrange,
+            toolbarWidgetColor: Colors.white,
+            statusBarColor: WandererTheme.primaryOrange,
+            activeControlsWidgetColor: WandererTheme.primaryOrange,
+            backgroundColor: Colors.black,
+            lockAspectRatio: true,
+            hideBottomControls: false,
+            initAspectRatio: CropAspectRatioPreset.square,
+            showCropGrid: true,
+          ),
+          IOSUiSettings(
+            title: 'Crop Avatar',
+            aspectRatioLockEnabled: true,
+            minimumAspectRatio: 1.0,
+          ),
+          WebUiSettings(
+            context: capturedContext,
+            presentStyle: WebPresentStyle.dialog,
+            size: const CropperSize(
+              width: 520,
+              height: 520,
+            ),
+          ),
+        ],
+      );
+
+      if (croppedFile == null) {
+        // User cancelled cropping
+        return;
+      }
+
+      final bytes = await croppedFile.readAsBytes();
+
+      // Optimistic UI update - show the image immediately
+      if (mounted) {
+        setState(() {
+          _optimisticAvatarBytes = bytes;
+        });
+      }
+
+      // On web, image_cropper returns a blob URL with a UUID filename
+      // (no extension), so the backend can't determine the content type.
+      // Preserve the original image's extension to ensure a valid MIME type.
+      final originalExt =
+          image.name.contains('.') ? '.${image.name.split('.').last}' : '.png';
+      final croppedName = croppedFile.path.split('/').last;
+      final uploadName =
+          croppedName.contains('.') ? croppedName : '$croppedName$originalExt';
+
+      await _repository.uploadAvatar(bytes, uploadName);
 
       if (mounted) {
         UiHelpers.showSuccessMessage(
-          context,
+          capturedContext,
           'Avatar uploading... You\'ll see it in a moment!',
         );
       }
     } catch (e) {
+      // Clear optimistic state on error
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Failed to upload avatar: $e');
+        setState(() {
+          _optimisticAvatarBytes = null;
+        });
+        UiHelpers.showErrorMessage(
+            capturedContext, 'Failed to upload avatar: $e');
       }
     }
   }
@@ -802,6 +902,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (confirm != true) return;
 
     try {
+      // Optimistic UI update - clear avatar immediately
+      if (mounted) {
+        setState(() {
+          _optimisticAvatarBytes = null;
+          _currentAvatarUrl = '';
+        });
+      }
+
       await _repository.deleteAvatar();
 
       if (mounted) {
@@ -811,7 +919,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     } catch (e) {
+      // Restore avatar on error
       if (mounted) {
+        setState(() {
+          _currentAvatarUrl = _profile?.avatarUrl;
+        });
         UiHelpers.showErrorMessage(context, 'Failed to delete avatar: $e');
       }
     }
@@ -911,48 +1023,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildAvatarWidget(),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Stack(
                     children: [
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Flexible(
+                          Text(
+                            _profile!.displayName ?? _profile!.username,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (_isFollowingUser && !_isViewingOwnProfile)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 2),
+                              child: Icon(
+                                Icons.person_add_alt_1,
+                                size: 16,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '@${_profile!.username}',
+                            style: TextStyle(
+                                fontSize: 14, color: Colors.grey[600]),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          GestureDetector(
+                            onTap: () {
+                              Clipboard.setData(
+                                  ClipboardData(text: _profile!.id));
+                              UiHelpers.showInfoMessage(
+                                  context, 'User ID copied to clipboard');
+                            },
                             child: Text(
-                              _profile!.displayName ?? _profile!.username,
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                              _profile!.id,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: primaryColor.withValues(alpha: 0.8),
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
-                          if (_isFollowingUser && !_isViewingOwnProfile) ...[
-                            const SizedBox(width: 8),
-                            const Icon(
-                              Icons.person_add_alt_1,
-                              size: 20,
-                              color: Colors.blue,
-                            ),
-                          ],
-                          if (!isWide) ...[
-                            const Spacer(),
-                            _buildActionButtons(),
-                          ],
                         ],
                       ),
-                      Text(
-                        '@${_profile!.username}',
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                      ),
-                      const SizedBox(height: 4),
-                      SelectableText(
-                        _profile!.id,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: primaryColor.withValues(alpha: 0.8),
-                          fontFamily: 'monospace',
-                          fontWeight: FontWeight.w500,
+                      if (!isWide)
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: _buildActionButtons(),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -970,33 +1099,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               constraints: const BoxConstraints(minHeight: 60),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _profile!.bio != null && _profile!.bio!.isNotEmpty
-                        ? Text(
-                            _profile!.bio!,
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.grey[800],
-                              height: 1.4,
-                            ),
-                          )
-                        : Text(
-                            _isViewingOwnProfile
-                                ? l10n.tapPencilToAddBio
-                                : l10n.noBioYet,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[400],
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                  ),
-                  if (isWide) _buildActionButtons(),
-                ],
-              ),
+              child: _profile!.bio != null && _profile!.bio!.isNotEmpty
+                  ? Text(
+                      _profile!.bio!,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.grey[800],
+                        height: 1.4,
+                      ),
+                    )
+                  : Text(
+                      _isViewingOwnProfile
+                          ? l10n.tapPencilToAddBio
+                          : l10n.noBioYet,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[400],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
             );
 
             if (isWide) {
@@ -1009,6 +1130,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(width: 16),
                   Expanded(child: bioSection),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: _buildActionButtons(),
+                  ),
                 ],
               );
             } else {
@@ -1027,22 +1153,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  /// Builds a circular avatar image with proper aspect ratio handling
+  Widget _buildAvatarImage(double radius) {
+    // Show optimistic avatar if available (user just uploaded)
+    if (_optimisticAvatarBytes != null) {
+      return ClipOval(
+        child: Container(
+          width: radius * 2,
+          height: radius * 2,
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+          ),
+          child: Image.memory(
+            _optimisticAvatarBytes!,
+            fit: BoxFit.cover,
+            key: const ValueKey('optimistic-avatar'),
+          ),
+        ),
+      );
+    }
+
+    if (_profile!.avatarUrl.isEmpty) {
+      // No avatar - show initial
+      return CircleAvatar(
+        radius: radius,
+        child: Text(
+          _profile!.username.substring(0, 1).toUpperCase(),
+          style: TextStyle(fontSize: radius * 0.8),
+        ),
+      );
+    }
+
+    // Extract base URL without query parameters for cache key
+    final avatarUrl = _currentAvatarUrl ?? _profile!.avatarUrl;
+
+    // Has avatar - use ClipOval with Image.network for proper aspect ratio
+    return ClipOval(
+      child: Container(
+        width: radius * 2,
+        height: radius * 2,
+        decoration: BoxDecoration(
+          color: Colors.grey[300],
+        ),
+        child: Image.network(
+          ApiEndpoints.resolveThumbnailUrl(avatarUrl),
+          key: ValueKey(
+              avatarUrl), // Key changes when URL changes (with timestamp)
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return CircleAvatar(
+              radius: radius,
+              child: Text(
+                _profile!.username.substring(0, 1).toUpperCase(),
+                style: TextStyle(fontSize: radius * 0.8),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _buildAvatarWidget() {
     if (!_isViewingOwnProfile) {
       // For other users, just show the avatar
-      return CircleAvatar(
-        radius: 40,
-        backgroundImage: _profile!.avatarUrl.isNotEmpty
-            ? NetworkImage(
-                ApiEndpoints.resolveThumbnailUrl(_profile!.avatarUrl))
-            : null,
-        child: _profile!.avatarUrl.isEmpty
-            ? Text(
-                _profile!.username.substring(0, 1).toUpperCase(),
-                style: const TextStyle(fontSize: 32),
-              )
-            : null,
-      );
+      return _buildAvatarImage(40);
     }
 
     // For own profile, make it clickable with hover effect
@@ -1091,19 +1266,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             },
             child: Stack(
               children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundImage: _profile!.avatarUrl.isNotEmpty
-                      ? NetworkImage(
-                          ApiEndpoints.resolveThumbnailUrl(_profile!.avatarUrl))
-                      : null,
-                  child: _profile!.avatarUrl.isEmpty
-                      ? Text(
-                          _profile!.username.substring(0, 1).toUpperCase(),
-                          style: const TextStyle(fontSize: 32),
-                        )
-                      : null,
-                ),
+                _buildAvatarImage(40),
                 // Hover overlay with camera icon
                 if (isHovering)
                   Positioned.fill(
@@ -1135,6 +1298,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onPressed: _showEditProfileDialog,
         tooltip: l10n.editProfile,
         iconSize: 20,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
       );
     } else {
       return Row(
@@ -1148,7 +1313,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             tooltip: _isFollowingUser ? l10n.unfollow : l10n.follow,
             color: _isFollowingUser ? Colors.blue : null,
             iconSize: 20,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
+          const SizedBox(width: 8),
           IconButton(
             icon: Icon(
               _isAlreadyFriends
@@ -1169,6 +1337,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ? Colors.orange
                     : null,
             iconSize: 20,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       );

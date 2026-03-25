@@ -465,6 +465,11 @@ const Map<String, String> translationsEn = {
   'receivedTab': 'Received',
   'sentTab': 'Sent',
 
+  // --- Easter egg ---
+  'easterEggFound': 'You found it! 🐣',
+  'easterEggThanks': '🎉 Thanks for using Wanderer! 🎉',
+  'easterEggDismiss': 'Tap anywhere to close',
+
   // --- Language names (for the language picker) ---
   'languageName_en': 'English',
   'languageName_es': 'Español',

@@ -473,6 +473,11 @@ const Map<String, String> translationsNl = {
   'receivedTab': 'Ontvangen',
   'sentTab': 'Verzonden',
 
+  // --- Easter egg ---
+  'easterEggFound': 'Je hebt het gevonden! 🐣',
+  'easterEggThanks': '🎉 Bedankt voor het gebruik van Wanderer! 🎉',
+  'easterEggDismiss': 'Tik ergens om te sluiten',
+
   // --- Language names (for the language picker) ---
   'languageName_en': 'English',
   'languageName_es': 'Español',

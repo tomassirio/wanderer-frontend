@@ -14,6 +14,8 @@ import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/privacy_policy_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/terms_and_conditions_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/floating_notification.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/fireworks_widget.dart';
 
 /// Settings screen with categorized options for the user.
 class SettingsScreen extends StatefulWidget {
@@ -35,12 +37,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isDarkMode = false;
   String _appVersion = '';
 
+  // Easter egg state
+  int _easterEggTapCount = 0;
+  OverlayEntry? _easterEggOverlay;
+
   @override
   void initState() {
     super.initState();
     _loadPushPreference();
     _loadAppVersion();
     _isDarkMode = ThemeController().isDarkMode;
+  }
+
+  @override
+  void dispose() {
+    _easterEggOverlay?.remove();
+    _easterEggOverlay = null;
+    super.dispose();
   }
 
   Future<void> _loadAppVersion() async {
@@ -380,6 +393,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // --- Easter Egg ---
+
+  void _handleVersionTap() {
+    setState(() {
+      _easterEggTapCount++;
+    });
+
+    final remaining = 10 - _easterEggTapCount;
+    final l10n = context.l10n;
+
+    if (_easterEggTapCount >= 8 && _easterEggTapCount < 10) {
+      FloatingNotification.show(
+        context,
+        l10n.easterEggTapsRemaining(remaining),
+        NotificationType.info,
+        duration: const Duration(seconds: 1),
+      );
+    } else if (_easterEggTapCount == 10) {
+      FloatingNotification.show(
+        context,
+        l10n.easterEggFound,
+        NotificationType.success,
+        duration: const Duration(seconds: 2),
+      );
+      _showEasterEggOverlay();
+    }
+    // If tapping beyond 10 while overlay is not shown, reset
+    if (_easterEggTapCount > 10) {
+      _dismissEasterEggOverlay();
+    }
+  }
+
+  void _showEasterEggOverlay() {
+    _easterEggOverlay?.remove();
+    _easterEggOverlay = OverlayEntry(
+      builder: (context) => _EasterEggOverlay(
+        onDismiss: _dismissEasterEggOverlay,
+      ),
+    );
+    Overlay.of(context).insert(_easterEggOverlay!);
+  }
+
+  void _dismissEasterEggOverlay() {
+    _easterEggOverlay?.remove();
+    _easterEggOverlay = null;
+    setState(() {
+      _easterEggTapCount = 0;
+    });
+  }
+
   // --- Build ---
 
   @override
@@ -477,7 +540,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                   title: l10n.appVersion,
                   subtitle: _appVersion.isEmpty ? 'Loading...' : _appVersion,
-                  onTap: null,
+                  onTap: _handleVersionTap,
                 ),
                 const SizedBox(height: 8),
                 _buildSectionHeader('Danger Zone'),
@@ -684,6 +747,123 @@ class _SettingsScreenState extends State<SettingsScreen> {
             )
           : null,
       onTap: onTap,
+    );
+  }
+}
+
+/// Fullscreen overlay that displays the easter egg image with a fade-in animation.
+/// Tapping anywhere on the overlay dismisses it.
+class _EasterEggOverlay extends StatefulWidget {
+  final VoidCallback onDismiss;
+
+  const _EasterEggOverlay({required this.onDismiss});
+
+  @override
+  State<_EasterEggOverlay> createState() => _EasterEggOverlayState();
+}
+
+class _EasterEggOverlayState extends State<_EasterEggOverlay>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeIn,
+    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 0.5,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.elasticOut,
+    ));
+
+    _controller.forward();
+  }
+
+  Future<void> _dismiss() async {
+    await _controller.reverse();
+    widget.onDismiss();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.fromController();
+    return GestureDetector(
+      onTap: _dismiss,
+      child: Material(
+        color: Colors.transparent,
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: Stack(
+            children: [
+              // Dark backdrop
+              Container(color: Colors.black.withValues(alpha: 0.7)),
+              // Fireworks layer (behind the egg content)
+              const Positioned.fill(
+                child: FireworksWidget(
+                  burstCount: 6,
+                  burstInterval: Duration(milliseconds: 600),
+                ),
+              ),
+              // Egg + text content
+              Center(
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(
+                        'assets/images/egg/PixelEgg.png',
+                        width: 250,
+                        height: 250,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        l10n.easterEggThanks,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.easterEggDismiss,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          fontSize: 14,
+                          fontWeight: FontWeight.normal,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

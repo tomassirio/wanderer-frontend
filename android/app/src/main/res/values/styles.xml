@@ -15,4 +15,13 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
+    
+    <!-- UCrop theme with proper window insets for Android system UI -->
+    <style name="UCropTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+        <item name="android:statusBarColor">#E07830</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
+        <item name="android:fitsSystemWindows">true</item>
+    </style>
 </resources>

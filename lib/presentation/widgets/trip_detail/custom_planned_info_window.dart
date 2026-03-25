@@ -127,8 +127,7 @@ class CustomPlannedInfoWindow extends StatelessWidget {
             const SizedBox(height: 6),
             // Divider
             Builder(builder: (ctx) {
-              final isDark =
-                  Theme.of(ctx).brightness == Brightness.dark;
+              final isDark = Theme.of(ctx).brightness == Brightness.dark;
               return Divider(
                 height: 1,
                 thickness: 0.5,

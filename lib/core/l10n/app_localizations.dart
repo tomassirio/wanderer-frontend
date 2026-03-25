@@ -1133,6 +1133,24 @@ class AppLocalizations {
     }
   }
 
+  // --- Easter egg ---
+  String easterEggTapsRemaining(int remaining) {
+    switch (_lang) {
+      case 'es':
+        return '$remaining toques para una sorpresa... 🥚';
+      case 'fr':
+        return 'Plus que $remaining appuis pour une surprise... 🥚';
+      case 'nl':
+        return 'Nog $remaining tikken voor een verrassing... 🥚';
+      default:
+        return '$remaining taps away from a surprise... 🥚';
+    }
+  }
+
+  String get easterEggFound => _tr('easterEggFound');
+  String get easterEggThanks => _tr('easterEggThanks');
+  String get easterEggDismiss => _tr('easterEggDismiss');
+
   // --- Language names (for the language picker) ---
   String get languageNameEn => _tr('languageName_en');
   String get languageNameEs => _tr('languageName_es');
