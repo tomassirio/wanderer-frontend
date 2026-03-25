@@ -846,7 +846,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       }
 
-      await _repository.uploadAvatar(bytes, croppedFile.path.split('/').last);
+      // On web, image_cropper returns a blob URL with a UUID filename
+      // (no extension), so the backend can't determine the content type.
+      // Preserve the original image's extension to ensure a valid MIME type.
+      final originalExt =
+          image.name.contains('.') ? '.${image.name.split('.').last}' : '.png';
+      final croppedName = croppedFile.path.split('/').last;
+      final uploadName =
+          croppedName.contains('.') ? croppedName : '$croppedName$originalExt';
+
+      await _repository.uploadAvatar(bytes, uploadName);
 
       if (mounted) {
         UiHelpers.showSuccessMessage(
