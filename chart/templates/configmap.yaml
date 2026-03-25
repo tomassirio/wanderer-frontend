@@ -6,6 +6,10 @@ metadata:
     app: {{ .Chart.Name }}{{ .Values.nameSuffix }}
 data:
   nginx.conf: |
+    # DNS resolver for Kubernetes - forces nginx to re-resolve DNS on each request
+    resolver 10.43.0.10 valid=10s ipv6=off;
+    resolver_timeout 5s;
+
     server {
         listen {{ .Values.application.port }};
         server_name localhost;
@@ -30,7 +34,8 @@ data:
 
         # WebSocket - proxy /ws to wanderer-command service for real-time updates
         location /ws {
-            proxy_pass http://wanderer-command{{ .Values.nameSuffix }}:{{ .Values.backend.commandPort }}/ws;
+            set $backend_command wanderer-command{{ .Values.nameSuffix }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.backend.commandPort }};
+            proxy_pass http://$backend_command;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "upgrade";
@@ -45,7 +50,9 @@ data:
 
         # Auth Service - proxy /api/auth/* to wanderer-auth service /api/1/auth/*
         location /api/auth/ {
-            proxy_pass http://wanderer-auth{{ .Values.nameSuffix }}:{{ .Values.backend.authPort }}/api/1/auth/;
+            set $backend_auth wanderer-auth{{ .Values.nameSuffix }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.backend.authPort }};
+            rewrite ^/api/auth/(.*)$ /api/1/auth/$1 break;
+            proxy_pass http://$backend_auth;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -57,7 +64,9 @@ data:
 
         # Admin Service - proxy /api/admin/* to wanderer-auth service /api/1/admin/*
         location /api/admin/ {
-            proxy_pass http://wanderer-auth{{ .Values.nameSuffix }}:{{ .Values.backend.authPort }}/api/1/admin/;
+            set $backend_auth wanderer-auth{{ .Values.nameSuffix }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.backend.authPort }};
+            rewrite ^/api/admin/(.*)$ /api/1/admin/$1 break;
+            proxy_pass http://$backend_auth;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -69,7 +78,9 @@ data:
 
         # Command Service - proxy /api/command/* to wanderer-command service /api/1/*
         location /api/command/ {
-            proxy_pass http://wanderer-command{{ .Values.nameSuffix }}:{{ .Values.backend.commandPort }}/api/1/;
+            set $backend_command wanderer-command{{ .Values.nameSuffix }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.backend.commandPort }};
+            rewrite ^/api/command/(.*)$ /api/1/$1 break;
+            proxy_pass http://$backend_command;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -81,7 +92,9 @@ data:
 
         # Query Service - proxy /api/query/* to wanderer-query service /api/1/*
         location /api/query/ {
-            proxy_pass http://wanderer-query{{ .Values.nameSuffix }}:{{ .Values.backend.queryPort }}/api/1/;
+            set $backend_query wanderer-query{{ .Values.nameSuffix }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.backend.queryPort }};
+            rewrite ^/api/query/(.*)$ /api/1/$1 break;
+            proxy_pass http://$backend_query;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -96,7 +109,9 @@ data:
         # Nginx serves from /usr/share/nginx/html/ which is mounted to /data/thumbnails/
         # So /thumbnails/trips/UUID.png -> /trips/UUID.png -> /usr/share/nginx/html/trips/UUID.png
         location ^~ /thumbnails/ {
-            proxy_pass http://wanderer-command{{ .Values.nameSuffix }}-nginx/;
+            set $backend_nginx wanderer-command{{ .Values.nameSuffix }}-nginx.{{ .Release.Namespace }}.svc.cluster.local;
+            rewrite ^/thumbnails/(.*)$ /$1 break;
+            proxy_pass http://$backend_nginx;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
