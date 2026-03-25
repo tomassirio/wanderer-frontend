@@ -1041,33 +1041,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               constraints: const BoxConstraints(minHeight: 60),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _profile!.bio != null && _profile!.bio!.isNotEmpty
-                        ? Text(
-                            _profile!.bio!,
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.grey[800],
-                              height: 1.4,
-                            ),
-                          )
-                        : Text(
-                            _isViewingOwnProfile
-                                ? l10n.tapPencilToAddBio
-                                : l10n.noBioYet,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[400],
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                  ),
-                  if (isWide) _buildActionButtons(),
-                ],
-              ),
+              child: _profile!.bio != null && _profile!.bio!.isNotEmpty
+                  ? Text(
+                      _profile!.bio!,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.grey[800],
+                        height: 1.4,
+                      ),
+                    )
+                  : Text(
+                      _isViewingOwnProfile
+                          ? l10n.tapPencilToAddBio
+                          : l10n.noBioYet,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[400],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
             );
 
             if (isWide) {
@@ -1080,6 +1072,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(width: 16),
                   Expanded(child: bioSection),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: _buildActionButtons(),
+                  ),
                 ],
               );
             } else {
