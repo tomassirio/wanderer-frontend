@@ -755,7 +755,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // ignore: use_build_context_synchronously
   Future<void> _handleAvatarUpload() async {
+    // Capture context at the start to avoid async gap issues
+    final capturedContext = context;
+
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
@@ -773,7 +777,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!hasValidExtension) {
         if (mounted) {
           UiHelpers.showErrorMessage(
-            context,
+            capturedContext,
             'Invalid image format. Only JPEG, PNG, and WebP are supported.',
           );
         }
@@ -785,7 +789,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (fileSize > 5 * 1024 * 1024) {
         if (mounted) {
           UiHelpers.showErrorMessage(
-            context,
+            capturedContext,
             'Image too large. Maximum size is 5MB.',
           );
         }
@@ -818,7 +822,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             minimumAspectRatio: 1.0,
           ),
           WebUiSettings(
-            context: context,
+            context: capturedContext,
             presentStyle: WebPresentStyle.dialog,
             size: const CropperSize(
               width: 520,
@@ -846,7 +850,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (mounted) {
         UiHelpers.showSuccessMessage(
-          context,
+          capturedContext,
           'Avatar uploading... You\'ll see it in a moment!',
         );
       }
@@ -856,7 +860,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _optimisticAvatarBytes = null;
         });
-        UiHelpers.showErrorMessage(context, 'Failed to upload avatar: $e');
+        UiHelpers.showErrorMessage(
+            capturedContext, 'Failed to upload avatar: $e');
       }
     }
   }
