@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
@@ -109,6 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _currentUsername; // Track the logged-in user's username
   String? _currentDisplayName; // Track the logged-in user's display name
   String? _currentAvatarUrl; // Track the logged-in user's avatar URL
+  Uint8List? _optimisticAvatarBytes; // Optimistic avatar while backend processes
   final int _selectedSidebarIndex = 4; // Profile is index 4
 
   // Actual counts loaded from API (for own profile)
@@ -138,28 +140,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final userId = widget.userId ?? await _repository.getCurrentUserId();
     if (userId == null) return;
 
+    debugPrint('ProfileScreen: Setting up WebSocket for user $userId');
     await _webSocketService.connect();
     final userStream = _webSocketService.subscribeToUser(userId);
 
     _userEventSubscription = userStream.listen((event) {
+      debugPrint('ProfileScreen: Received WebSocket event: ${event.type}');
       if (event.type == WebSocketEventType.userProfileUpdated && mounted) {
+        debugPrint('ProfileScreen: Handling userProfileUpdated event');
         _handleUserProfileUpdated();
       } else if ((event.type == WebSocketEventType.userAvatarUploaded ||
               event.type == WebSocketEventType.userAvatarDeleted) &&
           mounted) {
+        debugPrint('ProfileScreen: Handling avatar event: ${event.type}');
         _handleUserProfileUpdated();
       }
     });
   }
 
   void _handleUserProfileUpdated() async {
+    debugPrint('ProfileScreen: _handleUserProfileUpdated called');
+    
+    // If we have an optimistic avatar, wait a bit before fetching to ensure backend is ready
+    if (_optimisticAvatarBytes != null) {
+      debugPrint('ProfileScreen: Optimistic avatar present, waiting 2 seconds before fetching');
+      await Future.delayed(const Duration(seconds: 2));
+    }
+    
     try {
       final refreshedProfile = await _repository.getMyProfile();
+      debugPrint('ProfileScreen: Fetched refreshed profile, avatarUrl: ${refreshedProfile.avatarUrl}');
+      // Refresh user details (display name, avatar URL) in local storage
+      await _repository.refreshUserDetails();
       if (mounted) {
         setState(() {
           _profile = refreshedProfile;
-          _currentAvatarUrl = refreshedProfile.avatarUrl;
+          // Clear optimistic state and use real avatar URL with cache bust
+          _optimisticAvatarBytes = null;
+          _currentAvatarUrl = refreshedProfile.avatarUrl.isNotEmpty
+              ? '${refreshedProfile.avatarUrl}?t=${DateTime.now().millisecondsSinceEpoch}'
+              : '';
         });
+        
+        // Force image cache eviction to show new avatar immediately
+        if (refreshedProfile.avatarUrl.isNotEmpty) {
+          final baseUrl = ApiEndpoints.resolveThumbnailUrl(refreshedProfile.avatarUrl);
+          debugPrint('ProfileScreen: Evicting image cache for $baseUrl');
+          NetworkImage(baseUrl).evict();
+          // Also evict the cache-busted version
+          NetworkImage('$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}').evict();
+        }
       }
     } catch (e) {
       debugPrint('Failed to refresh profile after update: $e');
@@ -760,6 +790,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       final bytes = await image.readAsBytes();
+      
+      // Optimistic UI update - show the image immediately
+      if (mounted) {
+        setState(() {
+          _optimisticAvatarBytes = bytes;
+        });
+      }
+
       await _repository.uploadAvatar(bytes, image.name);
 
       if (mounted) {
@@ -769,7 +807,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     } catch (e) {
+      // Clear optimistic state on error
       if (mounted) {
+        setState(() {
+          _optimisticAvatarBytes = null;
+        });
         UiHelpers.showErrorMessage(context, 'Failed to upload avatar: $e');
       }
     }
@@ -802,6 +844,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (confirm != true) return;
 
     try {
+      // Optimistic UI update - clear avatar immediately
+      if (mounted) {
+        setState(() {
+          _optimisticAvatarBytes = null;
+          _currentAvatarUrl = '';
+        });
+      }
+
       await _repository.deleteAvatar();
 
       if (mounted) {
@@ -811,7 +861,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     } catch (e) {
+      // Restore avatar on error
       if (mounted) {
+        setState(() {
+          _currentAvatarUrl = _profile?.avatarUrl;
+        });
         UiHelpers.showErrorMessage(context, 'Failed to delete avatar: $e');
       }
     }
@@ -1027,22 +1081,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  /// Builds a circular avatar image with proper aspect ratio handling
+  Widget _buildAvatarImage(double radius) {
+    // Show optimistic avatar if available (user just uploaded)
+    if (_optimisticAvatarBytes != null) {
+      return ClipOval(
+        child: Container(
+          width: radius * 2,
+          height: radius * 2,
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+          ),
+          child: Image.memory(
+            _optimisticAvatarBytes!,
+            fit: BoxFit.cover,
+            key: const ValueKey('optimistic-avatar'),
+          ),
+        ),
+      );
+    }
+
+    if (_profile!.avatarUrl.isEmpty) {
+      // No avatar - show initial
+      return CircleAvatar(
+        radius: radius,
+        child: Text(
+          _profile!.username.substring(0, 1).toUpperCase(),
+          style: TextStyle(fontSize: radius * 0.8),
+        ),
+      );
+    }
+
+    // Extract base URL without query parameters for cache key
+    final avatarUrl = _currentAvatarUrl ?? _profile!.avatarUrl;
+    
+    // Has avatar - use ClipOval with Image.network for proper aspect ratio
+    return ClipOval(
+      child: Container(
+        width: radius * 2,
+        height: radius * 2,
+        decoration: BoxDecoration(
+          color: Colors.grey[300],
+        ),
+        child: Image.network(
+          ApiEndpoints.resolveThumbnailUrl(avatarUrl),
+          key: ValueKey(avatarUrl), // Key changes when URL changes (with timestamp)
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return CircleAvatar(
+              radius: radius,
+              child: Text(
+                _profile!.username.substring(0, 1).toUpperCase(),
+                style: TextStyle(fontSize: radius * 0.8),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _buildAvatarWidget() {
     if (!_isViewingOwnProfile) {
       // For other users, just show the avatar
-      return CircleAvatar(
-        radius: 40,
-        backgroundImage: _profile!.avatarUrl.isNotEmpty
-            ? NetworkImage(
-                ApiEndpoints.resolveThumbnailUrl(_profile!.avatarUrl))
-            : null,
-        child: _profile!.avatarUrl.isEmpty
-            ? Text(
-                _profile!.username.substring(0, 1).toUpperCase(),
-                style: const TextStyle(fontSize: 32),
-              )
-            : null,
-      );
+      return _buildAvatarImage(40);
     }
 
     // For own profile, make it clickable with hover effect
@@ -1091,19 +1193,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             },
             child: Stack(
               children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundImage: _profile!.avatarUrl.isNotEmpty
-                      ? NetworkImage(
-                          ApiEndpoints.resolveThumbnailUrl(_profile!.avatarUrl))
-                      : null,
-                  child: _profile!.avatarUrl.isEmpty
-                      ? Text(
-                          _profile!.username.substring(0, 1).toUpperCase(),
-                          style: const TextStyle(fontSize: 32),
-                        )
-                      : null,
-                ),
+                _buildAvatarImage(40),
                 // Hover overlay with camera icon
                 if (isHovering)
                   Positioned.fill(
