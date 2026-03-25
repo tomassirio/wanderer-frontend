@@ -91,6 +91,7 @@ flutter:
   # App assets
   assets:
     - assets/images/
+    - assets/images/egg/
     - assets/legal/
     - assets/third_app_logos/
 
