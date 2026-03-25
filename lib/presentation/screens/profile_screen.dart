@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
@@ -965,48 +966,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildAvatarWidget(),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Stack(
                     children: [
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Flexible(
+                          Text(
+                            _profile!.displayName ?? _profile!.username,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (_isFollowingUser && !_isViewingOwnProfile)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 2),
+                              child: Icon(
+                                Icons.person_add_alt_1,
+                                size: 16,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '@${_profile!.username}',
+                            style: TextStyle(
+                                fontSize: 14, color: Colors.grey[600]),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          GestureDetector(
+                            onTap: () {
+                              Clipboard.setData(
+                                  ClipboardData(text: _profile!.id));
+                              UiHelpers.showInfoMessage(
+                                  context, 'User ID copied to clipboard');
+                            },
                             child: Text(
-                              _profile!.displayName ?? _profile!.username,
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                              _profile!.id,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: primaryColor.withValues(alpha: 0.8),
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
-                          if (_isFollowingUser && !_isViewingOwnProfile) ...[
-                            const SizedBox(width: 8),
-                            const Icon(
-                              Icons.person_add_alt_1,
-                              size: 20,
-                              color: Colors.blue,
-                            ),
-                          ],
-                          if (!isWide) ...[
-                            const Spacer(),
-                            _buildActionButtons(),
-                          ],
                         ],
                       ),
-                      Text(
-                        '@${_profile!.username}',
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                      ),
-                      const SizedBox(height: 4),
-                      SelectableText(
-                        _profile!.id,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: primaryColor.withValues(alpha: 0.8),
-                          fontFamily: 'monospace',
-                          fontWeight: FontWeight.w500,
+                      if (!isWide)
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: _buildActionButtons(),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -1225,6 +1243,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onPressed: _showEditProfileDialog,
         tooltip: l10n.editProfile,
         iconSize: 20,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
       );
     } else {
       return Row(
@@ -1238,7 +1258,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             tooltip: _isFollowingUser ? l10n.unfollow : l10n.follow,
             color: _isFollowingUser ? Colors.blue : null,
             iconSize: 20,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
+          const SizedBox(width: 8),
           IconButton(
             icon: Icon(
               _isAlreadyFriends
@@ -1259,6 +1282,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ? Colors.orange
                     : null,
             iconSize: 20,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       );

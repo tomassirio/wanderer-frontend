@@ -154,9 +154,7 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
     } catch (e) {
       setState(() => _isLoadingMoreTrips = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading more trips: $e')),
-        );
+        UiHelpers.showErrorMessage(context, 'Error loading more trips: $e');
       }
     }
   }
