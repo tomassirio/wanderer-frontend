@@ -54,6 +54,7 @@ dependencies:
   qr_flutter: ^4.1.0
   package_info_plus: ^9.0.0
   image_picker: ^1.0.7
+  image_cropper: ^8.0.2
 
 dev_dependencies:
   flutter_test:

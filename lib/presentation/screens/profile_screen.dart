@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
@@ -759,9 +760,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
       );
 
       if (image == null) return;
@@ -794,7 +792,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return;
       }
 
-      final bytes = await image.readAsBytes();
+      // Crop image to square/circle
+      final CroppedFile? croppedFile = await ImageCropper().cropImage(
+        sourcePath: image.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        compressQuality: 85,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Avatar',
+            toolbarColor: WandererTheme.primaryOrange,
+            toolbarWidgetColor: Colors.white,
+            statusBarColor: WandererTheme.primaryOrange,
+            activeControlsWidgetColor: WandererTheme.primaryOrange,
+            backgroundColor: Colors.black,
+            lockAspectRatio: true,
+            hideBottomControls: false,
+            initAspectRatio: CropAspectRatioPreset.square,
+            showCropGrid: true,
+          ),
+          IOSUiSettings(
+            title: 'Crop Avatar',
+            aspectRatioLockEnabled: true,
+            minimumAspectRatio: 1.0,
+          ),
+          WebUiSettings(
+            context: context,
+            presentStyle: WebPresentStyle.dialog,
+            size: const CropperSize(
+              width: 520,
+              height: 520,
+            ),
+          ),
+        ],
+      );
+
+      if (croppedFile == null) {
+        // User cancelled cropping
+        return;
+      }
+
+      final bytes = await croppedFile.readAsBytes();
 
       // Optimistic UI update - show the image immediately
       if (mounted) {
@@ -803,7 +842,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       }
 
-      await _repository.uploadAvatar(bytes, image.name);
+      await _repository.uploadAvatar(bytes, croppedFile.path.split('/').last);
 
       if (mounted) {
         UiHelpers.showSuccessMessage(
