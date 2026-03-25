@@ -470,6 +470,11 @@ const Map<String, String> translationsEs = {
   'receivedTab': 'Recibidas',
   'sentTab': 'Enviadas',
 
+  // --- Easter egg ---
+  'easterEggFound': '¡Lo encontraste! 🐣',
+  'easterEggThanks': '🎉 ¡Gracias por usar Wanderer! 🎉',
+  'easterEggDismiss': 'Toca en cualquier lugar para cerrar',
+
   // --- Language names (for the language picker) ---
   'languageName_en': 'English',
   'languageName_es': 'Español',

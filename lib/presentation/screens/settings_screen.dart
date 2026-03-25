@@ -15,6 +15,7 @@ import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/privacy_policy_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/terms_and_conditions_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/floating_notification.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/fireworks_widget.dart';
 
 /// Settings screen with categorized options for the user.
 class SettingsScreen extends StatefulWidget {
@@ -400,18 +401,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
 
     final remaining = 10 - _easterEggTapCount;
+    final l10n = context.l10n;
 
     if (_easterEggTapCount >= 8 && _easterEggTapCount < 10) {
       FloatingNotification.show(
         context,
-        '$remaining taps away from a surprise... 🥚',
+        l10n.easterEggTapsRemaining(remaining),
         NotificationType.info,
         duration: const Duration(seconds: 1),
       );
     } else if (_easterEggTapCount == 10) {
       FloatingNotification.show(
         context,
-        'You found it! 🐣',
+        l10n.easterEggFound,
         NotificationType.success,
         duration: const Duration(seconds: 2),
       );
@@ -803,50 +805,62 @@ class _EasterEggOverlayState extends State<_EasterEggOverlay>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.fromController();
     return GestureDetector(
       onTap: _dismiss,
       child: Material(
         color: Colors.transparent,
         child: FadeTransition(
           opacity: _fadeAnimation,
-          child: Container(
-            color: Colors.black.withValues(alpha: 0.7),
-            child: Center(
-              child: ScaleTransition(
-                scale: _scaleAnimation,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Image.asset(
-                      'assets/images/egg/PixelEgg.png',
-                      width: 250,
-                      height: 250,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      '🎉 Thanks for using Wanderer! 🎉',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Tap anywhere to close',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 14,
-                        fontWeight: FontWeight.normal,
-                        decoration: TextDecoration.none,
-                      ),
-                    ),
-                  ],
+          child: Stack(
+            children: [
+              // Dark backdrop
+              Container(color: Colors.black.withValues(alpha: 0.7)),
+              // Fireworks layer (behind the egg content)
+              const Positioned.fill(
+                child: FireworksWidget(
+                  burstCount: 6,
+                  burstInterval: Duration(milliseconds: 600),
                 ),
               ),
-            ),
+              // Egg + text content
+              Center(
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(
+                        'assets/images/egg/PixelEgg.png',
+                        width: 250,
+                        height: 250,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        l10n.easterEggThanks,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.easterEggDismiss,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          fontSize: 14,
+                          fontWeight: FontWeight.normal,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
