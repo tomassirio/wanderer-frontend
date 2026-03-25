@@ -167,9 +167,11 @@ class WebSocketService {
   /// Subscribe to events for a specific user
   Stream<WebSocketEvent> subscribeToUser(String userId) {
     debugPrint('WebSocketService: subscribeToUser called for $userId');
-    debugPrint('WebSocketService: Controller exists? ${_userEventControllers.containsKey(userId)}');
-    debugPrint('WebSocketService: Already subscribed? ${_subscribedUsers.contains(userId)}');
-    
+    debugPrint(
+        'WebSocketService: Controller exists? ${_userEventControllers.containsKey(userId)}');
+    debugPrint(
+        'WebSocketService: Already subscribed? ${_subscribedUsers.contains(userId)}');
+
     if (!_userEventControllers.containsKey(userId)) {
       _userEventControllers[userId] =
           StreamController<WebSocketEvent>.broadcast();
@@ -224,7 +226,8 @@ class WebSocketService {
       if (event.type == WebSocketEventType.userAvatarUploaded ||
           event.type == WebSocketEventType.userAvatarDeleted ||
           event.type == WebSocketEventType.userProfileUpdated) {
-        final userId = event.tripId; // The tripId field actually contains userId for user events
+        final userId = event
+            .tripId; // The tripId field actually contains userId for user events
         if (userId != null && userId.isNotEmpty) {
           debugPrint(
               'WebSocketService: Routing user profile event to user stream for $userId');
@@ -284,14 +287,19 @@ class WebSocketService {
   }
 
   void _emitToUserStream(String userId, WebSocketEvent event) {
-    debugPrint('WebSocketService: Attempting to emit event ${event.type} to user stream for $userId');
-    debugPrint('WebSocketService: User controller exists? ${_userEventControllers.containsKey(userId)}');
-    debugPrint('WebSocketService: Available user controllers: ${_userEventControllers.keys.toList()}');
+    debugPrint(
+        'WebSocketService: Attempting to emit event ${event.type} to user stream for $userId');
+    debugPrint(
+        'WebSocketService: User controller exists? ${_userEventControllers.containsKey(userId)}');
+    debugPrint(
+        'WebSocketService: Available user controllers: ${_userEventControllers.keys.toList()}');
     if (_userEventControllers.containsKey(userId)) {
-      debugPrint('WebSocketService: Emitting event ${event.type} to user stream for $userId');
+      debugPrint(
+          'WebSocketService: Emitting event ${event.type} to user stream for $userId');
       _userEventControllers[userId]!.add(event);
     } else {
-      debugPrint('WebSocketService: No controller found for user $userId, event ${event.type} not delivered');
+      debugPrint(
+          'WebSocketService: No controller found for user $userId, event ${event.type} not delivered');
     }
   }
 

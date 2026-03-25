@@ -110,7 +110,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _currentUsername; // Track the logged-in user's username
   String? _currentDisplayName; // Track the logged-in user's display name
   String? _currentAvatarUrl; // Track the logged-in user's avatar URL
-  Uint8List? _optimisticAvatarBytes; // Optimistic avatar while backend processes
+  Uint8List?
+      _optimisticAvatarBytes; // Optimistic avatar while backend processes
   final int _selectedSidebarIndex = 4; // Profile is index 4
 
   // Actual counts loaded from API (for own profile)
@@ -160,16 +161,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _handleUserProfileUpdated() async {
     debugPrint('ProfileScreen: _handleUserProfileUpdated called');
-    
+
     // If we have an optimistic avatar, wait a bit before fetching to ensure backend is ready
     if (_optimisticAvatarBytes != null) {
-      debugPrint('ProfileScreen: Optimistic avatar present, waiting 2 seconds before fetching');
+      debugPrint(
+          'ProfileScreen: Optimistic avatar present, waiting 2 seconds before fetching');
       await Future.delayed(const Duration(seconds: 2));
     }
-    
+
     try {
       final refreshedProfile = await _repository.getMyProfile();
-      debugPrint('ProfileScreen: Fetched refreshed profile, avatarUrl: ${refreshedProfile.avatarUrl}');
+      debugPrint(
+          'ProfileScreen: Fetched refreshed profile, avatarUrl: ${refreshedProfile.avatarUrl}');
       // Refresh user details (display name, avatar URL) in local storage
       await _repository.refreshUserDetails();
       if (mounted) {
@@ -181,14 +184,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ? '${refreshedProfile.avatarUrl}?t=${DateTime.now().millisecondsSinceEpoch}'
               : '';
         });
-        
+
         // Force image cache eviction to show new avatar immediately
         if (refreshedProfile.avatarUrl.isNotEmpty) {
-          final baseUrl = ApiEndpoints.resolveThumbnailUrl(refreshedProfile.avatarUrl);
+          final baseUrl =
+              ApiEndpoints.resolveThumbnailUrl(refreshedProfile.avatarUrl);
           debugPrint('ProfileScreen: Evicting image cache for $baseUrl');
           NetworkImage(baseUrl).evict();
           // Also evict the cache-busted version
-          NetworkImage('$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}').evict();
+          NetworkImage('$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}')
+              .evict();
         }
       }
     } catch (e) {
@@ -790,7 +795,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       final bytes = await image.readAsBytes();
-      
+
       // Optimistic UI update - show the image immediately
       if (mounted) {
         setState(() {
@@ -1128,7 +1133,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     // Extract base URL without query parameters for cache key
     final avatarUrl = _currentAvatarUrl ?? _profile!.avatarUrl;
-    
+
     // Has avatar - use ClipOval with Image.network for proper aspect ratio
     return ClipOval(
       child: Container(
@@ -1139,7 +1144,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         child: Image.network(
           ApiEndpoints.resolveThumbnailUrl(avatarUrl),
-          key: ValueKey(avatarUrl), // Key changes when URL changes (with timestamp)
+          key: ValueKey(
+              avatarUrl), // Key changes when URL changes (with timestamp)
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
             return CircleAvatar(

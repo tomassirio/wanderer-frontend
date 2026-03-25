@@ -217,6 +217,7 @@ jobs:
             --dart-define=QUERY_BASE_URL=https://${{ vars.PUBLIC_URL }}/api/query \
             --dart-define=AUTH_BASE_URL=https://${{ vars.PUBLIC_URL }}/api/auth \
             --dart-define=WS_BASE_URL=wss://${{ vars.PUBLIC_URL }} \
+            --dart-define=APP_BASE_URL=https://${{ vars.PUBLIC_URL }} \
             --dart-define=GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}
 
       - name: Upload APK to release
