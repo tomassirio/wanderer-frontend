@@ -82,12 +82,19 @@ jobs:
           if [ "${{ inputs.environment }}" == "dev" ]; then
             echo "name-suffix=-dev" >> $GITHUB_OUTPUT
             echo "service-port=41538" >> $GITHUB_OUTPUT
-            echo "ingress-host=wanderer.localwanderer-dev.com" >> $GITHUB_OUTPUT
           else
             echo "name-suffix=" >> $GITHUB_OUTPUT
             echo "service-port=51538" >> $GITHUB_OUTPUT
-            echo "ingress-host=wanderer.localwanderer.com" >> $GITHUB_OUTPUT
           fi
+          
+          # Use PUBLIC_URL from environment variable, fallback to localhost
+          PUBLIC_URL="${{ vars.PUBLIC_URL }}"
+          if [ -z "$PUBLIC_URL" ]; then
+            echo "⚠️  Warning: PUBLIC_URL not set, using default"
+            PUBLIC_URL="wanderer.localwanderer.com"
+          fi
+          echo "ingress-host=$PUBLIC_URL" >> $GITHUB_OUTPUT
+          echo "🌐 Using PUBLIC_URL: $PUBLIC_URL"
 
       - name: Deploy with Helm
         run: |

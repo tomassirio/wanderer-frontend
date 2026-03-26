@@ -121,14 +121,16 @@ bundle: ## Build Android App Bundle (usage: make bundle TARGET_ENV=prod)
 	echo $$BUILD_NUM > .build_number && \
 	echo "📦 Building App Bundle ($(TARGET_ENV)) — build-number: $$BUILD_NUM" && \
 	source $(ENV_FILE) && \
-	API_PATH=$${API_PATH:-/api/1} && \
+	B_DOMAIN=$${BUNDLE_DOMAIN:-$$DOMAIN} && \
+	B_API_PATH=$${BUNDLE_API_PATH:-$${API_PATH:-/api/1}} && \
+	echo "   Domain: $$B_DOMAIN  API path: $$B_API_PATH" && \
 	flutter build appbundle --release \
 		--build-number=$$BUILD_NUM \
-		--dart-define=COMMAND_BASE_URL=$${ANDROID_HTTP_PROTOCOL}://$${DOMAIN}$${API_PATH}/command \
-		--dart-define=QUERY_BASE_URL=$${ANDROID_HTTP_PROTOCOL}://$${DOMAIN}$${API_PATH}/query \
-		--dart-define=AUTH_BASE_URL=$${ANDROID_HTTP_PROTOCOL}://$${DOMAIN}$${API_PATH}/auth \
-		--dart-define=WS_BASE_URL=$${ANDROID_WS_PROTOCOL}://$${DOMAIN} \
-		--dart-define=APP_BASE_URL=$${ANDROID_HTTP_PROTOCOL}://$${DOMAIN} \
+		--dart-define=COMMAND_BASE_URL=$${ANDROID_HTTP_PROTOCOL}://$$B_DOMAIN$$B_API_PATH/command \
+		--dart-define=QUERY_BASE_URL=$${ANDROID_HTTP_PROTOCOL}://$$B_DOMAIN$$B_API_PATH/query \
+		--dart-define=AUTH_BASE_URL=$${ANDROID_HTTP_PROTOCOL}://$$B_DOMAIN$$B_API_PATH/auth \
+		--dart-define=WS_BASE_URL=$${ANDROID_WS_PROTOCOL}://$$B_DOMAIN \
+		--dart-define=APP_BASE_URL=$${ANDROID_HTTP_PROTOCOL}://$$B_DOMAIN \
 		--dart-define=GOOGLE_MAPS_API_KEY=$${GOOGLE_MAPS_API_KEY} && \
 	echo "✅ App Bundle built successfully (build-number: $$BUILD_NUM)" && \
 	echo "📍 Output: build/app/outputs/bundle/release/app-release.aab"
@@ -151,4 +153,5 @@ bundle-dev: ## Build App Bundle for dev environment
 
 bundle-prod: ## Build App Bundle for prod environment
 	@$(MAKE) bundle TARGET_ENV=prod
+
 
