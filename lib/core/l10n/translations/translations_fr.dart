@@ -117,6 +117,8 @@ const Map<String, String> translationsFr = {
   'checkYourEmail': 'Vérifiez votre e-mail',
   'emailLabel': 'E-mail',
   'usernameLabel': 'Nom d\'utilisateur',
+  'usernameOrEmailLabel': 'Utilisateur ou E-mail',
+  'usernameOrEmailHint': 'Entrez votre nom d\'utilisateur ou e-mail',
   'passwordLabel': 'Mot de passe',
   'pleaseEnterPassword': 'Veuillez entrer votre mot de passe',
   'passwordMinLength': 'Le mot de passe doit contenir au moins 6 caractères',
@@ -128,6 +130,8 @@ const Map<String, String> translationsFr = {
   'pleaseEnterEmail': 'Veuillez entrer votre e-mail',
   'pleaseEnterValidEmail': 'Veuillez entrer un e-mail valide',
   'pleaseEnterUsername': 'Veuillez entrer votre nom d\'utilisateur',
+  'pleaseEnterUsernameOrEmail':
+      'Veuillez entrer votre nom d\'utilisateur ou e-mail',
   'usernameMinLength':
       'Le nom d\'utilisateur doit contenir au moins 3 caractères',
   'confirmPassword': 'Confirmer le Mot de Passe',

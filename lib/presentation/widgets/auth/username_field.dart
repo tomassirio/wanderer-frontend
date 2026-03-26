@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
-/// Username input field with validation
+/// Username/Email input field with validation
 class UsernameField extends StatelessWidget {
   final TextEditingController controller;
   final bool isLogin;
@@ -22,16 +22,20 @@ class UsernameField extends StatelessWidget {
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(
-        labelText: l10n.usernameLabel,
+        labelText: isLogin ? l10n.usernameOrEmailLabel : l10n.usernameLabel,
+        hintText: isLogin ? l10n.usernameOrEmailHint : null,
         prefixIcon: const Icon(Icons.person),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
+      keyboardType: isLogin ? TextInputType.emailAddress : TextInputType.text,
       textCapitalization: TextCapitalization.none,
       textInputAction: textInputAction ?? TextInputAction.next,
       onFieldSubmitted: onFieldSubmitted,
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return l10n.pleaseEnterUsername;
+          return isLogin
+              ? l10n.pleaseEnterUsernameOrEmail
+              : l10n.pleaseEnterUsername;
         }
         if (!isLogin && value.trim().length < 3) {
           return l10n.usernameMinLength;

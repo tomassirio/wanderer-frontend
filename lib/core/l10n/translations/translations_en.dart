@@ -114,6 +114,8 @@ const Map<String, String> translationsEn = {
   'checkYourEmail': 'Check your email',
   'emailLabel': 'Email',
   'usernameLabel': 'Username',
+  'usernameOrEmailLabel': 'Username or Email',
+  'usernameOrEmailHint': 'Enter your username or email',
   'passwordLabel': 'Password',
   'pleaseEnterPassword': 'Please enter your password',
   'passwordMinLength': 'Password must be at least 6 characters',
@@ -125,6 +127,7 @@ const Map<String, String> translationsEn = {
   'pleaseEnterEmail': 'Please enter your email',
   'pleaseEnterValidEmail': 'Please enter a valid email',
   'pleaseEnterUsername': 'Please enter your username',
+  'pleaseEnterUsernameOrEmail': 'Please enter your username or email',
   'usernameMinLength': 'Username must be at least 3 characters',
   'confirmPassword': 'Confirm Password',
 

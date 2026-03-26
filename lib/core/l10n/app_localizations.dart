@@ -248,6 +248,8 @@ class AppLocalizations {
   String get checkYourEmail => _tr('checkYourEmail');
   String get emailLabel => _tr('emailLabel');
   String get usernameLabel => _tr('usernameLabel');
+  String get usernameOrEmailLabel => _tr('usernameOrEmailLabel');
+  String get usernameOrEmailHint => _tr('usernameOrEmailHint');
   String get passwordLabel => _tr('passwordLabel');
   String get pleaseEnterPassword => _tr('pleaseEnterPassword');
   String get passwordMinLength => _tr('passwordMinLength');
@@ -271,6 +273,7 @@ class AppLocalizations {
   String get pleaseEnterEmail => _tr('pleaseEnterEmail');
   String get pleaseEnterValidEmail => _tr('pleaseEnterValidEmail');
   String get pleaseEnterUsername => _tr('pleaseEnterUsername');
+  String get pleaseEnterUsernameOrEmail => _tr('pleaseEnterUsernameOrEmail');
   String get usernameMinLength => _tr('usernameMinLength');
   String get confirmPassword => _tr('confirmPassword');
 

@@ -116,6 +116,8 @@ const Map<String, String> translationsNl = {
   'checkYourEmail': 'Controleer je e-mail',
   'emailLabel': 'E-mail',
   'usernameLabel': 'Gebruikersnaam',
+  'usernameOrEmailLabel': 'Gebruikersnaam of E-mail',
+  'usernameOrEmailHint': 'Voer je gebruikersnaam of e-mail in',
   'passwordLabel': 'Wachtwoord',
   'pleaseEnterPassword': 'Voer je wachtwoord in',
   'passwordMinLength': 'Wachtwoord moet minstens 6 tekens bevatten',
@@ -127,6 +129,7 @@ const Map<String, String> translationsNl = {
   'pleaseEnterEmail': 'Voer je e-mail in',
   'pleaseEnterValidEmail': 'Voer een geldig e-mailadres in',
   'pleaseEnterUsername': 'Voer je gebruikersnaam in',
+  'pleaseEnterUsernameOrEmail': 'Voer je gebruikersnaam of e-mail in',
   'usernameMinLength': 'Gebruikersnaam moet minstens 3 tekens bevatten',
   'confirmPassword': 'Wachtwoord Bevestigen',
 

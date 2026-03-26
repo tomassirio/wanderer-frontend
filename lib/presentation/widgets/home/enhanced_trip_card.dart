@@ -83,16 +83,21 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
 
   /// Formats a countdown string: "X days", "Today", or "Starts [date]".
   String _formatCountdown(DateTime startDate) {
-    final localStart = startDate.toLocal();
-    final startDay =
-        DateTime(localStart.year, localStart.month, localStart.day);
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final days = startDay.difference(today).inDays;
-    if (days <= 0) return context.l10n.startingToday;
-    if (days == 1) return context.l10n.startsTomorrow;
-    if (days < 30) return context.l10n.startsInDays(days);
-    return 'Starts ${DateFormat('MMM d, yyyy').format(localStart)}';
+    final difference = startDate.toLocal().difference(now);
+    
+    if (difference.isNegative) return context.l10n.startingToday;
+    
+    final days = difference.inDays;
+    final hours = difference.inHours % 24;
+    
+    if (days == 0 && hours == 0) return context.l10n.startingToday;
+    if (days == 0) return 'Starts in ${hours}h';
+    if (days == 1 && hours == 0) return context.l10n.startsTomorrow;
+    if (days == 1) return 'Starts in 1 day, ${hours}h';
+    if (days < 30) return 'Starts in $days days, ${hours}h';
+    
+    return 'Starts ${DateFormat('MMM d, yyyy').format(startDate.toLocal())}';
   }
 
   /// Builds the "Pre Announced" badge shown instead of "Draft" for
@@ -466,9 +471,9 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                                   size: 28,
                                 ),
                                 const SizedBox(height: 6),
-                                const Text(
-                                  'Coming Soon',
-                                  style: TextStyle(
+                                Text(
+                                  context.l10n.comingSoon,
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,

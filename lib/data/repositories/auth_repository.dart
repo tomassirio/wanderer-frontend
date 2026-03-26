@@ -8,10 +8,10 @@ class AuthRepository {
   AuthRepository({AuthService? authService})
       : _authService = authService ?? AuthService();
 
-  /// Logs in a user with username and password
-  Future<void> login(String username, String password) async {
+  /// Logs in a user with username or email and password
+  Future<void> login(String identifier, String password) async {
     await _authService.login(
-      LoginRequest(username: username, password: password),
+      LoginRequest(identifier: identifier, password: password),
     );
   }
 

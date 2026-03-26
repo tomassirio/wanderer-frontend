@@ -282,7 +282,8 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
                       const SizedBox(height: 8),
                       OutlinedButton.icon(
                         onPressed: () async {
-                          final picked = await showDatePicker(
+                          // Pick date first
+                          final pickedDate = await showDatePicker(
                             context: context,
                             initialDate: countdownStartDate ??
                                 DateTime.now().add(
@@ -292,19 +293,51 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
                             lastDate: DateTime.now().add(
                               const Duration(days: 365 * 5),
                             ),
-                            helpText: 'Select Trip Start Date',
+                            helpText: 'Select Countdown Start Date',
                           );
-                          if (picked != null) {
-                            setDialogState(() => countdownStartDate = picked);
+                          
+                          if (pickedDate != null) {
+                            // Pick time
+                            final pickedTime = await showTimePicker(
+                              context: context,
+                              initialTime: countdownStartDate != null
+                                  ? TimeOfDay.fromDateTime(countdownStartDate!)
+                                  : const TimeOfDay(hour: 0, minute: 0),
+                              helpText: 'Select Start Time (UTC)',
+                            );
+                            
+                            if (pickedTime != null) {
+                              // Combine date and time in UTC
+                              final combined = DateTime.utc(
+                                pickedDate.year,
+                                pickedDate.month,
+                                pickedDate.day,
+                                pickedTime.hour,
+                                pickedTime.minute,
+                              );
+                              setDialogState(() => countdownStartDate = combined);
+                            }
                           }
                         },
                         icon: const Icon(Icons.calendar_today, size: 16),
                         label: Text(
                           countdownStartDate == null
-                              ? 'Pick Start Date *'
-                              : '${countdownStartDate!.day}/${countdownStartDate!.month}/${countdownStartDate!.year}',
+                              ? 'Pick Start Date & Time *'
+                              : _formatDateTimeWithTimezone(countdownStartDate!),
                         ),
                       ),
+                      if (countdownStartDate != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Local: ${_formatLocalTime(countdownStartDate!)}',
+                            style: const TextStyle(
+                              color: WandererTheme.textSecondary,
+                              fontSize: 11,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
                       if (countdownStartDate == null)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
@@ -926,5 +959,43 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
       case TripStatus.resting:
         return 'Resting';
     }
+  }
+
+  String _formatDateTimeWithTimezone(DateTime dateTime) {
+    // Format: "Apr 3, 2026 00:00 UTC"
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final month = months[dateTime.month - 1];
+    final day = dateTime.day;
+    final year = dateTime.year;
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    
+    return '$month $day, $year $hour:$minute UTC';
+  }
+
+  String _formatLocalTime(DateTime utcDateTime) {
+    // Convert UTC to local time and format
+    final localTime = utcDateTime.toLocal();
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final month = months[localTime.month - 1];
+    final day = localTime.day;
+    final year = localTime.year;
+    final hour = localTime.hour.toString().padLeft(2, '0');
+    final minute = localTime.minute.toString().padLeft(2, '0');
+    
+    // Get timezone offset
+    final offset = localTime.timeZoneOffset;
+    final offsetHours = offset.inHours;
+    final offsetMinutes = (offset.inMinutes % 60).abs();
+    final offsetSign = offsetHours >= 0 ? '+' : '-';
+    final offsetStr = '$offsetSign${offsetHours.abs().toString().padLeft(2, '0')}:${offsetMinutes.toString().padLeft(2, '0')}';
+    
+    return '$month $day, $year $hour:$minute (UTC$offsetStr)';
   }
 }

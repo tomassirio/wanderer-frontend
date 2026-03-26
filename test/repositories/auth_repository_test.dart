@@ -22,7 +22,7 @@ void main() {
 
           await authRepository.login(username, password);
 
-          expect(mockAuthService.lastLoginRequest?.username, username);
+          expect(mockAuthService.lastLoginRequest?.identifier, username);
           expect(mockAuthService.lastLoginRequest?.password, password);
           expect(mockAuthService.loginCalled, true);
         },
@@ -40,7 +40,7 @@ void main() {
 
         await authRepository.login(username, password);
 
-        expect(mockAuthService.lastLoginRequest?.username, username);
+        expect(mockAuthService.lastLoginRequest?.identifier, username);
         expect(mockAuthService.loginCalled, true);
       });
 

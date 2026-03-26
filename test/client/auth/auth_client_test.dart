@@ -28,7 +28,7 @@ void main() {
     group('login', () {
       test('successful login returns AuthResponse', () async {
         final request = LoginRequest(
-          username: 'testuser',
+          identifier: 'testuser',
           password: 'password123',
         );
         final responseBody = {
@@ -56,7 +56,7 @@ void main() {
 
       test('login does not require authentication', () async {
         final request = LoginRequest(
-          username: 'testuser',
+          identifier: 'testuser',
           password: 'password123',
         );
         mockHttpClient.response = http.Response(
@@ -71,7 +71,7 @@ void main() {
 
       test('login throws exception on error', () async {
         final request = LoginRequest(
-          username: 'testuser',
+          identifier: 'testuser',
           password: 'wrongpassword',
         );
         mockHttpClient.response = http.Response(
