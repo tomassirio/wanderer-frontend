@@ -253,6 +253,19 @@ class AppLocalizations {
   String get passwordLabel => _tr('passwordLabel');
   String get pleaseEnterPassword => _tr('pleaseEnterPassword');
   String get passwordMinLength => _tr('passwordMinLength');
+  String get passwordMinLength8 => _tr('passwordMinLength8');
+  String get passwordRequiresLowercase => _tr('passwordRequiresLowercase');
+  String get passwordRequiresUppercase => _tr('passwordRequiresUppercase');
+  String get passwordRequiresNumber => _tr('passwordRequiresNumber');
+  String get passwordRequiresSpecial => _tr('passwordRequiresSpecial');
+  String get passwordRequirements => _tr('passwordRequirements');
+  String get passwordRequirement8Chars => _tr('passwordRequirement8Chars');
+  String get passwordRequirementUppercase =>
+      _tr('passwordRequirementUppercase');
+  String get passwordRequirementLowercase =>
+      _tr('passwordRequirementLowercase');
+  String get passwordRequirementNumber => _tr('passwordRequirementNumber');
+  String get passwordRequirementSpecial => _tr('passwordRequirementSpecial');
   String get passwordsDoNotMatch => _tr('passwordsDoNotMatch');
   String get resetPasswordTitle => _tr('resetPasswordTitle');
   String get enterEmailForReset => _tr('enterEmailForReset');

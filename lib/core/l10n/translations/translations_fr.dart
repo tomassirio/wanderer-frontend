@@ -122,6 +122,20 @@ const Map<String, String> translationsFr = {
   'passwordLabel': 'Mot de passe',
   'pleaseEnterPassword': 'Veuillez entrer votre mot de passe',
   'passwordMinLength': 'Le mot de passe doit contenir au moins 6 caractères',
+  'passwordMinLength8': 'Le mot de passe doit contenir au moins 8 caractères',
+  'passwordRequiresLowercase':
+      'Le mot de passe doit contenir une lettre minuscule',
+  'passwordRequiresUppercase':
+      'Le mot de passe doit contenir une lettre majuscule',
+  'passwordRequiresNumber': 'Le mot de passe doit contenir un chiffre',
+  'passwordRequiresSpecial':
+      r'Le mot de passe doit contenir un caractère spécial (@$!%*?&#)',
+  'passwordRequirements': 'Le mot de passe doit contenir :',
+  'passwordRequirement8Chars': 'Au moins 8 caractères',
+  'passwordRequirementUppercase': 'Une lettre majuscule (A-Z)',
+  'passwordRequirementLowercase': 'Une lettre minuscule (a-z)',
+  'passwordRequirementNumber': 'Un chiffre (0-9)',
+  'passwordRequirementSpecial': r'Un caractère spécial (@$!%*?&#)',
   'passwordsDoNotMatch': 'Les mots de passe ne correspondent pas',
   'resetPasswordTitle': 'Réinitialiser le Mot de Passe',
   'enterEmailForReset':

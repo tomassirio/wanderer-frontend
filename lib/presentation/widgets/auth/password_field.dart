@@ -31,41 +31,103 @@ class _PasswordFieldState extends State<PasswordField> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final labelText = widget.label ?? l10n.passwordLabel;
-    return TextFormField(
-      controller: widget.controller,
-      decoration: InputDecoration(
-        labelText: labelText,
-        prefixIcon: Icon(
-          widget.compareController == null ? Icons.lock : Icons.lock_outline,
-        ),
-        suffixIcon: IconButton(
-          icon: Icon(
-            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: widget.controller,
+          decoration: InputDecoration(
+            labelText: labelText,
+            prefixIcon: Icon(
+              widget.compareController == null
+                  ? Icons.lock
+                  : Icons.lock_outline,
+            ),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+              ),
+              onPressed: () {
+                setState(() {
+                  _obscurePassword = !_obscurePassword;
+                });
+              },
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
-          onPressed: () {
-            setState(() {
-              _obscurePassword = !_obscurePassword;
-            });
+          obscureText: _obscurePassword,
+          textInputAction: widget.textInputAction ?? TextInputAction.done,
+          onFieldSubmitted: widget.onFieldSubmitted,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return l10n.pleaseEnterPassword;
+            }
+            if (!widget.isLogin) {
+              // For registration/password change, enforce complexity
+              if (value.length < 8) {
+                return l10n.passwordMinLength8;
+              }
+              if (!RegExp(r'(?=.*[a-z])').hasMatch(value)) {
+                return l10n.passwordRequiresLowercase;
+              }
+              if (!RegExp(r'(?=.*[A-Z])').hasMatch(value)) {
+                return l10n.passwordRequiresUppercase;
+              }
+              if (!RegExp(r'(?=.*\d)').hasMatch(value)) {
+                return l10n.passwordRequiresNumber;
+              }
+              if (!RegExp(r'(?=.*[@$!%*?&#])').hasMatch(value)) {
+                return l10n.passwordRequiresSpecial;
+              }
+            }
+            if (widget.compareController != null &&
+                value != widget.compareController!.text) {
+              return l10n.passwordsDoNotMatch;
+            }
+            return null;
           },
         ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        if (!widget.isLogin && widget.compareController == null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.passwordRequirements,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black54,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                _buildRequirement(l10n.passwordRequirement8Chars),
+                _buildRequirement(l10n.passwordRequirementUppercase),
+                _buildRequirement(l10n.passwordRequirementLowercase),
+                _buildRequirement(l10n.passwordRequirementNumber),
+                _buildRequirement(l10n.passwordRequirementSpecial),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildRequirement(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, top: 2),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle_outline,
+              size: 12, color: Colors.black45),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: const TextStyle(fontSize: 10, color: Colors.black54),
+          ),
+        ],
       ),
-      obscureText: _obscurePassword,
-      textInputAction: widget.textInputAction ?? TextInputAction.done,
-      onFieldSubmitted: widget.onFieldSubmitted,
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return l10n.pleaseEnterPassword;
-        }
-        if (!widget.isLogin && value.length < 6) {
-          return l10n.passwordMinLength;
-        }
-        if (widget.compareController != null &&
-            value != widget.compareController!.text) {
-          return l10n.passwordsDoNotMatch;
-        }
-        return null;
-      },
     );
   }
 }

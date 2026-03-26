@@ -297,19 +297,15 @@ void main() {
       // Verify "Start Trip" button text exists
       expect(find.text('Start Trip'), findsOneWidget);
 
-      // ElevatedButton.icon creates _ElevatedButtonWithIcon internally
-      // Find the button by looking for ButtonStyleButton (parent class)
-      final buttonFinder = find.byWidgetPredicate(
-        (widget) => widget.runtimeType.toString() == '_ElevatedButtonWithIcon',
-      );
+      // Find the ElevatedButton by type
+      final buttonFinder = find.byType(ElevatedButton);
       expect(buttonFinder, findsOneWidget);
 
-      // Get the widget and check onPressed is null (disabled)
-      final button = tester.widget(buttonFinder);
-      // Access onPressed via reflection-like approach
+      // Get the ElevatedButton widget and check that it's disabled
+      final elevatedButton = tester.widget<ElevatedButton>(buttonFinder);
       expect(
-        (button as dynamic).onPressed,
-        isNull,
+        elevatedButton.enabled,
+        isFalse,
         reason: 'Button should be disabled when isLoading is true',
       );
     });

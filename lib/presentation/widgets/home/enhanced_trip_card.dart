@@ -85,18 +85,18 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
   String _formatCountdown(DateTime startDate) {
     final now = DateTime.now();
     final difference = startDate.toLocal().difference(now);
-    
+
     if (difference.isNegative) return context.l10n.startingToday;
-    
+
     final days = difference.inDays;
     final hours = difference.inHours % 24;
-    
+
     if (days == 0 && hours == 0) return context.l10n.startingToday;
     if (days == 0) return 'Starts in ${hours}h';
     if (days == 1 && hours == 0) return context.l10n.startsTomorrow;
     if (days == 1) return 'Starts in 1 day, ${hours}h';
     if (days < 30) return 'Starts in $days days, ${hours}h';
-    
+
     return 'Starts ${DateFormat('MMM d, yyyy').format(startDate.toLocal())}';
   }
 

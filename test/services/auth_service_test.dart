@@ -226,8 +226,7 @@ void main() {
       );
 
       test('passes through login errors', () async {
-        final request =
-            LoginRequest(identifier: 'testuser', password: 'wrong');
+        final request = LoginRequest(identifier: 'testuser', password: 'wrong');
         when(
           mockAuthClient.login(request),
         ).thenThrow(Exception('Login failed'));

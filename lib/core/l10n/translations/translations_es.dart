@@ -121,6 +121,20 @@ const Map<String, String> translationsEs = {
   'passwordLabel': 'Contraseña',
   'pleaseEnterPassword': 'Por favor ingresa tu contraseña',
   'passwordMinLength': 'La contraseña debe tener al menos 6 caracteres',
+  'passwordMinLength8': 'La contraseña debe tener al menos 8 caracteres',
+  'passwordRequiresLowercase':
+      'La contraseña debe contener una letra minúscula',
+  'passwordRequiresUppercase':
+      'La contraseña debe contener una letra mayúscula',
+  'passwordRequiresNumber': 'La contraseña debe contener un número',
+  'passwordRequiresSpecial':
+      r'La contraseña debe contener un carácter especial (@$!%*?&#)',
+  'passwordRequirements': 'La contraseña debe contener:',
+  'passwordRequirement8Chars': 'Al menos 8 caracteres',
+  'passwordRequirementUppercase': 'Una letra mayúscula (A-Z)',
+  'passwordRequirementLowercase': 'Una letra minúscula (a-z)',
+  'passwordRequirementNumber': 'Un número (0-9)',
+  'passwordRequirementSpecial': r'Un carácter especial (@$!%*?&#)',
   'passwordsDoNotMatch': 'Las contraseñas no coinciden',
   'resetPasswordTitle': 'Restablecer Contraseña',
   'enterEmailForReset':

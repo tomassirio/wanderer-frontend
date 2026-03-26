@@ -121,6 +121,18 @@ const Map<String, String> translationsNl = {
   'passwordLabel': 'Wachtwoord',
   'pleaseEnterPassword': 'Voer je wachtwoord in',
   'passwordMinLength': 'Wachtwoord moet minstens 6 tekens bevatten',
+  'passwordMinLength8': 'Wachtwoord moet minstens 8 tekens bevatten',
+  'passwordRequiresLowercase': 'Wachtwoord moet een kleine letter bevatten',
+  'passwordRequiresUppercase': 'Wachtwoord moet een hoofdletter bevatten',
+  'passwordRequiresNumber': 'Wachtwoord moet een cijfer bevatten',
+  'passwordRequiresSpecial':
+      r'Wachtwoord moet een speciaal teken bevatten (@$!%*?&#)',
+  'passwordRequirements': 'Wachtwoord moet bevatten:',
+  'passwordRequirement8Chars': 'Minstens 8 tekens',
+  'passwordRequirementUppercase': 'Een hoofdletter (A-Z)',
+  'passwordRequirementLowercase': 'Een kleine letter (a-z)',
+  'passwordRequirementNumber': 'Een cijfer (0-9)',
+  'passwordRequirementSpecial': r'Een speciaal teken (@$!%*?&#)',
   'passwordsDoNotMatch': 'Wachtwoorden komen niet overeen',
   'resetPasswordTitle': 'Wachtwoord Herstellen',
   'enterEmailForReset':
