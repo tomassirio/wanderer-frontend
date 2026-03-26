@@ -110,6 +110,8 @@ jobs:
             --set application.queryBaseUrl="${{ steps.config.outputs.query-url }}" \
             --set application.authBaseUrl="${{ steps.config.outputs.auth-url }}" \
             --set ingress.hosts[0].host="${{ steps.config.outputs.ingress-host }}" \
+            --set ingress.hosts[0].paths[0].path="/" \
+            --set ingress.hosts[0].paths[0].pathType="Prefix" \
             --wait --timeout 5m
           
           echo "✓ Deployment successful"
