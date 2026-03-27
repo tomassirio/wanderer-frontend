@@ -74,6 +74,7 @@ const Map<String, String> translationsFr = {
   'checkBackLater': 'Revenez plus tard pour de nouvelles aventures !',
   'errorLoadingTrips': 'Erreur lors du chargement des voyages',
   'loadMoreTrips': 'Charger plus de voyages',
+  'loadMore': 'Charger plus',
   'myTrips': 'Mes Voyages',
   'friendsTrips': 'Voyages d\'Amis',
   'discover': 'Découvrir',
@@ -220,6 +221,9 @@ const Map<String, String> translationsFr = {
   'noSentRequests': 'Aucune demande envoyée',
   'sendFriendRequests':
       'Envoyez des demandes d\'amis pour vous connecter avec d\'autres',
+  'noUsersToDiscover': 'Aucun utilisateur à découvrir',
+  'addFriendsToDiscoverMore':
+      'Ajoutez des amis pour découvrir plus de personnes',
 
   // --- Achievements screen ---
   'noAchievementsYet': 'Aucune réalisation disponible pour le moment',
@@ -475,6 +479,7 @@ const Map<String, String> translationsFr = {
   'unfriend': 'Retirer l\'ami',
   'cancelFriendRequest': 'Annuler la Demande d\'Ami',
   'sendFriendRequest': 'Envoyer une Demande d\'Ami',
+  'follower': 'Abonné',
   'followers': 'Abonnés',
   'sortOptionStatus': 'Statut',
   'sortOptionNameAZ': 'Nom (A-Z)',

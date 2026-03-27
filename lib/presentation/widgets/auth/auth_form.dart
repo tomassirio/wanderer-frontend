@@ -112,8 +112,9 @@ class _AuthFormState extends State<AuthForm> {
                 controller: widget.passwordController,
                 label: l10n.passwordLabel,
                 isLogin: widget.isLogin,
-                textInputAction:
-                    widget.isLogin ? TextInputAction.done : TextInputAction.next,
+                textInputAction: widget.isLogin
+                    ? TextInputAction.done
+                    : TextInputAction.next,
                 onFieldSubmitted: widget.isLogin
                     ? (_) => widget.isLoading ? null : widget.onSubmit()
                     : null,

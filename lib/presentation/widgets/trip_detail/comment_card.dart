@@ -64,6 +64,7 @@ class CommentCard extends StatelessWidget {
               InkWell(
                 onTap: () => _navigateToProfile(context),
                 child: UserAvatar(
+                  userId: comment.userId,
                   avatarUrl: comment.userAvatarUrl,
                   username: comment.username,
                   radius: 16,

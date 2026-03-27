@@ -141,27 +141,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _setupUserWebSocket() async {
     await _webSocketService.connect();
-    
+
     // Get both user IDs
     final currentUserId = await _repository.getCurrentUserId();
     final viewedUserId = widget.userId ?? currentUserId;
-    
+
     if (viewedUserId == null) return;
 
-    debugPrint('ProfileScreen: Setting up WebSocket - current: $currentUserId, viewing: $viewedUserId');
+    debugPrint(
+        'ProfileScreen: Setting up WebSocket - current: $currentUserId, viewing: $viewedUserId');
 
     // Subscribe to both users if viewing another profile
-    if (widget.userId != null && currentUserId != null && currentUserId != viewedUserId) {
-      debugPrint('ProfileScreen: Subscribing to both current user and viewed user');
+    if (widget.userId != null &&
+        currentUserId != null &&
+        currentUserId != viewedUserId) {
+      debugPrint(
+          'ProfileScreen: Subscribing to both current user and viewed user');
       _webSocketService.subscribeToUser(currentUserId);
       _webSocketService.subscribeToUser(viewedUserId);
-      
+
       // Listen to global events stream to catch updates from both users
       _userEventSubscription = _webSocketService.events.listen((event) {
-        debugPrint('ProfileScreen: Received global WebSocket event: ${event.type}');
+        debugPrint(
+            'ProfileScreen: Received global WebSocket event: ${event.type}');
         if ((event.type == WebSocketEventType.userProfileUpdated ||
-             event.type == WebSocketEventType.userAvatarUploaded ||
-             event.type == WebSocketEventType.userAvatarDeleted) && mounted) {
+                event.type == WebSocketEventType.userAvatarUploaded ||
+                event.type == WebSocketEventType.userAvatarDeleted) &&
+            mounted) {
           debugPrint('ProfileScreen: Handling user update event');
           _handleUserProfileUpdated();
         }
@@ -172,8 +178,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _userEventSubscription = userStream.listen((event) {
         debugPrint('ProfileScreen: Received WebSocket event: ${event.type}');
         if ((event.type == WebSocketEventType.userProfileUpdated ||
-             event.type == WebSocketEventType.userAvatarUploaded ||
-             event.type == WebSocketEventType.userAvatarDeleted) && mounted) {
+                event.type == WebSocketEventType.userAvatarUploaded ||
+                event.type == WebSocketEventType.userAvatarDeleted) &&
+            mounted) {
           debugPrint('ProfileScreen: Handling user update event');
           _handleUserProfileUpdated();
         }
@@ -195,7 +202,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Always refresh current user details for AppBar/Sidebar
       final currentUser = await _repository.getMyProfile();
       await _repository.refreshUserDetails();
-      
+
       if (mounted) {
         setState(() {
           _currentUserId = currentUser.id;
@@ -204,7 +211,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _currentAvatarUrl = currentUser.avatarUrl.isNotEmpty
               ? '${currentUser.avatarUrl}?t=${DateTime.now().millisecondsSinceEpoch}'
               : '';
-          
+
           // If viewing own profile, also update the profile data
           if (_isViewingOwnProfile) {
             _profile = currentUser;
@@ -222,7 +229,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               .evict();
         }
       }
-      
+
       // If viewing another user's profile, also refresh their data
       if (!_isViewingOwnProfile && widget.userId != null) {
         final viewedProfile = await _repository.getUserProfile(widget.userId!);
@@ -570,7 +577,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _navigateToOwnProfile() {
     // If already viewing own profile, do nothing
     if (_isViewingOwnProfile) return;
-    
+
     // Navigate to own profile (without userId = current user's profile)
     Navigator.pushReplacement(
       context,

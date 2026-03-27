@@ -210,6 +210,7 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       UserAvatar(
+                        userId: widget.trip.userId,
                         avatarUrl: widget.trip.avatarUrl,
                         username: widget.trip.username,
                         radius: 8,
@@ -280,6 +281,7 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 UserAvatar(
+                  userId: widget.trip.userId,
                   avatarUrl: widget.trip.avatarUrl,
                   username: widget.trip.username,
                   radius: 10,

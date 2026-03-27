@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
+import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/services/auth_service.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
@@ -12,6 +13,7 @@ import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.da
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
+import 'package:wanderer_frontend/presentation/widgets/home/relationship_badge.dart';
 import 'auth_screen.dart';
 import 'home_screen.dart';
 import 'settings_screen.dart';
@@ -37,11 +39,10 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   String? _subscribedUserId;
 
   // Data
-  List<UserFollow> _followers = [];
-  List<UserFollow> _following = [];
-  List<Friendship> _friends = [];
+  List<UserRelationship> _associatedUsers = [];
   List<FriendRequest> _receivedRequests = [];
   List<FriendRequest> _sentRequests = [];
+  List<UserProfile> _discoverableUsers = [];
 
   // User profiles cache (userId -> UserProfile)
   final Map<String, UserProfile> _userProfiles = {};
@@ -54,10 +55,21 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   bool _isAdmin = false;
   final int _selectedSidebarIndex = 2; // Friends is index 2
 
+  // Pagination — People tab
+  static const int _pageSize = 20;
+  int _associatedPage = 0;
+  bool _hasMoreAssociated = false;
+  bool _isLoadingMoreAssociated = false;
+
+  // Pagination — Discover tab
+  int _discoverPage = 0;
+  bool _hasMoreDiscover = false;
+  bool _isLoadingMoreDiscover = false;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadData();
 
     // Listen to the global WebSocket events stream immediately so events
@@ -210,19 +222,24 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
 
       // Load all data in parallel
       final results = await Future.wait([
-        _userService.getFollowers(),
-        _userService.getFollowing(),
-        _userService.getFriends(),
+        _userService.getAssociatedUsers(profile.id, page: 0, size: _pageSize),
         _userService.getReceivedFriendRequests(),
         _userService.getSentFriendRequests(),
+        _userService.getDiscoverableUsers(page: 0, size: _pageSize),
       ]);
 
+      final associatedPage = results[0] as PageResponse<UserRelationship>;
+      final discoverPage = results[3] as PageResponse<UserProfile>;
+
       setState(() {
-        _followers = results[0] as List<UserFollow>;
-        _following = results[1] as List<UserFollow>;
-        _friends = results[2] as List<Friendship>;
-        _receivedRequests = results[3] as List<FriendRequest>;
-        _sentRequests = results[4] as List<FriendRequest>;
+        _associatedUsers = associatedPage.content;
+        _associatedPage = 0;
+        _hasMoreAssociated = !associatedPage.last;
+        _receivedRequests = results[1] as List<FriendRequest>;
+        _sentRequests = results[2] as List<FriendRequest>;
+        _discoverableUsers = discoverPage.content;
+        _discoverPage = 0;
+        _hasMoreDiscover = !discoverPage.last;
         _isLoading = false;
       });
 
@@ -238,24 +255,18 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   }
 
   Future<void> _loadUserProfiles() async {
-    // Collect all unique user IDs
+    // Only need to load profiles for friend request senders/receivers
+    // (associated users already have profile data from the endpoint)
     final userIds = <String>{};
 
-    for (final follower in _followers) {
-      userIds.add(follower.followerId);
-    }
-    for (final following in _following) {
-      userIds.add(following.followedId);
-    }
-    for (final friend in _friends) {
-      userIds.add(friend.friendId);
-    }
     for (final request in _receivedRequests) {
       userIds.add(request.senderId);
     }
     for (final request in _sentRequests) {
       userIds.add(request.receiverId);
     }
+
+    if (userIds.isEmpty) return;
 
     // Load profiles in parallel
     try {
@@ -270,6 +281,57 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
       });
     } catch (e) {
       // Silently fail, profiles will show as unknown
+    }
+  }
+
+  Future<void> _loadMoreAssociated() async {
+    if (_isLoadingMoreAssociated ||
+        !_hasMoreAssociated ||
+        _currentUser == null) {
+      return;
+    }
+
+    setState(() => _isLoadingMoreAssociated = true);
+
+    try {
+      final nextPage = _associatedPage + 1;
+      final page = await _userService.getAssociatedUsers(
+        _currentUser!.id,
+        page: nextPage,
+        size: _pageSize,
+      );
+
+      setState(() {
+        _associatedUsers = [..._associatedUsers, ...page.content];
+        _associatedPage = nextPage;
+        _hasMoreAssociated = !page.last;
+        _isLoadingMoreAssociated = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingMoreAssociated = false);
+    }
+  }
+
+  Future<void> _loadMoreDiscover() async {
+    if (_isLoadingMoreDiscover || !_hasMoreDiscover) return;
+
+    setState(() => _isLoadingMoreDiscover = true);
+
+    try {
+      final nextPage = _discoverPage + 1;
+      final page = await _userService.getDiscoverableUsers(
+        page: nextPage,
+        size: _pageSize,
+      );
+
+      setState(() {
+        _discoverableUsers = [..._discoverableUsers, ...page.content];
+        _discoverPage = nextPage;
+        _hasMoreDiscover = !page.last;
+        _isLoadingMoreDiscover = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingMoreDiscover = false);
     }
   }
 
@@ -340,6 +402,22 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
         final l10n = context.l10n;
         UiHelpers.showErrorMessage(
             context, l10n.failedToUnfollowUser(e.toString()));
+      }
+    }
+  }
+
+  Future<void> _handleSendFriendRequest(String userId, String username) async {
+    try {
+      await _userService.sendFriendRequest(userId);
+      if (mounted) {
+        final l10n = context.l10n;
+        UiHelpers.showSuccessMessage(
+            context, l10n.friendRequestSentTo(username));
+        await _loadData();
+      }
+    } catch (e) {
+      if (mounted) {
+        UiHelpers.showErrorMessage(context, e.toString());
       }
     }
   }
@@ -440,6 +518,8 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
       );
     }
 
+    final totalRequests = _receivedRequests.length + _sentRequests.length;
+
     return Column(
       children: [
         Container(
@@ -455,14 +535,12 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
                 isScrollable: false,
                 labelPadding: const EdgeInsets.symmetric(horizontal: 2),
                 tabs: [
-                  _buildTab(
-                      Icons.people, l10n.friends, _friends.length, isNarrow),
-                  _buildTab(Icons.person_add, l10n.followers, _followers.length,
+                  _buildTab(Icons.people, l10n.friends, _associatedUsers.length,
                       isNarrow),
-                  _buildTab(Icons.person_outline, l10n.following,
-                      _following.length, isNarrow),
+                  _buildTab(Icons.explore, l10n.discover,
+                      _discoverableUsers.length, isNarrow),
                   _buildTab(Icons.notifications, l10n.requestsTab,
-                      _receivedRequests.length, isNarrow),
+                      totalRequests, isNarrow),
                 ],
               );
             },
@@ -472,9 +550,8 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
           child: TabBarView(
             controller: _tabController,
             children: [
-              _buildFriendsTab(),
-              _buildFollowersTab(),
-              _buildFollowingTab(),
+              _buildPeopleTab(),
+              _buildDiscoverTab(),
               _buildRequestsTab(),
             ],
           ),
@@ -516,9 +593,13 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     );
   }
 
-  Widget _buildFriendsTab() {
+  /// Builds the merged People tab showing all associated users in a single
+  /// scrollable list. Each user appears once with relationship badges and
+  /// appropriate action buttons.
+  Widget _buildPeopleTab() {
     final l10n = context.l10n;
-    if (_friends.isEmpty) {
+
+    if (_associatedUsers.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -544,154 +625,427 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
       onRefresh: _loadData,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: _friends.length,
+        itemCount: _associatedUsers.length + (_hasMoreAssociated ? 1 : 0),
         itemBuilder: (context, index) {
-          final friendship = _friends[index];
-          final profile = _userProfiles[friendship.friendId];
+          if (index >= _associatedUsers.length) {
+            return _buildLoadMoreButton(
+              isLoading: _isLoadingMoreAssociated,
+              onPressed: _loadMoreAssociated,
+            );
+          }
+          final user = _associatedUsers[index];
+          final hasPendingRequest =
+              _sentRequests.any((r) => r.receiverId == user.id);
+          final hasReceivedRequest = _receivedRequests.firstWhere(
+            (r) => r.senderId == user.id,
+            orElse: () => FriendRequest(
+                id: '',
+                senderId: '',
+                receiverId: '',
+                status: FriendRequestStatus.pending,
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now()),
+          );
+          final receivedRequestId =
+              hasReceivedRequest.id.isNotEmpty ? hasReceivedRequest.id : null;
 
-          return Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              onTap: () => _navigateToUserProfile(friendship.friendId),
-              leading: UserAvatar(
-                avatarUrl: profile?.avatarUrl,
-                username: profile?.username ?? l10n.unknownUser,
-                displayName: profile?.displayName,
-                radius: 20,
-              ),
-              title: Text(profile?.username ?? l10n.unknownUser),
-              subtitle: profile?.displayName != null
-                  ? Text(profile!.displayName!)
-                  : null,
-              trailing: IconButton(
-                icon: const Icon(Icons.message),
-                onPressed: () {
-                  UiHelpers.showSuccessMessage(
-                    context,
-                    l10n.messagingComingSoon,
-                  );
-                },
-              ),
-            ),
+          return _buildAssociatedUserTile(
+            user,
+            hasPendingRequest: hasPendingRequest,
+            receivedRequestId: receivedRequestId,
           );
         },
       ),
     );
   }
 
-  Widget _buildFollowersTab() {
-    final l10n = context.l10n;
-    if (_followers.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.person_add_outlined, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(
-              l10n.noFollowersYet,
-              style: const TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-          ],
-        ),
-      );
+  /// Builds a tile for an associated user showing all relationship badges and
+  /// contextual action buttons.
+  Widget _buildAssociatedUserTile(
+    UserRelationship user, {
+    required bool hasPendingRequest,
+    String? receivedRequestId,
+  }) {
+    // Build list of relationship badges
+    final badges = <Widget>[];
+    if (user.isFriend) {
+      badges.add(const RelationshipBadge(
+        type: RelationshipType.friend,
+        compact: true,
+      ));
+    }
+    if (user.isFollowedBy) {
+      badges.add(const RelationshipBadge(
+        type: RelationshipType.follower,
+        compact: true,
+      ));
+    }
+    if (user.isFollowing) {
+      badges.add(const RelationshipBadge(
+        type: RelationshipType.following,
+        compact: true,
+      ));
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _followers.length,
-        itemBuilder: (context, index) {
-          final follower = _followers[index];
-          final profile = _userProfiles[follower.followerId];
-
-          // Check if we're already following this user
-          final isFollowingBack = _following.any(
-            (f) => f.followedId == follower.followerId,
-          );
-
-          return Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              onTap: () => _navigateToUserProfile(follower.followerId),
-              leading: UserAvatar(
-                avatarUrl: profile?.avatarUrl,
-                username: profile?.username ?? l10n.unknownUser,
-                displayName: profile?.displayName,
-                radius: 20,
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: ListTile(
+          onTap: () => _navigateToUserProfile(user.id),
+          leading: UserAvatar(
+            avatarUrl: user.avatarUrl,
+            username: user.username,
+            displayName: user.displayName,
+            radius: 20,
+          ),
+          title: Text(user.username),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (user.displayName != null) Text(user.displayName!),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: badges,
               ),
-              title: Text(profile?.username ?? l10n.unknownUser),
-              subtitle: profile?.displayName != null
-                  ? Text(profile!.displayName!)
-                  : null,
-              trailing: isFollowingBack
-                  ? OutlinedButton(
-                      onPressed: () => _handleUnfollowUser(follower.followerId),
-                      child: Text(l10n.unfollow),
-                    )
-                  : ElevatedButton(
-                      onPressed: () => _handleFollowUser(follower.followerId),
-                      child: Text(l10n.followBack),
-                    ),
-            ),
-          );
-        },
+            ],
+          ),
+          trailing: _buildAssociatedUserActions(
+            user,
+            hasPendingRequest: hasPendingRequest,
+            receivedRequestId: receivedRequestId,
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildFollowingTab() {
-    final l10n = context.l10n;
-    if (_following.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.person_outline, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(
-              l10n.notFollowingAnyone,
-              style: const TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-          ],
+  /// Builds contextual action buttons for an associated user.
+  Widget _buildAssociatedUserActions(
+    UserRelationship user, {
+    required bool hasPendingRequest,
+    String? receivedRequestId,
+  }) {
+    final actions = <Widget>[];
+
+    // Follow / Unfollow button
+    actions.add(
+      Container(
+        height: 32,
+        decoration: BoxDecoration(
+          color: user.isFollowing
+              ? Colors.blue.withOpacity(0.7)
+              : Colors.grey.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(8),
         ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _following.length,
-        itemBuilder: (context, index) {
-          final following = _following[index];
-          final profile = _userProfiles[following.followedId];
-
-          return Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              onTap: () => _navigateToUserProfile(following.followedId),
-              leading: UserAvatar(
-                avatarUrl: profile?.avatarUrl,
-                username: profile?.username ?? l10n.unknownUser,
-                displayName: profile?.displayName,
-                radius: 20,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              if (user.isFollowing) {
+                _handleUnfollowUser(user.id);
+              } else {
+                _handleFollowUser(user.id);
+              }
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              child: Icon(
+                user.isFollowing ? Icons.person_remove : Icons.person_add,
+                size: 16,
+                color: user.isFollowing ? Colors.white : Colors.black54,
               ),
-              title: Text(profile?.username ?? l10n.unknownUser),
-              subtitle: profile?.displayName != null
-                  ? Text(profile!.displayName!)
-                  : null,
-              trailing: ElevatedButton(
-                onPressed: () => _handleUnfollowUser(following.followedId),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Friend request / accept / pending button
+    if (!user.isFriend) {
+      if (receivedRequestId != null) {
+        // Received a request from this user — show accept/decline
+        actions.add(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.check, color: Colors.green),
+                onPressed: () => _handleAcceptFriendRequest(receivedRequestId),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                iconSize: 20,
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.red),
+                onPressed: () => _handleDeclineFriendRequest(receivedRequestId),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                iconSize: 20,
+              ),
+            ],
+          ),
+        );
+      } else {
+        // Send / pending friend request button
+        actions.add(
+          Container(
+            height: 32,
+            decoration: BoxDecoration(
+              color: hasPendingRequest
+                  ? Colors.orange.withOpacity(0.7)
+                  : Colors.green.withOpacity(0.7),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: hasPendingRequest
+                    ? null
+                    : () => _handleSendFriendRequest(user.id, user.username),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  child: Icon(
+                    hasPendingRequest ? Icons.hourglass_top : Icons.people,
+                    size: 16,
+                    color: Colors.white,
+                  ),
                 ),
-                child: Text(l10n.unfollow),
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 0; i < actions.length; i++) ...[
+          if (i > 0) const SizedBox(width: 4),
+          actions[i],
+        ],
+      ],
+    );
+  }
+
+  /// Builds the Discover tab showing users you may know (friends of friends,
+  /// people followed by friends).
+  Widget _buildDiscoverTab() {
+    final l10n = context.l10n;
+
+    if (_discoverableUsers.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.explore_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(
+              l10n.noUsersToDiscover,
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.addFriendsToDiscoverMore,
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _discoverableUsers.length + (_hasMoreDiscover ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= _discoverableUsers.length) {
+            return _buildLoadMoreButton(
+              isLoading: _isLoadingMoreDiscover,
+              onPressed: _loadMoreDiscover,
+            );
+          }
+          final user = _discoverableUsers[index];
+
+          // Determine existing relationship from associated users
+          final associated = _associatedUsers
+              .cast<UserRelationship?>()
+              .firstWhere((a) => a!.id == user.id, orElse: () => null);
+          final isFriend = associated?.isFriend ?? false;
+          final isFollowing = associated?.isFollowing ?? false;
+          final hasPendingRequest =
+              _sentRequests.any((r) => r.receiverId == user.id);
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              onTap: () => _navigateToUserProfile(user.id),
+              leading: UserAvatar(
+                avatarUrl: user.avatarUrl,
+                username: user.username,
+                displayName: user.displayName,
+                radius: 20,
+              ),
+              title: Text(user.username),
+              subtitle:
+                  user.displayName != null ? Text(user.displayName!) : null,
+              trailing: _buildDiscoverActions(
+                user,
+                isFriend: isFriend,
+                isFollowing: isFollowing,
+                hasPendingRequest: hasPendingRequest,
               ),
             ),
           );
         },
+      ),
+    );
+  }
+
+  /// Builds action buttons for a discoverable user based on existing
+  /// relationship status.
+  Widget _buildDiscoverActions(
+    UserProfile user, {
+    required bool isFriend,
+    required bool isFollowing,
+    required bool hasPendingRequest,
+  }) {
+    final l10n = context.l10n;
+
+    if (isFriend) {
+      // Already friends — show badge only
+      return const RelationshipBadge(
+        type: RelationshipType.friend,
+        compact: true,
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Follow / unfollow button
+        Container(
+          height: 32,
+          decoration: BoxDecoration(
+            color: isFollowing
+                ? Colors.blue.withOpacity(0.7)
+                : Colors.grey.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                if (isFollowing) {
+                  _handleUnfollowUser(user.id);
+                } else {
+                  _handleFollowUser(user.id);
+                }
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isFollowing ? Icons.person_remove : Icons.person_add,
+                      size: 16,
+                      color: isFollowing ? Colors.white : Colors.black54,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isFollowing ? l10n.unfollow : l10n.follow,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isFollowing ? Colors.white : Colors.black54,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        // Friend request button
+        Container(
+          height: 32,
+          decoration: BoxDecoration(
+            color: hasPendingRequest
+                ? Colors.orange.withOpacity(0.7)
+                : Colors.green.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: hasPendingRequest
+                  ? null
+                  : () => _handleSendFriendRequest(user.id, user.username),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      hasPendingRequest ? Icons.hourglass_top : Icons.people,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      hasPendingRequest
+                          ? l10n.requestsTab
+                          : l10n.sendFriendRequest,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Reusable load-more button for paginated lists.
+  Widget _buildLoadMoreButton({
+    required bool isLoading,
+    required VoidCallback onPressed,
+  }) {
+    final l10n = context.l10n;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Center(
+        child: isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : TextButton.icon(
+                onPressed: onPressed,
+                icon: const Icon(Icons.expand_more),
+                label: Text(l10n.loadMore),
+              ),
       ),
     );
   }

@@ -237,7 +237,10 @@ class TripInfoCard extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               UserAvatar(
-                                avatarUrl: trip.avatarUrl?.isNotEmpty == true ? trip.avatarUrl : null,
+                                userId: trip.userId,
+                                avatarUrl: trip.avatarUrl?.isNotEmpty == true
+                                    ? trip.avatarUrl
+                                    : null,
                                 username: trip.username,
                                 radius: 12,
                                 backgroundColor: WandererTheme.primaryOrange,

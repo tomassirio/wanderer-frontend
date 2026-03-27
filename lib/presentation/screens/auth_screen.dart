@@ -307,8 +307,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const Icon(Icons.arrow_drop_down,
-                  color: Colors.white, size: 16),
+              const Icon(Icons.arrow_drop_down, color: Colors.white, size: 16),
             ],
           ),
         );

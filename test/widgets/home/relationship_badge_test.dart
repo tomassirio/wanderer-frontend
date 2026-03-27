@@ -37,6 +37,23 @@ void main() {
       expect(find.byIcon(Icons.person_add_alt_1), findsOneWidget);
     });
 
+    testWidgets('displays follower badge correctly',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: RelationshipBadge(
+              type: RelationshipType.follower,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(RelationshipBadge), findsOneWidget);
+      expect(find.text('Follower'), findsOneWidget);
+      expect(find.byIcon(Icons.person_add), findsOneWidget);
+    });
+
     testWidgets('displays compact badge without text',
         (WidgetTester tester) async {
       await tester.pumpWidget(

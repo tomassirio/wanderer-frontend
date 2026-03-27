@@ -73,6 +73,7 @@ const Map<String, String> translationsEn = {
   'checkBackLater': 'Check back later for new adventures!',
   'errorLoadingTrips': 'Error loading trips',
   'loadMoreTrips': 'Load more trips',
+  'loadMore': 'Load more',
   'myTrips': 'My Trips',
   'friendsTrips': 'Friends Trips',
   'discover': 'Discover',
@@ -210,6 +211,8 @@ const Map<String, String> translationsEn = {
   'noFriendsYet': 'No friends yet',
   'noSentRequests': 'No sent requests',
   'sendFriendRequests': 'Send friend requests to connect with others',
+  'noUsersToDiscover': 'No users to discover',
+  'addFriendsToDiscoverMore': 'Add friends to discover more people',
 
   // --- Achievements screen ---
   'noAchievementsYet': 'No achievements available yet',
@@ -459,6 +462,7 @@ const Map<String, String> translationsEn = {
   'unfriend': 'Unfriend',
   'cancelFriendRequest': 'Cancel Friend Request',
   'sendFriendRequest': 'Send Friend Request',
+  'follower': 'Follower',
   'followers': 'Followers',
   'sortOptionStatus': 'Status',
   'sortOptionNameAZ': 'Name (A-Z)',

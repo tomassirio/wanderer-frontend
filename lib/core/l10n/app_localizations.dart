@@ -138,6 +138,7 @@ class AppLocalizations {
   String get checkBackLater => _tr('checkBackLater');
   String get errorLoadingTrips => _tr('errorLoadingTrips');
   String get loadMoreTrips => _tr('loadMoreTrips');
+  String get loadMore => _tr('loadMore');
   String get myTrips => _tr('myTrips');
   String get friendsTrips => _tr('friendsTrips');
   String get discover => _tr('discover');
@@ -959,7 +960,10 @@ class AppLocalizations {
   String get unfriend => _tr('unfriend');
   String get cancelFriendRequest => _tr('cancelFriendRequest');
   String get sendFriendRequest => _tr('sendFriendRequest');
+  String get follower => _tr('follower');
   String get followers => _tr('followers');
+  String get noUsersToDiscover => _tr('noUsersToDiscover');
+  String get addFriendsToDiscoverMore => _tr('addFriendsToDiscoverMore');
   String myTripsLabel(bool isViewingOwnProfile) =>
       isViewingOwnProfile ? myTrips : trips;
   String tripCountLabel(int count) {

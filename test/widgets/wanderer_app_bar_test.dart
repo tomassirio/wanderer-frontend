@@ -152,8 +152,8 @@ void main() {
 
       await tester.pump();
 
-      // Avatar should display 'J' from displayName, not 'T' from username
-      expect(find.text('J'), findsWidgets);
+      // Avatar should display 'JD' from displayName, not 'T' from username
+      expect(find.text('JD'), findsWidgets);
     });
 
     testWidgets('expands search bar on search icon tap', (

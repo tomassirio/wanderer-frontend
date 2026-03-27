@@ -225,10 +225,14 @@ class AppSidebar extends StatelessWidget {
                         ? NetworkImage(
                             ApiEndpoints.resolveThumbnailUrl(avatarUrl))
                         : null,
-                    onForegroundImageError: (_, __) {},
+                    onForegroundImageError:
+                        avatarUrl != null && avatarUrl!.isNotEmpty
+                            ? (_, __) {}
+                            : null,
                     child: isLoggedIn
                         ? Text(
-                            AvatarHelper.getInitials(displayName, username ?? '?'),
+                            AvatarHelper.getInitials(
+                                displayName, username ?? '?'),
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,

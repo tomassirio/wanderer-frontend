@@ -30,6 +30,7 @@ class ReplyCard extends StatelessWidget {
               InkWell(
                 onTap: () => _navigateToProfile(context),
                 child: UserAvatar(
+                  userId: reply.userId,
                   avatarUrl: reply.userAvatarUrl,
                   username: reply.username,
                   radius: 12,

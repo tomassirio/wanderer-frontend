@@ -373,7 +373,10 @@ class _WandererAppBarState extends State<WandererAppBar>
                         ? NetworkImage(
                             ApiEndpoints.resolveThumbnailUrl(widget.avatarUrl))
                         : null,
-                onForegroundImageError: (_, __) {},
+                onForegroundImageError:
+                    widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty
+                        ? (_, __) {}
+                        : null,
                 child: Text(
                   _avatarInitial,
                   style: const TextStyle(
@@ -416,7 +419,11 @@ class _WandererAppBarState extends State<WandererAppBar>
                                       ApiEndpoints.resolveThumbnailUrl(
                                           widget.avatarUrl))
                                   : null,
-                              onForegroundImageError: (_, __) {},
+                              onForegroundImageError:
+                                  widget.avatarUrl != null &&
+                                          widget.avatarUrl!.isNotEmpty
+                                      ? (_, __) {}
+                                      : null,
                               child: Text(
                                 _avatarInitial,
                                 style: const TextStyle(

@@ -645,11 +645,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               Row(
                 children: [
                   UserAvatar(
-                    avatarUrl: user.avatarUrl.isNotEmpty ? user.avatarUrl : null,
+                    avatarUrl:
+                        user.avatarUrl.isNotEmpty ? user.avatarUrl : null,
                     username: user.username,
                     displayName: user.displayName,
                     radius: 28,
-                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.primaryContainer,
                     textColor: Theme.of(context).colorScheme.onPrimaryContainer,
                   ),
                   const SizedBox(width: 12),

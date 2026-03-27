@@ -2,6 +2,7 @@
 library;
 
 export 'domain/user_profile.dart';
+export 'domain/user_relationship.dart';
 export 'domain/friend_request.dart';
 export 'domain/user_follow.dart';
 export 'domain/friendship.dart';

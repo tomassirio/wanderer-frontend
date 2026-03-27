@@ -75,6 +75,9 @@ class Trip {
     return '/thumbnails/trips/$id.png';
   }
 
+  /// Generate user profile picture URL based on user ID
+  String get userProfilePictureUrl => '/thumbnails/profiles/$userId.png';
+
   /// Default update refresh interval in seconds (30 minutes)
   static const int defaultUpdateRefresh = 1800;
 

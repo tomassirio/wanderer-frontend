@@ -1,3 +1,4 @@
+import '../models/responses/page_response.dart';
 import '../client/command/user_command_client.dart';
 import '../client/query/user_query_client.dart';
 import '../models/user_models.dart';
@@ -131,5 +132,24 @@ class UserService {
   /// Returns the ID from the response. Any authenticated user can delete their own account.
   Future<String> deleteMyAccount() async {
     return await _userCommandClient.deleteMyAccount();
+  }
+
+  /// Get discoverable users (friends of friends and people followed by friends)
+  Future<PageResponse<UserProfile>> getDiscoverableUsers({
+    int page = 0,
+    int size = 20,
+  }) async {
+    return await _userQueryClient.getDiscoverableUsers(page: page, size: size);
+  }
+
+  /// Get all users associated with a target user, with relationship status
+  /// from the current user's perspective.
+  Future<PageResponse<UserRelationship>> getAssociatedUsers(
+    String userId, {
+    int page = 0,
+    int size = 20,
+  }) async {
+    return await _userQueryClient.getAssociatedUsers(userId,
+        page: page, size: size);
   }
 }

@@ -74,6 +74,7 @@ const Map<String, String> translationsNl = {
   'checkBackLater': 'Kom later terug voor nieuwe avonturen!',
   'errorLoadingTrips': 'Fout bij het laden van reizen',
   'loadMoreTrips': 'Meer reizen laden',
+  'loadMore': 'Meer laden',
   'myTrips': 'Mijn Reizen',
   'friendsTrips': 'Reizen van Vrienden',
   'discover': 'Ontdekken',
@@ -215,6 +216,8 @@ const Map<String, String> translationsNl = {
   'noSentRequests': 'Geen verzonden verzoeken',
   'sendFriendRequests':
       'Stuur vriendschapsverzoeken om met anderen in contact te komen',
+  'noUsersToDiscover': 'Geen gebruikers om te ontdekken',
+  'addFriendsToDiscoverMore': 'Voeg vrienden toe om meer mensen te ontdekken',
 
   // --- Achievements screen ---
   'noAchievementsYet': 'Nog geen prestaties beschikbaar',
@@ -467,6 +470,7 @@ const Map<String, String> translationsNl = {
   'unfriend': 'Ontvrienden',
   'cancelFriendRequest': 'Vriendschapsverzoek Annuleren',
   'sendFriendRequest': 'Vriendschapsverzoek Sturen',
+  'follower': 'Volger',
   'followers': 'Volgers',
   'sortOptionStatus': 'Status',
   'sortOptionNameAZ': 'Naam (A-Z)',
