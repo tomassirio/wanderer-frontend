@@ -10,7 +10,7 @@ const Map<String, String> translationsNl = {
   'tripDataMaintenance': 'Gegevensonderhoud',
   'buyMeACoffee': 'Trakteer me op een Koffie',
   'logout': 'Uitloggen',
-  'logIn': 'Inloggen',
+  'logIn': 'Inloggen / Registreren',
   'guest': 'Gast',
   'myProfile': 'Mijn Profiel',
   'settings': 'Instellingen',
