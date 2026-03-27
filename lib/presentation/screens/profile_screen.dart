@@ -14,6 +14,7 @@ import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
+import 'package:wanderer_frontend/presentation/helpers/avatar_helper.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
@@ -139,25 +140,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _setupUserWebSocket() async {
-    final userId = widget.userId ?? await _repository.getCurrentUserId();
-    if (userId == null) return;
-
-    debugPrint('ProfileScreen: Setting up WebSocket for user $userId');
     await _webSocketService.connect();
-    final userStream = _webSocketService.subscribeToUser(userId);
+    
+    // Get both user IDs
+    final currentUserId = await _repository.getCurrentUserId();
+    final viewedUserId = widget.userId ?? currentUserId;
+    
+    if (viewedUserId == null) return;
 
-    _userEventSubscription = userStream.listen((event) {
-      debugPrint('ProfileScreen: Received WebSocket event: ${event.type}');
-      if (event.type == WebSocketEventType.userProfileUpdated && mounted) {
-        debugPrint('ProfileScreen: Handling userProfileUpdated event');
-        _handleUserProfileUpdated();
-      } else if ((event.type == WebSocketEventType.userAvatarUploaded ||
-              event.type == WebSocketEventType.userAvatarDeleted) &&
-          mounted) {
-        debugPrint('ProfileScreen: Handling avatar event: ${event.type}');
-        _handleUserProfileUpdated();
-      }
-    });
+    debugPrint('ProfileScreen: Setting up WebSocket - current: $currentUserId, viewing: $viewedUserId');
+
+    // Subscribe to both users if viewing another profile
+    if (widget.userId != null && currentUserId != null && currentUserId != viewedUserId) {
+      debugPrint('ProfileScreen: Subscribing to both current user and viewed user');
+      _webSocketService.subscribeToUser(currentUserId);
+      _webSocketService.subscribeToUser(viewedUserId);
+      
+      // Listen to global events stream to catch updates from both users
+      _userEventSubscription = _webSocketService.events.listen((event) {
+        debugPrint('ProfileScreen: Received global WebSocket event: ${event.type}');
+        if ((event.type == WebSocketEventType.userProfileUpdated ||
+             event.type == WebSocketEventType.userAvatarUploaded ||
+             event.type == WebSocketEventType.userAvatarDeleted) && mounted) {
+          debugPrint('ProfileScreen: Handling user update event');
+          _handleUserProfileUpdated();
+        }
+      });
+    } else {
+      // Viewing own profile - just subscribe to own updates
+      final userStream = _webSocketService.subscribeToUser(viewedUserId);
+      _userEventSubscription = userStream.listen((event) {
+        debugPrint('ProfileScreen: Received WebSocket event: ${event.type}');
+        if ((event.type == WebSocketEventType.userProfileUpdated ||
+             event.type == WebSocketEventType.userAvatarUploaded ||
+             event.type == WebSocketEventType.userAvatarDeleted) && mounted) {
+          debugPrint('ProfileScreen: Handling user update event');
+          _handleUserProfileUpdated();
+        }
+      });
+    }
   }
 
   void _handleUserProfileUpdated() async {
@@ -171,30 +192,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     try {
-      final refreshedProfile = await _repository.getMyProfile();
-      debugPrint(
-          'ProfileScreen: Fetched refreshed profile, avatarUrl: ${refreshedProfile.avatarUrl}');
-      // Refresh user details (display name, avatar URL) in local storage
+      // Always refresh current user details for AppBar/Sidebar
+      final currentUser = await _repository.getMyProfile();
       await _repository.refreshUserDetails();
+      
       if (mounted) {
         setState(() {
-          _profile = refreshedProfile;
-          // Clear optimistic state and use real avatar URL with cache bust
-          _optimisticAvatarBytes = null;
-          _currentAvatarUrl = refreshedProfile.avatarUrl.isNotEmpty
-              ? '${refreshedProfile.avatarUrl}?t=${DateTime.now().millisecondsSinceEpoch}'
+          _currentUserId = currentUser.id;
+          _currentUsername = currentUser.username;
+          _currentDisplayName = currentUser.displayName;
+          _currentAvatarUrl = currentUser.avatarUrl.isNotEmpty
+              ? '${currentUser.avatarUrl}?t=${DateTime.now().millisecondsSinceEpoch}'
               : '';
+          
+          // If viewing own profile, also update the profile data
+          if (_isViewingOwnProfile) {
+            _profile = currentUser;
+            _optimisticAvatarBytes = null;
+          }
         });
 
         // Force image cache eviction to show new avatar immediately
-        if (refreshedProfile.avatarUrl.isNotEmpty) {
+        if (currentUser.avatarUrl.isNotEmpty) {
           final baseUrl =
-              ApiEndpoints.resolveThumbnailUrl(refreshedProfile.avatarUrl);
+              ApiEndpoints.resolveThumbnailUrl(currentUser.avatarUrl);
           debugPrint('ProfileScreen: Evicting image cache for $baseUrl');
           NetworkImage(baseUrl).evict();
-          // Also evict the cache-busted version
           NetworkImage('$baseUrl?t=${DateTime.now().millisecondsSinceEpoch}')
               .evict();
+        }
+      }
+      
+      // If viewing another user's profile, also refresh their data
+      if (!_isViewingOwnProfile && widget.userId != null) {
+        final viewedProfile = await _repository.getUserProfile(widget.userId!);
+        if (mounted) {
+          setState(() {
+            _profile = viewedProfile;
+          });
         }
       }
     } catch (e) {
@@ -529,6 +564,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Navigator.push(
       context,
       PageTransitions.slideUp(const FriendsFollowersScreen()),
+    );
+  }
+
+  void _navigateToOwnProfile() {
+    // If already viewing own profile, do nothing
+    if (_isViewingOwnProfile) return;
+    
+    // Navigate to own profile (without userId = current user's profile)
+    Navigator.pushReplacement(
+      context,
+      PageTransitions.slideRight(const ProfileScreen()),
     );
   }
 
@@ -939,7 +985,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         userId: _currentUserId,
         displayName: _currentDisplayName,
         avatarUrl: _currentAvatarUrl,
-        onProfile: () {},
+        onProfile: () => _navigateToOwnProfile(),
         onSettings: _handleSettings,
         onLogout: _logout,
       ),
@@ -1173,27 +1219,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    if (_profile!.avatarUrl.isEmpty) {
-      // No avatar - show initial
-      return CircleAvatar(
-        radius: radius,
+    // Extract base URL without query parameters for cache key
+    final avatarUrl = _isViewingOwnProfile
+        ? (_currentAvatarUrl ?? _profile!.avatarUrl)
+        : _profile!.avatarUrl;
+
+    final initials =
+        AvatarHelper.getInitials(_profile!.displayName, _profile!.username);
+
+    // Build the initials fallback widget (used when no avatar or image fails)
+    Widget buildInitialsFallback() {
+      return Container(
+        width: radius * 2,
+        height: radius * 2,
+        decoration: const BoxDecoration(
+          color: WandererTheme.primaryOrange,
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
         child: Text(
-          _profile!.username.substring(0, 1).toUpperCase(),
-          style: TextStyle(fontSize: radius * 0.8),
+          initials,
+          style: TextStyle(
+            fontSize: radius * 0.8,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       );
     }
 
-    // Extract base URL without query parameters for cache key
-    final avatarUrl = _currentAvatarUrl ?? _profile!.avatarUrl;
+    // No valid avatar URL - show initials
+    if (avatarUrl.isEmpty) {
+      return buildInitialsFallback();
+    }
 
     // Has avatar - use ClipOval with Image.network for proper aspect ratio
     return ClipOval(
       child: Container(
         width: radius * 2,
         height: radius * 2,
-        decoration: BoxDecoration(
-          color: Colors.grey[300],
+        decoration: const BoxDecoration(
+          color: WandererTheme.primaryOrange,
         ),
         child: Image.network(
           ApiEndpoints.resolveThumbnailUrl(avatarUrl),
@@ -1201,11 +1267,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               avatarUrl), // Key changes when URL changes (with timestamp)
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
-            return CircleAvatar(
-              radius: radius,
+            return Container(
+              alignment: Alignment.center,
+              color: WandererTheme.primaryOrange,
               child: Text(
-                _profile!.username.substring(0, 1).toUpperCase(),
-                style: TextStyle(fontSize: radius * 0.8),
+                initials,
+                style: TextStyle(
+                  fontSize: radius * 0.8,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             );
           },

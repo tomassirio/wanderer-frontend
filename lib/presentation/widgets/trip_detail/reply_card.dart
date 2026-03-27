@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
 
 /// Widget displaying a reply card
 class ReplyCard extends StatelessWidget {
@@ -28,14 +29,10 @@ class ReplyCard extends StatelessWidget {
             children: [
               InkWell(
                 onTap: () => _navigateToProfile(context),
-                child: CircleAvatar(
+                child: UserAvatar(
+                  avatarUrl: reply.userAvatarUrl,
+                  username: reply.username,
                   radius: 12,
-                  child: Text(
-                    reply.username.isNotEmpty
-                        ? reply.username[0].toUpperCase()
-                        : '?',
-                    style: const TextStyle(fontSize: 12),
-                  ),
                 ),
               ),
               const SizedBox(width: 8),

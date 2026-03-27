@@ -9,6 +9,7 @@ import 'package:wanderer_frontend/presentation/widgets/common/notifications_drop
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/search_bar_widget.dart';
+import 'package:wanderer_frontend/presentation/helpers/avatar_helper.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 
 /// Reusable AppBar for the Wanderer application
@@ -220,10 +221,9 @@ class _WandererAppBarState extends State<WandererAppBar>
     }
   }
 
-  /// Get the initial letter for the avatar, preferring displayName over username
+  /// Get the initials for the avatar (max 3 letters)
   String get _avatarInitial {
-    final name = widget.displayName ?? widget.username ?? '';
-    return name.isNotEmpty ? name[0].toUpperCase() : '?';
+    return AvatarHelper.getInitials(widget.displayName, widget.username ?? '?');
   }
 
   void _toggleSearch() {
@@ -368,20 +368,19 @@ class _WandererAppBarState extends State<WandererAppBar>
             child: PopupMenuButton<String>(
               icon: CircleAvatar(
                 backgroundColor: Theme.of(context).colorScheme.primary,
-                backgroundImage:
+                foregroundImage:
                     widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty
                         ? NetworkImage(
                             ApiEndpoints.resolveThumbnailUrl(widget.avatarUrl))
                         : null,
-                child: widget.avatarUrl == null || widget.avatarUrl!.isEmpty
-                    ? Text(
-                        _avatarInitial,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )
-                    : null,
+                onForegroundImageError: (_, __) {},
+                child: Text(
+                  _avatarInitial,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
               tooltip: l10n.profile,
               onSelected: (value) {
@@ -411,22 +410,20 @@ class _WandererAppBarState extends State<WandererAppBar>
                             CircleAvatar(
                               backgroundColor:
                                   Theme.of(context).colorScheme.primary,
-                              backgroundImage: widget.avatarUrl != null &&
+                              foregroundImage: widget.avatarUrl != null &&
                                       widget.avatarUrl!.isNotEmpty
                                   ? NetworkImage(
                                       ApiEndpoints.resolveThumbnailUrl(
                                           widget.avatarUrl))
                                   : null,
-                              child: widget.avatarUrl == null ||
-                                      widget.avatarUrl!.isEmpty
-                                  ? Text(
-                                      _avatarInitial,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    )
-                                  : null,
+                              onForegroundImageError: (_, __) {},
+                              child: Text(
+                                _avatarInitial,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(

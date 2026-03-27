@@ -11,6 +11,7 @@ import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
 import 'auth_screen.dart';
 import 'home_screen.dart';
 import 'settings_screen.dart';
@@ -552,13 +553,11 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
             margin: const EdgeInsets.only(bottom: 8),
             child: ListTile(
               onTap: () => _navigateToUserProfile(friendship.friendId),
-              leading: CircleAvatar(
-                backgroundImage: profile?.avatarUrl != null
-                    ? NetworkImage(profile!.avatarUrl)
-                    : null,
-                child: profile?.avatarUrl == null
-                    ? const Icon(Icons.person)
-                    : null,
+              leading: UserAvatar(
+                avatarUrl: profile?.avatarUrl,
+                username: profile?.username ?? l10n.unknownUser,
+                displayName: profile?.displayName,
+                radius: 20,
               ),
               title: Text(profile?.username ?? l10n.unknownUser),
               subtitle: profile?.displayName != null
@@ -616,13 +615,11 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
             margin: const EdgeInsets.only(bottom: 8),
             child: ListTile(
               onTap: () => _navigateToUserProfile(follower.followerId),
-              leading: CircleAvatar(
-                backgroundImage: profile?.avatarUrl != null
-                    ? NetworkImage(profile!.avatarUrl)
-                    : null,
-                child: profile?.avatarUrl == null
-                    ? const Icon(Icons.person)
-                    : null,
+              leading: UserAvatar(
+                avatarUrl: profile?.avatarUrl,
+                username: profile?.username ?? l10n.unknownUser,
+                displayName: profile?.displayName,
+                radius: 20,
               ),
               title: Text(profile?.username ?? l10n.unknownUser),
               subtitle: profile?.displayName != null
@@ -675,13 +672,11 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
             margin: const EdgeInsets.only(bottom: 8),
             child: ListTile(
               onTap: () => _navigateToUserProfile(following.followedId),
-              leading: CircleAvatar(
-                backgroundImage: profile?.avatarUrl != null
-                    ? NetworkImage(profile!.avatarUrl)
-                    : null,
-                child: profile?.avatarUrl == null
-                    ? const Icon(Icons.person)
-                    : null,
+              leading: UserAvatar(
+                avatarUrl: profile?.avatarUrl,
+                username: profile?.username ?? l10n.unknownUser,
+                displayName: profile?.displayName,
+                radius: 20,
               ),
               title: Text(profile?.username ?? l10n.unknownUser),
               subtitle: profile?.displayName != null
@@ -758,13 +753,11 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
             margin: const EdgeInsets.only(bottom: 8),
             child: ListTile(
               onTap: () => _navigateToUserProfile(request.senderId),
-              leading: CircleAvatar(
-                backgroundImage: profile?.avatarUrl != null
-                    ? NetworkImage(profile!.avatarUrl)
-                    : null,
-                child: profile?.avatarUrl == null
-                    ? const Icon(Icons.person)
-                    : null,
+              leading: UserAvatar(
+                avatarUrl: profile?.avatarUrl,
+                username: profile?.username ?? l10n.unknownUser,
+                displayName: profile?.displayName,
+                radius: 20,
               ),
               title: Text(profile?.username ?? l10n.unknownUser),
               subtitle: Column(
@@ -828,13 +821,11 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
             margin: const EdgeInsets.only(bottom: 8),
             child: ListTile(
               onTap: () => _navigateToUserProfile(request.receiverId),
-              leading: CircleAvatar(
-                backgroundImage: profile?.avatarUrl != null
-                    ? NetworkImage(profile!.avatarUrl)
-                    : null,
-                child: profile?.avatarUrl == null
-                    ? const Icon(Icons.person)
-                    : null,
+              leading: UserAvatar(
+                avatarUrl: profile?.avatarUrl,
+                username: profile?.username ?? l10n.unknownUser,
+                displayName: profile?.displayName,
+                radius: 20,
               ),
               title: Text(profile?.username ?? l10n.unknownUser),
               subtitle: Column(

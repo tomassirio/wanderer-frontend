@@ -9,6 +9,7 @@ import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Admin User Management screen for viewing all users with pagination
@@ -643,27 +644,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               // Header with avatar and primary info
               Row(
                 children: [
-                  CircleAvatar(
+                  UserAvatar(
+                    avatarUrl: user.avatarUrl.isNotEmpty ? user.avatarUrl : null,
+                    username: user.username,
+                    displayName: user.displayName,
                     radius: 28,
-                    backgroundColor:
-                        Theme.of(context).colorScheme.primaryContainer,
-                    backgroundImage: user.avatarUrl.isNotEmpty
-                        ? NetworkImage(user.avatarUrl)
-                        : null,
-                    child: user.avatarUrl.isEmpty
-                        ? Text(
-                            user.username.isNotEmpty
-                                ? user.username[0].toUpperCase()
-                                : '?',
-                            style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimaryContainer,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                            ),
-                          )
-                        : null,
+                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                    textColor: Theme.of(context).colorScheme.onPrimaryContainer,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -935,19 +922,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       UserProfile user, bool isUserAdmin, bool isSelf) {
     final l10n = context.l10n;
     return ListTile(
-      leading: CircleAvatar(
+      leading: UserAvatar(
+        avatarUrl: user.avatarUrl.isNotEmpty ? user.avatarUrl : null,
+        username: user.username,
+        displayName: user.displayName,
+        radius: 20,
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-        backgroundImage:
-            user.avatarUrl.isNotEmpty ? NetworkImage(user.avatarUrl) : null,
-        child: user.avatarUrl.isEmpty
-            ? Text(
-                user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  fontWeight: FontWeight.bold,
-                ),
-              )
-            : null,
+        textColor: Theme.of(context).colorScheme.onPrimaryContainer,
       ),
       title: Row(
         children: [
