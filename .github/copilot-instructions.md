@@ -58,7 +58,7 @@ Runs format, analyze, and test in sequence. This is equivalent to the CI checks.
 ```bash
 flutter build web --release        # Build for production (2-3 min)
 flutter run -d chrome              # Run in Chrome for testing
-./dev.sh                          # Dev server on :51538 (needs .env with GOOGLE_MAPS_API_KEY)
+make run-web-dev                   # Dev server on :51538 (needs .env.dev with GOOGLE_MAPS_API_KEY)
 ```
 
 ### Docker Commands
@@ -112,7 +112,6 @@ wanderer-frontend/
 ├── pubspec.yaml           # Dart dependencies and project metadata
 ├── analysis_options.yaml  # Dart analyzer configuration
 ├── Makefile               # Build automation
-└── dev.sh                 # Local development script with env var injection
 ```
 
 ### Key Files
@@ -126,18 +125,17 @@ wanderer-frontend/
 
 ## Environment Variables & Configuration
 
-### Development (dev.sh)
-Requires `.env` file (NOT `.env.local`):
+### Development (Makefile)
+Requires `.env.dev` file at repo root (Makefile uses `.env.$(TARGET_ENV)`):
 ```
 GOOGLE_MAPS_API_KEY=your_key
-# Optional with defaults:
-COMMAND_BASE_URL=http://localhost:8081/api/1
-QUERY_BASE_URL=http://localhost:8082/api/1
-AUTH_BASE_URL=http://localhost:8083/api/1/auth
+DOMAIN=localhost
+WEB_HTTP_PROTOCOL=http
+WEB_WS_PROTOCOL=ws
 ```
 
-Script creates `web/index.html.template`, injects variables, runs on port 51538, restores on exit.
-⚠️ Never commit `.env` or `web/index.html.template` (gitignored).
+`make run-web-dev` creates `web/index.html.template`, injects variables, runs on port 51538, restores on exit.
+⚠️ Never commit `.env.*` or `web/index.html.template` (gitignored).
 
 ### Docker
 Similar runtime injection via `docker/scripts/docker-entrypoint.sh` with same env vars and defaults.
@@ -161,7 +159,7 @@ Reusable workflow. Uses Flutter 3.27.1.
 
 1. **Format check fails in CI**: Run `dart format .` locally and commit.
 2. **Test failures**: Ensure `flutter pub get` was run. Tests mirror `lib/` structure in `test/`.
-3. **dev.sh fails**: Create `.env` (not `.env.local`) with `GOOGLE_MAPS_API_KEY` at repo root.
+3. **`make run-web-dev` fails**: Create `.env.dev` with `GOOGLE_MAPS_API_KEY` at repo root.
 4. **Docker slow/fails**: Clean build takes 5-10 min, needs ~2GB space. Uses GitHub Actions cache.
 5. **Port 51538 in use**: `lsof -ti:51538 | xargs kill -9`
 
@@ -235,7 +233,7 @@ Coverage: ~31%. CI uploads to Codecov. Target: Maintain/improve coverage with ea
 
 1. **Before creating PR**:
    - Run `make verify` to ensure formatting, analysis, and tests pass
-   - Test locally (web: `./dev.sh`, mobile: `flutter run`)
+   - Test locally (web: `make run-web-dev`, mobile: `flutter run`)
    - Ensure coverage doesn't decrease significantly
 2. **PR naming**: Use descriptive titles with emoji prefix (e.g., "✨ Add trip sharing feature", "🐛 Fix map marker crash")
 3. **PR description**: Include:
@@ -283,7 +281,7 @@ Coverage: ~31%. CI uploads to Codecov. Target: Maintain/improve coverage with ea
 
 ### API Endpoints
 
-- **Development** (default in `dev.sh`):
+- **Development** (defaults in `ApiEndpoints`):
   - Command API: `http://localhost:8081/api/1`
   - Query API: `http://localhost:8082/api/1`
   - Auth API: `http://localhost:8083/api/1`

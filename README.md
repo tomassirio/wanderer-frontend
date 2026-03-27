@@ -103,25 +103,22 @@ flutter run -d chrome
 
 ### Local Development (with Maps)
 
-Create a `.env` file at the repository root:
+Create a `.env.dev` file at the repository root (see the Makefile for the expected `TARGET_ENV` convention):
 
 ```dotenv
 GOOGLE_MAPS_API_KEY=your_key_here
-
-# Optional — defaults shown below
-# COMMAND_BASE_URL=http://localhost:8081/api/1
-# QUERY_BASE_URL=http://localhost:8082/api/1
-# AUTH_BASE_URL=http://localhost:8083/api/1/auth
-# WS_BASE_URL=ws://localhost:8080
+DOMAIN=localhost
+WEB_HTTP_PROTOCOL=http
+WEB_WS_PROTOCOL=ws
 ```
 
 Then start the development server:
 
 ```bash
-./dev.sh          # Injects env vars into web/index.html, runs on port 51538
+make run-web-dev  # Injects env vars into web/index.html, runs on port 51538
 ```
 
-The script restores the original `index.html` when you stop it.
+The Makefile target restores the original `index.html` when you stop it.
 
 ### Running Tests
 
