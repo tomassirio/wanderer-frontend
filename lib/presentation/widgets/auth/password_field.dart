@@ -87,47 +87,7 @@ class _PasswordFieldState extends State<PasswordField> {
             return null;
           },
         ),
-        if (!widget.isLogin && widget.compareController == null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8, left: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.passwordRequirements,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black54,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                _buildRequirement(l10n.passwordRequirement8Chars),
-                _buildRequirement(l10n.passwordRequirementUppercase),
-                _buildRequirement(l10n.passwordRequirementLowercase),
-                _buildRequirement(l10n.passwordRequirementNumber),
-                _buildRequirement(l10n.passwordRequirementSpecial),
-              ],
-            ),
-          ),
       ],
-    );
-  }
-
-  Widget _buildRequirement(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, top: 2),
-      child: Row(
-        children: [
-          const Icon(Icons.check_circle_outline,
-              size: 12, color: Colors.black45),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: const TextStyle(fontSize: 10, color: Colors.black54),
-          ),
-        ],
-      ),
     );
   }
 }
