@@ -138,6 +138,7 @@ class AppLocalizations {
   String get checkBackLater => _tr('checkBackLater');
   String get errorLoadingTrips => _tr('errorLoadingTrips');
   String get loadMoreTrips => _tr('loadMoreTrips');
+  String get loadMore => _tr('loadMore');
   String get myTrips => _tr('myTrips');
   String get friendsTrips => _tr('friendsTrips');
   String get discover => _tr('discover');
@@ -248,9 +249,24 @@ class AppLocalizations {
   String get checkYourEmail => _tr('checkYourEmail');
   String get emailLabel => _tr('emailLabel');
   String get usernameLabel => _tr('usernameLabel');
+  String get usernameOrEmailLabel => _tr('usernameOrEmailLabel');
+  String get usernameOrEmailHint => _tr('usernameOrEmailHint');
   String get passwordLabel => _tr('passwordLabel');
   String get pleaseEnterPassword => _tr('pleaseEnterPassword');
   String get passwordMinLength => _tr('passwordMinLength');
+  String get passwordMinLength8 => _tr('passwordMinLength8');
+  String get passwordRequiresLowercase => _tr('passwordRequiresLowercase');
+  String get passwordRequiresUppercase => _tr('passwordRequiresUppercase');
+  String get passwordRequiresNumber => _tr('passwordRequiresNumber');
+  String get passwordRequiresSpecial => _tr('passwordRequiresSpecial');
+  String get passwordRequirements => _tr('passwordRequirements');
+  String get passwordRequirement8Chars => _tr('passwordRequirement8Chars');
+  String get passwordRequirementUppercase =>
+      _tr('passwordRequirementUppercase');
+  String get passwordRequirementLowercase =>
+      _tr('passwordRequirementLowercase');
+  String get passwordRequirementNumber => _tr('passwordRequirementNumber');
+  String get passwordRequirementSpecial => _tr('passwordRequirementSpecial');
   String get passwordsDoNotMatch => _tr('passwordsDoNotMatch');
   String get resetPasswordTitle => _tr('resetPasswordTitle');
   String get enterEmailForReset => _tr('enterEmailForReset');
@@ -271,6 +287,7 @@ class AppLocalizations {
   String get pleaseEnterEmail => _tr('pleaseEnterEmail');
   String get pleaseEnterValidEmail => _tr('pleaseEnterValidEmail');
   String get pleaseEnterUsername => _tr('pleaseEnterUsername');
+  String get pleaseEnterUsernameOrEmail => _tr('pleaseEnterUsernameOrEmail');
   String get usernameMinLength => _tr('usernameMinLength');
   String get confirmPassword => _tr('confirmPassword');
 
@@ -943,7 +960,10 @@ class AppLocalizations {
   String get unfriend => _tr('unfriend');
   String get cancelFriendRequest => _tr('cancelFriendRequest');
   String get sendFriendRequest => _tr('sendFriendRequest');
+  String get follower => _tr('follower');
   String get followers => _tr('followers');
+  String get noUsersToDiscover => _tr('noUsersToDiscover');
+  String get addFriendsToDiscoverMore => _tr('addFriendsToDiscoverMore');
   String myTripsLabel(bool isViewingOwnProfile) =>
       isViewingOwnProfile ? myTrips : trips;
   String tripCountLabel(int count) {

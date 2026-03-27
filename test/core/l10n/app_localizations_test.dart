@@ -16,7 +16,7 @@ void main() {
       expect(l10n.achievements, 'Achievements');
       expect(l10n.buyMeACoffee, 'Buy Me a Coffee');
       expect(l10n.logout, 'Logout');
-      expect(l10n.logIn, 'Log In');
+      expect(l10n.logIn, 'Log In / Sign Up');
       expect(l10n.guest, 'Guest');
       expect(l10n.myProfile, 'My Profile');
       expect(l10n.settings, 'Settings');
@@ -67,7 +67,7 @@ void main() {
       expect(l10n.achievements, 'Logros');
       expect(l10n.buyMeACoffee, 'Cómprame un Café');
       expect(l10n.logout, 'Cerrar Sesión');
-      expect(l10n.logIn, 'Iniciar Sesión');
+      expect(l10n.logIn, 'Iniciar Sesión / Registrarse');
       expect(l10n.guest, 'Invitado');
       expect(l10n.myProfile, 'Mi Perfil');
       expect(l10n.settings, 'Configuración');
@@ -117,7 +117,7 @@ void main() {
       expect(l10n.friends, 'Amis');
       expect(l10n.achievements, 'Réalisations');
       expect(l10n.logout, 'Déconnexion');
-      expect(l10n.logIn, 'Se Connecter');
+      expect(l10n.logIn, 'Se Connecter / S\'inscrire');
       expect(l10n.guest, 'Invité');
       expect(l10n.settings, 'Paramètres');
     });
@@ -151,7 +151,7 @@ void main() {
       expect(l10n.friends, 'Vrienden');
       expect(l10n.achievements, 'Prestaties');
       expect(l10n.logout, 'Uitloggen');
-      expect(l10n.logIn, 'Inloggen');
+      expect(l10n.logIn, 'Inloggen / Registreren');
       expect(l10n.guest, 'Gast');
       expect(l10n.settings, 'Instellingen');
     });

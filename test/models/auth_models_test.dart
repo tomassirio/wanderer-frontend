@@ -33,11 +33,12 @@ void main() {
 
     group('LoginRequest', () {
       test('toJson converts LoginRequest correctly', () {
-        final request = LoginRequest(username: 'test', password: 'password123');
+        final request =
+            LoginRequest(identifier: 'test', password: 'password123');
 
         final json = request.toJson();
 
-        expect(json['username'], 'test');
+        expect(json['identifier'], 'test');
         expect(json['password'], 'password123');
       });
     });

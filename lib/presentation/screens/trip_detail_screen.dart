@@ -6,6 +6,7 @@ import 'package:flutter/material.dart' hide Visibility;
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/core/errors/error_utils.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
@@ -1943,7 +1944,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     } catch (e) {
       setState(() => _isChangingStatus = false);
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Error changing status: $e');
+        UiHelpers.showErrorMessage(context, friendlyMessage(e));
       }
     }
   }

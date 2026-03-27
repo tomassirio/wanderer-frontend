@@ -15,6 +15,6 @@ class UpdatePromotionRequest {
           'donationLink': donationLink,
         'isPreAnnounced': isPreAnnounced,
         if (countdownStartDate != null)
-          'countdownStartDate': countdownStartDate!.toUtc().toIso8601String(),
+          'countdownStartDate': countdownStartDate!.toIso8601String(),
       };
 }

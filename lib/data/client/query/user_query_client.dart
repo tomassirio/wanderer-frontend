@@ -147,4 +147,49 @@ class UserQueryClient {
     );
     return _apiClient.handleListResponse(response, Friendship.fromJson);
   }
+
+  /// Get discoverable users (friends of friends and people followed by friends)
+  /// Requires authentication (USER, ADMIN)
+  Future<PageResponse<UserProfile>> getDiscoverableUsers({
+    int page = 0,
+    int size = 20,
+  }) async {
+    final endpoint = '${ApiEndpoints.usersMeDiscover}?page=$page&size=$size';
+    final response = await _apiClient.get(
+      endpoint,
+      requireAuth: true,
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return PageResponse.fromJson(data, UserProfile.fromJson);
+    } else {
+      throw Exception(
+          'API Error (${response.statusCode}): Failed to fetch discoverable users');
+    }
+  }
+
+  /// Get all users associated with a target user, showing relationship status
+  /// from the current user's perspective.
+  /// Requires authentication (USER, ADMIN)
+  Future<PageResponse<UserRelationship>> getAssociatedUsers(
+    String userId, {
+    int page = 0,
+    int size = 20,
+  }) async {
+    final endpoint =
+        '${ApiEndpoints.userAssociated(userId)}?page=$page&size=$size';
+    final response = await _apiClient.get(
+      endpoint,
+      requireAuth: true,
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return PageResponse.fromJson(data, UserRelationship.fromJson);
+    } else {
+      throw Exception(
+          'API Error (${response.statusCode}): Failed to fetch associated users');
+    }
+  }
 }

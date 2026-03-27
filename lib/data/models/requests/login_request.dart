@@ -1,9 +1,10 @@
 /// Request model for user login
 class LoginRequest {
-  final String username;
+  final String identifier;
   final String password;
 
-  LoginRequest({required this.username, required this.password});
+  LoginRequest({required this.identifier, required this.password});
 
-  Map<String, dynamic> toJson() => {'username': username, 'password': password};
+  Map<String, dynamic> toJson() =>
+      {'identifier': identifier, 'password': password};
 }

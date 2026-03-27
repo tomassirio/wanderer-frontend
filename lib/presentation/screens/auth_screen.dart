@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
+import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/data/repositories/auth_repository.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/auth_form.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/forgot_password_form.dart';
@@ -186,6 +188,11 @@ class _AuthScreenState extends State<AuthScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          _buildLanguageToggle(),
+          _buildThemeToggle(),
+          const SizedBox(width: 4),
+        ],
       ),
       extendBodyBehindAppBar: true,
       body: Container(
@@ -200,9 +207,9 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 450),
                 child: _registrationPending
@@ -235,6 +242,76 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildThemeToggle() {
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeController().themeMode,
+      builder: (context, mode, _) {
+        final isDark = mode == ThemeMode.dark;
+        final l10n = context.l10n;
+        return IconButton(
+          icon: Icon(
+            isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+            color: Colors.white,
+            size: 20,
+          ),
+          tooltip: isDark ? l10n.switchToLightMode : l10n.switchToDarkMode,
+          onPressed: () => ThemeController().setDarkMode(!isDark),
+          visualDensity: VisualDensity.compact,
+        );
+      },
+    );
+  }
+
+  Widget _buildLanguageToggle() {
+    return ValueListenableBuilder<Locale>(
+      valueListenable: LocaleController().locale,
+      builder: (context, locale, _) {
+        final controller = LocaleController();
+        final currentCode = controller.languageCode;
+        final flag = LocaleController.localeFlags[currentCode] ?? '🌐';
+        final label = LocaleController.localeLabels[currentCode] ?? 'EN';
+        return PopupMenuButton<String>(
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          tooltip: 'Change language',
+          onSelected: (code) => controller.setLocale(Locale(code)),
+          itemBuilder: (_) => LocaleController.supportedLocales.map((loc) {
+            final code = loc.languageCode;
+            final locFlag = LocaleController.localeFlags[code] ?? '🌐';
+            final locLabel = LocaleController.localeLabels[code] ?? code;
+            return PopupMenuItem<String>(
+              value: code,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(locFlag, style: const TextStyle(fontSize: 16)),
+                  const SizedBox(width: 8),
+                  Text(locLabel),
+                ],
+              ),
+            );
+          }).toList(),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(flag, style: const TextStyle(fontSize: 16)),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Icon(Icons.arrow_drop_down, color: Colors.white, size: 16),
+            ],
+          ),
+        );
+      },
     );
   }
 

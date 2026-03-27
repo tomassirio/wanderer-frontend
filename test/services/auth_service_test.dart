@@ -132,7 +132,7 @@ void main() {
     group('login', () {
       test('logs in user and saves tokens with user info', () async {
         final request = LoginRequest(
-          username: 'testuser',
+          identifier: 'testuser',
           password: 'password123',
         );
 
@@ -191,7 +191,7 @@ void main() {
         'logs in user and saves tokens even if profile fetch fails',
         () async {
           final request = LoginRequest(
-            username: 'testuser',
+            identifier: 'testuser',
             password: 'password123',
           );
           final authResponse = AuthResponse(
@@ -226,7 +226,7 @@ void main() {
       );
 
       test('passes through login errors', () async {
-        final request = LoginRequest(username: 'testuser', password: 'wrong');
+        final request = LoginRequest(identifier: 'testuser', password: 'wrong');
         when(
           mockAuthClient.login(request),
         ).thenThrow(Exception('Login failed'));

@@ -5,6 +5,7 @@ import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/achievement_models.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_share_dialog.dart';
@@ -235,19 +236,15 @@ class TripInfoCard extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              CircleAvatar(
+                              UserAvatar(
+                                userId: trip.userId,
+                                avatarUrl: trip.avatarUrl?.isNotEmpty == true
+                                    ? trip.avatarUrl
+                                    : null,
+                                username: trip.username,
                                 radius: 12,
                                 backgroundColor: WandererTheme.primaryOrange,
-                                child: Text(
-                                  trip.username.isNotEmpty
-                                      ? trip.username[0].toUpperCase()
-                                      : '?',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                                textColor: Colors.white,
                               ),
                               const SizedBox(width: 6),
                               Text(

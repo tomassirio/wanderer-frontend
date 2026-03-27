@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wanderer_frontend/core/errors/app_exception.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/data/storage/token_storage.dart';
 
@@ -925,11 +926,17 @@ void main() {
             (json) => TestModel.fromJson(json),
           ),
           throwsA(
-            isA<Exception>().having(
-              (e) => e.toString(),
-              'message',
-              allOf(contains('API Error (500)'), isNot(contains(longBody))),
-            ),
+            isA<ApiException>()
+                .having(
+                  (e) => e.statusCode,
+                  'statusCode',
+                  500,
+                )
+                .having(
+                  (e) => e.apiMessage,
+                  'apiMessage',
+                  isNot(contains(longBody)),
+                ),
           ),
         );
       });

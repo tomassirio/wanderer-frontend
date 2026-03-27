@@ -59,6 +59,8 @@ class RelationshipBadge extends StatelessWidget {
     switch (type) {
       case RelationshipType.friend:
         return Icons.people;
+      case RelationshipType.follower:
+        return Icons.person_add;
       case RelationshipType.following:
         return Icons.person_add_alt_1;
     }
@@ -68,6 +70,8 @@ class RelationshipBadge extends StatelessWidget {
     switch (type) {
       case RelationshipType.friend:
         return l10n.friend;
+      case RelationshipType.follower:
+        return l10n.follower;
       case RelationshipType.following:
         return l10n.following;
     }
@@ -77,6 +81,8 @@ class RelationshipBadge extends StatelessWidget {
     switch (type) {
       case RelationshipType.friend:
         return Colors.blue.withOpacity(0.3);
+      case RelationshipType.follower:
+        return Colors.green.withOpacity(0.3);
       case RelationshipType.following:
         return Colors.purple.withOpacity(0.3);
     }
@@ -86,6 +92,8 @@ class RelationshipBadge extends StatelessWidget {
     switch (type) {
       case RelationshipType.friend:
         return Colors.blue.shade700;
+      case RelationshipType.follower:
+        return Colors.green.shade700;
       case RelationshipType.following:
         return Colors.purple.shade700;
     }
@@ -94,5 +102,6 @@ class RelationshipBadge extends StatelessWidget {
 
 enum RelationshipType {
   friend,
+  follower,
   following,
 }

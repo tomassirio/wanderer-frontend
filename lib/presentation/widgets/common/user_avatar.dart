@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import '../../../core/constants/api_endpoints.dart';
 import '../../../core/theme/wanderer_theme.dart';
+import '../../helpers/avatar_helper.dart';
 
 /// A reusable widget for displaying user avatars with fallback to initials
 class UserAvatar extends StatelessWidget {
   final String? avatarUrl;
+  final String? userId;
   final String username;
+  final String? displayName;
   final double radius;
   final Color? backgroundColor;
   final Color? textColor;
@@ -12,7 +16,9 @@ class UserAvatar extends StatelessWidget {
   const UserAvatar({
     super.key,
     this.avatarUrl,
+    this.userId,
     required this.username,
+    this.displayName,
     this.radius = 16,
     this.backgroundColor,
     this.textColor,
@@ -23,18 +29,31 @@ class UserAvatar extends StatelessWidget {
     final bgColor =
         backgroundColor ?? WandererTheme.primaryOrange.withOpacity(0.15);
     final txtColor = textColor ?? WandererTheme.primaryOrange;
+    final initials = AvatarHelper.getInitials(displayName, username);
 
-    // If avatar URL is provided and valid, use it
-    if (avatarUrl != null && avatarUrl!.isNotEmpty) {
+    // Priority 1: Use avatarUrl if provided (e.g., from UserProfile)
+    // Priority 2: Try to load profile picture from userId if available
+    // Priority 3: Fallback to initials
+
+    String? imageUrl = avatarUrl;
+
+    // If no avatarUrl but userId is provided, construct profile picture URL
+    if ((imageUrl == null || imageUrl.isEmpty) && userId != null) {
+      imageUrl =
+          ApiEndpoints.resolveThumbnailUrl('/thumbnails/profiles/$userId.png');
+    }
+
+    // If we have a valid image URL, try to display it
+    if (imageUrl != null && imageUrl.isNotEmpty) {
       return CircleAvatar(
         radius: radius,
         backgroundColor: bgColor,
-        foregroundImage: NetworkImage(avatarUrl!),
+        foregroundImage: NetworkImage(imageUrl),
         onForegroundImageError: (_, __) {
-          // Fallback to showing initial letter
+          // Fallback to showing initials
         },
         child: Text(
-          username.isNotEmpty ? username[0].toUpperCase() : '?',
+          initials,
           style: TextStyle(
             color: txtColor,
             fontSize: radius * 0.5,
@@ -44,12 +63,12 @@ class UserAvatar extends StatelessWidget {
       );
     }
 
-    // Fallback to username initial
+    // Fallback to displayName/username initials
     return CircleAvatar(
       radius: radius,
       backgroundColor: bgColor,
       child: Text(
-        username.isNotEmpty ? username[0].toUpperCase() : '?',
+        initials,
         style: TextStyle(
           color: txtColor,
           fontSize: radius * 0.5,

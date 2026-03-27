@@ -4,6 +4,7 @@ import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
+import 'package:wanderer_frontend/presentation/helpers/avatar_helper.dart';
 import 'package:wanderer_frontend/presentation/screens/admin_users_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
@@ -220,28 +221,29 @@ class AppSidebar extends StatelessWidget {
                   CircleAvatar(
                     radius: 36,
                     backgroundColor: Colors.white,
-                    backgroundImage: avatarUrl != null && avatarUrl!.isNotEmpty
+                    foregroundImage: avatarUrl != null && avatarUrl!.isNotEmpty
                         ? NetworkImage(
                             ApiEndpoints.resolveThumbnailUrl(avatarUrl))
                         : null,
-                    child: avatarUrl == null || avatarUrl!.isEmpty
-                        ? (isLoggedIn
-                            ? Text(
-                                (displayName ?? username ?? '?')
-                                    .substring(0, 1)
-                                    .toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              )
-                            : Icon(
-                                Icons.person_outline,
-                                size: 40,
-                                color: Theme.of(context).colorScheme.primary,
-                              ))
-                        : null,
+                    onForegroundImageError:
+                        avatarUrl != null && avatarUrl!.isNotEmpty
+                            ? (_, __) {}
+                            : null,
+                    child: isLoggedIn
+                        ? Text(
+                            AvatarHelper.getInitials(
+                                displayName, username ?? '?'),
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          )
+                        : Icon(
+                            Icons.person_outline,
+                            size: 40,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                   ),
                   const Spacer(),
                   if (isLoggedIn) ...[

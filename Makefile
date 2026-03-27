@@ -42,6 +42,11 @@ test: ## Run all tests with coverage
 		grep '\[E\]' /tmp/flutter_test_output.log | sed 's/^[0-9:.]*[[:space:]]*+[0-9]* -[0-9]*: //' | sed 's/ \[E\]$$//' | awk '{print "  " NR ") " $$0}' || true; \
 		echo ""; \
 		echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \
+		echo "🔍 FULL ERROR DETAILS:"; \
+		echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \
+		grep -A 20 "EXCEPTION CAUGHT\|TestFailure\|Some tests failed" /tmp/flutter_test_output.log || true; \
+		echo ""; \
+		echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \
 		echo "🔁 Re-run commands:"; \
 		echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \
 		grep -E '^\s*(flutter test|.*dart-sdk.*dart test)' /tmp/flutter_test_output.log | sed 's/^[[:space:]]*//' || true; \

@@ -3,6 +3,7 @@ import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/reply_card.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 
 /// Widget displaying a comment card with glassmorphism styling
@@ -62,13 +63,11 @@ class CommentCard extends StatelessWidget {
             children: [
               InkWell(
                 onTap: () => _navigateToProfile(context),
-                child: CircleAvatar(
+                child: UserAvatar(
+                  userId: comment.userId,
+                  avatarUrl: comment.userAvatarUrl,
+                  username: comment.username,
                   radius: 16,
-                  child: Text(
-                    comment.username.isNotEmpty
-                        ? comment.username[0].toUpperCase()
-                        : '?',
-                  ),
                 ),
               ),
               const SizedBox(width: 8),

@@ -10,7 +10,7 @@ const Map<String, String> translationsFr = {
   'tripDataMaintenance': 'Maintenance des Données',
   'buyMeACoffee': 'Offrez-moi un Café',
   'logout': 'Déconnexion',
-  'logIn': 'Se Connecter',
+  'logIn': 'Se Connecter / S\'inscrire',
   'guest': 'Invité',
   'myProfile': 'Mon Profil',
   'settings': 'Paramètres',
@@ -74,6 +74,7 @@ const Map<String, String> translationsFr = {
   'checkBackLater': 'Revenez plus tard pour de nouvelles aventures !',
   'errorLoadingTrips': 'Erreur lors du chargement des voyages',
   'loadMoreTrips': 'Charger plus de voyages',
+  'loadMore': 'Charger plus',
   'myTrips': 'Mes Voyages',
   'friendsTrips': 'Voyages d\'Amis',
   'discover': 'Découvrir',
@@ -117,9 +118,25 @@ const Map<String, String> translationsFr = {
   'checkYourEmail': 'Vérifiez votre e-mail',
   'emailLabel': 'E-mail',
   'usernameLabel': 'Nom d\'utilisateur',
+  'usernameOrEmailLabel': 'Utilisateur ou E-mail',
+  'usernameOrEmailHint': 'Entrez votre nom d\'utilisateur ou e-mail',
   'passwordLabel': 'Mot de passe',
   'pleaseEnterPassword': 'Veuillez entrer votre mot de passe',
   'passwordMinLength': 'Le mot de passe doit contenir au moins 6 caractères',
+  'passwordMinLength8': 'Le mot de passe doit contenir au moins 8 caractères',
+  'passwordRequiresLowercase':
+      'Le mot de passe doit contenir une lettre minuscule',
+  'passwordRequiresUppercase':
+      'Le mot de passe doit contenir une lettre majuscule',
+  'passwordRequiresNumber': 'Le mot de passe doit contenir un chiffre',
+  'passwordRequiresSpecial':
+      r'Le mot de passe doit contenir un caractère spécial (@$!%*?&#)',
+  'passwordRequirements': 'Le mot de passe doit contenir :',
+  'passwordRequirement8Chars': 'Au moins 8 caractères',
+  'passwordRequirementUppercase': 'Une lettre majuscule (A-Z)',
+  'passwordRequirementLowercase': 'Une lettre minuscule (a-z)',
+  'passwordRequirementNumber': 'Un chiffre (0-9)',
+  'passwordRequirementSpecial': r'Un caractère spécial (@$!%*?&#)',
   'passwordsDoNotMatch': 'Les mots de passe ne correspondent pas',
   'resetPasswordTitle': 'Réinitialiser le Mot de Passe',
   'enterEmailForReset':
@@ -128,6 +145,8 @@ const Map<String, String> translationsFr = {
   'pleaseEnterEmail': 'Veuillez entrer votre e-mail',
   'pleaseEnterValidEmail': 'Veuillez entrer un e-mail valide',
   'pleaseEnterUsername': 'Veuillez entrer votre nom d\'utilisateur',
+  'pleaseEnterUsernameOrEmail':
+      'Veuillez entrer votre nom d\'utilisateur ou e-mail',
   'usernameMinLength':
       'Le nom d\'utilisateur doit contenir au moins 3 caractères',
   'confirmPassword': 'Confirmer le Mot de Passe',
@@ -202,6 +221,9 @@ const Map<String, String> translationsFr = {
   'noSentRequests': 'Aucune demande envoyée',
   'sendFriendRequests':
       'Envoyez des demandes d\'amis pour vous connecter avec d\'autres',
+  'noUsersToDiscover': 'Aucun utilisateur à découvrir',
+  'addFriendsToDiscoverMore':
+      'Ajoutez des amis pour découvrir plus de personnes',
 
   // --- Achievements screen ---
   'noAchievementsYet': 'Aucune réalisation disponible pour le moment',
@@ -457,6 +479,7 @@ const Map<String, String> translationsFr = {
   'unfriend': 'Retirer l\'ami',
   'cancelFriendRequest': 'Annuler la Demande d\'Ami',
   'sendFriendRequest': 'Envoyer une Demande d\'Ami',
+  'follower': 'Abonné',
   'followers': 'Abonnés',
   'sortOptionStatus': 'Statut',
   'sortOptionNameAZ': 'Nom (A-Z)',

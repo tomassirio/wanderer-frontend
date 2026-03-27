@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart' show MediaType;
+import '../../core/errors/app_exception.dart';
 import '../models/responses/page_response.dart';
 import '../storage/token_storage.dart';
 import '../storage/token_refresh_manager.dart';
@@ -492,20 +493,31 @@ class ApiClient {
     }
   }
 
-  /// Handle errors from API
-  Exception _handleError(http.Response response) {
+  /// Handle errors from API — returns a typed [ApiException] so callers
+  /// can inspect [statusCode] and show [userMessage] without leaking
+  /// technical details.
+  ApiException _handleError(http.Response response) {
     try {
       // Try to parse as JSON first
       final error = jsonDecode(response.body);
       final message = error['message'] ?? error['error'] ?? 'Unknown error';
-      return Exception('API Error (${response.statusCode}): $message');
+      return ApiException(
+        statusCode: response.statusCode,
+        apiMessage: message.toString(),
+      );
     } catch (e) {
       // If not JSON, return the raw body (backend might return plain text)
       final body = response.body.trim();
       if (body.isNotEmpty && body.length < 200) {
-        return Exception('API Error (${response.statusCode}): $body');
+        return ApiException(
+          statusCode: response.statusCode,
+          apiMessage: body,
+        );
       }
-      return Exception('API Error (${response.statusCode})');
+      return ApiException(
+        statusCode: response.statusCode,
+        apiMessage: 'Unknown error',
+      );
     }
   }
 }
