@@ -65,6 +65,11 @@ class Trip {
   final String? tripPlanId;
   // Distance tracking
   final double? accruedDistanceKm;
+  // Promoted status
+  final bool isPromoted;
+  final DateTime? promotedAt;
+  final bool isPreAnnounced;
+  final DateTime? countdownStartDate;
 
   /// Generate thumbnail URL based on trip ID or trip plan ID
   String get thumbnailUrl {
@@ -122,6 +127,10 @@ class Trip {
     this.currentDay,
     this.tripPlanId,
     this.accruedDistanceKm,
+    this.isPromoted = false,
+    this.promotedAt,
+    this.isPreAnnounced = false,
+    this.countdownStartDate,
   });
 
   factory Trip.fromJson(Map<String, dynamic> json) {
@@ -240,6 +249,14 @@ class Trip {
       currentDay: (tripDetails?['currentDay'] ?? json['currentDay']) as int?,
       tripPlanId: json['tripPlanId'] as String?,
       accruedDistanceKm: (json['accruedDistanceKm'] as num?)?.toDouble(),
+      isPromoted: (json['isPromoted'] as bool?) ?? false,
+      promotedAt: json['promotedAt'] != null
+          ? DateTime.tryParse(json['promotedAt'] as String)
+          : null,
+      isPreAnnounced: (json['isPreAnnounced'] as bool?) ?? false,
+      countdownStartDate: json['countdownStartDate'] != null
+          ? DateTime.tryParse(json['countdownStartDate'] as String)
+          : null,
     );
   }
 
@@ -322,6 +339,10 @@ class Trip {
     int? currentDay,
     String? tripPlanId,
     double? accruedDistanceKm,
+    bool? isPromoted,
+    DateTime? promotedAt,
+    bool? isPreAnnounced,
+    DateTime? countdownStartDate,
   }) {
     return Trip(
       id: id ?? this.id,
@@ -354,6 +375,10 @@ class Trip {
       currentDay: currentDay ?? this.currentDay,
       tripPlanId: tripPlanId ?? this.tripPlanId,
       accruedDistanceKm: accruedDistanceKm ?? this.accruedDistanceKm,
+      isPromoted: isPromoted ?? this.isPromoted,
+      promotedAt: promotedAt ?? this.promotedAt,
+      isPreAnnounced: isPreAnnounced ?? this.isPreAnnounced,
+      countdownStartDate: countdownStartDate ?? this.countdownStartDate,
     );
   }
 }

@@ -77,8 +77,8 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
 
   /// Whether this card should show the coming-soon blur+countdown overlay.
   bool get _isPreAnnouncedCreated =>
-      widget.promotedTrip != null &&
-      widget.promotedTrip!.isPreAnnounced &&
+      widget.trip.isPromoted &&
+      widget.trip.isPreAnnounced &&
       widget.trip.status == TripStatus.created;
 
   /// Formats a countdown string: "X days", "Today", or "Starts [date]".
@@ -481,12 +481,11 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                                     fontSize: 14,
                                   ),
                                 ),
-                                if (widget.promotedTrip!.countdownStartDate !=
-                                    null) ...[
+                                if (widget.trip.countdownStartDate != null) ...[
                                   const SizedBox(height: 4),
                                   Text(
                                     _formatCountdown(
-                                      widget.promotedTrip!.countdownStartDate!,
+                                      widget.trip.countdownStartDate!,
                                     ),
                                     style: const TextStyle(
                                       color: Colors.white70,
