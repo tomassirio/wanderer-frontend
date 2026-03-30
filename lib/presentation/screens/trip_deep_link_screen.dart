@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
+import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 
 /// Wrapper screen that resolves a trip ID from a deep link URL
@@ -30,9 +31,7 @@ class _TripDeepLinkScreenState extends State<TripDeepLinkScreen> {
       final trip = await _tripService.getTripById(widget.tripId);
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => TripDetailScreen(trip: trip),
-          ),
+          PageTransitions.slideFromRight(TripDetailScreen(trip: trip)),
         );
       }
     } catch (e) {

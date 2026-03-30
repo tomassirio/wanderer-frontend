@@ -320,7 +320,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (mounted) {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const AuthScreen()),
+            PageTransitions.fade(const AuthScreen()),
           ).then((_) {
             // Reload profile after returning from auth
             if (mounted) {
@@ -541,7 +541,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         // Navigate to home screen and clear navigation stack
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          PageTransitions.fade(const HomeScreen()),
           (route) => false,
         );
       }
@@ -551,14 +551,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _handleSettings() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+      PageTransitions.slideFromBottom(const SettingsScreen()),
     );
   }
 
   Future<void> _navigateToAuth() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const AuthScreen()),
+      PageTransitions.fade(const AuthScreen()),
     );
 
     if (result == true || mounted) {
@@ -569,14 +569,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _navigateToTripDetail(Trip trip) {
     Navigator.push(
       context,
-      PageTransitions.slideUp(TripDetailScreen(trip: trip)),
+      PageTransitions.slideFromRight(TripDetailScreen(trip: trip)),
     );
   }
 
   void _navigateToFriendsFollowers() {
     Navigator.push(
       context,
-      PageTransitions.slideUp(const FriendsFollowersScreen()),
+      PageTransitions.slideFromBottom(const FriendsFollowersScreen()),
     );
   }
 
@@ -587,7 +587,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Navigate to own profile (without userId = current user's profile)
     Navigator.pushReplacement(
       context,
-      PageTransitions.slideRight(const ProfileScreen()),
+      PageTransitions.slideFromRight(const ProfileScreen()),
     );
   }
 

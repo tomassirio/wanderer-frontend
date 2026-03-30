@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
+import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/profile_screen.dart';
 
 /// Wrapper screen that resolves a username from a deep link URL
@@ -30,9 +31,7 @@ class _UserDeepLinkScreenState extends State<UserDeepLinkScreen> {
       final profile = await _userService.getUserByUsername(widget.username);
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => ProfileScreen(userId: profile.id),
-          ),
+          PageTransitions.slideFromRight(ProfileScreen(userId: profile.id)),
         );
       }
     } catch (e) {

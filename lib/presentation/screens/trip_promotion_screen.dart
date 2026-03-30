@@ -7,6 +7,7 @@ import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
+import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
@@ -443,7 +444,7 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
       if (mounted) {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => TripDetailScreen(trip: trip)),
+          PageTransitions.slideFromRight(TripDetailScreen(trip: trip)),
         );
       }
     } catch (e) {
@@ -458,7 +459,7 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        PageTransitions.fade(const HomeScreen()),
         (route) => false,
       );
     }
@@ -467,7 +468,7 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
   void _handleSettings() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+      PageTransitions.slideFromBottom(const SettingsScreen()),
     );
   }
 

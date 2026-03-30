@@ -13,6 +13,7 @@ import 'package:wanderer_frontend/presentation/helpers/dashed_polyline_helper.da
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_plan_map_helper.dart';
+import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
@@ -150,7 +151,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          PageTransitions.fade(const HomeScreen()),
           (route) => false,
         );
       }
@@ -160,14 +161,14 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
   void _handleSettings() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+      PageTransitions.slideFromBottom(const SettingsScreen()),
     );
   }
 
   Future<void> _navigateToAuth() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const AuthScreen()),
+      PageTransitions.fade(const AuthScreen()),
     );
 
     if (result == true && mounted) {
@@ -581,9 +582,7 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
         );
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => TripDetailScreen(trip: trip),
-          ),
+          PageTransitions.slideFromRight(TripDetailScreen(trip: trip)),
         );
       }
     } catch (e) {

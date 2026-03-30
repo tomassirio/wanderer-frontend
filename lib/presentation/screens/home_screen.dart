@@ -665,7 +665,7 @@ class _HomeScreenState extends State<HomeScreen>
       await _repository.logout();
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          PageTransitions.fade(const HomeScreen()),
           (route) => false,
         );
       }
@@ -679,14 +679,14 @@ class _HomeScreenState extends State<HomeScreen>
   void _handleSettings() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+      PageTransitions.slideFromBottom(const SettingsScreen()),
     );
   }
 
   Future<void> _navigateToAuth() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const AuthScreen()),
+      PageTransitions.fade(const AuthScreen()),
     );
 
     if (result == true && mounted) {
@@ -698,7 +698,7 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _navigateToCreateTrip() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const CreateTripScreen()),
+      PageTransitions.slideFromBottom(const CreateTripScreen()),
     );
 
     if (mounted) {
@@ -709,7 +709,7 @@ class _HomeScreenState extends State<HomeScreen>
   void _navigateToTripDetail(Trip trip) async {
     await Navigator.push(
       context,
-      PageTransitions.slideUp(TripDetailScreen(trip: trip)),
+      PageTransitions.slideFromRight(TripDetailScreen(trip: trip)),
     );
 
     if (mounted) {

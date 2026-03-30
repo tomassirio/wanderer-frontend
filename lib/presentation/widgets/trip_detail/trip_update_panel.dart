@@ -56,10 +56,18 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.isCollapsed) {
-      return _buildCollapsedBubble();
-    }
-    return _buildExpandedPanel();
+    return AnimatedCrossFade(
+      duration: const Duration(milliseconds: 300),
+      firstCurve: Curves.easeInOut,
+      secondCurve: Curves.easeInOut,
+      sizeCurve: Curves.easeInOut,
+      alignment: Alignment.topLeft,
+      crossFadeState: widget.isCollapsed
+          ? CrossFadeState.showFirst
+          : CrossFadeState.showSecond,
+      firstChild: _buildCollapsedBubble(),
+      secondChild: _buildExpandedPanel(),
+    );
   }
 
   /// Collapsed state - floating bubble with send icon

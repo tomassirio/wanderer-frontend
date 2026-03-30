@@ -7,6 +7,7 @@ import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
+import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
@@ -117,9 +118,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
         UiHelpers.showSuccessMessage(context, 'Trip created successfully!');
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => TripDetailScreen(trip: effectiveTrip),
-          ),
+          PageTransitions.slideFromRight(TripDetailScreen(trip: effectiveTrip)),
         );
       }
     } catch (e) {
@@ -161,9 +160,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
         );
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => TripDetailScreen(trip: trip),
-          ),
+          PageTransitions.slideFromRight(TripDetailScreen(trip: trip)),
         );
       }
     } catch (e) {
