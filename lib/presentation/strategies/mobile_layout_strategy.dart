@@ -46,7 +46,10 @@ class MobileLayoutStrategy extends TripDetailLayoutStrategy {
           Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [tripInfoCard, tripSettingsPanel],
+            children: [
+              Flexible(child: tripInfoCard),
+              Flexible(child: tripSettingsPanel),
+            ],
           ),
           commentsSection,
         ],
@@ -92,7 +95,10 @@ class MobileLayoutStrategy extends TripDetailLayoutStrategy {
         Row(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [tripInfoCard, tripSettingsPanel],
+          children: [
+            Flexible(child: tripInfoCard),
+            Flexible(child: tripSettingsPanel),
+          ],
         ),
         ConstrainedBox(
           constraints: BoxConstraints(

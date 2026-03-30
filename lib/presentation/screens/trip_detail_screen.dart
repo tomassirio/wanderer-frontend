@@ -1077,17 +1077,13 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       final isMobile = screenWidth < 600;
 
       if (isMobile) {
-        // On mobile, collapse all panels by default so map is visible
-        // Use post-frame callback to ensure setState works properly
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            setState(() {
-              _isTimelineCollapsed = true;
-              _isCommentsCollapsed = true;
-              _isTripInfoCollapsed = true;
-            });
-          }
-        });
+        // On mobile, collapse all panels by default so map is visible.
+        // Set directly (no post-frame callback) so the first build already
+        // uses collapsed state — avoids an AnimatedSwitcher transition that
+        // overflows the 160 px collapsed-width constraint.
+        _isTimelineCollapsed = true;
+        _isCommentsCollapsed = true;
+        _isTripInfoCollapsed = true;
       }
     }
   }
