@@ -1612,8 +1612,6 @@ class _HomeScreenState extends State<HomeScreen>
                   : null,
               relationship: relationship,
               showAllBadges: true,
-              isPromoted: trip.isPromoted,
-              promotedTrip: null, // No longer needed, data is in Trip model
             );
           },
         );

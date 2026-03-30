@@ -19,8 +19,6 @@ class EnhancedTripCard extends StatefulWidget {
   final VoidCallback? onDelete;
   final RelationshipType? relationship;
   final bool showAllBadges;
-  final bool isPromoted;
-  final PromotedTrip? promotedTrip;
 
   const EnhancedTripCard({
     super.key,
@@ -29,8 +27,6 @@ class EnhancedTripCard extends StatefulWidget {
     this.onDelete,
     this.relationship,
     this.showAllBadges = true,
-    this.isPromoted = false,
-    this.promotedTrip,
   });
 
   @override
@@ -76,10 +72,23 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
   }
 
   /// Whether this card should show the coming-soon blur+countdown overlay.
-  bool get _isPreAnnouncedCreated =>
-      widget.trip.isPromoted &&
-      widget.trip.isPreAnnounced &&
-      widget.trip.status == TripStatus.created;
+  bool get _isPreAnnouncedCreated {
+    final result = widget.trip.isPromoted &&
+        widget.trip.isPreAnnounced &&
+        widget.trip.status == TripStatus.created;
+    
+    // Debug logging
+    if (widget.trip.isPromoted) {
+      print('🔍 Trip ${widget.trip.name}:');
+      print('  - isPromoted: ${widget.trip.isPromoted}');
+      print('  - isPreAnnounced: ${widget.trip.isPreAnnounced}');
+      print('  - status: ${widget.trip.status}');
+      print('  - countdownStartDate: ${widget.trip.countdownStartDate}');
+      print('  - _isPreAnnouncedCreated: $result');
+    }
+    
+    return result;
+  }
 
   /// Formats a countdown string: "X days", "Today", or "Starts [date]".
   String _formatCountdown(DateTime startDate) {
@@ -524,7 +533,7 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                   ),
 
                   // Promoted badge overlay (bottom right corner)
-                  if (widget.isPromoted)
+                  if (widget.trip.isPromoted)
                     Positioned(
                       bottom: 10,
                       right: 10,
