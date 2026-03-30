@@ -40,7 +40,7 @@ void main() {
         final settings = const RouteSettings(name: '/login');
         final route = strategy.build(uri, settings);
 
-        expect(route, isA<MaterialPageRoute>());
+        expect(route, isA<PageRoute>());
       });
 
       test('passes username query parameter to AuthScreen', () {
@@ -48,8 +48,9 @@ void main() {
         final settings = const RouteSettings(name: '/login?username=testuser');
         final route = strategy.build(uri, settings);
 
-        final builder = route.builder;
-        expect(builder, isNotNull);
+        // Route is built successfully
+        expect(route, isNotNull);
+        expect(route, isA<PageRoute>());
       });
 
       test('builds AuthScreen without username when not in query', () {
@@ -57,8 +58,9 @@ void main() {
         final settings = const RouteSettings(name: '/login');
         final route = strategy.build(uri, settings);
 
-        final builder = route.builder;
-        expect(builder, isNotNull);
+        // Route is built successfully
+        expect(route, isNotNull);
+        expect(route, isA<PageRoute>());
       });
     });
   });

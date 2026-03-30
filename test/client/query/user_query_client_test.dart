@@ -206,7 +206,7 @@ void main() {
 
     group('getFriends', () {
       test('successful retrieval returns list of friends', () async {
-        final responseBody = [
+        final friends = [
           {
             'userId': 'current-user',
             'friendId': 'friend-1',
@@ -216,13 +216,14 @@ void main() {
             'friendId': 'friend-2',
           },
         ];
-        mockHttpClient.response = http.Response(jsonEncode(responseBody), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage(friends)), 200);
 
         final result = await userQueryClient.getFriends();
 
-        expect(result.length, 2);
-        expect(result[0].friendId, 'friend-1');
-        expect(result[1].friendId, 'friend-2');
+        expect(result.content.length, 2);
+        expect(result.content[0].friendId, 'friend-1');
+        expect(result.content[1].friendId, 'friend-2');
         expect(mockHttpClient.lastMethod, 'GET');
         expect(
           mockHttpClient.lastUri?.path,
@@ -235,7 +236,8 @@ void main() {
       });
 
       test('getFriends requires authentication', () async {
-        mockHttpClient.response = http.Response(jsonEncode([]), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage([])), 200);
 
         await userQueryClient.getFriends();
 
@@ -243,11 +245,12 @@ void main() {
       });
 
       test('getFriends returns empty list when no friends', () async {
-        mockHttpClient.response = http.Response(jsonEncode([]), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage([])), 200);
 
         final result = await userQueryClient.getFriends();
 
-        expect(result, isEmpty);
+        expect(result.content, isEmpty);
       });
     });
 
@@ -351,7 +354,7 @@ void main() {
 
     group('getFollowing', () {
       test('successful retrieval returns list of followed users', () async {
-        final responseBody = [
+        final following = [
           {
             'id': 'follow-1',
             'followerId': 'current-user',
@@ -365,13 +368,14 @@ void main() {
             'createdAt': DateTime.now().toIso8601String(),
           },
         ];
-        mockHttpClient.response = http.Response(jsonEncode(responseBody), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage(following)), 200);
 
         final result = await userQueryClient.getFollowing();
 
-        expect(result.length, 2);
-        expect(result[0].followedId, 'user-1');
-        expect(result[1].followedId, 'user-2');
+        expect(result.content.length, 2);
+        expect(result.content[0].followedId, 'user-1');
+        expect(result.content[1].followedId, 'user-2');
         expect(mockHttpClient.lastMethod, 'GET');
         expect(
           mockHttpClient.lastUri?.path,
@@ -384,7 +388,8 @@ void main() {
       });
 
       test('getFollowing requires authentication', () async {
-        mockHttpClient.response = http.Response(jsonEncode([]), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage([])), 200);
 
         await userQueryClient.getFollowing();
 
@@ -394,18 +399,19 @@ void main() {
       test(
         'getFollowing returns empty list when not following anyone',
         () async {
-          mockHttpClient.response = http.Response(jsonEncode([]), 200);
+          mockHttpClient.response =
+              http.Response(jsonEncode(_wrapInPage([])), 200);
 
           final result = await userQueryClient.getFollowing();
 
-          expect(result, isEmpty);
+          expect(result.content, isEmpty);
         },
       );
     });
 
     group('getFollowers', () {
       test('successful retrieval returns list of followers', () async {
-        final responseBody = [
+        final followers = [
           {
             'id': 'follow-1',
             'followerId': 'user-1',
@@ -419,13 +425,14 @@ void main() {
             'createdAt': DateTime.now().toIso8601String(),
           },
         ];
-        mockHttpClient.response = http.Response(jsonEncode(responseBody), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage(followers)), 200);
 
         final result = await userQueryClient.getFollowers();
 
-        expect(result.length, 2);
-        expect(result[0].followerId, 'user-1');
-        expect(result[1].followerId, 'user-2');
+        expect(result.content.length, 2);
+        expect(result.content[0].followerId, 'user-1');
+        expect(result.content[1].followerId, 'user-2');
         expect(mockHttpClient.lastMethod, 'GET');
         expect(
           mockHttpClient.lastUri?.path,
@@ -438,7 +445,8 @@ void main() {
       });
 
       test('getFollowers requires authentication', () async {
-        mockHttpClient.response = http.Response(jsonEncode([]), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage([])), 200);
 
         await userQueryClient.getFollowers();
 
@@ -446,11 +454,12 @@ void main() {
       });
 
       test('getFollowers returns empty list when no followers', () async {
-        mockHttpClient.response = http.Response(jsonEncode([]), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage([])), 200);
 
         final result = await userQueryClient.getFollowers();
 
-        expect(result, isEmpty);
+        expect(result.content, isEmpty);
       });
     });
 
@@ -618,6 +627,20 @@ void main() {
       );
     });
   });
+}
+
+/// Helper to wrap a list of items in a Spring Boot `Page<T>` JSON structure
+Map<String, dynamic> _wrapInPage(List<dynamic> content) {
+  return {
+    'content': content,
+    'totalElements': content.length,
+    'totalPages': content.isEmpty ? 0 : 1,
+    'number': 0,
+    'size': 20,
+    'first': true,
+    'last': true,
+    'empty': content.isEmpty,
+  };
 }
 
 // Mock HTTP Client

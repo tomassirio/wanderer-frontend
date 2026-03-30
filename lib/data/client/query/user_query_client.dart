@@ -65,15 +65,21 @@ class UserQueryClient {
     return _apiClient.handleResponse(response, UserProfile.fromJson);
   }
 
-  /// Get current user's friends list
+  /// Get current user's friends list (paginated)
   /// Requires authentication (USER, ADMIN)
-  /// Returns a list of friendships (userId and friendId pairs)
-  Future<List<Friendship>> getFriends() async {
+  /// Returns a page of friendships (userId and friendId pairs)
+  Future<PageResponse<Friendship>> getFriends({
+    int page = 0,
+    int size = 20,
+    String sort = 'createdAt,desc',
+  }) async {
+    final endpoint =
+        '${ApiEndpoints.usersMeFriends}?page=$page&size=$size&sort=$sort';
     final response = await _apiClient.get(
-      ApiEndpoints.usersMeFriends,
+      endpoint,
       requireAuth: true,
     );
-    return _apiClient.handleListResponse(response, Friendship.fromJson);
+    return _apiClient.handlePageResponse(response, Friendship.fromJson);
   }
 
   /// Get pending received friend requests
@@ -96,56 +102,89 @@ class UserQueryClient {
     return _apiClient.handleListResponse(response, FriendRequest.fromJson);
   }
 
-  /// Get users that current user follows
+  /// Get users that current user follows (paginated)
   /// Requires authentication (USER, ADMIN)
-  /// Returns a list of follow relationships
-  Future<List<UserFollow>> getFollowing() async {
+  /// Returns a page of follow relationships
+  Future<PageResponse<UserFollow>> getFollowing({
+    int page = 0,
+    int size = 20,
+    String sort = 'createdAt,desc',
+  }) async {
+    final endpoint =
+        '${ApiEndpoints.usersMeFollowing}?page=$page&size=$size&sort=$sort';
     final response = await _apiClient.get(
-      ApiEndpoints.usersMeFollowing,
+      endpoint,
       requireAuth: true,
     );
-    return _apiClient.handleListResponse(response, UserFollow.fromJson);
+    return _apiClient.handlePageResponse(response, UserFollow.fromJson);
   }
 
-  /// Get users that follow current user
+  /// Get users that follow current user (paginated)
   /// Requires authentication (USER, ADMIN)
-  /// Returns a list of follow relationships
-  Future<List<UserFollow>> getFollowers() async {
+  /// Returns a page of follow relationships
+  Future<PageResponse<UserFollow>> getFollowers({
+    int page = 0,
+    int size = 20,
+    String sort = 'createdAt,desc',
+  }) async {
+    final endpoint =
+        '${ApiEndpoints.usersMeFollowers}?page=$page&size=$size&sort=$sort';
     final response = await _apiClient.get(
-      ApiEndpoints.usersMeFollowers,
+      endpoint,
       requireAuth: true,
     );
-    return _apiClient.handleListResponse(response, UserFollow.fromJson);
+    return _apiClient.handlePageResponse(response, UserFollow.fromJson);
   }
 
-  /// Get users that a specific user follows
+  /// Get users that a specific user follows (paginated)
   /// Requires authentication (USER, ADMIN)
-  Future<List<UserFollow>> getUserFollowing(String userId) async {
+  Future<PageResponse<UserFollow>> getUserFollowing(
+    String userId, {
+    int page = 0,
+    int size = 20,
+    String sort = 'createdAt,desc',
+  }) async {
+    final endpoint =
+        '${ApiEndpoints.userFollowing(userId)}?page=$page&size=$size&sort=$sort';
     final response = await _apiClient.get(
-      ApiEndpoints.userFollowing(userId),
+      endpoint,
       requireAuth: true,
     );
-    return _apiClient.handleListResponse(response, UserFollow.fromJson);
+    return _apiClient.handlePageResponse(response, UserFollow.fromJson);
   }
 
-  /// Get users that follow a specific user
+  /// Get users that follow a specific user (paginated)
   /// Requires authentication (USER, ADMIN)
-  Future<List<UserFollow>> getUserFollowers(String userId) async {
+  Future<PageResponse<UserFollow>> getUserFollowers(
+    String userId, {
+    int page = 0,
+    int size = 20,
+    String sort = 'createdAt,desc',
+  }) async {
+    final endpoint =
+        '${ApiEndpoints.userFollowers(userId)}?page=$page&size=$size&sort=$sort';
     final response = await _apiClient.get(
-      ApiEndpoints.userFollowers(userId),
+      endpoint,
       requireAuth: true,
     );
-    return _apiClient.handleListResponse(response, UserFollow.fromJson);
+    return _apiClient.handlePageResponse(response, UserFollow.fromJson);
   }
 
-  /// Get friends of a specific user
+  /// Get friends of a specific user (paginated)
   /// Requires authentication (USER, ADMIN)
-  Future<List<Friendship>> getUserFriends(String userId) async {
+  Future<PageResponse<Friendship>> getUserFriends(
+    String userId, {
+    int page = 0,
+    int size = 20,
+    String sort = 'createdAt,desc',
+  }) async {
+    final endpoint =
+        '${ApiEndpoints.userFriends(userId)}?page=$page&size=$size&sort=$sort';
     final response = await _apiClient.get(
-      ApiEndpoints.userFriends(userId),
+      endpoint,
       requireAuth: true,
     );
-    return _apiClient.handleListResponse(response, Friendship.fromJson);
+    return _apiClient.handlePageResponse(response, Friendship.fromJson);
   }
 
   /// Get discoverable users (friends of friends and people followed by friends)

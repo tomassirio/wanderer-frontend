@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/services/cache_service.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 
@@ -134,38 +136,29 @@ class _TripPlanCardState extends State<TripPlanCard> {
                         if (thumbnailUrl.isEmpty) {
                           return _buildPlaceholderMap();
                         }
-                        return Image.network(
-                          thumbnailUrl,
+                        return CachedNetworkImage(
+                          imageUrl: thumbnailUrl,
                           fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Theme.of(context).colorScheme.surface,
-                                    Theme.of(context)
-                                        .colorScheme
-                                        .surfaceContainerHighest,
-                                  ],
-                                ),
+                          cacheManager: CacheService.tripThumbnailCache,
+                          placeholder: (context, url) => Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Theme.of(context).colorScheme.surface,
+                                  Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest,
+                                ],
                               ),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  value: loadingProgress.expectedTotalBytes !=
-                                          null
-                                      ? loadingProgress.cumulativeBytesLoaded /
-                                          loadingProgress.expectedTotalBytes!
-                                      : null,
-                                ),
-                              ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return _buildPlaceholderMap();
-                          },
+                            ),
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) =>
+                              _buildPlaceholderMap(),
                         );
                       },
                     )

@@ -6,6 +6,6 @@ abstract class RouteStrategy {
   /// Returns `true` if this strategy can handle the given [uri].
   bool matches(Uri uri);
 
-  /// Builds a [MaterialPageRoute] for the given [uri] and [settings].
-  MaterialPageRoute build(Uri uri, RouteSettings settings);
+  /// Builds a [PageRoute] for the given [uri] and [settings].
+  PageRoute build(Uri uri, RouteSettings settings);
 }

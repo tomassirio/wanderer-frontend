@@ -298,6 +298,7 @@ class CommentsSection extends StatelessWidget {
                       : comments.isEmpty
                           ? _buildEmptyCommentsState(context)
                           : ListView.builder(
+                              key: const PageStorageKey('trip_comments_list'),
                               controller: scrollController,
                               shrinkWrap: true,
                               padding: const EdgeInsets.symmetric(vertical: 8),

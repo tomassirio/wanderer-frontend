@@ -1,93 +1,96 @@
 import 'package:flutter/material.dart';
 
-/// Custom page route transitions inspired by Binding of Isaac's retro menu style
-/// These transitions ensure proper bidirectional movement for a cohesive spatial layout:
-/// - Profile is to the right of Trips
-/// - Trip Plans is to the left of Trips
-/// - Trip Details are below Trips
+/// Standardized page route transitions for the Wanderer app
+/// Provides consistent, smooth animations across all screen transitions
 class PageTransitions {
-  static const Duration _transitionDuration = Duration(milliseconds: 300);
-  static const Curve _curve = Curves.easeInOut;
+  // Standardized timing - shorter for snappier feel
+  static const Duration _transitionDuration = Duration(milliseconds: 250);
+  static const Curve _curve = Curves.easeOutCubic;
 
-  static Animation<Offset> _createSlideAnimation(
-    Animation<double> animation,
-    Offset begin,
-  ) {
-    return Tween<Offset>(
-      begin: begin,
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: animation, curve: _curve));
-  }
-
-  static Animation<double> _createFadeAnimation(Animation<double> animation) {
-    return Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: animation, curve: Curves.linear));
-  }
-
-  /// Navigate to profile (slides in from right, exits to right)
-  static PageRouteBuilder slideRight(Widget page) {
+  /// Standard fade transition - clean and simple
+  static PageRouteBuilder fade(Widget page) {
     return PageRouteBuilder(
       transitionDuration: _transitionDuration,
       reverseTransitionDuration: _transitionDuration,
       pageBuilder: (context, animation, secondaryAnimation) => page,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        return SlideTransition(
-          position: _createSlideAnimation(animation, const Offset(1.0, 0.0)),
-          child: FadeTransition(
-            opacity: _createFadeAnimation(animation),
-            child: child,
+        return FadeTransition(
+          opacity: Tween<double>(begin: 0.0, end: 1.0).animate(
+            CurvedAnimation(parent: animation, curve: _curve),
           ),
+          child: child,
         );
       },
     );
   }
 
-  /// Navigate to trip plans (slides in from left, exits to left)
-  static PageRouteBuilder slideLeft(Widget page) {
+  /// Slide from right (for forward navigation)
+  static PageRouteBuilder slideFromRight(Widget page) {
     return PageRouteBuilder(
       transitionDuration: _transitionDuration,
       reverseTransitionDuration: _transitionDuration,
       pageBuilder: (context, animation, secondaryAnimation) => page,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final offsetAnimation = Tween<Offset>(
+          begin: const Offset(1.0, 0.0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(parent: animation, curve: _curve));
+
         return SlideTransition(
-          position: _createSlideAnimation(animation, const Offset(-1.0, 0.0)),
-          child: FadeTransition(
-            opacity: _createFadeAnimation(animation),
-            child: child,
-          ),
+          position: offsetAnimation,
+          child: child,
         );
       },
     );
   }
 
-  /// Navigate to trip details (slides up from bottom, exits down)
-  static PageRouteBuilder slideUp(Widget page) {
+  /// Slide from left (for backward navigation)
+  static PageRouteBuilder slideFromLeft(Widget page) {
     return PageRouteBuilder(
       transitionDuration: _transitionDuration,
       reverseTransitionDuration: _transitionDuration,
       pageBuilder: (context, animation, secondaryAnimation) => page,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        final slideAnimation = Tween<Offset>(
+        final offsetAnimation = Tween<Offset>(
+          begin: const Offset(-1.0, 0.0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(parent: animation, curve: _curve));
+
+        return SlideTransition(
+          position: offsetAnimation,
+          child: child,
+        );
+      },
+    );
+  }
+
+  /// Slide from bottom (for modal-style screens)
+  static PageRouteBuilder slideFromBottom(Widget page) {
+    return PageRouteBuilder(
+      transitionDuration: _transitionDuration,
+      reverseTransitionDuration: _transitionDuration,
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final offsetAnimation = Tween<Offset>(
           begin: const Offset(0.0, 1.0),
           end: Offset.zero,
-        ).animate(
-          CurvedAnimation(parent: animation, curve: Curves.fastOutSlowIn),
-        );
-
-        final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-          CurvedAnimation(
-            parent: animation,
-            curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
-          ),
-        );
+        ).animate(CurvedAnimation(parent: animation, curve: _curve));
 
         return SlideTransition(
-          position: slideAnimation,
-          child: FadeTransition(opacity: fadeAnimation, child: child),
+          position: offsetAnimation,
+          child: child,
         );
       },
     );
   }
+
+  // Legacy aliases for backwards compatibility
+  @Deprecated('Use slideFromRight instead')
+  static PageRouteBuilder slideRight(Widget page) => slideFromRight(page);
+
+  @Deprecated('Use slideFromLeft instead')
+  static PageRouteBuilder slideLeft(Widget page) => slideFromLeft(page);
+
+  @Deprecated('Use slideFromBottom instead')
+  static PageRouteBuilder slideUp(Widget page) => slideFromBottom(page);
 }

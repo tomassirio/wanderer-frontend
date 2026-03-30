@@ -23,9 +23,12 @@ class TripService {
 
   // ===== Trip Query Operations =====
 
-  /// Get all my trips
-  Future<List<Trip>> getMyTrips() async {
-    return await _tripQueryClient.getCurrentUserTrips();
+  /// Get all my trips (paginated)
+  Future<PageResponse<Trip>> getMyTrips({
+    int page = 0,
+    int size = 20,
+  }) async {
+    return await _tripQueryClient.getCurrentUserTrips(page: page, size: size);
   }
 
   /// Get trip details
@@ -63,9 +66,14 @@ class TripService {
     return await _tripQueryClient.getAvailableTrips(page: page, size: size);
   }
 
-  /// Get trips by user ID (respects visibility)
-  Future<List<Trip>> getUserTrips(String userId) async {
-    return await _tripQueryClient.getTripsByUser(userId);
+  /// Get trips by user ID (respects visibility, paginated)
+  Future<PageResponse<Trip>> getUserTrips(
+    String userId, {
+    int page = 0,
+    int size = 20,
+  }) async {
+    return await _tripQueryClient.getTripsByUser(userId,
+        page: page, size: size);
   }
 
   // ===== Trip Command Operations =====

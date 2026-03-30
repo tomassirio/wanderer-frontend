@@ -109,6 +109,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   Timer? _achievementPollTimer;
 
   // Collapsible panel states
+  // Collapsible panel states
   bool _isTimelineCollapsed = false;
   bool _isCommentsCollapsed = false;
   bool _isTripInfoCollapsed = false;
@@ -1140,8 +1141,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   Future<void> _loadSocialStatus() async {
     try {
       // Check if following the trip owner by looking at our following list
-      final following = await _userService.getFollowing();
-      final isFollowing = following.any((f) => f.followedId == _trip.userId);
+      final followingPage = await _userService.getFollowing(page: 0, size: 100);
+      final isFollowing =
+          followingPage.content.any((f) => f.followedId == _trip.userId);
 
       // Check if already sent a friend request to the trip owner
       final sentRequests = await _userService.getSentFriendRequests();
@@ -1155,8 +1157,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       final requestId = pendingRequest?.id;
 
       // Check if already friends with the trip owner
-      final friends = await _userService.getFriends();
-      final isAlreadyFriends = friends.any((f) => f.friendId == _trip.userId);
+      final friendsPage = await _userService.getFriends(page: 0, size: 100);
+      final isAlreadyFriends =
+          friendsPage.content.any((f) => f.friendId == _trip.userId);
 
       if (mounted) {
         setState(() {
@@ -2707,9 +2710,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                 bottom: strategy.shouldLeftPanelStretchToBottom(layoutData)
                     ? 0
                     : null,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
+                child: SizedBox(
                   width: leftPanelWidth,
                   child: MouseRegion(
                     onEnter: (_) {

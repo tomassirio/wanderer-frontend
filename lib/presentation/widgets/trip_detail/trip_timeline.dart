@@ -108,6 +108,7 @@ class TripTimeline extends StatelessWidget {
       onRefresh: () async => onRefresh(),
       color: WandererTheme.primaryOrange,
       child: ListView.builder(
+        key: const PageStorageKey('trip_timeline_list'),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         itemCount: updates.length + (hasMore ? 1 : 0),
         itemBuilder: (context, index) {

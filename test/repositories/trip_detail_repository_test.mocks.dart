@@ -231,13 +231,32 @@ class MockTripService extends _i1.Mock implements _i9.TripService {
   }
 
   @override
-  _i7.Future<List<_i4.Trip>> getMyTrips() => (super.noSuchMethod(
+  _i7.Future<_i2.PageResponse<_i4.Trip>> getMyTrips({
+    int? page = 0,
+    int? size = 20,
+  }) =>
+      (super.noSuchMethod(
         Invocation.method(
           #getMyTrips,
           [],
+          {
+            #page: page,
+            #size: size,
+          },
         ),
-        returnValue: _i7.Future<List<_i4.Trip>>.value(<_i4.Trip>[]),
-      ) as _i7.Future<List<_i4.Trip>>);
+        returnValue: _i7.Future<_i2.PageResponse<_i4.Trip>>.value(
+            _FakePageResponse_0<_i4.Trip>(
+          this,
+          Invocation.method(
+            #getMyTrips,
+            [],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i7.Future<_i2.PageResponse<_i4.Trip>>);
 
   @override
   _i7.Future<_i4.Trip> getTripById(String? tripId) => (super.noSuchMethod(
@@ -354,14 +373,33 @@ class MockTripService extends _i1.Mock implements _i9.TripService {
       ) as _i7.Future<_i2.PageResponse<_i4.Trip>>);
 
   @override
-  _i7.Future<List<_i4.Trip>> getUserTrips(String? userId) =>
+  _i7.Future<_i2.PageResponse<_i4.Trip>> getUserTrips(
+    String? userId, {
+    int? page = 0,
+    int? size = 20,
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #getUserTrips,
           [userId],
+          {
+            #page: page,
+            #size: size,
+          },
         ),
-        returnValue: _i7.Future<List<_i4.Trip>>.value(<_i4.Trip>[]),
-      ) as _i7.Future<List<_i4.Trip>>);
+        returnValue: _i7.Future<_i2.PageResponse<_i4.Trip>>.value(
+            _FakePageResponse_0<_i4.Trip>(
+          this,
+          Invocation.method(
+            #getUserTrips,
+            [userId],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i7.Future<_i2.PageResponse<_i4.Trip>>);
 
   @override
   _i7.Future<String> createTrip(_i4.CreateTripRequest? request) =>
@@ -619,7 +657,7 @@ class MockTripService extends _i1.Mock implements _i9.TripService {
   _i7.Future<_i2.PageResponse<_i4.TripLocation>> getTripUpdates(
     String? tripId, {
     int? page = 0,
-    int? size = 1000,
+    int? size = 50,
   }) =>
       (super.noSuchMethod(
         Invocation.method(

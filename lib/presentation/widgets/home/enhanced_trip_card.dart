@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/services/cache_service.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:intl/intl.dart';
 
@@ -76,17 +78,7 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
     final result = widget.trip.isPromoted &&
         widget.trip.isPreAnnounced &&
         widget.trip.status == TripStatus.created;
-    
-    // Debug logging
-    if (widget.trip.isPromoted) {
-      print('🔍 Trip ${widget.trip.name}:');
-      print('  - isPromoted: ${widget.trip.isPromoted}');
-      print('  - isPreAnnounced: ${widget.trip.isPreAnnounced}');
-      print('  - status: ${widget.trip.status}');
-      print('  - countdownStartDate: ${widget.trip.countdownStartDate}');
-      print('  - _isPreAnnouncedCreated: $result');
-    }
-    
+
     return result;
   }
 
@@ -364,63 +356,52 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                 fit: StackFit.expand,
                 children: [
                   if (widget.trip.thumbnailUrl.isNotEmpty)
-                    Image.network(
-                      ApiEndpoints.resolveThumbnailUrl(
+                    CachedNetworkImage(
+                      imageUrl: ApiEndpoints.resolveThumbnailUrl(
                           widget.trip.thumbnailUrl),
                       fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) {
-                          return child;
-                        }
-                        return Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Theme.of(context).colorScheme.surface,
-                                Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                              ],
-                            ),
-                          ),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                            ),
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Theme.of(context).colorScheme.surface,
-                                Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                              ],
-                            ),
-                          ),
-                          child: Center(
-                            child: Icon(
-                              Icons.map,
-                              size: 48,
-                              color: Theme.of(context)
+                      cacheManager: CacheService.tripThumbnailCache,
+                      placeholder: (context, url) => Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Theme.of(context).colorScheme.surface,
+                              Theme.of(context)
                                   .colorScheme
-                                  .onSurface
-                                  .withOpacity(0.4),
-                            ),
+                                  .surfaceContainerHighest,
+                            ],
                           ),
-                        );
-                      },
+                        ),
+                        child: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Theme.of(context).colorScheme.surface,
+                              Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest,
+                            ],
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.map,
+                            size: 48,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.4),
+                          ),
+                        ),
+                      ),
                     )
                   else
                     Container(

@@ -368,7 +368,8 @@ class _HomeScreenState extends State<HomeScreen>
           _repository.loadTrips(
               page: 0,
               size: _tripsPageSize), // Available trips (relationship-based)
-          _repository.getMyTrips(), // User's own trips
+          _repository.getMyTrips(
+              page: 0, size: _tripsPageSize), // User's own trips
           _repository.getFriendsIds(),
           _repository.getFollowingIds(),
           _repository.getPublicTrips(
@@ -376,6 +377,7 @@ class _HomeScreenState extends State<HomeScreen>
         ]);
 
         final availablePage = results[0] as PageResponse<Trip>;
+        final myTripsPage = results[1] as PageResponse<Trip>;
         final publicPage = results[4] as PageResponse<Trip>;
 
         // Merge available trips with public trips (deduplicate by ID).
@@ -392,7 +394,7 @@ class _HomeScreenState extends State<HomeScreen>
         setState(() {
           _allTrips = merged.values.toList();
           _hasMoreTrips = !availablePage.last || !publicPage.last;
-          _myTrips = results[1] as List<Trip>;
+          _myTrips = myTripsPage.content;
           _friendIds = results[2] as Set<String>;
           _followingIds = results[3] as Set<String>;
           _categorizeTrips();
