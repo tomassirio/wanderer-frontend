@@ -56,17 +56,25 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedCrossFade(
+    return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
-      firstCurve: Curves.easeInOut,
-      secondCurve: Curves.easeInOut,
-      sizeCurve: Curves.easeInOut,
-      alignment: Alignment.topLeft,
-      crossFadeState: widget.isCollapsed
-          ? CrossFadeState.showFirst
-          : CrossFadeState.showSecond,
-      firstChild: _buildCollapsedBubble(),
-      secondChild: _buildExpandedPanel(),
+      switchInCurve: Curves.easeInOut,
+      switchOutCurve: Curves.easeInOut,
+      transitionBuilder: (child, animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: child,
+        );
+      },
+      child: widget.isCollapsed
+          ? KeyedSubtree(
+              key: const ValueKey('collapsed'),
+              child: _buildCollapsedBubble(),
+            )
+          : KeyedSubtree(
+              key: const ValueKey('expanded'),
+              child: _buildExpandedPanel(),
+            ),
     );
   }
 

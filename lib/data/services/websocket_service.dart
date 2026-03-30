@@ -60,16 +60,26 @@ class WebSocketService {
   }
 
   void _subscribeToAllPendingTrips() {
+    if (_subscribedTrips.isEmpty) return;
+    
     for (final tripId in _subscribedTrips) {
       _client?.subscribe(ApiEndpoints.wsTripTopic(tripId));
-      debugPrint('WebSocketService: Subscribed to trip $tripId');
+    }
+    
+    if (kDebugMode) {
+      debugPrint('WebSocketService: Resubscribed to ${_subscribedTrips.length} trips');
     }
   }
 
   void _subscribeToAllPendingUsers() {
+    if (_subscribedUsers.isEmpty) return;
+    
     for (final userId in _subscribedUsers) {
       _client?.subscribe(ApiEndpoints.wsUserTopic(userId));
-      debugPrint('WebSocketService: Subscribed to user $userId');
+    }
+    
+    if (kDebugMode) {
+      debugPrint('WebSocketService: Resubscribed to ${_subscribedUsers.length} users');
     }
   }
 
@@ -91,34 +101,29 @@ class WebSocketService {
 
   /// Subscribe to events for a specific trip
   Stream<WebSocketEvent> subscribeToTrip(String tripId) {
-    debugPrint('WebSocketService: subscribeToTrip called for $tripId');
-    debugPrint(
-      'WebSocketService: Controller exists? ${_tripEventControllers.containsKey(tripId)}',
-    );
-    debugPrint(
-      'WebSocketService: Already subscribed? ${_subscribedTrips.contains(tripId)}',
-    );
+    if (kDebugMode) {
+      debugPrint('WebSocketService: subscribeToTrip called for $tripId');
+    }
 
     if (!_tripEventControllers.containsKey(tripId)) {
       _tripEventControllers[tripId] =
           StreamController<WebSocketEvent>.broadcast();
-      debugPrint('WebSocketService: Created new controller for trip $tripId');
     }
 
     if (!_subscribedTrips.contains(tripId)) {
       _subscribedTrips.add(tripId);
       if (isConnected) {
         _client?.subscribe(ApiEndpoints.wsTripTopic(tripId));
-        debugPrint('WebSocketService: Subscribed to trip $tripId');
+        if (kDebugMode) {
+          debugPrint('WebSocketService: Subscribed to trip $tripId');
+        }
       } else {
-        debugPrint(
-          'WebSocketService: NOT connected, cannot subscribe to trip $tripId',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            'WebSocketService: NOT connected, cannot subscribe to trip $tripId',
+          );
+        }
       }
-    } else {
-      debugPrint(
-        'WebSocketService: Trip $tripId already in subscribed set, skipping subscribe',
-      );
     }
 
     return _tripEventControllers[tripId]!.stream;
@@ -126,26 +131,21 @@ class WebSocketService {
 
   /// Unsubscribe from events for a specific trip
   void unsubscribeFromTrip(String tripId) {
-    debugPrint('WebSocketService: unsubscribeFromTrip called for $tripId');
-    debugPrint(
-      'WebSocketService: Was subscribed? ${_subscribedTrips.contains(tripId)}',
-    );
+    if (kDebugMode) {
+      debugPrint('WebSocketService: unsubscribeFromTrip called for $tripId');
+    }
 
     if (_subscribedTrips.contains(tripId)) {
       _subscribedTrips.remove(tripId);
       // Always call unsubscribe to clean up client-side tracking,
       // even if not connected (the client will handle it gracefully)
       _client?.unsubscribe(ApiEndpoints.wsTripTopic(tripId));
-      debugPrint('WebSocketService: Unsubscribed from trip $tripId');
     }
 
     // Close and remove the controller
     if (_tripEventControllers.containsKey(tripId)) {
       _tripEventControllers[tripId]?.close();
       _tripEventControllers.remove(tripId);
-      debugPrint(
-        'WebSocketService: Closed and removed controller for trip $tripId',
-      );
     }
   }
 
@@ -166,23 +166,22 @@ class WebSocketService {
 
   /// Subscribe to events for a specific user
   Stream<WebSocketEvent> subscribeToUser(String userId) {
-    debugPrint('WebSocketService: subscribeToUser called for $userId');
-    debugPrint(
-        'WebSocketService: Controller exists? ${_userEventControllers.containsKey(userId)}');
-    debugPrint(
-        'WebSocketService: Already subscribed? ${_subscribedUsers.contains(userId)}');
+    if (kDebugMode) {
+      debugPrint('WebSocketService: subscribeToUser called for $userId');
+    }
 
     if (!_userEventControllers.containsKey(userId)) {
       _userEventControllers[userId] =
           StreamController<WebSocketEvent>.broadcast();
-      debugPrint('WebSocketService: Created new controller for user $userId');
     }
 
     if (!_subscribedUsers.contains(userId)) {
       _subscribedUsers.add(userId);
       if (isConnected) {
         _client?.subscribe(ApiEndpoints.wsUserTopic(userId));
-        debugPrint('WebSocketService: Subscribed to user $userId');
+        if (kDebugMode) {
+          debugPrint('WebSocketService: Subscribed to user $userId');
+        }
       }
     }
 
@@ -196,7 +195,9 @@ class WebSocketService {
       // Always call unsubscribe to clean up client-side tracking,
       // even if not connected (the client will handle it gracefully)
       _client?.unsubscribe(ApiEndpoints.wsUserTopic(userId));
-      debugPrint('WebSocketService: Unsubscribed from user $userId');
+      if (kDebugMode) {
+        debugPrint('WebSocketService: Unsubscribed from user $userId');
+      }
     }
 
     // Close and remove the controller
@@ -216,9 +217,6 @@ class WebSocketService {
     try {
       final event = _parseEvent(data);
 
-      debugPrint(
-          'WebSocketService: Received event type: ${event.type}, tripId: ${event.tripId}');
-
       // Emit to global stream
       _eventController.add(event);
 
@@ -229,13 +227,8 @@ class WebSocketService {
         final userId = event
             .tripId; // The tripId field actually contains userId for user events
         if (userId != null && userId.isNotEmpty) {
-          debugPrint(
-              'WebSocketService: Routing user profile event to user stream for $userId');
           _emitToUserStream(userId, event);
         }
-        debugPrint(
-          'WebSocketService: Processed user profile event ${event.type} for user $userId',
-        );
         return; // Don't process as trip event
       }
 
@@ -250,19 +243,11 @@ class WebSocketService {
             data['tripId'] as String? ?? payload?['tripId'] as String?;
       }
 
-      debugPrint(
-          'WebSocketService: Effective tripId: $effectiveTripId, subscribed trips: $_subscribedTrips');
-
       // Emit to trip-specific stream if applicable
       if (effectiveTripId != null &&
           effectiveTripId.isNotEmpty &&
           _tripEventControllers.containsKey(effectiveTripId)) {
-        debugPrint(
-            'WebSocketService: Emitting to trip-specific stream for $effectiveTripId');
         _tripEventControllers[effectiveTripId]!.add(event);
-      } else if (effectiveTripId != null && effectiveTripId.isNotEmpty) {
-        debugPrint(
-            'WebSocketService: No controller found for trip $effectiveTripId (available: ${_tripEventControllers.keys.toList()})');
       }
 
       // Emit to user-specific streams for user relationship events
@@ -277,29 +262,14 @@ class WebSocketService {
       } else if (event is NotificationCreatedEvent) {
         _emitToUserStream(event.recipientId, event);
       }
-
-      debugPrint(
-        'WebSocketService: Processed event ${event.type} for trip ${event.tripId}',
-      );
     } catch (e) {
       debugPrint('WebSocketService: Error handling message: $e');
     }
   }
 
   void _emitToUserStream(String userId, WebSocketEvent event) {
-    debugPrint(
-        'WebSocketService: Attempting to emit event ${event.type} to user stream for $userId');
-    debugPrint(
-        'WebSocketService: User controller exists? ${_userEventControllers.containsKey(userId)}');
-    debugPrint(
-        'WebSocketService: Available user controllers: ${_userEventControllers.keys.toList()}');
     if (_userEventControllers.containsKey(userId)) {
-      debugPrint(
-          'WebSocketService: Emitting event ${event.type} to user stream for $userId');
       _userEventControllers[userId]!.add(event);
-    } else {
-      debugPrint(
-          'WebSocketService: No controller found for user $userId, event ${event.type} not delivered');
     }
   }
 

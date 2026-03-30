@@ -151,100 +151,73 @@ class TimelinePanel extends StatelessWidget {
                 width: 1,
               ),
             ),
+            padding: const EdgeInsets.all(12),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Header with glass styling
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withOpacity(0.08),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(WandererTheme.glassRadius),
-                      topRight: Radius.circular(WandererTheme.glassRadius),
+                // Header — compact style matching TripInfoCard
+                Row(
+                  children: [
+                    Icon(
+                      Icons.timeline,
+                      size: 18,
+                      color: WandererTheme.primaryOrange,
                     ),
-                    border: Border(
-                      bottom: BorderSide(
-                        color: WandererTheme.glassBorderColorFor(context),
-                        width: 0.5,
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: WandererTheme.primaryOrange.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.timeline,
-                          size: 18,
-                          color: WandererTheme.primaryOrange,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          text: 'Timeline',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                           children: [
-                            Text(
-                              'Timeline',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                            if (totalDistanceKm != null && totalDistanceKm! > 0)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 2),
-                                child: Text(
-                                  '${totalDistanceKm!.toStringAsFixed(1)} km',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: WandererTheme.primaryOrange,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                            if (totalDistanceKm != null &&
+                                totalDistanceKm! > 0) ...[
+                              const TextSpan(text: '  '),
+                              TextSpan(
+                                text:
+                                    '${totalDistanceKm!.toStringAsFixed(1)} km',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: WandererTheme.primaryOrange,
                                 ),
                               ),
+                            ],
                           ],
                         ),
                       ),
-                      Container(
-                        decoration: BoxDecoration(
+                    ),
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.remove,
+                          size: 16,
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(8),
+                              .withOpacity(0.6),
                         ),
-                        child: IconButton(
-                          icon: Icon(
-                            Icons.remove,
-                            size: 18,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.6),
-                          ),
-                          onPressed: onToggleCollapse,
-                          tooltip: 'Minimize',
-                          constraints: const BoxConstraints(
-                            minWidth: 32,
-                            minHeight: 32,
-                          ),
-                          padding: EdgeInsets.zero,
-                        ),
+                        onPressed: onToggleCollapse,
+                        tooltip: 'Minimize',
+                        padding: EdgeInsets.zero,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 6),
                 // Timeline content
                 Flexible(
                   child: ConstrainedBox(

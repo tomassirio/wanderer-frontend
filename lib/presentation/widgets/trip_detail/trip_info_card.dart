@@ -44,16 +44,25 @@ class TripInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedCrossFade(
+    return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
-      firstCurve: Curves.easeInOut,
-      secondCurve: Curves.easeInOut,
-      sizeCurve: Curves.easeInOut,
-      alignment: Alignment.topLeft,
-      crossFadeState:
-          isCollapsed ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-      firstChild: _buildCollapsedBubble(context),
-      secondChild: _buildExpandedCard(context),
+      switchInCurve: Curves.easeInOut,
+      switchOutCurve: Curves.easeInOut,
+      transitionBuilder: (child, animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: child,
+        );
+      },
+      child: isCollapsed
+          ? KeyedSubtree(
+              key: const ValueKey('collapsed'),
+              child: _buildCollapsedBubble(context),
+            )
+          : KeyedSubtree(
+              key: const ValueKey('expanded'),
+              child: _buildExpandedCard(context),
+            ),
     );
   }
 
@@ -104,12 +113,13 @@ class TripInfoCard extends StatelessWidget {
   /// Expanded state - full info card
   Widget _buildExpandedCard(BuildContext context) {
     final l10n = context.l10n;
-    return Container(
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(WandererTheme.glassRadius),
-        boxShadow: WandererTheme.floatingShadow,
-      ),
+    return IntrinsicWidth(
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(WandererTheme.glassRadius),
+          boxShadow: WandererTheme.floatingShadow,
+        ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(WandererTheme.glassRadius),
         child: BackdropFilter(
@@ -545,6 +555,7 @@ class TripInfoCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
       ),
     );
   }
