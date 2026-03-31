@@ -72,16 +72,13 @@ class Trip {
   final DateTime? promotedAt;
   final bool isPreAnnounced;
   final DateTime? countdownStartDate;
+  // Backend-provided thumbnail URL
+  final String? _backendThumbnailUrl;
 
-  /// Generate thumbnail URL based on trip ID or trip plan ID
+  /// Thumbnail URL from backend
+  /// Falls back to plan thumbnail when trip has a tripPlanId but no updates
   String get thumbnailUrl {
-    // Use updateCount if available (from summary), otherwise check locations array
-    final hasNoUpdates = (updateCount != null && updateCount == 0) ||
-        (updateCount == null && (locations == null || locations!.isEmpty));
-    if (hasNoUpdates && tripPlanId != null && tripPlanId!.isNotEmpty) {
-      return '/thumbnails/plans/$tripPlanId.png';
-    }
-    return '/thumbnails/trips/$id.png';
+    return _backendThumbnailUrl ?? '/thumbnails/trips/$id.png';
   }
 
   /// Generate user profile picture URL based on user ID
@@ -136,7 +133,8 @@ class Trip {
     this.promotedAt,
     this.isPreAnnounced = false,
     this.countdownStartDate,
-  });
+    String? backendThumbnailUrl,
+  }) : _backendThumbnailUrl = backendThumbnailUrl;
 
   factory Trip.fromJson(Map<String, dynamic> json) {
     final tripSettings = json['tripSettings'] as Map<String, dynamic>?;
@@ -263,6 +261,7 @@ class Trip {
       countdownStartDate: json['countdownStartDate'] != null
           ? DateTime.tryParse(json['countdownStartDate'] as String)
           : null,
+      backendThumbnailUrl: json['thumbnailUrl'] as String?,
     );
   }
 
