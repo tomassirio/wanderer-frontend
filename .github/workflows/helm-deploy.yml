@@ -77,6 +77,7 @@ jobs:
           echo "command-url=/api/command" >> $GITHUB_OUTPUT
           echo "query-url=/api/query" >> $GITHUB_OUTPUT
           echo "auth-url=/api/auth" >> $GITHUB_OUTPUT
+          echo "ws-url=/ws" >> $GITHUB_OUTPUT
           
           # Environment-specific configuration
           if [ "${{ inputs.environment }}" == "dev" ]; then
@@ -109,6 +110,7 @@ jobs:
             --set application.commandBaseUrl="${{ steps.config.outputs.command-url }}" \
             --set application.queryBaseUrl="${{ steps.config.outputs.query-url }}" \
             --set application.authBaseUrl="${{ steps.config.outputs.auth-url }}" \
+            --set application.wsBaseUrl="${{ steps.config.outputs.ws-url }}" \
             --set ingress.hosts[0].host="${{ steps.config.outputs.ingress-host }}" \
             --set ingress.hosts[0].paths[0].path="/" \
             --set ingress.hosts[0].paths[0].pathType="Prefix" \
