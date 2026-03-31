@@ -303,12 +303,9 @@ class _WandererAppBarState extends State<WandererAppBar>
             ),
           ),
           const SizedBox(width: 8),
-          const Flexible(
-            child: Text(
-              'Wanderer',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              overflow: TextOverflow.ellipsis,
-            ),
+          const Text(
+            'Wanderer',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ],
       ),
