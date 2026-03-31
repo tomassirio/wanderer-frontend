@@ -241,9 +241,14 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       _fetchUserLocation(),
       _mapControllerCompleter.future,
     ]);
-    // Now both the data and the map are ready — jump to latest location
-    // (map data was already updated by _refreshTripData)
+    // Now both the data and the map are ready — jump to latest location.
+    // Always call _updateMapData() as a safety net: if _refreshTripData()
+    // failed (e.g. backend 500), the map would otherwise stay empty because
+    // _updateMapData() is only called inside _refreshTripData's success path.
+    // This ensures whatever data _trip holds (from widget.trip or a previous
+    // successful load) is still rendered on the map.
     if (mounted) {
+      _updateMapData();
       _animateMapToLatestLocation(animate: false);
       setState(() {
         _isMapLoading = false;
@@ -433,8 +438,17 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         _wsCameraGuardDuration;
   }
 
-  /// Refreshes full trip data from the backend
-  Future<void> _refreshTripData() async {
+  /// Maximum number of automatic retries for [_refreshTripData] when the
+  /// backend returns an error (e.g. HTTP 500). Each retry waits a bit longer.
+  static const int _maxRefreshRetries = 3;
+
+  /// Refreshes full trip data from the backend.
+  ///
+  /// When the API call fails (e.g. 500), the method retries up to
+  /// [_maxRefreshRetries] times with exponential back-off (2s, 4s, 8s).
+  /// Between retries the existing trip data is still rendered on the map
+  /// so the user sees whatever was available before the failure.
+  Future<void> _refreshTripData({int retryCount = 0}) async {
     try {
       final updatedTrip = await _repository.getTripById(_trip.id);
       if (mounted) {
@@ -477,7 +491,24 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         }
       }
     } catch (e) {
-      debugPrint('TripDetailScreen: Error refreshing trip data: $e');
+      debugPrint(
+          'TripDetailScreen: Error refreshing trip data (attempt ${retryCount + 1}): $e');
+
+      // Render whatever data we already have so the map isn't blank
+      if (mounted) {
+        _updateMapData();
+      }
+
+      // Retry with exponential back-off if we haven't exhausted retries
+      if (retryCount < _maxRefreshRetries && mounted) {
+        final delay = Duration(seconds: 2 << retryCount); // 2s, 4s, 8s
+        debugPrint(
+            'TripDetailScreen: Scheduling refresh retry in ${delay.inSeconds}s');
+        await Future.delayed(delay);
+        if (mounted) {
+          await _refreshTripData(retryCount: retryCount + 1);
+        }
+      }
     }
   }
 
@@ -1179,7 +1210,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     });
   }
 
-  Future<void> _loadTripUpdates() async {
+  Future<void> _loadTripUpdates({int retryCount = 0}) async {
     setState(() {
       _isLoadingUpdates = true;
       _currentUpdatesPage = 0;
@@ -1205,7 +1236,19 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       });
     } catch (e) {
       setState(() => _isLoadingUpdates = false);
-      if (mounted) {
+      debugPrint(
+          'TripDetailScreen: Error loading trip updates (attempt ${retryCount + 1}): $e');
+
+      // Retry with exponential back-off if we haven't exhausted retries
+      if (retryCount < _maxRefreshRetries && mounted) {
+        final delay = Duration(seconds: 2 << retryCount); // 2s, 4s, 8s
+        debugPrint(
+            'TripDetailScreen: Scheduling updates retry in ${delay.inSeconds}s');
+        await Future.delayed(delay);
+        if (mounted) {
+          await _loadTripUpdates(retryCount: retryCount + 1);
+        }
+      } else if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error loading updates: $e');
       }
     }

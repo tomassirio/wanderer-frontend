@@ -9,9 +9,9 @@ import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/notifications_dropdown.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
-import 'package:wanderer_frontend/presentation/widgets/common/search_bar_widget.dart';
 import 'package:wanderer_frontend/presentation/helpers/avatar_helper.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
+import 'package:wanderer_frontend/presentation/screens/search_screen.dart';
 
 /// Reusable AppBar for the Wanderer application
 class WandererAppBar extends StatefulWidget implements PreferredSizeWidget {
@@ -49,7 +49,6 @@ class WandererAppBar extends StatefulWidget implements PreferredSizeWidget {
 
 class _WandererAppBarState extends State<WandererAppBar>
     with SingleTickerProviderStateMixin {
-  bool _isSearchExpanded = false;
   int _unreadCount = 0;
   final NotificationApiService _notificationService = NotificationApiService();
   final WebSocketService _webSocketService = WebSocketService();
@@ -60,9 +59,6 @@ class _WandererAppBarState extends State<WandererAppBar>
   Timer? _pollTimer;
   Timer? _debounceTimer;
   bool _isWebSocketConnected = false;
-
-  late final AnimationController _searchAnimController;
-  late final Animation<double> _searchAnimation;
 
   /// Event types that typically generate a notification on the backend.
   /// When any of these arrive we debounce-refresh the unread count from the API.
@@ -83,20 +79,6 @@ class _WandererAppBarState extends State<WandererAppBar>
   @override
   void initState() {
     super.initState();
-    _searchAnimController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _searchAnimation = CurvedAnimation(
-      parent: _searchAnimController,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
-    );
-    _searchAnimController.addStatusListener((status) {
-      if (status == AnimationStatus.dismissed) {
-        setState(() => _isSearchExpanded = false);
-      }
-    });
     if (widget.isLoggedIn) {
       _fetchUnreadCount();
     }
@@ -149,7 +131,6 @@ class _WandererAppBarState extends State<WandererAppBar>
     _wsConnectionSubscription?.cancel();
     _wsConnectionSubscription = null;
     _stopPolling();
-    _searchAnimController.dispose();
     super.dispose();
   }
 
@@ -264,13 +245,11 @@ class _WandererAppBarState extends State<WandererAppBar>
     return AvatarHelper.getInitials(widget.displayName, widget.username ?? '?');
   }
 
-  void _toggleSearch() {
-    if (_isSearchExpanded) {
-      _searchAnimController.reverse();
-    } else {
-      setState(() => _isSearchExpanded = true);
-      _searchAnimController.forward();
-    }
+  void _navigateToSearch() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SearchScreen()),
+    );
   }
 
   void _showNotificationsDropdown() {
@@ -310,50 +289,32 @@ class _WandererAppBarState extends State<WandererAppBar>
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       centerTitle: isDesktop,
       leading: widget.leading,
-      titleSpacing: _isSearchExpanded ? 8.0 : (isDesktop ? null : 0),
-      title: _isSearchExpanded
-          ? Align(
-              alignment: Alignment.center,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(1.0, 0.0),
-                    end: Offset.zero,
-                  ).animate(_searchAnimation),
-                  child: FadeTransition(
-                    opacity: _searchAnimation,
-                    child: SearchBarWidget(onClose: _toggleSearch),
-                  ),
-                ),
-              ),
-            )
-          : Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                InkWell(
-                  onTap: () {
-                    Navigator.of(context).popUntil((route) => route.isFirst);
-                  },
-                  borderRadius: BorderRadius.circular(15),
-                  child: const Padding(
-                    padding: EdgeInsets.all(2.0),
-                    child: WandererLogo(size: 30),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Flexible(
-                  child: Text(
-                    'Wanderer',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            onTap: () {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+            borderRadius: BorderRadius.circular(15),
+            child: const Padding(
+              padding: EdgeInsets.all(2.0),
+              child: WandererLogo(size: 30),
             ),
+          ),
+          const SizedBox(width: 8),
+          const Flexible(
+            child: Text(
+              'Wanderer',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
       actions: [
-        // Dark mode toggle — only for logged in users; hidden while search is expanded
-        if (!_isSearchExpanded && widget.isLoggedIn)
+        // Dark mode toggle — only for logged in users
+        if (widget.isLoggedIn)
           ValueListenableBuilder<ThemeMode>(
             valueListenable: ThemeController().themeMode,
             builder: (context, mode, _) {
@@ -368,12 +329,12 @@ class _WandererAppBarState extends State<WandererAppBar>
               );
             },
           ),
-        // Search icon — only for logged in users (hidden while search is expanded)
-        if (!_isSearchExpanded && widget.isLoggedIn)
+        // Search icon — only for logged in users
+        if (widget.isLoggedIn)
           IconButton(
             icon: const Icon(Icons.search),
             tooltip: l10n.search,
-            onPressed: _toggleSearch,
+            onPressed: _navigateToSearch,
           ),
         // Notifications icon with badge (only for logged in users)
         if (widget.isLoggedIn)
