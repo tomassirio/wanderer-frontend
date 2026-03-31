@@ -107,7 +107,10 @@ class _SearchScreenState extends State<SearchScreen> {
           _currentUserPage = nextPage;
           _results = SearchResultsResponse(
             users: PageResponse(
-              content: [..._results!.users.content, ...moreResults.users.content],
+              content: [
+                ..._results!.users.content,
+                ...moreResults.users.content
+              ],
               totalElements: moreResults.users.totalElements,
               totalPages: moreResults.users.totalPages,
               number: moreResults.users.number,
@@ -115,7 +118,8 @@ class _SearchScreenState extends State<SearchScreen> {
               first: _results!.users.first,
               last: moreResults.users.last,
               empty: moreResults.users.empty,
-              numberOfElements: _results!.users.content.length + moreResults.users.content.length,
+              numberOfElements: _results!.users.content.length +
+                  moreResults.users.content.length,
             ),
             trips: _results!.trips,
           );
@@ -154,7 +158,10 @@ class _SearchScreenState extends State<SearchScreen> {
           _results = SearchResultsResponse(
             users: _results!.users,
             trips: PageResponse(
-              content: [..._results!.trips.content, ...moreResults.trips.content],
+              content: [
+                ..._results!.trips.content,
+                ...moreResults.trips.content
+              ],
               totalElements: moreResults.trips.totalElements,
               totalPages: moreResults.trips.totalPages,
               number: moreResults.trips.number,
@@ -162,7 +169,8 @@ class _SearchScreenState extends State<SearchScreen> {
               first: _results!.trips.first,
               last: moreResults.trips.last,
               empty: moreResults.trips.empty,
-              numberOfElements: _results!.trips.content.length + moreResults.trips.content.length,
+              numberOfElements: _results!.trips.content.length +
+                  moreResults.trips.content.length,
             ),
           );
           _isLoadingMoreTrips = false;
@@ -342,7 +350,7 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
           const SizedBox(height: 8),
           ..._results!.users.content.map((user) => _buildUserCard(user, theme)),
-          
+
           // Load more users button
           if (_results!.users.hasNext)
             Padding(
@@ -360,7 +368,8 @@ class _SearchScreenState extends State<SearchScreen> {
         ],
 
         // Divider
-        if (_results!.users.content.isNotEmpty && _results!.trips.content.isNotEmpty)
+        if (_results!.users.content.isNotEmpty &&
+            _results!.trips.content.isNotEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Divider(
@@ -378,7 +387,7 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
           const SizedBox(height: 8),
           ..._results!.trips.content.map((trip) => _buildTripCard(trip, theme)),
-          
+
           // Load more trips button
           if (_results!.trips.hasNext)
             Padding(
@@ -436,9 +445,8 @@ class _SearchScreenState extends State<SearchScreen> {
                 backgroundImage: resolvedAvatarUrl.isNotEmpty
                     ? NetworkImage(resolvedAvatarUrl)
                     : null,
-                child: resolvedAvatarUrl.isEmpty
-                    ? const Icon(Icons.person)
-                    : null,
+                child:
+                    resolvedAvatarUrl.isEmpty ? const Icon(Icons.person) : null,
               ),
               const SizedBox(width: 12),
 

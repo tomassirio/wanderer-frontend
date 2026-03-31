@@ -78,8 +78,9 @@ class TripSummary {
       visibility: tripSettings?['visibility'] as String? ?? 'PUBLIC',
       status: tripSettings?['tripStatus'] as String? ?? 'IN_PROGRESS',
       tripModality: tripSettings?['tripModality'] as String?,
-      createdAt: DateTime.tryParse(json['creationTimestamp'] as String? ?? '') ??
-          DateTime.now(),
+      createdAt:
+          DateTime.tryParse(json['creationTimestamp'] as String? ?? '') ??
+              DateTime.now(),
       commentsCount: json['commentsCount'] as int? ?? 0,
       currentDay: json['currentDay'] as int?,
       tripPlanId: json['tripPlanId'] as String?,

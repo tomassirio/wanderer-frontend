@@ -278,9 +278,8 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: (_isSending || widget.isLoading)
-                        ? null
-                        : _handleSend,
+                    onPressed:
+                        (_isSending || widget.isLoading) ? null : _handleSend,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: WandererTheme.primaryOrange,
                       foregroundColor: Colors.white,
@@ -295,8 +294,8 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
                             height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                         : const Icon(Icons.send, size: 18),

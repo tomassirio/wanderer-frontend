@@ -8,11 +8,11 @@ class SearchService {
   final ApiClient _queryClient;
 
   SearchService({ApiClient? queryClient})
-      : _queryClient = queryClient ??
-            ApiClient(baseUrl: ApiEndpoints.queryBaseUrl);
+      : _queryClient =
+            queryClient ?? ApiClient(baseUrl: ApiEndpoints.queryBaseUrl);
 
   /// Search for users and trips with independent pagination
-  /// 
+  ///
   /// [query] - Search term to match against usernames, display names, trip names, and trip owner usernames
   /// [userPage] - Page number for user results (0-based)
   /// [userSize] - Page size for user results
@@ -60,9 +60,8 @@ class SearchService {
       'tripSize': tripSize.toString(),
     };
 
-    final queryString = queryParams.entries
-        .map((e) => '${e.key}=${e.value}')
-        .join('&');
+    final queryString =
+        queryParams.entries.map((e) => '${e.key}=${e.value}').join('&');
 
     final response = await _queryClient.get(
       '${ApiEndpoints.search}?$queryString',

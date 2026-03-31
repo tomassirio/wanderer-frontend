@@ -61,25 +61,27 @@ class WebSocketService {
 
   void _subscribeToAllPendingTrips() {
     if (_subscribedTrips.isEmpty) return;
-    
+
     for (final tripId in _subscribedTrips) {
       _client?.subscribe(ApiEndpoints.wsTripTopic(tripId));
     }
-    
+
     if (kDebugMode) {
-      debugPrint('WebSocketService: Resubscribed to ${_subscribedTrips.length} trips');
+      debugPrint(
+          'WebSocketService: Resubscribed to ${_subscribedTrips.length} trips');
     }
   }
 
   void _subscribeToAllPendingUsers() {
     if (_subscribedUsers.isEmpty) return;
-    
+
     for (final userId in _subscribedUsers) {
       _client?.subscribe(ApiEndpoints.wsUserTopic(userId));
     }
-    
+
     if (kDebugMode) {
-      debugPrint('WebSocketService: Resubscribed to ${_subscribedUsers.length} users');
+      debugPrint(
+          'WebSocketService: Resubscribed to ${_subscribedUsers.length} users');
     }
   }
 
