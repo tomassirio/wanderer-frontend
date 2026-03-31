@@ -45,14 +45,19 @@ class TripQueryClient {
     return _apiClient.handlePageResponse(response, Trip.fromJson);
   }
 
-  /// Get current user's trips
+  /// Get current user's trips (paginated)
   /// Requires authentication (USER, ADMIN)
-  Future<List<Trip>> getCurrentUserTrips() async {
+  Future<PageResponse<Trip>> getCurrentUserTrips({
+    int page = 0,
+    int size = 20,
+    String sort = 'creationTimestamp,desc',
+  }) async {
+    final endpoint = '${ApiEndpoints.tripsMe}?page=$page&size=$size&sort=$sort';
     final response = await _apiClient.get(
-      ApiEndpoints.tripsMe,
+      endpoint,
       requireAuth: true,
     );
-    return _apiClient.handleListResponse(response, Trip.fromJson);
+    return _apiClient.handlePageResponse(response, Trip.fromJson);
   }
 
   /// Get public trips (paginated)
@@ -87,14 +92,21 @@ class TripQueryClient {
     return _apiClient.handlePageResponse(response, Trip.fromJson);
   }
 
-  /// Get trips by user ID
+  /// Get trips by user ID (paginated)
   /// Requires authentication (respects visibility rules)
-  Future<List<Trip>> getTripsByUser(String userId) async {
+  Future<PageResponse<Trip>> getTripsByUser(
+    String userId, {
+    int page = 0,
+    int size = 20,
+    String sort = 'creationTimestamp,desc',
+  }) async {
+    final endpoint =
+        '${ApiEndpoints.tripsByUser(userId)}?page=$page&size=$size&sort=$sort';
     final response = await _apiClient.get(
-      ApiEndpoints.tripsByUser(userId),
+      endpoint,
       requireAuth: true,
     );
-    return _apiClient.handleListResponse(response, Trip.fromJson);
+    return _apiClient.handlePageResponse(response, Trip.fromJson);
   }
 
   /// Get trip updates for a specific trip (paginated)

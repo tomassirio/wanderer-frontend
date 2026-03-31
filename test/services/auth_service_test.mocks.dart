@@ -280,13 +280,35 @@ class MockUserQueryClient extends _i1.Mock implements _i7.UserQueryClient {
       ) as _i6.Future<_i4.UserProfile>);
 
   @override
-  _i6.Future<List<_i4.Friendship>> getFriends() => (super.noSuchMethod(
+  _i6.Future<_i3.PageResponse<_i4.Friendship>> getFriends({
+    int? page = 0,
+    int? size = 20,
+    String? sort = 'createdAt,desc',
+  }) =>
+      (super.noSuchMethod(
         Invocation.method(
           #getFriends,
           [],
+          {
+            #page: page,
+            #size: size,
+            #sort: sort,
+          },
         ),
-        returnValue: _i6.Future<List<_i4.Friendship>>.value(<_i4.Friendship>[]),
-      ) as _i6.Future<List<_i4.Friendship>>);
+        returnValue: _i6.Future<_i3.PageResponse<_i4.Friendship>>.value(
+            _FakePageResponse_2<_i4.Friendship>(
+          this,
+          Invocation.method(
+            #getFriends,
+            [],
+            {
+              #page: page,
+              #size: size,
+              #sort: sort,
+            },
+          ),
+        )),
+      ) as _i6.Future<_i3.PageResponse<_i4.Friendship>>);
 
   @override
   _i6.Future<List<_i4.FriendRequest>> getReceivedFriendRequests() =>
@@ -311,52 +333,219 @@ class MockUserQueryClient extends _i1.Mock implements _i7.UserQueryClient {
       ) as _i6.Future<List<_i4.FriendRequest>>);
 
   @override
-  _i6.Future<List<_i4.UserFollow>> getFollowing() => (super.noSuchMethod(
+  _i6.Future<_i3.PageResponse<_i4.UserFollow>> getFollowing({
+    int? page = 0,
+    int? size = 20,
+    String? sort = 'createdAt,desc',
+  }) =>
+      (super.noSuchMethod(
         Invocation.method(
           #getFollowing,
           [],
+          {
+            #page: page,
+            #size: size,
+            #sort: sort,
+          },
         ),
-        returnValue: _i6.Future<List<_i4.UserFollow>>.value(<_i4.UserFollow>[]),
-      ) as _i6.Future<List<_i4.UserFollow>>);
+        returnValue: _i6.Future<_i3.PageResponse<_i4.UserFollow>>.value(
+            _FakePageResponse_2<_i4.UserFollow>(
+          this,
+          Invocation.method(
+            #getFollowing,
+            [],
+            {
+              #page: page,
+              #size: size,
+              #sort: sort,
+            },
+          ),
+        )),
+      ) as _i6.Future<_i3.PageResponse<_i4.UserFollow>>);
 
   @override
-  _i6.Future<List<_i4.UserFollow>> getFollowers() => (super.noSuchMethod(
+  _i6.Future<_i3.PageResponse<_i4.UserFollow>> getFollowers({
+    int? page = 0,
+    int? size = 20,
+    String? sort = 'createdAt,desc',
+  }) =>
+      (super.noSuchMethod(
         Invocation.method(
           #getFollowers,
           [],
+          {
+            #page: page,
+            #size: size,
+            #sort: sort,
+          },
         ),
-        returnValue: _i6.Future<List<_i4.UserFollow>>.value(<_i4.UserFollow>[]),
-      ) as _i6.Future<List<_i4.UserFollow>>);
+        returnValue: _i6.Future<_i3.PageResponse<_i4.UserFollow>>.value(
+            _FakePageResponse_2<_i4.UserFollow>(
+          this,
+          Invocation.method(
+            #getFollowers,
+            [],
+            {
+              #page: page,
+              #size: size,
+              #sort: sort,
+            },
+          ),
+        )),
+      ) as _i6.Future<_i3.PageResponse<_i4.UserFollow>>);
 
   @override
-  _i6.Future<List<_i4.UserFollow>> getUserFollowing(String? userId) =>
+  _i6.Future<_i3.PageResponse<_i4.UserFollow>> getUserFollowing(
+    String? userId, {
+    int? page = 0,
+    int? size = 20,
+    String? sort = 'createdAt,desc',
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #getUserFollowing,
           [userId],
+          {
+            #page: page,
+            #size: size,
+            #sort: sort,
+          },
         ),
-        returnValue: _i6.Future<List<_i4.UserFollow>>.value(<_i4.UserFollow>[]),
-      ) as _i6.Future<List<_i4.UserFollow>>);
+        returnValue: _i6.Future<_i3.PageResponse<_i4.UserFollow>>.value(
+            _FakePageResponse_2<_i4.UserFollow>(
+          this,
+          Invocation.method(
+            #getUserFollowing,
+            [userId],
+            {
+              #page: page,
+              #size: size,
+              #sort: sort,
+            },
+          ),
+        )),
+      ) as _i6.Future<_i3.PageResponse<_i4.UserFollow>>);
 
   @override
-  _i6.Future<List<_i4.UserFollow>> getUserFollowers(String? userId) =>
+  _i6.Future<_i3.PageResponse<_i4.UserFollow>> getUserFollowers(
+    String? userId, {
+    int? page = 0,
+    int? size = 20,
+    String? sort = 'createdAt,desc',
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #getUserFollowers,
           [userId],
+          {
+            #page: page,
+            #size: size,
+            #sort: sort,
+          },
         ),
-        returnValue: _i6.Future<List<_i4.UserFollow>>.value(<_i4.UserFollow>[]),
-      ) as _i6.Future<List<_i4.UserFollow>>);
+        returnValue: _i6.Future<_i3.PageResponse<_i4.UserFollow>>.value(
+            _FakePageResponse_2<_i4.UserFollow>(
+          this,
+          Invocation.method(
+            #getUserFollowers,
+            [userId],
+            {
+              #page: page,
+              #size: size,
+              #sort: sort,
+            },
+          ),
+        )),
+      ) as _i6.Future<_i3.PageResponse<_i4.UserFollow>>);
 
   @override
-  _i6.Future<List<_i4.Friendship>> getUserFriends(String? userId) =>
+  _i6.Future<_i3.PageResponse<_i4.Friendship>> getUserFriends(
+    String? userId, {
+    int? page = 0,
+    int? size = 20,
+    String? sort = 'createdAt,desc',
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #getUserFriends,
           [userId],
+          {
+            #page: page,
+            #size: size,
+            #sort: sort,
+          },
         ),
-        returnValue: _i6.Future<List<_i4.Friendship>>.value(<_i4.Friendship>[]),
-      ) as _i6.Future<List<_i4.Friendship>>);
+        returnValue: _i6.Future<_i3.PageResponse<_i4.Friendship>>.value(
+            _FakePageResponse_2<_i4.Friendship>(
+          this,
+          Invocation.method(
+            #getUserFriends,
+            [userId],
+            {
+              #page: page,
+              #size: size,
+              #sort: sort,
+            },
+          ),
+        )),
+      ) as _i6.Future<_i3.PageResponse<_i4.Friendship>>);
+
+  @override
+  _i6.Future<_i3.PageResponse<_i4.UserProfile>> getDiscoverableUsers({
+    int? page = 0,
+    int? size = 20,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getDiscoverableUsers,
+          [],
+          {
+            #page: page,
+            #size: size,
+          },
+        ),
+        returnValue: _i6.Future<_i3.PageResponse<_i4.UserProfile>>.value(
+            _FakePageResponse_2<_i4.UserProfile>(
+          this,
+          Invocation.method(
+            #getDiscoverableUsers,
+            [],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i6.Future<_i3.PageResponse<_i4.UserProfile>>);
+
+  @override
+  _i6.Future<_i3.PageResponse<_i4.UserRelationship>> getAssociatedUsers(
+    String? userId, {
+    int? page = 0,
+    int? size = 20,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getAssociatedUsers,
+          [userId],
+          {
+            #page: page,
+            #size: size,
+          },
+        ),
+        returnValue: _i6.Future<_i3.PageResponse<_i4.UserRelationship>>.value(
+            _FakePageResponse_2<_i4.UserRelationship>(
+          this,
+          Invocation.method(
+            #getAssociatedUsers,
+            [userId],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i6.Future<_i3.PageResponse<_i4.UserRelationship>>);
 }
 
 /// A class which mocks [TokenStorage].

@@ -1,5 +1,6 @@
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
+import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/data/services/auth_service.dart';
@@ -46,14 +47,21 @@ class ProfileRepository {
     return await _userService.deleteAvatar();
   }
 
-  /// Gets trips for the current logged-in user (all trips regardless of visibility)
-  Future<List<Trip>> getMyTrips() async {
-    return await _tripService.getMyTrips();
+  /// Gets trips for the current logged-in user (all trips regardless of visibility, paginated)
+  Future<PageResponse<Trip>> getMyTrips({
+    int page = 0,
+    int size = 20,
+  }) async {
+    return await _tripService.getMyTrips(page: page, size: size);
   }
 
-  /// Gets trips for another user (respects visibility rules)
-  Future<List<Trip>> getUserTrips(String userId) async {
-    return await _tripService.getUserTrips(userId);
+  /// Gets trips for another user (respects visibility rules, paginated)
+  Future<PageResponse<Trip>> getUserTrips(
+    String userId, {
+    int page = 0,
+    int size = 20,
+  }) async {
+    return await _tripService.getUserTrips(userId, page: page, size: size);
   }
 
   /// Checks if user is logged in

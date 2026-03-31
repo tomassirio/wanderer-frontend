@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/services/cache_service.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:intl/intl.dart';
 
@@ -19,8 +21,6 @@ class EnhancedTripCard extends StatefulWidget {
   final VoidCallback? onDelete;
   final RelationshipType? relationship;
   final bool showAllBadges;
-  final bool isPromoted;
-  final PromotedTrip? promotedTrip;
 
   const EnhancedTripCard({
     super.key,
@@ -29,8 +29,6 @@ class EnhancedTripCard extends StatefulWidget {
     this.onDelete,
     this.relationship,
     this.showAllBadges = true,
-    this.isPromoted = false,
-    this.promotedTrip,
   });
 
   @override
@@ -76,10 +74,13 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
   }
 
   /// Whether this card should show the coming-soon blur+countdown overlay.
-  bool get _isPreAnnouncedCreated =>
-      widget.promotedTrip != null &&
-      widget.promotedTrip!.isPreAnnounced &&
-      widget.trip.status == TripStatus.created;
+  bool get _isPreAnnouncedCreated {
+    final result = widget.trip.isPromoted &&
+        widget.trip.isPreAnnounced &&
+        widget.trip.status == TripStatus.created;
+
+    return result;
+  }
 
   /// Formats a countdown string: "X days", "Today", or "Starts [date]".
   String _formatCountdown(DateTime startDate) {
@@ -355,63 +356,52 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                 fit: StackFit.expand,
                 children: [
                   if (widget.trip.thumbnailUrl.isNotEmpty)
-                    Image.network(
-                      ApiEndpoints.resolveThumbnailUrl(
+                    CachedNetworkImage(
+                      imageUrl: ApiEndpoints.resolveThumbnailUrl(
                           widget.trip.thumbnailUrl),
                       fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) {
-                          return child;
-                        }
-                        return Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Theme.of(context).colorScheme.surface,
-                                Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                              ],
-                            ),
-                          ),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                            ),
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Theme.of(context).colorScheme.surface,
-                                Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                              ],
-                            ),
-                          ),
-                          child: Center(
-                            child: Icon(
-                              Icons.map,
-                              size: 48,
-                              color: Theme.of(context)
+                      cacheManager: CacheService.tripThumbnailCache,
+                      placeholder: (context, url) => Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Theme.of(context).colorScheme.surface,
+                              Theme.of(context)
                                   .colorScheme
-                                  .onSurface
-                                  .withOpacity(0.4),
-                            ),
+                                  .surfaceContainerHighest,
+                            ],
                           ),
-                        );
-                      },
+                        ),
+                        child: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Theme.of(context).colorScheme.surface,
+                              Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest,
+                            ],
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.map,
+                            size: 48,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.4),
+                          ),
+                        ),
+                      ),
                     )
                   else
                     Container(
@@ -481,12 +471,11 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                                     fontSize: 14,
                                   ),
                                 ),
-                                if (widget.promotedTrip!.countdownStartDate !=
-                                    null) ...[
+                                if (widget.trip.countdownStartDate != null) ...[
                                   const SizedBox(height: 4),
                                   Text(
                                     _formatCountdown(
-                                      widget.promotedTrip!.countdownStartDate!,
+                                      widget.trip.countdownStartDate!,
                                     ),
                                     style: const TextStyle(
                                       color: Colors.white70,
@@ -525,7 +514,7 @@ class _EnhancedTripCardState extends State<EnhancedTripCard> {
                   ),
 
                   // Promoted badge overlay (bottom right corner)
-                  if (widget.isPromoted)
+                  if (widget.trip.isPromoted)
                     Positioned(
                       bottom: 10,
                       right: 10,

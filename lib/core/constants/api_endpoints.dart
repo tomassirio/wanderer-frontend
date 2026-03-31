@@ -172,4 +172,7 @@ class ApiEndpoints {
       '/users/$userId/achievements';
   static String tripAchievements(String tripId) =>
       '/trips/$tripId/achievements';
+
+  // Search Query endpoint (use queryBaseUrl)
+  static const String search = '/search';
 }

@@ -6,6 +6,7 @@ import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
+import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
@@ -107,7 +108,7 @@ class _TripPlansScreenState extends State<TripPlansScreen> {
       await _homeRepository.logout();
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          PageTransitions.fade(const HomeScreen()),
           (route) => false,
         );
       }
@@ -117,14 +118,14 @@ class _TripPlansScreenState extends State<TripPlansScreen> {
   void _handleSettings() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+      PageTransitions.slideFromBottom(const SettingsScreen()),
     );
   }
 
   Future<void> _navigateToAuth() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const AuthScreen()),
+      PageTransitions.fade(const AuthScreen()),
     );
 
     if (result == true || mounted) {
@@ -136,9 +137,7 @@ class _TripPlansScreenState extends State<TripPlansScreen> {
   Future<void> _handleTripPlanTap(TripPlan plan) async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => TripPlanDetailScreen(tripPlan: plan),
-      ),
+      PageTransitions.slideFromRight(TripPlanDetailScreen(tripPlan: plan)),
     );
 
     // Always reload trip plans when returning to reflect any modifications or deletions
@@ -150,7 +149,7 @@ class _TripPlansScreenState extends State<TripPlansScreen> {
   Future<void> _handleCreatePlan() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const CreateTripPlanScreen()),
+      PageTransitions.slideFromBottom(const CreateTripPlanScreen()),
     );
 
     // Always reload trip plans when returning to ensure new plans are shown
@@ -190,9 +189,7 @@ class _TripPlansScreenState extends State<TripPlansScreen> {
         // Navigate to trip detail screen
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => TripDetailScreen(trip: trip),
-          ),
+          PageTransitions.slideFromRight(TripDetailScreen(trip: trip)),
         );
       }
     } catch (e) {

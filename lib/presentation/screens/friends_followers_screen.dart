@@ -10,6 +10,7 @@ import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
+import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
@@ -338,7 +339,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   Future<void> _navigateToAuth() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const AuthScreen()),
+      PageTransitions.fade(const AuthScreen()),
     );
 
     if (result == true && mounted) {
@@ -353,7 +354,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   void _handleSettings() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+      PageTransitions.slideFromBottom(const SettingsScreen()),
     );
   }
 
@@ -365,7 +366,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
       if (mounted) {
         // Navigate to home screen and clear navigation stack
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          PageTransitions.fade(const HomeScreen()),
           (route) => false,
         );
       }

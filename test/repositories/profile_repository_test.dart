@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
+import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/repositories/profile_repository.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
@@ -74,9 +75,9 @@ void main() {
 
         final result = await profileRepository.getMyTrips();
 
-        expect(result.length, 2);
-        expect(result[0].id, 'trip-1');
-        expect(result[1].id, 'trip-2');
+        expect(result.content.length, 2);
+        expect(result.content[0].id, 'trip-1');
+        expect(result.content[1].id, 'trip-2');
         expect(mockTripService.getMyTripsCalled, true);
         expect(mockTripService.getUserTripsCalled, false);
       });
@@ -86,7 +87,7 @@ void main() {
 
         final result = await profileRepository.getMyTrips();
 
-        expect(result, isEmpty);
+        expect(result.content, isEmpty);
       });
 
       test('passes through service errors', () async {
@@ -108,9 +109,9 @@ void main() {
 
         final result = await profileRepository.getUserTrips('user-123');
 
-        expect(result.length, 2);
-        expect(result[0].id, 'trip-1');
-        expect(result[1].id, 'trip-2');
+        expect(result.content.length, 2);
+        expect(result.content[0].id, 'trip-1');
+        expect(result.content[1].id, 'trip-2');
         // Verify it called getUserTrips(userId), not getMyTrips
         expect(mockTripService.getUserTripsCalled, true);
         expect(mockTripService.getMyTripsCalled, false);
@@ -121,7 +122,7 @@ void main() {
 
         final result = await profileRepository.getUserTrips('user-123');
 
-        expect(result, isEmpty);
+        expect(result.content, isEmpty);
       });
 
       test('passes through service errors', () async {
@@ -297,25 +298,44 @@ class MockTripService extends TripService {
   bool getMyTripsCalled = false;
   bool shouldThrowError = false;
 
+  PageResponse<Trip> _wrapInPage(List<Trip> trips) {
+    return PageResponse(
+      content: trips,
+      totalElements: trips.length,
+      totalPages: trips.isEmpty ? 0 : 1,
+      number: 0,
+      size: 20,
+      first: true,
+      last: true,
+    );
+  }
+
   @override
-  Future<List<Trip>> getUserTrips(String userId) async {
+  Future<PageResponse<Trip>> getUserTrips(
+    String userId, {
+    int page = 0,
+    int size = 20,
+  }) async {
     getUserTripsCalled = true;
 
     if (shouldThrowError) {
       throw Exception('Failed to load trips');
     }
 
-    return mockTrips;
+    return _wrapInPage(mockTrips);
   }
 
   @override
-  Future<List<Trip>> getMyTrips() async {
+  Future<PageResponse<Trip>> getMyTrips({
+    int page = 0,
+    int size = 20,
+  }) async {
     getMyTripsCalled = true;
 
     if (shouldThrowError) {
       throw Exception('Failed to load trips');
     }
-    return mockTrips;
+    return _wrapInPage(mockTrips);
   }
 
   @override

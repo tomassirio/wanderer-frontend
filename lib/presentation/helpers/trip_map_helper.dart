@@ -434,7 +434,7 @@ class TripMapHelper {
       );
     }
 
-    // Add planned waypoint markers (violet/blue)
+    // Add planned waypoint markers (blue)
     if (trip.plannedWaypoints != null) {
       for (int i = 0; i < trip.plannedWaypoints!.length; i++) {
         final waypoint = trip.plannedWaypoints![i];
@@ -455,7 +455,7 @@ class TripMapHelper {
                         stopIndex: i,
                       ))
                   : null,
-              icon: _createMarkerWithHue(270.0), // Violet
+              icon: _createMarkerWithHue(240.0), // Blue
             ),
           );
         }

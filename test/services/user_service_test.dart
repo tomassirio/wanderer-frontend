@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
+import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/data/client/query/user_query_client.dart';
 import 'package:wanderer_frontend/data/client/command/user_command_client.dart';
@@ -108,22 +109,23 @@ void main() {
 
         when(
           mockUserQueryClient.getFriends(),
-        ).thenAnswer((_) async => mockFriends);
+        ).thenAnswer((_) async => _wrapFriendshipPage(mockFriends));
 
         final result = await userService.getFriends();
 
-        expect(result.length, 2);
-        expect(result[0].friendId, 'friend-1');
-        expect(result[1].friendId, 'friend-2');
+        expect(result.content.length, 2);
+        expect(result.content[0].friendId, 'friend-1');
+        expect(result.content[1].friendId, 'friend-2');
         verify(mockUserQueryClient.getFriends()).called(1);
       });
 
       test('returns empty list when user has no friends', () async {
-        when(mockUserQueryClient.getFriends()).thenAnswer((_) async => []);
+        when(mockUserQueryClient.getFriends())
+            .thenAnswer((_) async => _wrapFriendshipPage([]));
 
         final result = await userService.getFriends();
 
-        expect(result, isEmpty);
+        expect(result.content, isEmpty);
         verify(mockUserQueryClient.getFriends()).called(1);
       });
 
@@ -255,22 +257,23 @@ void main() {
 
         when(
           mockUserQueryClient.getFollowing(),
-        ).thenAnswer((_) async => mockFollowing);
+        ).thenAnswer((_) async => _wrapUserFollowPage(mockFollowing));
 
         final result = await userService.getFollowing();
 
-        expect(result.length, 2);
-        expect(result[0].followedId, 'user-5');
-        expect(result[1].followedId, 'user-6');
+        expect(result.content.length, 2);
+        expect(result.content[0].followedId, 'user-5');
+        expect(result.content[1].followedId, 'user-6');
         verify(mockUserQueryClient.getFollowing()).called(1);
       });
 
       test('returns empty list when not following anyone', () async {
-        when(mockUserQueryClient.getFollowing()).thenAnswer((_) async => []);
+        when(mockUserQueryClient.getFollowing())
+            .thenAnswer((_) async => _wrapUserFollowPage([]));
 
         final result = await userService.getFollowing();
 
-        expect(result, isEmpty);
+        expect(result.content, isEmpty);
       });
 
       test('handles errors when fetching following list', () async {
@@ -301,22 +304,23 @@ void main() {
 
         when(
           mockUserQueryClient.getFollowers(),
-        ).thenAnswer((_) async => mockFollowers);
+        ).thenAnswer((_) async => _wrapUserFollowPage(mockFollowers));
 
         final result = await userService.getFollowers();
 
-        expect(result.length, 2);
-        expect(result[0].followerId, 'user-7');
-        expect(result[1].followerId, 'user-8');
+        expect(result.content.length, 2);
+        expect(result.content[0].followerId, 'user-7');
+        expect(result.content[1].followerId, 'user-8');
         verify(mockUserQueryClient.getFollowers()).called(1);
       });
 
       test('returns empty list when user has no followers', () async {
-        when(mockUserQueryClient.getFollowers()).thenAnswer((_) async => []);
+        when(mockUserQueryClient.getFollowers())
+            .thenAnswer((_) async => _wrapUserFollowPage([]));
 
         final result = await userService.getFollowers();
 
-        expect(result, isEmpty);
+        expect(result.content, isEmpty);
       });
 
       test('handles errors when fetching followers', () async {
@@ -552,5 +556,29 @@ UserProfile createMockUserProfile(String id, String username) {
     followersCount: 0,
     followingCount: 0,
     tripsCount: 0,
+  );
+}
+
+PageResponse<Friendship> _wrapFriendshipPage(List<Friendship> items) {
+  return PageResponse(
+    content: items,
+    totalElements: items.length,
+    totalPages: items.isEmpty ? 0 : 1,
+    number: 0,
+    size: 20,
+    first: true,
+    last: true,
+  );
+}
+
+PageResponse<UserFollow> _wrapUserFollowPage(List<UserFollow> items) {
+  return PageResponse(
+    content: items,
+    totalElements: items.length,
+    totalPages: items.isEmpty ? 0 : 1,
+    number: 0,
+    size: 20,
+    first: true,
+    last: true,
   );
 }

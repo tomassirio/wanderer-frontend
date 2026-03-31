@@ -11,6 +11,7 @@ import 'package:wanderer_frontend/data/services/auth_service.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/data/models/requests/password_change_request.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
+import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/privacy_policy_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/terms_and_conditions_screen.dart';
@@ -381,7 +382,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         UiHelpers.showSuccessMessage(context, 'Account deleted successfully');
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          PageTransitions.fade(const HomeScreen()),
           (route) => false,
         );
       }
@@ -512,9 +513,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => const TermsAndConditionsScreen(),
-                      ),
+                      PageTransitions.slideFromRight(
+                          const TermsAndConditionsScreen()),
                     );
                   },
                 ),
@@ -526,9 +526,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => const PrivacyPolicyScreen(),
-                      ),
+                      PageTransitions.slideFromRight(
+                          const PrivacyPolicyScreen()),
                     );
                   },
                 ),

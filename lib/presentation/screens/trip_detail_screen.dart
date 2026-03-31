@@ -25,6 +25,7 @@ import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/background_location_disclosure.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
+import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_planned_info_window.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/reaction_picker.dart';
@@ -108,6 +109,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   Timer? _achievementRefreshTimer;
   Timer? _achievementPollTimer;
 
+  // Collapsible panel states
   // Collapsible panel states
   bool _isTimelineCollapsed = false;
   bool _isCommentsCollapsed = false;
@@ -239,9 +241,14 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       _fetchUserLocation(),
       _mapControllerCompleter.future,
     ]);
-    // Now both the data and the map are ready — jump to latest location
-    // (map data was already updated by _refreshTripData)
+    // Now both the data and the map are ready — jump to latest location.
+    // Always call _updateMapData() as a safety net: if _refreshTripData()
+    // failed (e.g. backend 500), the map would otherwise stay empty because
+    // _updateMapData() is only called inside _refreshTripData's success path.
+    // This ensures whatever data _trip holds (from widget.trip or a previous
+    // successful load) is still rendered on the map.
     if (mounted) {
+      _updateMapData();
       _animateMapToLatestLocation(animate: false);
       setState(() {
         _isMapLoading = false;
@@ -431,8 +438,17 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         _wsCameraGuardDuration;
   }
 
-  /// Refreshes full trip data from the backend
-  Future<void> _refreshTripData() async {
+  /// Maximum number of automatic retries for [_refreshTripData] when the
+  /// backend returns an error (e.g. HTTP 500). Each retry waits a bit longer.
+  static const int _maxRefreshRetries = 3;
+
+  /// Refreshes full trip data from the backend.
+  ///
+  /// When the API call fails (e.g. 500), the method retries up to
+  /// [_maxRefreshRetries] times with exponential back-off (2s, 4s, 8s).
+  /// Between retries the existing trip data is still rendered on the map
+  /// so the user sees whatever was available before the failure.
+  Future<void> _refreshTripData({int retryCount = 0}) async {
     try {
       final updatedTrip = await _repository.getTripById(_trip.id);
       if (mounted) {
@@ -475,7 +491,24 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
         }
       }
     } catch (e) {
-      debugPrint('TripDetailScreen: Error refreshing trip data: $e');
+      debugPrint(
+          'TripDetailScreen: Error refreshing trip data (attempt ${retryCount + 1}): $e');
+
+      // Render whatever data we already have so the map isn't blank
+      if (mounted) {
+        _updateMapData();
+      }
+
+      // Retry with exponential back-off if we haven't exhausted retries
+      if (retryCount < _maxRefreshRetries && mounted) {
+        final delay = Duration(seconds: 2 << retryCount); // 2s, 4s, 8s
+        debugPrint(
+            'TripDetailScreen: Scheduling refresh retry in ${delay.inSeconds}s');
+        await Future.delayed(delay);
+        if (mounted) {
+          await _refreshTripData(retryCount: retryCount + 1);
+        }
+      }
     }
   }
 
@@ -1075,17 +1108,13 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       final isMobile = screenWidth < 600;
 
       if (isMobile) {
-        // On mobile, collapse all panels by default so map is visible
-        // Use post-frame callback to ensure setState works properly
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            setState(() {
-              _isTimelineCollapsed = true;
-              _isCommentsCollapsed = true;
-              _isTripInfoCollapsed = true;
-            });
-          }
-        });
+        // On mobile, collapse all panels by default so map is visible.
+        // Set directly (no post-frame callback) so the first build already
+        // uses collapsed state — avoids an AnimatedSwitcher transition that
+        // overflows the 160 px collapsed-width constraint.
+        _isTimelineCollapsed = true;
+        _isCommentsCollapsed = true;
+        _isTripInfoCollapsed = true;
       }
     }
   }
@@ -1140,8 +1169,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   Future<void> _loadSocialStatus() async {
     try {
       // Check if following the trip owner by looking at our following list
-      final following = await _userService.getFollowing();
-      final isFollowing = following.any((f) => f.followedId == _trip.userId);
+      final followingPage = await _userService.getFollowing(page: 0, size: 100);
+      final isFollowing =
+          followingPage.content.any((f) => f.followedId == _trip.userId);
 
       // Check if already sent a friend request to the trip owner
       final sentRequests = await _userService.getSentFriendRequests();
@@ -1155,8 +1185,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       final requestId = pendingRequest?.id;
 
       // Check if already friends with the trip owner
-      final friends = await _userService.getFriends();
-      final isAlreadyFriends = friends.any((f) => f.friendId == _trip.userId);
+      final friendsPage = await _userService.getFriends(page: 0, size: 100);
+      final isAlreadyFriends =
+          friendsPage.content.any((f) => f.friendId == _trip.userId);
 
       if (mounted) {
         setState(() {
@@ -1179,7 +1210,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     });
   }
 
-  Future<void> _loadTripUpdates() async {
+  Future<void> _loadTripUpdates({int retryCount = 0}) async {
     setState(() {
       _isLoadingUpdates = true;
       _currentUpdatesPage = 0;
@@ -1205,7 +1236,19 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       });
     } catch (e) {
       setState(() => _isLoadingUpdates = false);
-      if (mounted) {
+      debugPrint(
+          'TripDetailScreen: Error loading trip updates (attempt ${retryCount + 1}): $e');
+
+      // Retry with exponential back-off if we haven't exhausted retries
+      if (retryCount < _maxRefreshRetries && mounted) {
+        final delay = Duration(seconds: 2 << retryCount); // 2s, 4s, 8s
+        debugPrint(
+            'TripDetailScreen: Scheduling updates retry in ${delay.inSeconds}s');
+        await Future.delayed(delay);
+        if (mounted) {
+          await _loadTripUpdates(retryCount: retryCount + 1);
+        }
+      } else if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error loading updates: $e');
       }
     }
@@ -2016,7 +2059,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       if (mounted) {
         UiHelpers.showSuccessMessage(context, 'Trip deleted');
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          PageTransitions.fade(const HomeScreen()),
           (route) => false,
         );
       }
@@ -2441,7 +2484,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       await _repository.logout();
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          PageTransitions.fade(const HomeScreen()),
           (route) => false,
         );
       }
@@ -2451,7 +2494,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   void _handleSettings() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+      PageTransitions.slideFromBottom(const SettingsScreen()),
     );
   }
 
@@ -2472,7 +2515,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   Future<void> _navigateToAuth() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const AuthScreen()),
+      PageTransitions.fade(const AuthScreen()),
     );
 
     // Refresh screen data after login
@@ -2707,9 +2750,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                 bottom: strategy.shouldLeftPanelStretchToBottom(layoutData)
                     ? 0
                     : null,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
+                child: SizedBox(
                   width: leftPanelWidth,
                   child: MouseRegion(
                     onEnter: (_) {

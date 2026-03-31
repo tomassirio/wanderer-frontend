@@ -13,7 +13,6 @@ import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
-import 'package:wanderer_frontend/data/services/admin_service.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
@@ -43,7 +42,6 @@ class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin, RouteAware {
   final HomeRepository _repository = HomeRepository();
   final TripService _tripService = TripService();
-  final AdminService _adminService = AdminService();
   final WebSocketService _webSocketService = WebSocketService();
   final PushNotificationManager _pushNotificationManager =
       PushNotificationManager();
@@ -58,8 +56,6 @@ class _HomeScreenState extends State<HomeScreen>
   List<Trip> _myTrips = [];
   List<Trip> _feedTrips = [];
   List<Trip> _discoverTrips = [];
-  Set<String> _promotedTripIds = {};
-  Map<String, PromotedTrip> _promotedTripsById = {};
   Set<String> _friendIds = {};
   Set<String> _followingIds = {};
 
@@ -117,7 +113,6 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _initializeData() async {
     await _loadUserInfo();
     await _loadTrips();
-    await _loadPromotedTrips();
   }
 
   void _onTabChanged() {
@@ -373,7 +368,8 @@ class _HomeScreenState extends State<HomeScreen>
           _repository.loadTrips(
               page: 0,
               size: _tripsPageSize), // Available trips (relationship-based)
-          _repository.getMyTrips(), // User's own trips
+          _repository.getMyTrips(
+              page: 0, size: _tripsPageSize), // User's own trips
           _repository.getFriendsIds(),
           _repository.getFollowingIds(),
           _repository.getPublicTrips(
@@ -381,6 +377,7 @@ class _HomeScreenState extends State<HomeScreen>
         ]);
 
         final availablePage = results[0] as PageResponse<Trip>;
+        final myTripsPage = results[1] as PageResponse<Trip>;
         final publicPage = results[4] as PageResponse<Trip>;
 
         // Merge available trips with public trips (deduplicate by ID).
@@ -397,7 +394,7 @@ class _HomeScreenState extends State<HomeScreen>
         setState(() {
           _allTrips = merged.values.toList();
           _hasMoreTrips = !availablePage.last || !publicPage.last;
-          _myTrips = results[1] as List<Trip>;
+          _myTrips = myTripsPage.content;
           _friendIds = results[2] as Set<String>;
           _followingIds = results[3] as Set<String>;
           _categorizeTrips();
@@ -520,58 +517,9 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  Future<void> _loadPromotedTrips() async {
-    try {
-      final promoted = await _adminService.getPromotedTrips();
-      if (mounted) {
-        setState(() {
-          _promotedTripIds = promoted.map((p) => p.tripId).toSet();
-          _promotedTripsById = {for (final p in promoted) p.tripId: p};
-        });
-
-        // Fetch any promoted trips that are missing from _allTrips.
-        // For example, pre-announced trips (status: created) or promoted
-        // trips that weren't returned by the available/public endpoints.
-        await _fetchMissingPromotedTrips(promoted);
-
-        // Re-categorize since promoted data affects which trips appear in
-        // the discover list (promoted completed / pre-announced trips).
-        _categorizeTrips();
-      }
-    } catch (e) {
-      // Silently fail — user may not have admin access
-      debugPrint('Failed to load promoted trips: $e');
-    }
-  }
-
-  /// Fetches promoted trips that are not yet in [_allTrips] (e.g. pre-announced
-  /// trips with status `created` which the public/available endpoints exclude).
-  Future<void> _fetchMissingPromotedTrips(List<PromotedTrip> promoted) async {
-    final existingIds = _allTrips.map((t) => t.id).toSet();
-    final missingPromoted =
-        promoted.where((p) => !existingIds.contains(p.tripId)).toList();
-
-    if (missingPromoted.isEmpty) return;
-
-    final fetched = <Trip>[];
-    for (final p in missingPromoted) {
-      try {
-        // Use authenticated endpoint for logged-in users, public for guests
-        final trip = _isLoggedIn
-            ? await _tripService.getTripById(p.tripId)
-            : await _tripService.getPublicTripById(p.tripId);
-        fetched.add(trip);
-      } catch (e) {
-        debugPrint('Could not fetch promoted trip ${p.tripId}: $e');
-      }
-    }
-
-    if (fetched.isNotEmpty && mounted) {
-      setState(() {
-        _allTrips = [..._allTrips, ...fetched];
-      });
-    }
-  }
+  /// Removed _loadPromotedTrips() and _fetchMissingPromotedTrips()
+  /// Backend now includes isPromoted/promotedAt in Trip data
+  /// Note: Admin promotion screen still uses separate endpoint for full PromotedTrip details
 
   void _categorizeTrips() {
     // Build the discover list with the same criteria for both guest and
@@ -594,7 +542,7 @@ class _HomeScreenState extends State<HomeScreen>
       final isActive = trip.status == TripStatus.inProgress ||
           trip.status == TripStatus.resting ||
           trip.status == TripStatus.paused;
-      final isPromoted = _promotedTripIds.contains(trip.id);
+      final isPromoted = trip.isPromoted;
 
       // Rule 1 & 2: Public + active trips (promoted or not)
       if (isPublic && isActive) {
@@ -608,13 +556,10 @@ class _HomeScreenState extends State<HomeScreen>
         continue;
       }
 
-      // Rule 4: Promoted + created + pre-announced
+      // Rule 4: Promoted + created (pre-announced trips are always promoted)
       if (isPromoted && trip.status == TripStatus.created) {
-        final promotedTrip = _promotedTripsById[trip.id];
-        if (promotedTrip != null && promotedTrip.isPreAnnounced) {
-          discoverTrips.add(trip);
-          continue;
-        }
+        discoverTrips.add(trip);
+        continue;
       }
     }
 
@@ -720,7 +665,7 @@ class _HomeScreenState extends State<HomeScreen>
       await _repository.logout();
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          PageTransitions.fade(const HomeScreen()),
           (route) => false,
         );
       }
@@ -734,14 +679,14 @@ class _HomeScreenState extends State<HomeScreen>
   void _handleSettings() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+      PageTransitions.slideFromBottom(const SettingsScreen()),
     );
   }
 
   Future<void> _navigateToAuth() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const AuthScreen()),
+      PageTransitions.fade(const AuthScreen()),
     );
 
     if (result == true && mounted) {
@@ -753,7 +698,7 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _navigateToCreateTrip() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const CreateTripScreen()),
+      PageTransitions.slideFromBottom(const CreateTripScreen()),
     );
 
     if (mounted) {
@@ -764,7 +709,7 @@ class _HomeScreenState extends State<HomeScreen>
   void _navigateToTripDetail(Trip trip) async {
     await Navigator.push(
       context,
-      PageTransitions.slideUp(TripDetailScreen(trip: trip)),
+      PageTransitions.slideFromRight(TripDetailScreen(trip: trip)),
     );
 
     if (mounted) {
@@ -1432,12 +1377,9 @@ class _HomeScreenState extends State<HomeScreen>
     final filteredTrips = _getFilteredTrips(_discoverTrips);
 
     // Separate promoted trips (featured) from regular public trips.
-    // Both come from the same _discoverTrips list which already applies the
-    // correct inclusion criteria in _categorizeTrips().
-    final promotedTripsList =
-        filteredTrips.where((t) => _promotedTripIds.contains(t.id)).toList();
-    final nonPromotedTrips =
-        filteredTrips.where((t) => !_promotedTripIds.contains(t.id)).toList();
+    // Backend now includes isPromoted field in Trip model
+    final promotedTripsList = filteredTrips.where((t) => t.isPromoted).toList();
+    final nonPromotedTrips = filteredTrips.where((t) => !t.isPromoted).toList();
 
     if (nonPromotedTrips.isEmpty && promotedTripsList.isEmpty) {
       return Center(
@@ -1473,7 +1415,8 @@ class _HomeScreenState extends State<HomeScreen>
     return RefreshIndicator(
       onRefresh: () async {
         await _loadTrips();
-        await _loadPromotedTrips();
+        // Reload trips to get latest data (including promoted status)
+        await _loadTrips();
       },
       child: ListView(
         padding: EdgeInsets.only(
@@ -1515,10 +1458,9 @@ class _HomeScreenState extends State<HomeScreen>
     final filteredTrips = _getFilteredTrips(_discoverTrips);
 
     // Separate promoted trips (featured) from regular public trips.
-    final promotedTripsList =
-        filteredTrips.where((t) => _promotedTripIds.contains(t.id)).toList();
-    final nonPromotedTrips =
-        filteredTrips.where((t) => !_promotedTripIds.contains(t.id)).toList();
+    // Backend now includes isPromoted field in Trip model
+    final promotedTripsList = filteredTrips.where((t) => t.isPromoted).toList();
+    final nonPromotedTrips = filteredTrips.where((t) => !t.isPromoted).toList();
 
     if (filteredTrips.isEmpty) {
       return Center(
@@ -1672,8 +1614,6 @@ class _HomeScreenState extends State<HomeScreen>
                   : null,
               relationship: relationship,
               showAllBadges: true,
-              isPromoted: _promotedTripIds.contains(trip.id),
-              promotedTrip: _promotedTripsById[trip.id],
             );
           },
         );

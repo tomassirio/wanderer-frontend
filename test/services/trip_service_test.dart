@@ -36,7 +36,7 @@ void main() {
 
         final result = await tripService.getMyTrips();
 
-        expect(result.length, 2);
+        expect(result.content.length, 2);
         expect(mockTripQueryClient.getCurrentUserTripsCalled, true);
       });
 
@@ -91,7 +91,7 @@ void main() {
 
         final result = await tripService.getUserTrips('user-123');
 
-        expect(result.isNotEmpty, true);
+        expect(result.content.isNotEmpty, true);
         expect(mockTripQueryClient.getTripsByUserCalled, true);
         expect(mockTripQueryClient.lastUserId, 'user-123');
       });
@@ -305,10 +305,14 @@ class MockTripQueryClient extends TripQueryClient {
   }
 
   @override
-  Future<List<Trip>> getCurrentUserTrips() async {
+  Future<PageResponse<Trip>> getCurrentUserTrips({
+    int page = 0,
+    int size = 20,
+    String sort = 'creationTimestamp,desc',
+  }) async {
     getCurrentUserTripsCalled = true;
     if (shouldThrowError) throw Exception('Failed to get user trips');
-    return mockTrips ?? [];
+    return _wrapInPage(mockTrips ?? []);
   }
 
   @override
@@ -353,11 +357,16 @@ class MockTripQueryClient extends TripQueryClient {
   }
 
   @override
-  Future<List<Trip>> getTripsByUser(String userId) async {
+  Future<PageResponse<Trip>> getTripsByUser(
+    String userId, {
+    int page = 0,
+    int size = 20,
+    String sort = 'creationTimestamp,desc',
+  }) async {
     getTripsByUserCalled = true;
     lastUserId = userId;
     if (shouldThrowError) throw Exception('Failed to get user trips');
-    return mockTrips ?? [];
+    return _wrapInPage(mockTrips ?? []);
   }
 }
 

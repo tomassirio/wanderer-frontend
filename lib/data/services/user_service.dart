@@ -29,10 +29,61 @@ class UserService {
     return await _userQueryClient.getUserByUsername(username);
   }
 
-  /// Get user's friends list
-  /// Returns a list of friendships (userId and friendId pairs)
-  Future<List<Friendship>> getFriends() async {
-    return await _userQueryClient.getFriends();
+  /// Get user's friends list (paginated)
+  /// Returns a page of friendships (userId and friendId pairs)
+  Future<PageResponse<Friendship>> getFriends({
+    int page = 0,
+    int size = 20,
+  }) async {
+    return await _userQueryClient.getFriends(page: page, size: size);
+  }
+
+  /// Get users that current user follows (paginated)
+  /// Returns a page of follow relationships
+  Future<PageResponse<UserFollow>> getFollowing({
+    int page = 0,
+    int size = 20,
+  }) async {
+    return await _userQueryClient.getFollowing(page: page, size: size);
+  }
+
+  /// Get users that follow current user (paginated)
+  /// Returns a page of follow relationships
+  Future<PageResponse<UserFollow>> getFollowers({
+    int page = 0,
+    int size = 20,
+  }) async {
+    return await _userQueryClient.getFollowers(page: page, size: size);
+  }
+
+  /// Get users that a specific user follows (paginated)
+  Future<PageResponse<UserFollow>> getUserFollowing(
+    String userId, {
+    int page = 0,
+    int size = 20,
+  }) async {
+    return await _userQueryClient.getUserFollowing(userId,
+        page: page, size: size);
+  }
+
+  /// Get users that follow a specific user (paginated)
+  Future<PageResponse<UserFollow>> getUserFollowers(
+    String userId, {
+    int page = 0,
+    int size = 20,
+  }) async {
+    return await _userQueryClient.getUserFollowers(userId,
+        page: page, size: size);
+  }
+
+  /// Get friends of a specific user (paginated)
+  Future<PageResponse<Friendship>> getUserFriends(
+    String userId, {
+    int page = 0,
+    int size = 20,
+  }) async {
+    return await _userQueryClient.getUserFriends(userId,
+        page: page, size: size);
   }
 
   /// Get pending received friend requests
@@ -43,33 +94,6 @@ class UserService {
   /// Get pending sent friend requests
   Future<List<FriendRequest>> getSentFriendRequests() async {
     return await _userQueryClient.getSentFriendRequests();
-  }
-
-  /// Get users that current user follows
-  /// Returns a list of follow relationships
-  Future<List<UserFollow>> getFollowing() async {
-    return await _userQueryClient.getFollowing();
-  }
-
-  /// Get users that follow current user
-  /// Returns a list of follow relationships
-  Future<List<UserFollow>> getFollowers() async {
-    return await _userQueryClient.getFollowers();
-  }
-
-  /// Get users that a specific user follows
-  Future<List<UserFollow>> getUserFollowing(String userId) async {
-    return await _userQueryClient.getUserFollowing(userId);
-  }
-
-  /// Get users that follow a specific user
-  Future<List<UserFollow>> getUserFollowers(String userId) async {
-    return await _userQueryClient.getUserFollowers(userId);
-  }
-
-  /// Get friends of a specific user
-  Future<List<Friendship>> getUserFriends(String userId) async {
-    return await _userQueryClient.getUserFriends(userId);
   }
 
   /// Send a friend request

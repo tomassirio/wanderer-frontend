@@ -185,38 +185,22 @@ class CommentsSection extends StatelessWidget {
                 width: 1,
               ),
             ),
+            padding: const EdgeInsets.all(12),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Comments section header with glass styling
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withOpacity(0.08),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(WandererTheme.glassRadius),
-                      topRight: Radius.circular(WandererTheme.glassRadius),
+                // Comments section header — compact style matching TripInfoCard
+                Row(
+                  children: [
+                    Icon(
+                      Icons.chat_bubble_outline,
+                      size: 18,
+                      color: WandererTheme.primaryOrange,
                     ),
-                    border: Border(
-                      bottom: BorderSide(
-                        color: WandererTheme.glassBorderColorFor(context),
-                        width: 0.5,
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.chat_bubble_outline,
-                        size: 18,
-                        color: WandererTheme.primaryOrange,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
                         '${comments.length}${hasMore ? '+' : ''} ${l10n.comments}',
                         style: TextStyle(
                           fontSize: 16,
@@ -224,66 +208,69 @@ class CommentsSection extends StatelessWidget {
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
-                      const Spacer(),
-                      PopupMenuButton<CommentSortOption>(
+                    ),
+                    PopupMenuButton<CommentSortOption>(
+                      icon: Icon(
+                        Icons.sort,
+                        size: 16,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.6),
+                      ),
+                      onSelected: onSortChanged,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
+                      ),
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: CommentSortOption.latest,
+                          child: Text(l10n.latestFirst),
+                        ),
+                        PopupMenuItem(
+                          value: CommentSortOption.oldest,
+                          child: Text(l10n.oldestFirst),
+                        ),
+                        PopupMenuItem(
+                          value: CommentSortOption.mostReplies,
+                          child: Text(l10n.mostReplies),
+                        ),
+                        PopupMenuItem(
+                          value: CommentSortOption.mostReactions,
+                          child: Text(l10n.mostReactions),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: IconButton(
                         icon: Icon(
-                          Icons.sort,
-                          size: 20,
+                          Icons.remove,
+                          size: 16,
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
                               .withOpacity(0.6),
                         ),
-                        onSelected: onSortChanged,
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: CommentSortOption.latest,
-                            child: Text(l10n.latestFirst),
-                          ),
-                          PopupMenuItem(
-                            value: CommentSortOption.oldest,
-                            child: Text(l10n.oldestFirst),
-                          ),
-                          PopupMenuItem(
-                            value: CommentSortOption.mostReplies,
-                            child: Text(l10n.mostReplies),
-                          ),
-                          PopupMenuItem(
-                            value: CommentSortOption.mostReactions,
-                            child: Text(l10n.mostReactions),
-                          ),
-                        ],
+                        onPressed: onToggleCollapse,
+                        tooltip: 'Minimize',
+                        padding: EdgeInsets.zero,
                       ),
-                      const SizedBox(width: 4),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: IconButton(
-                          icon: Icon(
-                            Icons.remove,
-                            size: 18,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.6),
-                          ),
-                          onPressed: onToggleCollapse,
-                          tooltip: 'Minimize',
-                          constraints: const BoxConstraints(
-                            minWidth: 32,
-                            minHeight: 32,
-                          ),
-                          padding: EdgeInsets.zero,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 6),
                 // Comments list
                 Flexible(
                   child: isLoading
@@ -298,6 +285,7 @@ class CommentsSection extends StatelessWidget {
                       : comments.isEmpty
                           ? _buildEmptyCommentsState(context)
                           : ListView.builder(
+                              key: const PageStorageKey('trip_comments_list'),
                               controller: scrollController,
                               shrinkWrap: true,
                               padding: const EdgeInsets.symmetric(vertical: 8),

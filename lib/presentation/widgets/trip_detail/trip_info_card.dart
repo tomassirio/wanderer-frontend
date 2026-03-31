@@ -44,16 +44,25 @@ class TripInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedCrossFade(
+    return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
-      firstCurve: Curves.easeInOut,
-      secondCurve: Curves.easeInOut,
-      sizeCurve: Curves.easeInOut,
-      alignment: Alignment.topLeft,
-      crossFadeState:
-          isCollapsed ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-      firstChild: _buildCollapsedBubble(context),
-      secondChild: _buildExpandedCard(context),
+      switchInCurve: Curves.easeInOut,
+      switchOutCurve: Curves.easeInOut,
+      transitionBuilder: (child, animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: child,
+        );
+      },
+      child: isCollapsed
+          ? KeyedSubtree(
+              key: const ValueKey('collapsed'),
+              child: _buildCollapsedBubble(context),
+            )
+          : KeyedSubtree(
+              key: const ValueKey('expanded'),
+              child: _buildExpandedCard(context),
+            ),
     );
   }
 

@@ -1079,7 +1079,7 @@ void main() {
       });
 
       test(
-          'thumbnailUrl returns plan thumbnail when no updates and has tripPlanId',
+          'thumbnailUrl returns trip thumbnail when no updates and has tripPlanId',
           () {
         final trip = Trip(
           id: 'trip123',
@@ -1093,10 +1093,10 @@ void main() {
           tripPlanId: 'plan456',
         );
 
-        expect(trip.thumbnailUrl, '/thumbnails/plans/plan456.png');
+        expect(trip.thumbnailUrl, '/thumbnails/trips/trip123.png');
       });
 
-      test('thumbnailUrl returns plan thumbnail when empty updates list', () {
+      test('thumbnailUrl returns trip thumbnail when empty updates list', () {
         final trip = Trip(
           id: 'trip123',
           userId: 'user456',
@@ -1110,7 +1110,7 @@ void main() {
           locations: [],
         );
 
-        expect(trip.thumbnailUrl, '/thumbnails/plans/plan456.png');
+        expect(trip.thumbnailUrl, '/thumbnails/trips/trip123.png');
       });
 
       test('fromJson parses tripPlanId', () {

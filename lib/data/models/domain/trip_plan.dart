@@ -28,9 +28,11 @@ class TripPlan {
   final String? plannedPolyline;
   final DateTime? polylineUpdatedAt;
   final DateTime createdTimestamp;
+  final String? _backendThumbnailUrl;
 
-  /// Generate thumbnail URL based on trip plan ID
-  String get thumbnailUrl => '/thumbnails/plans/$id.png';
+  /// Generate thumbnail URL - prefers backend-provided, falls back to client-side
+  String get thumbnailUrl =>
+      _backendThumbnailUrl ?? '/thumbnails/plans/$id.png';
 
   TripPlan({
     required this.id,
@@ -46,7 +48,8 @@ class TripPlan {
     this.plannedPolyline,
     this.polylineUpdatedAt,
     required this.createdTimestamp,
-  });
+    String? backendThumbnailUrl,
+  }) : _backendThumbnailUrl = backendThumbnailUrl;
 
   factory TripPlan.fromJson(Map<String, dynamic> json) => TripPlan(
         id: json['id'] as String,
@@ -78,6 +81,7 @@ class TripPlan {
             ? DateTime.tryParse(json['polylineUpdatedAt'] as String)
             : null,
         createdTimestamp: DateTime.parse(json['createdTimestamp'] as String),
+        backendThumbnailUrl: json['thumbnailUrl'] as String?,
       );
 
   Map<String, dynamic> toJson() => {

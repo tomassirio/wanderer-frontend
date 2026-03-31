@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/services/cache_service.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
@@ -92,21 +94,17 @@ class _TripCardState extends State<TripCard> {
                     children: [
                       // Map or placeholder
                       if (widget.trip.thumbnailUrl.isNotEmpty)
-                        Image.network(
-                          ApiEndpoints.resolveThumbnailUrl(
+                        CachedNetworkImage(
+                          imageUrl: ApiEndpoints.resolveThumbnailUrl(
                               widget.trip.thumbnailUrl),
                           fit: BoxFit.cover,
+                          cacheManager: CacheService.tripThumbnailCache,
                           width: double.infinity,
                           height: double.infinity,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) {
-                              return child;
-                            }
-                            return _buildLoadingPlaceholder();
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return _buildNoMapPlaceholder();
-                          },
+                          placeholder: (context, url) =>
+                              _buildLoadingPlaceholder(),
+                          errorWidget: (context, url, error) =>
+                              _buildNoMapPlaceholder(),
                         )
                       else
                         _buildNoMapPlaceholder(),

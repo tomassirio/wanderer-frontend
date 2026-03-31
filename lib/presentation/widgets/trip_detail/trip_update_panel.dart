@@ -56,10 +56,26 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.isCollapsed) {
-      return _buildCollapsedBubble();
-    }
-    return _buildExpandedPanel();
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      switchInCurve: Curves.easeInOut,
+      switchOutCurve: Curves.easeInOut,
+      transitionBuilder: (child, animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: child,
+        );
+      },
+      child: widget.isCollapsed
+          ? KeyedSubtree(
+              key: const ValueKey('collapsed'),
+              child: _buildCollapsedBubble(),
+            )
+          : KeyedSubtree(
+              key: const ValueKey('expanded'),
+              child: _buildExpandedPanel(),
+            ),
+    );
   }
 
   /// Collapsed state - floating bubble with send icon
@@ -132,174 +148,160 @@ class _TripUpdatePanelState extends State<TripUpdatePanel> {
                 width: 1,
               ),
             ),
+            padding: const EdgeInsets.all(12),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withOpacity(0.08),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(WandererTheme.glassRadius),
-                      topRight: Radius.circular(WandererTheme.glassRadius),
+                // Header — compact style matching other panels
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on,
+                      size: 18,
+                      color: WandererTheme.primaryOrange,
                     ),
-                    border: Border(
-                      bottom: BorderSide(
-                        color: WandererTheme.glassBorderColorFor(context),
-                        width: 0.5,
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.location_on,
-                        size: 18,
-                        color: WandererTheme.primaryOrange,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          context.l10n.sendUpdate,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        context.l10n.sendUpdate,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 20),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onPressed: widget.onToggleCollapse,
+                    ),
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
                         color: Theme.of(context)
                             .colorScheme
                             .onSurface
-                            .withOpacity(0.6),
+                            .withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                    ],
-                  ),
-                ),
-
-                // Content
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Info text
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            size: 14,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.6),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              context.l10n.locationShared,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withOpacity(0.6),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Message input
-                      TextField(
-                        controller: _messageController,
-                        decoration: InputDecoration(
-                          hintText: context.l10n.addMessageOptional,
-                          hintStyle: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.45),
-                            fontSize: 14,
-                          ),
-                          filled: true,
-                          fillColor: Theme.of(context)
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.remove,
+                          size: 16,
+                          color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.08),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: WandererTheme.glassBorderColorFor(context),
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: WandererTheme.glassBorderColorFor(context),
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: WandererTheme.primaryOrange,
-                            ),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
+                              .withOpacity(0.6),
                         ),
-                        maxLines: 2,
-                        textCapitalization: TextCapitalization.sentences,
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: (_) => _handleSend(),
+                        onPressed: widget.onToggleCollapse,
+                        tooltip: 'Minimize',
+                        padding: EdgeInsets.zero,
                       ),
-                      const SizedBox(height: 12),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // Info text
+                Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 14,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.6),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        context.l10n.locationShared,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.6),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
 
-                      // Send update button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: (_isSending || widget.isLoading)
-                              ? null
-                              : _handleSend,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: WandererTheme.primaryOrange,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          icon: _isSending
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white),
-                                  ),
-                                )
-                              : const Icon(Icons.send, size: 18),
-                          label: Text(_isSending
-                              ? context.l10n.sending
-                              : context.l10n.sendUpdate),
-                        ),
+                // Message input
+                TextField(
+                  controller: _messageController,
+                  decoration: InputDecoration(
+                    hintText: context.l10n.addMessageOptional,
+                    hintStyle: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.45),
+                      fontSize: 14,
+                    ),
+                    filled: true,
+                    fillColor: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.08),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: WandererTheme.glassBorderColorFor(context),
                       ),
-                    ],
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: WandererTheme.glassBorderColorFor(context),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: WandererTheme.primaryOrange,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                  ),
+                  maxLines: 2,
+                  textCapitalization: TextCapitalization.sentences,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) => _handleSend(),
+                ),
+                const SizedBox(height: 12),
+
+                // Send update button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed:
+                        (_isSending || widget.isLoading) ? null : _handleSend,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: WandererTheme.primaryOrange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: _isSending
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Icon(Icons.send, size: 18),
+                    label: Text(_isSending
+                        ? context.l10n.sending
+                        : context.l10n.sendUpdate),
                   ),
                 ),
               ],

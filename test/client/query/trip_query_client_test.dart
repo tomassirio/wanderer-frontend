@@ -179,7 +179,7 @@ void main() {
 
     group('getCurrentUserTrips', () {
       test('successful retrieval returns user trips', () async {
-        final responseBody = [
+        final trips = [
           {
             'id': 'trip-1',
             'userId': 'user-123',
@@ -205,13 +205,14 @@ void main() {
             'updatedAt': DateTime.now().toIso8601String(),
           },
         ];
-        mockHttpClient.response = http.Response(jsonEncode(responseBody), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage(trips)), 200);
 
         final result = await tripQueryClient.getCurrentUserTrips();
 
-        expect(result.length, 2);
-        expect(result[0].userId, 'user-123');
-        expect(result[1].userId, 'user-123');
+        expect(result.content.length, 2);
+        expect(result.content[0].userId, 'user-123');
+        expect(result.content[1].userId, 'user-123');
         expect(mockHttpClient.lastMethod, 'GET');
         expect(mockHttpClient.lastUri?.path, endsWith(ApiEndpoints.tripsMe));
         expect(
@@ -221,7 +222,8 @@ void main() {
       });
 
       test('getCurrentUserTrips requires authentication', () async {
-        mockHttpClient.response = http.Response(jsonEncode([]), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage([])), 200);
 
         await tripQueryClient.getCurrentUserTrips();
 
@@ -231,11 +233,12 @@ void main() {
       test(
         'getCurrentUserTrips returns empty list when user has no trips',
         () async {
-          mockHttpClient.response = http.Response(jsonEncode([]), 200);
+          mockHttpClient.response =
+              http.Response(jsonEncode(_wrapInPage([])), 200);
 
           final result = await tripQueryClient.getCurrentUserTrips();
 
-          expect(result, isEmpty);
+          expect(result.content, isEmpty);
         },
       );
     });
@@ -338,7 +341,7 @@ void main() {
 
     group('getTripsByUser', () {
       test('successful retrieval returns user trips', () async {
-        final responseBody = [
+        final trips = [
           {
             'id': 'trip-1',
             'userId': 'user-456',
@@ -352,13 +355,14 @@ void main() {
             'updatedAt': DateTime.now().toIso8601String(),
           },
         ];
-        mockHttpClient.response = http.Response(jsonEncode(responseBody), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage(trips)), 200);
 
         final result = await tripQueryClient.getTripsByUser('user-456');
 
-        expect(result.length, 1);
-        expect(result[0].userId, 'user-456');
-        expect(result[0].username, 'otheruser');
+        expect(result.content.length, 1);
+        expect(result.content[0].userId, 'user-456');
+        expect(result.content[0].username, 'otheruser');
         expect(mockHttpClient.lastMethod, 'GET');
         expect(
           mockHttpClient.lastUri?.path,
@@ -371,7 +375,8 @@ void main() {
       });
 
       test('getTripsByUser requires authentication', () async {
-        mockHttpClient.response = http.Response(jsonEncode([]), 200);
+        mockHttpClient.response =
+            http.Response(jsonEncode(_wrapInPage([])), 200);
 
         await tripQueryClient.getTripsByUser('user-456');
 
@@ -393,11 +398,12 @@ void main() {
       test(
         'getTripsByUser returns empty list when user has no trips',
         () async {
-          mockHttpClient.response = http.Response(jsonEncode([]), 200);
+          mockHttpClient.response =
+              http.Response(jsonEncode(_wrapInPage([])), 200);
 
           final result = await tripQueryClient.getTripsByUser('user-456');
 
-          expect(result, isEmpty);
+          expect(result.content, isEmpty);
         },
       );
     });

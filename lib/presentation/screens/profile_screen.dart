@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/core/services/cache_service.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
@@ -318,7 +320,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (mounted) {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const AuthScreen()),
+            PageTransitions.fade(const AuthScreen()),
           ).then((_) {
             // Reload profile after returning from auth
             if (mounted) {
@@ -406,16 +408,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadSocialCounts() async {
     try {
       final results = await Future.wait([
-        _userService.getFollowers(),
-        _userService.getFollowing(),
-        _userService.getFriends(),
+        _userService.getFollowers(page: 0, size: 1),
+        _userService.getFollowing(page: 0, size: 1),
+        _userService.getFriends(page: 0, size: 1),
       ]);
 
       if (mounted) {
         setState(() {
-          _followersCount = (results[0] as List).length;
-          _followingCount = (results[1] as List).length;
-          _friendsCount = (results[2] as List).length;
+          _followersCount = results[0].totalElements;
+          _followingCount = results[1].totalElements;
+          _friendsCount = results[2].totalElements;
         });
       }
     } catch (e) {
@@ -428,16 +430,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadUserSocialCounts(String userId) async {
     try {
       final results = await Future.wait([
-        _userService.getUserFollowers(userId),
-        _userService.getUserFollowing(userId),
-        _userService.getUserFriends(userId),
+        _userService.getUserFollowers(userId, page: 0, size: 1),
+        _userService.getUserFollowing(userId, page: 0, size: 1),
+        _userService.getUserFriends(userId, page: 0, size: 1),
       ]);
 
       if (mounted) {
         setState(() {
-          _followersCount = (results[0] as List).length;
-          _followingCount = (results[1] as List).length;
-          _friendsCount = (results[2] as List).length;
+          _followersCount = results[0].totalElements;
+          _followingCount = results[1].totalElements;
+          _friendsCount = results[2].totalElements;
         });
       }
     } catch (e) {
@@ -450,12 +452,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadFriendshipStatus(String userId) async {
     try {
       // Check if already following this user
-      final following = await _userService.getFollowing();
-      final isFollowing = following.any((f) => f.followedId == userId);
+      final followingPage = await _userService.getFollowing(page: 0, size: 100);
+      final isFollowing =
+          followingPage.content.any((f) => f.followedId == userId);
 
       // Check if already friends
-      final friends = await _userService.getFriends();
-      final isAlreadyFriends = friends.any((f) => f.friendId == userId);
+      final friendsPage = await _userService.getFriends(page: 0, size: 100);
+      final isAlreadyFriends =
+          friendsPage.content.any((f) => f.friendId == userId);
 
       // Check if already sent a friend request
       final sentRequests = await _userService.getSentFriendRequests();
@@ -488,9 +492,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      final trips = _isViewingOwnProfile
-          ? await _repository.getMyTrips()
-          : await _repository.getUserTrips(userId);
+      final tripsPage = _isViewingOwnProfile
+          ? await _repository.getMyTrips(page: 0, size: 100)
+          : await _repository.getUserTrips(userId, page: 0, size: 100);
+
+      final trips = tripsPage.content;
       // Sort: ongoing trips first (inProgress > paused > resting > created > finished)
       trips.sort((a, b) {
         const statusPriority = {
@@ -535,7 +541,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         // Navigate to home screen and clear navigation stack
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          PageTransitions.fade(const HomeScreen()),
           (route) => false,
         );
       }
@@ -545,14 +551,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _handleSettings() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+      PageTransitions.slideFromBottom(const SettingsScreen()),
     );
   }
 
   Future<void> _navigateToAuth() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const AuthScreen()),
+      PageTransitions.fade(const AuthScreen()),
     );
 
     if (result == true || mounted) {
@@ -563,14 +569,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _navigateToTripDetail(Trip trip) {
     Navigator.push(
       context,
-      PageTransitions.slideUp(TripDetailScreen(trip: trip)),
+      PageTransitions.slideFromRight(TripDetailScreen(trip: trip)),
     );
   }
 
   void _navigateToFriendsFollowers() {
     Navigator.push(
       context,
-      PageTransitions.slideUp(const FriendsFollowersScreen()),
+      PageTransitions.slideFromBottom(const FriendsFollowersScreen()),
     );
   }
 
@@ -581,7 +587,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Navigate to own profile (without userId = current user's profile)
     Navigator.pushReplacement(
       context,
-      PageTransitions.slideRight(const ProfileScreen()),
+      PageTransitions.slideFromRight(const ProfileScreen()),
     );
   }
 
@@ -1260,7 +1266,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return buildInitialsFallback();
     }
 
-    // Has avatar - use ClipOval with Image.network for proper aspect ratio
+    // Has avatar - use ClipOval with CachedNetworkImage for proper aspect ratio
     return ClipOval(
       child: Container(
         width: radius * 2,
@@ -1268,25 +1274,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
         decoration: const BoxDecoration(
           color: WandererTheme.primaryOrange,
         ),
-        child: Image.network(
-          ApiEndpoints.resolveThumbnailUrl(avatarUrl),
-          key: ValueKey(
-              avatarUrl), // Key changes when URL changes (with timestamp)
+        child: CachedNetworkImage(
+          imageUrl: ApiEndpoints.resolveThumbnailUrl(avatarUrl),
+          key: ValueKey(avatarUrl),
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              alignment: Alignment.center,
-              color: WandererTheme.primaryOrange,
-              child: Text(
-                initials,
-                style: TextStyle(
-                  fontSize: radius * 0.8,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+          cacheManager: CacheService.userAvatarCache,
+          placeholder: (context, url) => Container(
+            alignment: Alignment.center,
+            color: WandererTheme.primaryOrange,
+            child: Text(
+              initials,
+              style: TextStyle(
+                fontSize: radius * 0.8,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
               ),
-            );
-          },
+            ),
+          ),
+          errorWidget: (context, url, error) => Container(
+            alignment: Alignment.center,
+            color: WandererTheme.primaryOrange,
+            child: Text(
+              initials,
+              style: TextStyle(
+                fontSize: radius * 0.8,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -2115,32 +2131,22 @@ class _ProfileTripCardState extends State<ProfileTripCard> {
       );
     }
 
-    return Image.network(
-      thumbnailUrl,
+    return CachedNetworkImage(
+      imageUrl: thumbnailUrl,
       fit: BoxFit.cover,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Container(
-          color: Colors.grey[300],
-          child: Center(
-            child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded /
-                      loadingProgress.expectedTotalBytes!
-                  : null,
-              strokeWidth: 2,
-            ),
-          ),
-        );
-      },
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          color: Colors.grey[300],
-          child: Center(
-            child: Icon(Icons.map, size: 32, color: Colors.grey[500]),
-          ),
-        );
-      },
+      cacheManager: CacheService.tripThumbnailCache,
+      placeholder: (context, url) => Container(
+        color: Colors.grey[300],
+        child: const Center(
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      errorWidget: (context, url, error) => Container(
+        color: Colors.grey[300],
+        child: Center(
+          child: Icon(Icons.map, size: 32, color: Colors.grey[500]),
+        ),
+      ),
     );
   }
 }

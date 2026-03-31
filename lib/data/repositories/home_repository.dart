@@ -78,11 +78,11 @@ class HomeRepository {
   /// Gets list of friends' user IDs
   Future<Set<String>> getFriendsIds() async {
     try {
-      final friendships = await _userService.getFriends();
+      final friendshipsPage = await _userService.getFriends(page: 0, size: 100);
       final userId = await getCurrentUserId();
       if (userId == null) return {};
 
-      return friendships
+      return friendshipsPage.content
           .map((f) => f.userId == userId ? f.friendId : f.userId)
           .toSet();
     } catch (e) {
@@ -94,21 +94,32 @@ class HomeRepository {
   /// Gets list of users being followed
   Future<Set<String>> getFollowingIds() async {
     try {
-      final following = await _userService.getFollowing();
-      return following.map((f) => f.followedId).toSet();
+      final followingPage = await _userService.getFollowing(page: 0, size: 100);
+      return followingPage.content.map((f) => f.followedId).toSet();
     } catch (e) {
       debugPrint('Error fetching following: $e');
       return {};
     }
   }
 
-  /// Gets current user's own trips
-  Future<List<Trip>> getMyTrips() async {
+  /// Gets current user's own trips (paginated)
+  Future<PageResponse<Trip>> getMyTrips({
+    int page = 0,
+    int size = 20,
+  }) async {
     try {
-      return await _tripService.getMyTrips();
+      return await _tripService.getMyTrips(page: page, size: size);
     } catch (e) {
       debugPrint('Error fetching my trips: $e');
-      return [];
+      return PageResponse(
+        content: [],
+        totalElements: 0,
+        totalPages: 0,
+        number: page,
+        size: size,
+        first: true,
+        last: true,
+      );
     }
   }
 
