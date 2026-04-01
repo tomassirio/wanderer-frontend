@@ -287,7 +287,7 @@ class CustomInfoWindow extends StatelessWidget {
                 WeatherHelpers.getWeatherLabel(condition),
                 style: TextStyle(
                   fontSize: 12,
-                  color: onSurface.withOpacity(0.6),
+                  color: weatherColor,
                 ),
               ),
             ],

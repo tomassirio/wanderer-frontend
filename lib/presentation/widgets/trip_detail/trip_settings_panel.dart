@@ -436,7 +436,9 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
         ],
 
         // Delete Trip — owner only, all statuses except finished
-        if (widget.onDeleteTrip != null && _isEditableStatus) ...[
+        if (widget.onDeleteTrip != null &&
+            widget.isOwner &&
+            _isEditableStatus) ...[
           const Divider(),
           const SizedBox(height: 8),
           SizedBox(
