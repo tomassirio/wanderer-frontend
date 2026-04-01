@@ -155,7 +155,6 @@ abstract class TripDetailLayoutStrategy {
   double calculateInfoColumnWidth(
       BoxConstraints constraints, TripDetailLayoutData data);
 
-  /// Build the left panel containing trip info and comments
   Widget buildLeftPanel(BoxConstraints constraints, TripDetailLayoutData data);
 
   /// Build the timeline panel (right side)

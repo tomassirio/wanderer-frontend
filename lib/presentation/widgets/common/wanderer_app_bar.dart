@@ -287,7 +287,8 @@ class _WandererAppBarState extends State<WandererAppBar>
     final l10n = context.l10n;
     return AppBar(
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      centerTitle: isDesktop,
+      centerTitle: false,
+      titleSpacing: 0,
       leading: widget.leading,
       title: Row(
         mainAxisSize: MainAxisSize.min,
