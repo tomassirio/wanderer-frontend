@@ -230,10 +230,16 @@ class WebSocketClient {
       }
 
       final Map<String, dynamic> data = jsonDecode(messageStr);
-      if (kDebugMode) {
-        debugPrint('WebSocket: Received message type: ${data['type']}');
-      }
-      _messageController.add(data);
+      debugPrint('WebSocket: Received message type: ${data['type']}, tripId: ${data['tripId']}, platform: ${kIsWeb ? "web" : "mobile"}');
+      
+      // Use scheduleMicrotask to ensure the event is delivered on web
+      // Web browsers handle event loops differently and this ensures
+      // the stream controller processes the message correctly
+      scheduleMicrotask(() {
+        if (!_messageController.isClosed) {
+          _messageController.add(data);
+        }
+      });
     } catch (e) {
       debugPrint('WebSocket: Error parsing message: $e');
     }
