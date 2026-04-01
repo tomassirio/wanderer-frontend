@@ -42,13 +42,81 @@ class MobileLayoutStrategy extends TripDetailLayoutStrategy {
         data.isTripSettingsCollapsed;
 
     if (allCollapsed) {
-      return Column(
+      return AnimatedSize(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        alignment: Alignment.topLeft, // Anchor to top-left for left panels
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Info bubble and settings bubble sit side-by-side in a Row.
+            // Settings is only visible when it has content (_hasContent check
+            // inside TripSettingsPanel), so when absent it collapses to zero.
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                tripInfoCard,
+                tripSettingsPanel,
+              ],
+            ),
+            commentsSection,
+          ],
+        ),
+      );
+    }
+    if (!data.isTripInfoCollapsed &&
+        data.isCommentsCollapsed &&
+        data.isTripSettingsCollapsed) {
+      // Trip info expanded: give the info card full width.
+      // The settings cog is accessible from the all-collapsed state.
+      return AnimatedSize(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        alignment: Alignment.topLeft, // Anchor to top-left for left panels
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: constraints.maxHeight * _maxHeightRatio,
+              ),
+              child: SingleChildScrollView(child: tripInfoCard),
+            ),
+            commentsSection,
+          ],
+        ),
+      );
+    }
+    if (data.isTripInfoCollapsed &&
+        !data.isTripSettingsCollapsed &&
+        data.isCommentsCollapsed) {
+      // Settings expanded: show only the settings panel — info and comments
+      // bubbles are hidden so the card stands alone (not sandwiched).
+      return AnimatedSize(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        alignment: Alignment.topLeft, // Anchor to top-left for left panels
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: constraints.maxHeight * _maxHeightRatio,
+          ),
+          child: SingleChildScrollView(child: tripSettingsPanel),
+        ),
+      );
+    }
+    // Comments expanded: keep info + settings bubbles side-by-side (same as
+    // the all-collapsed case) so the ⚙ cog doesn't jump below the ⓘ bubble.
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topLeft, // Anchor to top-left for left panels
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Info bubble and settings bubble sit side-by-side in a Row.
-          // Settings is only visible when it has content (_hasContent check
-          // inside TripSettingsPanel), so when absent it collapses to zero.
           Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,62 +125,14 @@ class MobileLayoutStrategy extends TripDetailLayoutStrategy {
               tripSettingsPanel,
             ],
           ),
-          commentsSection,
-        ],
-      );
-    }
-    if (!data.isTripInfoCollapsed &&
-        data.isCommentsCollapsed &&
-        data.isTripSettingsCollapsed) {
-      // Trip info expanded: give the info card full width.
-      // The settings cog is accessible from the all-collapsed state.
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
           ConstrainedBox(
             constraints: BoxConstraints(
               maxHeight: constraints.maxHeight * _maxHeightRatio,
             ),
-            child: SingleChildScrollView(child: tripInfoCard),
+            child: commentsSection,
           ),
-          commentsSection,
         ],
-      );
-    }
-    if (data.isTripInfoCollapsed &&
-        !data.isTripSettingsCollapsed &&
-        data.isCommentsCollapsed) {
-      // Settings expanded: show only the settings panel — info and comments
-      // bubbles are hidden so the card stands alone (not sandwiched).
-      return ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: constraints.maxHeight * _maxHeightRatio,
-        ),
-        child: SingleChildScrollView(child: tripSettingsPanel),
-      );
-    }
-    // Comments expanded: keep info + settings bubbles side-by-side (same as
-    // the all-collapsed case) so the ⚙ cog doesn't jump below the ⓘ bubble.
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            tripInfoCard,
-            tripSettingsPanel,
-          ],
-        ),
-        ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: constraints.maxHeight * _maxHeightRatio,
-          ),
-          child: commentsSection,
-        ),
-      ],
+      ),
     );
   }
 
@@ -123,33 +143,27 @@ class MobileLayoutStrategy extends TripDetailLayoutStrategy {
     final tripUpdatePanel =
         data.showTripUpdatePanel ? createTripUpdatePanel(data) : null;
 
-    if (!data.isTimelineCollapsed) {
-      return Column(
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topRight, // Anchor to top-right to prevent jumping
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Flexible(
-            child: ConstrainedBox(
+          if (!data.isTimelineCollapsed)
+            ConstrainedBox(
               constraints: BoxConstraints(
                 maxHeight: constraints.maxHeight * 0.6,
                 maxWidth: constraints.maxWidth * _expandedWidthRatio,
               ),
               child: timelinePanel,
-            ),
-          ),
+            )
+          else
+            timelinePanel,
           if (tripUpdatePanel != null) tripUpdatePanel,
         ],
-      );
-    }
-
-    // Both collapsed - show as column of bubbles
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        timelinePanel,
-        if (tripUpdatePanel != null) tripUpdatePanel,
-      ],
+      ),
     );
   }
 }

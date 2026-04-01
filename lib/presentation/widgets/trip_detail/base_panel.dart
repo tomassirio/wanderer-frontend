@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 
 /// Base panel component for trip detail panels
-/// Provides unified styling with instant show/hide (no animation)
+/// Provides unified animation and glassmorphism styling
 class BasePanel extends StatelessWidget {
   final bool isCollapsed;
   final Widget collapsedChild;
@@ -24,8 +24,36 @@ class BasePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Simply switch between collapsed and expanded with no animation
-    return isCollapsed ? collapsedChild : expandedChild;
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        // Use only fade transition to avoid diagonal scaling effect
+        return FadeTransition(
+          opacity: animation,
+          child: child,
+        );
+      },
+      layoutBuilder: (currentChild, previousChildren) {
+        return Stack(
+          alignment: Alignment.topRight,
+          children: [
+            ...previousChildren,
+            if (currentChild != null) currentChild,
+          ],
+        );
+      },
+      child: isCollapsed
+          ? KeyedSubtree(
+              key: const ValueKey('collapsed'),
+              child: collapsedChild,
+            )
+          : KeyedSubtree(
+              key: const ValueKey('expanded'),
+              child: expandedChild,
+            ),
+    );
   }
 }
 

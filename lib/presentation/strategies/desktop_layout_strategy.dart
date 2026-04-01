@@ -83,16 +83,21 @@ class DesktopLayoutStrategy extends TripDetailLayoutStrategy {
         data.isTripInfoCollapsed && data.isCommentsCollapsed;
 
     // The info + comments column (settings is NOT placed here; it goes to the right).
-    final Widget infoCommentsColumn = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: allCollapsed ? MainAxisSize.min : MainAxisSize.max,
-      children: [
-        tripInfoCard,
-        if (data.isCommentsCollapsed)
-          commentsSection
-        else
-          Expanded(child: commentsSection),
-      ],
+    final Widget infoCommentsColumn = AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topLeft, // Anchor to top-left for left panels
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: allCollapsed ? MainAxisSize.min : MainAxisSize.max,
+        children: [
+          tripInfoCard,
+          if (data.isCommentsCollapsed)
+            commentsSection
+          else
+            Expanded(child: commentsSection),
+        ],
+      ),
     );
 
     // Constrain the expanded settings card to a fixed width so that its
@@ -137,17 +142,22 @@ class DesktopLayoutStrategy extends TripDetailLayoutStrategy {
       return timelinePanel;
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisSize:
-          data.isTimelineCollapsed ? MainAxisSize.min : MainAxisSize.max,
-      children: [
-        if (data.isTimelineCollapsed)
-          timelinePanel
-        else
-          Expanded(child: timelinePanel),
-        tripUpdatePanel,
-      ],
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topRight, // Anchor to top-right to prevent jumping
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize:
+            data.isTimelineCollapsed ? MainAxisSize.min : MainAxisSize.max,
+        children: [
+          if (data.isTimelineCollapsed)
+            timelinePanel
+          else
+            Expanded(child: timelinePanel),
+          tripUpdatePanel,
+        ],
+      ),
     );
   }
 }
