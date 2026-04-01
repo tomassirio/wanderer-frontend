@@ -108,7 +108,8 @@ class WebSocketService {
     if (!_tripEventControllers.containsKey(tripId)) {
       _tripEventControllers[tripId] =
           StreamController<WebSocketEvent>.broadcast();
-      debugPrint('WebSocketService: Created stream controller for trip $tripId');
+      debugPrint(
+          'WebSocketService: Created stream controller for trip $tripId');
     }
 
     if (!_subscribedTrips.contains(tripId)) {
@@ -215,8 +216,9 @@ class WebSocketService {
   void _handleMessage(Map<String, dynamic> data) {
     try {
       final event = _parseEvent(data);
-      
-      debugPrint('WebSocketService: Handling event type: ${event.type}, tripId: ${event.tripId}');
+
+      debugPrint(
+          'WebSocketService: Handling event type: ${event.type}, tripId: ${event.tripId}');
 
       // Emit to global stream
       _eventController.add(event);
@@ -245,16 +247,19 @@ class WebSocketService {
             data['tripId'] as String? ?? payload?['tripId'] as String?;
       }
 
-      debugPrint('WebSocketService: Effective tripId: $effectiveTripId, has controller: ${_tripEventControllers.containsKey(effectiveTripId)}');
+      debugPrint(
+          'WebSocketService: Effective tripId: $effectiveTripId, has controller: ${_tripEventControllers.containsKey(effectiveTripId)}');
 
       // Emit to trip-specific stream if applicable
       if (effectiveTripId != null &&
           effectiveTripId.isNotEmpty &&
           _tripEventControllers.containsKey(effectiveTripId)) {
         _tripEventControllers[effectiveTripId]!.add(event);
-        debugPrint('WebSocketService: Event added to trip-specific stream for $effectiveTripId');
+        debugPrint(
+            'WebSocketService: Event added to trip-specific stream for $effectiveTripId');
       } else {
-        debugPrint('WebSocketService: No trip-specific stream for $effectiveTripId');
+        debugPrint(
+            'WebSocketService: No trip-specific stream for $effectiveTripId');
       }
 
       // Emit to user-specific streams for user relationship events

@@ -54,6 +54,16 @@ class DesktopLayoutStrategy extends TripDetailLayoutStrategy {
   }
 
   @override
+  double calculateInfoColumnWidth(
+      BoxConstraints constraints, TripDetailLayoutData data) {
+    if (data.isTripInfoCollapsed && data.isCommentsCollapsed) {
+      return _collapsedWidth;
+    }
+    return (constraints.maxWidth - _timelineWidth - _panelGap)
+        .clamp(_minExpandedWidth, _maxExpandedWidth);
+  }
+
+  @override
   bool shouldLeftPanelStretchToBottom(TripDetailLayoutData data) {
     return !(data.isTripInfoCollapsed && data.isCommentsCollapsed);
   }

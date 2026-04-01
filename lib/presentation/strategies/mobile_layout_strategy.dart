@@ -22,6 +22,12 @@ class MobileLayoutStrategy extends TripDetailLayoutStrategy {
   }
 
   @override
+  double calculateInfoColumnWidth(
+      BoxConstraints constraints, TripDetailLayoutData data) {
+    return calculateLeftPanelWidth(constraints, data);
+  }
+
+  @override
   bool shouldLeftPanelStretchToBottom(TripDetailLayoutData data) => false;
   @override
   bool shouldTimelinePanelStretchToBottom(TripDetailLayoutData data) => false;

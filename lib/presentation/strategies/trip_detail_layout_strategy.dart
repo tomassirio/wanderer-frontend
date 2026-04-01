@@ -150,6 +150,11 @@ abstract class TripDetailLayoutStrategy {
   double calculateLeftPanelWidth(
       BoxConstraints constraints, TripDetailLayoutData data);
 
+  /// Calculate the width of just the info/comments column (excluding settings panel).
+  /// Used for positioning elements that should not move with the settings panel.
+  double calculateInfoColumnWidth(
+      BoxConstraints constraints, TripDetailLayoutData data);
+
   /// Build the left panel containing trip info and comments
   Widget buildLeftPanel(BoxConstraints constraints, TripDetailLayoutData data);
 
