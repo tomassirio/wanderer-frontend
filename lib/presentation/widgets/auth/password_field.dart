@@ -31,6 +31,20 @@ class _PasswordFieldState extends State<PasswordField> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final labelText = widget.label ?? l10n.passwordLabel;
+
+    // Determine autofill hints based on context
+    List<String> autofillHints;
+    if (widget.compareController != null) {
+      // This is the confirm password field
+      autofillHints = const [AutofillHints.newPassword];
+    } else if (widget.isLogin) {
+      // This is the login password field
+      autofillHints = const [AutofillHints.password];
+    } else {
+      // This is the registration password field
+      autofillHints = const [AutofillHints.newPassword];
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -58,6 +72,7 @@ class _PasswordFieldState extends State<PasswordField> {
           obscureText: _obscurePassword,
           textInputAction: widget.textInputAction ?? TextInputAction.done,
           onFieldSubmitted: widget.onFieldSubmitted,
+          autofillHints: autofillHints,
           validator: (value) {
             if (value == null || value.isEmpty) {
               return l10n.pleaseEnterPassword;
