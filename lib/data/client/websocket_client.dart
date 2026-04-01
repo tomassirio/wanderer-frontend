@@ -72,8 +72,11 @@ class WebSocketClient {
 
   /// Connect to the WebSocket server
   Future<void> connect() async {
+    debugPrint('WebSocket: connect() called, current state: $_connectionState, platform: ${kIsWeb ? "web" : "mobile"}');
+    
     if (_connectionState == WebSocketConnectionState.connected ||
         _connectionState == WebSocketConnectionState.connecting) {
+      debugPrint('WebSocket: Already connected or connecting, skipping');
       return;
     }
 
@@ -98,6 +101,8 @@ class WebSocketClient {
       }
 
       final wsUrl = _buildWebSocketUrl(token);
+      
+      debugPrint('WebSocket: Built URL - host: ${Uri.parse(wsUrl).host}, port: ${Uri.parse(wsUrl).port}, path: ${Uri.parse(wsUrl).path}');
 
       // Skip connection if URL appears to be pointing to Flutter dev server
       // ONLY if the path isn't our actual websocket endpoint (/ws)
@@ -121,8 +126,10 @@ class WebSocketClient {
 
       // Use platform-specific WebSocket implementation
       if (kIsWeb) {
+        debugPrint('WebSocket: Using web WebSocketChannel.connect()');
         _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
       } else {
+        debugPrint('WebSocket: Using native IOWebSocketChannel.connect()');
         _channel = IOWebSocketChannel.connect(
           wsUrl,
           pingInterval: const Duration(seconds: 30),
