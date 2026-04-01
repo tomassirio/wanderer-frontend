@@ -144,9 +144,10 @@ class CustomInfoWindow extends StatelessWidget {
             _buildDivider(),
             const SizedBox(height: 8),
             _buildTimestampRow(),
-            if (location.distanceSoFarKm != null) ...[
+            if (location.distanceSoFarKm != null ||
+                location.weatherCondition != null) ...[
               const SizedBox(height: 6),
-              _buildDistanceRow(),
+              _buildDistanceWeatherRow(),
             ],
             const SizedBox(height: 6),
             _buildMessageBatteryRow(),
@@ -245,16 +246,6 @@ class CustomInfoWindow extends StatelessWidget {
                   ),
                 ),
               ],
-              if (condition != null) ...[
-                const SizedBox(width: 4),
-                Text(
-                  WeatherHelpers.getWeatherLabel(condition),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: onSurface.withOpacity(0.6),
-                  ),
-                ),
-              ],
             ],
           ],
         ),
@@ -262,27 +253,44 @@ class CustomInfoWindow extends StatelessWidget {
     });
   }
 
-  Widget _buildDistanceRow() {
+  Widget _buildDistanceWeatherRow() {
+    final condition = location.weatherCondition;
+    final weatherColor =
+        condition != null ? WeatherHelpers.getWeatherColor(condition) : null;
+
     return Builder(builder: (context) {
       final onSurface = Theme.of(context).colorScheme.onSurface;
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: Row(
           children: [
-            Icon(
-              Icons.straighten,
-              size: 14,
-              color: onSurface.withOpacity(0.6),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              '${location.distanceSoFarKm!.toStringAsFixed(1)} km traveled',
-              style: TextStyle(
-                fontSize: 13,
-                color: onSurface.withOpacity(0.7),
-                fontWeight: FontWeight.w600,
+            if (location.distanceSoFarKm != null) ...[
+              Icon(
+                Icons.straighten,
+                size: 14,
+                color: onSurface.withOpacity(0.6),
               ),
-            ),
+              const SizedBox(width: 4),
+              Text(
+                '${location.distanceSoFarKm!.toStringAsFixed(1)} km traveled',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: onSurface.withOpacity(0.7),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+            if (condition != null) ...[
+              const Spacer(),
+              const SizedBox(width: 4),
+              Text(
+                WeatherHelpers.getWeatherLabel(condition),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: onSurface.withOpacity(0.6),
+                ),
+              ),
+            ],
           ],
         ),
       );

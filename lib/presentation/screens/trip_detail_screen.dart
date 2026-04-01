@@ -2801,7 +2801,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                         bottom: 16,
                         child: _buildDonationButton(),
                       )
-                    : Positioned(
+                    : AnimatedPositioned(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
                         left: _isCommentsCollapsed
                             ? 16.0
                             : strategy.calculateInfoColumnWidth(
