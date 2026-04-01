@@ -72,12 +72,8 @@ class WebSocketClient {
 
   /// Connect to the WebSocket server
   Future<void> connect() async {
-    debugPrint(
-        'WebSocket: connect() called, current state: $_connectionState, platform: ${kIsWeb ? "web" : "mobile"}');
-
     if (_connectionState == WebSocketConnectionState.connected ||
         _connectionState == WebSocketConnectionState.connecting) {
-      debugPrint('WebSocket: Already connected or connecting, skipping');
       return;
     }
 
@@ -96,15 +92,6 @@ class WebSocketClient {
 
       // Allow connection without token for guest users viewing public trips
       final wsUrl = _buildWebSocketUrl(token);
-
-      debugPrint(
-          'WebSocket: Built URL - host: ${Uri.parse(wsUrl).host}, port: ${Uri.parse(wsUrl).port}, path: ${Uri.parse(wsUrl).path}');
-
-      if (token == null || token.isEmpty) {
-        debugPrint('WebSocket: Connecting as anonymous user (no token)');
-      } else {
-        debugPrint('WebSocket: Connecting as authenticated user');
-      }
 
       // Skip connection if URL appears to be pointing to Flutter dev server
       // ONLY if the path isn't our actual websocket endpoint (/ws)
@@ -128,10 +115,8 @@ class WebSocketClient {
 
       // Use platform-specific WebSocket implementation
       if (kIsWeb) {
-        debugPrint('WebSocket: Using web WebSocketChannel.connect()');
         _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
       } else {
-        debugPrint('WebSocket: Using native IOWebSocketChannel.connect()');
         _channel = IOWebSocketChannel.connect(
           wsUrl,
           pingInterval: const Duration(seconds: 30),
@@ -239,8 +224,6 @@ class WebSocketClient {
       }
 
       final Map<String, dynamic> data = jsonDecode(messageStr);
-      debugPrint(
-          'WebSocket: Received message type: ${data['type']}, tripId: ${data['tripId']}, platform: ${kIsWeb ? "web" : "mobile"}');
 
       // Use scheduleMicrotask to ensure the event is delivered on web
       // Web browsers handle event loops differently and this ensures
