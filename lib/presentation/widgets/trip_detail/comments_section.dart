@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
@@ -6,6 +5,7 @@ import 'package:wanderer_frontend/presentation/widgets/trip_detail/comment_card.
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/comment_input.dart';
 import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/base_panel.dart';
 
 enum CommentSortOption { latest, oldest, mostReplies, mostReactions }
 
@@ -69,321 +69,218 @@ class CommentsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedCrossFade(
-      duration: const Duration(milliseconds: 300),
-      firstCurve: Curves.easeInOut,
-      secondCurve: Curves.easeInOut,
-      sizeCurve: Curves.easeInOut,
-      alignment: Alignment.topLeft,
-      crossFadeState:
-          isCollapsed ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-      firstChild: _buildCollapsedBubble(context),
-      secondChild: _buildExpandedSection(context),
-    );
-  }
+    final l10n = context.l10n;
+    final badgeText = comments.isEmpty
+        ? null
+        : (comments.length > 99
+            ? '99+'
+            : '${comments.length}${hasMore ? '+' : ''}');
 
-  /// Collapsed state - floating bubble with comment icon and count badge
-  Widget _buildCollapsedBubble(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(left: 16, bottom: 16),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: WandererTheme.floatingShadow,
+    return BasePanel(
+      isCollapsed: isCollapsed,
+      collapsedMargin: const EdgeInsets.only(left: 16, bottom: 16),
+      expandedMargin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+      collapsedChild: CollapsedBubble(
+        icon: Icons.chat_bubble_outline,
+        onTap: onToggleCollapse,
+        badgeText: badgeText,
+        margin: const EdgeInsets.only(left: 16, bottom: 16),
       ),
-      child: ClipOval(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: WandererTheme.glassBlurSigma,
-            sigmaY: WandererTheme.glassBlurSigma,
-          ),
-          child: Material(
-            color: WandererTheme.glassBackgroundFor(context),
-            shape: CircleBorder(
-              side: BorderSide(
-                color: WandererTheme.glassBorderColorFor(context),
-                width: 1,
-              ),
-            ),
-            child: InkWell(
-              onTap: onToggleCollapse,
-              customBorder: const CircleBorder(),
-              child: Stack(
-                children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.chat_bubble_outline,
-                      size: 24,
-                      color: WandererTheme.primaryOrange,
+      expandedChild: ExpandedCard(
+        margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Comments section header — compact style matching TripInfoCard
+            Row(
+              children: [
+                Icon(
+                  Icons.chat_bubble_outline,
+                  size: 18,
+                  color: WandererTheme.primaryOrange,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${comments.length}${hasMore ? '+' : ''} ${l10n.comments}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
-                  // Badge with count
-                  if (comments.isNotEmpty)
-                    Positioned(
-                      right: 4,
-                      top: 4,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: WandererTheme.primaryOrange,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 18,
-                          minHeight: 18,
-                        ),
-                        child: Center(
-                          child: Text(
-                            comments.length > 99
-                                ? '99+'
-                                : '${comments.length}${hasMore ? '+' : ''}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
+                ),
+                PopupMenuButton<CommentSortOption>(
+                  icon: Icon(
+                    Icons.sort,
+                    size: 16,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.6),
+                  ),
+                  onSelected: onSortChanged,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 28,
+                    minHeight: 28,
+                  ),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: CommentSortOption.latest,
+                      child: Text(l10n.latestFirst),
                     ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Expanded state - full comments section
-  Widget _buildExpandedSection(BuildContext context) {
-    final l10n = context.l10n;
-    return Container(
-      margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(WandererTheme.glassRadius),
-        boxShadow: WandererTheme.floatingShadow,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(WandererTheme.glassRadius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: WandererTheme.glassBlurSigma,
-            sigmaY: WandererTheme.glassBlurSigma,
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: WandererTheme.glassBackgroundFor(context),
-              borderRadius: BorderRadius.circular(WandererTheme.glassRadius),
-              border: Border.all(
-                color: WandererTheme.glassBorderColorFor(context),
-                width: 1,
-              ),
-            ),
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Comments section header — compact style matching TripInfoCard
-                Row(
-                  children: [
-                    Icon(
-                      Icons.chat_bubble_outline,
-                      size: 18,
-                      color: WandererTheme.primaryOrange,
+                    PopupMenuItem(
+                      value: CommentSortOption.oldest,
+                      child: Text(l10n.oldestFirst),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '${comments.length}${hasMore ? '+' : ''} ${l10n.comments}',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
+                    PopupMenuItem(
+                      value: CommentSortOption.mostReplies,
+                      child: Text(l10n.mostReplies),
                     ),
-                    PopupMenuButton<CommentSortOption>(
-                      icon: Icon(
-                        Icons.sort,
-                        size: 16,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withOpacity(0.6),
-                      ),
-                      onSelected: onSortChanged,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 28,
-                        minHeight: 28,
-                      ),
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: CommentSortOption.latest,
-                          child: Text(l10n.latestFirst),
-                        ),
-                        PopupMenuItem(
-                          value: CommentSortOption.oldest,
-                          child: Text(l10n.oldestFirst),
-                        ),
-                        PopupMenuItem(
-                          value: CommentSortOption.mostReplies,
-                          child: Text(l10n.mostReplies),
-                        ),
-                        PopupMenuItem(
-                          value: CommentSortOption.mostReactions,
-                          child: Text(l10n.mostReactions),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.remove,
-                          size: 16,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.6),
-                        ),
-                        onPressed: onToggleCollapse,
-                        tooltip: 'Minimize',
-                        padding: EdgeInsets.zero,
-                      ),
+                    PopupMenuItem(
+                      value: CommentSortOption.mostReactions,
+                      child: Text(l10n.mostReactions),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                // Comments list
-                Flexible(
-                  child: isLoading
-                      ? const SizedBox(
-                          height: 100,
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              color: WandererTheme.primaryOrange,
-                            ),
-                          ),
-                        )
-                      : comments.isEmpty
-                          ? _buildEmptyCommentsState(context)
-                          : ListView.builder(
-                              key: const PageStorageKey('trip_comments_list'),
-                              controller: scrollController,
-                              shrinkWrap: true,
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              itemCount: comments.length + (hasMore ? 1 : 0),
-                              itemBuilder: (context, index) {
-                                if (index == comments.length) {
-                                  return _buildLoadMoreButton(context);
-                                }
-                                final comment = comments[index];
-                                final isExpanded =
-                                    expandedComments[comment.id] ?? false;
-                                final commentReplies =
-                                    replies[comment.id] ?? [];
-
-                                return CommentCard(
-                                  comment: comment,
-                                  tripUserId: tripUserId,
-                                  currentUserId: currentUserId,
-                                  isExpanded: isExpanded,
-                                  replies: commentReplies,
-                                  onReact: () => onReact(comment.id),
-                                  onReactionChipTap: (type) =>
-                                      onReactionChipTap(comment.id, type),
-                                  onReply: () => onReply(comment.id),
-                                  onToggleReplies: () =>
-                                      onToggleReplies(comment.id, isExpanded),
-                                  isLoggedIn: isLoggedIn,
-                                );
-                              },
-                            ),
-                ),
-                // Comment input (disabled if not logged in)
-                if (isLoggedIn)
-                  CommentInput(
-                    controller: commentController,
-                    isAddingComment: isAddingComment,
-                    isReplyMode: replyingToCommentId != null,
-                    onSend: onSendComment,
-                    onCancelReply: onCancelReply,
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
+                const SizedBox(width: 6),
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.remove,
+                      size: 16,
                       color: Theme.of(context)
                           .colorScheme
                           .onSurface
-                          .withOpacity(0.08),
-                      border: Border(
-                        top: BorderSide(
-                          color: WandererTheme.glassBorderColorFor(context),
-                          width: 0.5,
-                        ),
-                      ),
+                          .withOpacity(0.6),
                     ),
-                    child: Center(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AuthScreen(),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: WandererTheme.primaryOrange,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: Text(
-                          l10n.pleaseLogInToComment,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
+                    onPressed: onToggleCollapse,
+                    tooltip: 'Minimize',
+                    padding: EdgeInsets.zero,
                   ),
-                if (bottomWidget != null)
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      left: 12,
-                      right: 12,
-                      bottom: 12,
-                    ),
-                    child: Center(child: bottomWidget!),
-                  ),
+                ),
               ],
             ),
-          ),
+            const SizedBox(height: 6),
+            // Comments list
+            Flexible(
+              child: isLoading
+                  ? const SizedBox(
+                      height: 100,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: WandererTheme.primaryOrange,
+                        ),
+                      ),
+                    )
+                  : comments.isEmpty
+                      ? _buildEmptyCommentsState(context)
+                      : ListView.builder(
+                          key: const PageStorageKey('trip_comments_list'),
+                          controller: scrollController,
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: comments.length + (hasMore ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == comments.length) {
+                              return _buildLoadMoreButton(context);
+                            }
+                            final comment = comments[index];
+                            final isExpanded =
+                                expandedComments[comment.id] ?? false;
+                            final commentReplies = replies[comment.id] ?? [];
+
+                            return CommentCard(
+                              comment: comment,
+                              tripUserId: tripUserId,
+                              currentUserId: currentUserId,
+                              isExpanded: isExpanded,
+                              replies: commentReplies,
+                              onReact: () => onReact(comment.id),
+                              onReactionChipTap: (type) =>
+                                  onReactionChipTap(comment.id, type),
+                              onReply: () => onReply(comment.id),
+                              onToggleReplies: () =>
+                                  onToggleReplies(comment.id, isExpanded),
+                              isLoggedIn: isLoggedIn,
+                            );
+                          },
+                        ),
+            ),
+            // Comment input (disabled if not logged in)
+            if (isLoggedIn)
+              CommentInput(
+                controller: commentController,
+                isAddingComment: isAddingComment,
+                isReplyMode: replyingToCommentId != null,
+                onSend: onSendComment,
+                onCancelReply: onCancelReply,
+              )
+            else
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
+                  border: Border(
+                    top: BorderSide(
+                      color: WandererTheme.glassBorderColorFor(context),
+                      width: 0.5,
+                    ),
+                  ),
+                ),
+                child: Center(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AuthScreen(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: WandererTheme.primaryOrange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Text(
+                      l10n.pleaseLogInToComment,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (bottomWidget != null)
+              Padding(
+                padding: const EdgeInsets.only(
+                  left: 12,
+                  right: 12,
+                  bottom: 12,
+                ),
+                child: Center(child: bottomWidget!),
+              ),
+          ],
         ),
       ),
     );

@@ -288,6 +288,7 @@ class _WandererAppBarState extends State<WandererAppBar>
     return AppBar(
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       centerTitle: isDesktop,
+      titleSpacing: isDesktop ? null : 0,
       leading: widget.leading,
       title: Row(
         mainAxisSize: MainAxisSize.min,

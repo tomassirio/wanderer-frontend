@@ -85,18 +85,12 @@ class WebSocketClient {
     _updateConnectionState(WebSocketConnectionState.connecting);
 
     try {
-      // Ensure token is valid before connecting
+      // Ensure token is valid before connecting (for authenticated users)
       await _ensureValidToken();
 
       final token = await _tokenStorage.getAccessToken();
 
-      if (token == null || token.isEmpty) {
-        debugPrint('WebSocket: No access token available, cannot connect');
-        _updateConnectionState(WebSocketConnectionState.disconnected);
-        _shouldReconnect = false;
-        return;
-      }
-
+      // Allow connection without token for guest users viewing public trips
       final wsUrl = _buildWebSocketUrl(token);
 
       // Skip connection if URL appears to be pointing to Flutter dev server
@@ -230,10 +224,15 @@ class WebSocketClient {
       }
 
       final Map<String, dynamic> data = jsonDecode(messageStr);
-      if (kDebugMode) {
-        debugPrint('WebSocket: Received message type: ${data['type']}');
-      }
-      _messageController.add(data);
+
+      // Use scheduleMicrotask to ensure the event is delivered on web
+      // Web browsers handle event loops differently and this ensures
+      // the stream controller processes the message correctly
+      scheduleMicrotask(() {
+        if (!_messageController.isClosed) {
+          _messageController.add(data);
+        }
+      });
     } catch (e) {
       debugPrint('WebSocket: Error parsing message: $e');
     }

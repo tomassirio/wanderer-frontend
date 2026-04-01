@@ -81,97 +81,99 @@ class _AuthFormState extends State<AuthForm> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: EdgeInsets.all(widget.isLogin ? 24 : 20),
-        child: Form(
-          key: widget.formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              AuthHeader(isLogin: widget.isLogin),
-              SizedBox(height: widget.isLogin ? 32 : 20),
+        child: AutofillGroup(
+          child: Form(
+            key: widget.formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AuthHeader(isLogin: widget.isLogin),
+                SizedBox(height: widget.isLogin ? 32 : 20),
 
-              // Username field
-              UsernameField(
-                controller: widget.usernameController,
-                isLogin: widget.isLogin,
-                textInputAction: TextInputAction.next,
-              ),
-              SizedBox(height: widget.isLogin ? 16 : 12),
-
-              // Email field (only for registration)
-              if (!widget.isLogin) ...[
-                EmailField(
-                  controller: widget.emailController,
+                // Username field
+                UsernameField(
+                  controller: widget.usernameController,
+                  isLogin: widget.isLogin,
                   textInputAction: TextInputAction.next,
                 ),
-                const SizedBox(height: 12),
-              ],
+                SizedBox(height: widget.isLogin ? 16 : 12),
 
-              // Password field
-              PasswordField(
-                controller: widget.passwordController,
-                label: l10n.passwordLabel,
-                isLogin: widget.isLogin,
-                textInputAction: widget.isLogin
-                    ? TextInputAction.done
-                    : TextInputAction.next,
-                onFieldSubmitted: widget.isLogin
-                    ? (_) => widget.isLoading ? null : widget.onSubmit()
-                    : null,
-              ),
-              SizedBox(height: widget.isLogin ? 16 : 12),
-
-              // Confirm password field (only for registration)
-              if (!widget.isLogin) ...[
-                PasswordField(
-                  controller: widget.confirmPasswordController,
-                  label: l10n.confirmPassword,
-                  isLogin: false,
-                  compareController: widget.passwordController,
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) =>
-                      widget.isLoading ? null : widget.onSubmit(),
-                ),
-                const SizedBox(height: 8),
-                _buildPasswordRequirements(context, l10n),
-                const SizedBox(height: 12),
-              ],
-
-              // Forgot password button (only for login)
-              if (widget.isLogin)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed:
-                        widget.isLoading ? null : widget.onForgotPassword,
-                    child: Text(l10n.forgotPassword),
+                // Email field (only for registration)
+                if (!widget.isLogin) ...[
+                  EmailField(
+                    controller: widget.emailController,
+                    textInputAction: TextInputAction.next,
                   ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Password field
+                PasswordField(
+                  controller: widget.passwordController,
+                  label: l10n.passwordLabel,
+                  isLogin: widget.isLogin,
+                  textInputAction: widget.isLogin
+                      ? TextInputAction.done
+                      : TextInputAction.next,
+                  onFieldSubmitted: widget.isLogin
+                      ? (_) => widget.isLoading ? null : widget.onSubmit()
+                      : null,
+                ),
+                SizedBox(height: widget.isLogin ? 16 : 12),
+
+                // Confirm password field (only for registration)
+                if (!widget.isLogin) ...[
+                  PasswordField(
+                    controller: widget.confirmPasswordController,
+                    label: l10n.confirmPassword,
+                    isLogin: false,
+                    compareController: widget.passwordController,
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) =>
+                        widget.isLoading ? null : widget.onSubmit(),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildPasswordRequirements(context, l10n),
+                  const SizedBox(height: 12),
+                ],
+
+                // Forgot password button (only for login)
+                if (widget.isLogin)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed:
+                          widget.isLoading ? null : widget.onForgotPassword,
+                      child: Text(l10n.forgotPassword),
+                    ),
+                  ),
+
+                // Error message
+                if (widget.errorMessage != null) ...[
+                  const SizedBox(height: 8),
+                  ErrorMessage(message: widget.errorMessage!),
+                ],
+
+                const SizedBox(height: 16),
+
+                // Submit button
+                AuthSubmitButton(
+                  isLogin: widget.isLogin,
+                  isLoading: widget.isLoading,
+                  onPressed: widget.onSubmit,
                 ),
 
-              // Error message
-              if (widget.errorMessage != null) ...[
-                const SizedBox(height: 8),
-                ErrorMessage(message: widget.errorMessage!),
+                SizedBox(height: widget.isLogin ? 16 : 12),
+
+                // Toggle login/register
+                AuthModeToggle(
+                  isLogin: widget.isLogin,
+                  isLoading: widget.isLoading,
+                  onToggle: widget.onToggleMode,
+                ),
               ],
-
-              const SizedBox(height: 16),
-
-              // Submit button
-              AuthSubmitButton(
-                isLogin: widget.isLogin,
-                isLoading: widget.isLoading,
-                onPressed: widget.onSubmit,
-              ),
-
-              SizedBox(height: widget.isLogin ? 16 : 12),
-
-              // Toggle login/register
-              AuthModeToggle(
-                isLogin: widget.isLogin,
-                isLoading: widget.isLoading,
-                onToggle: widget.onToggleMode,
-              ),
-            ],
+            ),
           ),
         ),
       ),

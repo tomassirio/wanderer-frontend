@@ -28,6 +28,7 @@ class EmailField extends StatelessWidget {
       textCapitalization: TextCapitalization.none,
       textInputAction: textInputAction ?? TextInputAction.next,
       onFieldSubmitted: onFieldSubmitted,
+      autofillHints: const [AutofillHints.email],
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
           return l10n.pleaseEnterEmail;

@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +5,7 @@ import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/base_panel.dart';
 
 /// Minimum allowed update interval in minutes (Android WorkManager limitation)
 const int _settingsMinIntervalMinutes = 15;
@@ -225,367 +225,248 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
   Widget build(BuildContext context) {
     if (!_hasContent) return const SizedBox.shrink();
 
-    // Evaluate once so sub-methods can use it
     final effectiveIsWeb = widget.isWeb ?? kIsWeb;
 
-    return AnimatedCrossFade(
-      duration: const Duration(milliseconds: 300),
-      firstCurve: Curves.easeInOut,
-      secondCurve: Curves.easeInOut,
-      sizeCurve: Curves.easeInOut,
-      alignment: Alignment.topLeft,
-      crossFadeState: widget.isCollapsed
-          ? CrossFadeState.showFirst
-          : CrossFadeState.showSecond,
-      firstChild: _buildCollapsedBubble(),
-      secondChild: _buildExpandedCard(context, effectiveIsWeb),
-    );
-  }
-
-  Widget _buildCollapsedBubble() {
-    return Container(
-      margin: const EdgeInsets.only(top: 16, right: 16, bottom: 8),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: WandererTheme.floatingShadow,
+    return BasePanel(
+      isCollapsed: widget.isCollapsed,
+      collapsedMargin: const EdgeInsets.only(top: 16, right: 16, bottom: 8),
+      collapsedChild: CollapsedBubble(
+        icon: Icons.settings,
+        onTap: widget.onToggleCollapse,
+        margin: const EdgeInsets.only(top: 16, right: 16, bottom: 8),
       ),
-      child: ClipOval(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: WandererTheme.glassBlurSigma,
-            sigmaY: WandererTheme.glassBlurSigma,
-          ),
-          child: Material(
-            color: WandererTheme.glassBackgroundFor(context),
-            shape: CircleBorder(
-              side: BorderSide(
-                color: WandererTheme.glassBorderColorFor(context),
-                width: 1,
-              ),
-            ),
-            child: InkWell(
-              onTap: widget.onToggleCollapse,
-              customBorder: const CircleBorder(),
-              child: Container(
-                width: 56,
-                height: 56,
-                decoration: const BoxDecoration(shape: BoxShape.circle),
-                child: const Icon(
-                  Icons.settings,
-                  size: 24,
-                  color: WandererTheme.primaryOrange,
-                ),
-              ),
-            ),
-          ),
-        ),
+      expandedChild: ExpandedCard(
+        child: _buildContent(context, effectiveIsWeb),
       ),
     );
   }
 
-  Widget _buildExpandedCard(BuildContext context, bool effectiveIsWeb) {
+  Widget _buildContent(BuildContext context, bool effectiveIsWeb) {
     final l10n = context.l10n;
-    return Container(
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(WandererTheme.glassRadius),
-        boxShadow: WandererTheme.floatingShadow,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(WandererTheme.glassRadius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: WandererTheme.glassBlurSigma,
-            sigmaY: WandererTheme.glassBlurSigma,
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: WandererTheme.glassBackgroundFor(context),
-              borderRadius: BorderRadius.circular(WandererTheme.glassRadius),
-              border: Border.all(
-                color: WandererTheme.glassBorderColorFor(context),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header row
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.settings,
-                      size: 18,
-                      color: WandererTheme.primaryOrange,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        l10n.tripSettings,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.remove,
-                          size: 16,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.6),
-                        ),
-                        onPressed: widget.onToggleCollapse,
-                        tooltip: 'Minimize',
-                        padding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        PanelHeader(
+          icon: Icons.settings,
+          title: l10n.tripSettings,
+          onMinimize: widget.onToggleCollapse,
+        ),
+        const SizedBox(height: 12),
+
+        // Show Planned Route toggle — available to ALL users on ALL platforms
+        // when the trip was created from a plan.
+        if (widget.tripHasPlannedRoute &&
+            widget.onTogglePlannedWaypoints != null) ...[
+          _buildPlannedRouteToggle(context, l10n),
+          if (widget.isOwner && _isEditableStatus) const SizedBox(height: 12),
+        ],
+
+        // Owner-only settings — when trip is created or in progress
+        if (widget.isOwner && _isEditableStatus) ...[
+          // Trip Type selector — available on all platforms when not
+          // already multi-day (irreversible once set).
+          _buildSectionLabel(context, Icons.route, l10n.tripType),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _buildModalityButton(
+                  context: context,
+                  label: l10n.simple,
+                  modality: TripModality.simple,
                 ),
-                const SizedBox(height: 12),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildModalityButton(
+                  context: context,
+                  label: l10n.multiDay,
+                  modality: TripModality.multiDay,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
 
-                // Show Planned Route toggle — available to ALL users on ALL platforms
-                // when the trip was created from a plan.
-                if (widget.tripHasPlannedRoute &&
-                    widget.onTogglePlannedWaypoints != null) ...[
-                  _buildPlannedRouteToggle(),
-                  if (widget.isOwner && _isEditableStatus)
-                    const SizedBox(height: 12),
-                ],
-
-                // Owner-only settings — when trip is created or in progress
-                if (widget.isOwner && _isEditableStatus) ...[
-                  // Trip Type selector — available on all platforms when not
-                  // already multi-day (irreversible once set).
-                  _buildSectionLabel(Icons.route, l10n.tripType),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildModalityButton(
-                          label: l10n.simple,
-                          modality: TripModality.simple,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildModalityButton(
-                          label: l10n.multiDay,
-                          modality: TripModality.multiDay,
-                        ),
-                      ),
-                    ],
+          // Automatic Updates — mobile only (WorkManager / background
+          // location is an Android concept; not applicable on web).
+          if (!effectiveIsWeb) ...[
+            Row(
+              children: [
+                Icon(
+                  Icons.update,
+                  size: 16,
+                  color:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  l10n.automaticUpdates,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
-                  const SizedBox(height: 12),
-
-                  // Automatic Updates — mobile only (WorkManager / background
-                  // location is an Android concept; not applicable on web).
-                  if (!effectiveIsWeb) ...[
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.update,
-                          size: 16,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.6),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          l10n.automaticUpdates,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                        ),
-                        const Spacer(),
-                        Switch(
-                          value: _automaticUpdates,
-                          onChanged: widget.isLoading || !_isTripInProgress
-                              ? null
-                              : (value) {
-                                  setState(() {
-                                    _automaticUpdates = value;
-                                  });
-                                  // Auto-save immediately on toggle so the
-                                  // backend is always in sync. Previously only
-                                  // toggling OFF was auto-saved, which meant
-                                  // enabling updates was never persisted until
-                                  // the user also changed the interval.
-                                  final minutes =
-                                      int.tryParse(_intervalController.text);
-                                  final seconds =
-                                      minutes != null ? minutes * 60 : null;
-                                  widget.onSettingsChange
-                                      ?.call(value, seconds, _tripModality);
-                                },
-                          activeColor: WandererTheme.primaryOrange,
-                        ),
+                ),
+                const Spacer(),
+                Switch(
+                  value: _automaticUpdates,
+                  onChanged: widget.isLoading || !_isTripInProgress
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _automaticUpdates = value;
+                          });
+                          // Auto-save immediately on toggle so the
+                          // backend is always in sync. Previously only
+                          // toggling OFF was auto-saved, which meant
+                          // enabling updates was never persisted until
+                          // the user also changed the interval.
+                          final minutes =
+                              int.tryParse(_intervalController.text);
+                          final seconds = minutes != null ? minutes * 60 : null;
+                          widget.onSettingsChange
+                              ?.call(value, seconds, _tripModality);
+                        },
+                  activeColor: WandererTheme.primaryOrange,
+                ),
+              ],
+            ),
+            if (!_isTripInProgress && _automaticUpdates) ...[
+              const SizedBox(height: 4),
+              Text(
+                l10n.willActivateWhenStarted,
+                style: TextStyle(
+                  fontSize: 11,
+                  color:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+            if (_automaticUpdates && _isTripInProgress) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _intervalController,
+                      enabled: !widget.isLoading,
+                      keyboardType: TextInputType.number,
+                      textCapitalization: TextCapitalization.none,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
                       ],
-                    ),
-                    if (!_isTripInProgress && _automaticUpdates) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        l10n.willActivateWhenStarted,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.6),
-                          fontStyle: FontStyle.italic,
+                      decoration: InputDecoration(
+                        labelText:
+                            'Update Interval (min $_settingsMinIntervalMinutes min)',
+                        hintText: 'e.g., 15',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      ),
-                    ],
-                    if (_automaticUpdates && _isTripInProgress) ...[
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _intervalController,
-                              enabled: !widget.isLoading,
-                              keyboardType: TextInputType.number,
-                              textCapitalization: TextCapitalization.none,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                              decoration: InputDecoration(
-                                labelText:
-                                    'Update Interval (min $_settingsMinIntervalMinutes min)',
-                                hintText: 'e.g., 15',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                isDense: true,
-                                suffixText: 'min',
-                              ),
-                              style: const TextStyle(fontSize: 13),
-                              onEditingComplete: _validateAndClampInterval,
-                              onTapOutside: (_) {
-                                _validateAndClampInterval();
-                                FocusScope.of(context).unfocus();
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          _buildSaveButton(),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.locationInterval,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.6),
-                        ),
-                      ),
-                    ] else if (!_automaticUpdates) ...[
-                      const SizedBox(height: 8),
-                    ],
-
-                    // Debug-only test button
-                    if (kDebugMode &&
-                        widget.onTestBackgroundUpdate != null) ...[
-                      const SizedBox(height: 12),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: widget.isLoading
-                              ? null
-                              : widget.onTestBackgroundUpdate,
-                          icon: const Icon(Icons.bug_report, size: 16),
-                          label: Text(
-                            l10n.testBackgroundUpdate,
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.deepOrange,
-                            side: const BorderSide(color: Colors.deepOrange),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                          ),
-                        ),
-                      ),
-                      Text(
-                        l10n.firesWorkManagerTask,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.45),
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
-                  ],
-                ],
-
-                // Delete Trip — owner only, all statuses except finished
-                if (widget.isOwner &&
-                    widget.onDeleteTrip != null &&
-                    _isEditableStatus) ...[
-                  const Divider(),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: widget.isLoading ? null : widget.onDeleteTrip,
-                      icon: const Icon(Icons.delete_forever, size: 16),
-                      label: Text(
-                        l10n.deleteTrip,
-                        style: const TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
-                        padding: const EdgeInsets.symmetric(
+                        contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 8,
                         ),
+                        isDense: true,
+                        suffixText: 'min',
                       ),
+                      style: const TextStyle(fontSize: 13),
+                      onEditingComplete: _validateAndClampInterval,
+                      onTapOutside: (_) {
+                        _validateAndClampInterval();
+                        FocusScope.of(context).unfocus();
+                      },
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  _buildSaveButton(),
                 ],
-              ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.locationInterval,
+                style: TextStyle(
+                  fontSize: 11,
+                  color:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                ),
+              ),
+            ] else if (!_automaticUpdates) ...[
+              const SizedBox(height: 8),
+            ],
+
+            // Debug-only test button
+            if (kDebugMode && widget.onTestBackgroundUpdate != null) ...[
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed:
+                      widget.isLoading ? null : widget.onTestBackgroundUpdate,
+                  icon: const Icon(Icons.bug_report, size: 16),
+                  label: Text(
+                    l10n.testBackgroundUpdate,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.deepOrange,
+                    side: const BorderSide(color: Colors.deepOrange),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                  ),
+                ),
+              ),
+              Text(
+                l10n.firesWorkManagerTask,
+                style: TextStyle(
+                  fontSize: 10,
+                  color:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ],
+        ],
+
+        // Delete Trip — owner only, all statuses except finished
+        if (widget.onDeleteTrip != null &&
+            widget.isOwner &&
+            _isEditableStatus) ...[
+          const Divider(),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: widget.isLoading ? null : widget.onDeleteTrip,
+              icon: const Icon(Icons.delete_forever, size: 16),
+              label: Text(
+                l10n.deleteTrip,
+                style:
+                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+                side: const BorderSide(color: Colors.red),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+              ),
             ),
           ),
-        ),
-      ),
+        ],
+      ],
     );
   }
 
-  Widget _buildPlannedRouteToggle() {
+  Widget _buildPlannedRouteToggle(BuildContext context, AppLocalizations l10n) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -607,7 +488,7 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              context.l10n.showPlannedRoute,
+              l10n.showPlannedRoute,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
@@ -629,7 +510,7 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
     );
   }
 
-  Widget _buildSectionLabel(IconData icon, String label) {
+  Widget _buildSectionLabel(BuildContext context, IconData icon, String label) {
     return Row(
       children: [
         Icon(icon,
@@ -649,6 +530,7 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
   }
 
   Widget _buildModalityButton({
+    required BuildContext context,
     required String label,
     required TripModality modality,
   }) {

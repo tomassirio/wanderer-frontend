@@ -54,6 +54,16 @@ class DesktopLayoutStrategy extends TripDetailLayoutStrategy {
   }
 
   @override
+  double calculateInfoColumnWidth(
+      BoxConstraints constraints, TripDetailLayoutData data) {
+    if (data.isTripInfoCollapsed && data.isCommentsCollapsed) {
+      return _collapsedWidth;
+    }
+    return (constraints.maxWidth - _timelineWidth - _panelGap)
+        .clamp(_minExpandedWidth, _maxExpandedWidth);
+  }
+
+  @override
   bool shouldLeftPanelStretchToBottom(TripDetailLayoutData data) {
     return !(data.isTripInfoCollapsed && data.isCommentsCollapsed);
   }
@@ -69,49 +79,45 @@ class DesktopLayoutStrategy extends TripDetailLayoutStrategy {
     final tripSettingsPanel = createTripSettingsPanel(data);
     final commentsSection = createCommentsSection(data);
 
-    final bool allCollapsed =
-        data.isTripInfoCollapsed && data.isCommentsCollapsed;
-
-    // The info + comments column (settings is NOT placed here; it goes to the right).
-    final Widget infoCommentsColumn = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: allCollapsed ? MainAxisSize.min : MainAxisSize.max,
-      children: [
-        tripInfoCard,
-        if (data.isCommentsCollapsed)
-          commentsSection
-        else
-          Expanded(child: commentsSection),
-      ],
-    );
-
-    // Constrain the expanded settings card to a fixed width so that its
-    // internal Rows with Expanded children receive bounded constraints.
-    // Guard with _settingsHasContent so that an unexpanded-but-empty panel
-    // doesn't claim the extra card width in the layout.
-    final Widget settingsWidget =
-        data.isTripSettingsCollapsed || !_settingsHasContent(data)
-            ? tripSettingsPanel
-            : SizedBox(width: _settingsCardWidth, child: tripSettingsPanel);
-
-    // On desktop the settings panel always sits to the RIGHT of the
-    // info/comments column — never stacked below it.
-    if (allCollapsed) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          infoCommentsColumn,
-          settingsWidget,
-        ],
-      );
-    }
-
+    // Use a stable Row layout with flexible sizing
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(child: infoCommentsColumn),
-        settingsWidget,
+        // Info + Comments column
+        Flexible(
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topLeft,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                tripInfoCard,
+                if (data.isCommentsCollapsed)
+                  commentsSection
+                else
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: constraints.maxHeight * 0.7,
+                    ),
+                    child: commentsSection,
+                  ),
+              ],
+            ),
+          ),
+        ),
+        // Settings panel on the right
+        if (!data.isTripSettingsCollapsed || _settingsHasContent(data))
+          AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topRight,
+            child: data.isTripSettingsCollapsed || !_settingsHasContent(data)
+                ? tripSettingsPanel
+                : SizedBox(width: _settingsCardWidth, child: tripSettingsPanel),
+          ),
       ],
     );
   }
@@ -127,17 +133,22 @@ class DesktopLayoutStrategy extends TripDetailLayoutStrategy {
       return timelinePanel;
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisSize:
-          data.isTimelineCollapsed ? MainAxisSize.min : MainAxisSize.max,
-      children: [
-        if (data.isTimelineCollapsed)
-          timelinePanel
-        else
-          Expanded(child: timelinePanel),
-        tripUpdatePanel,
-      ],
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topRight, // Anchor to top-right to prevent jumping
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize:
+            data.isTimelineCollapsed ? MainAxisSize.min : MainAxisSize.max,
+        children: [
+          if (data.isTimelineCollapsed)
+            timelinePanel
+          else
+            Expanded(child: timelinePanel),
+          tripUpdatePanel,
+        ],
+      ),
     );
   }
 }

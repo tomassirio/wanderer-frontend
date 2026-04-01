@@ -31,6 +31,9 @@ class UsernameField extends StatelessWidget {
       textCapitalization: TextCapitalization.none,
       textInputAction: textInputAction ?? TextInputAction.next,
       onFieldSubmitted: onFieldSubmitted,
+      autofillHints: isLogin
+          ? const [AutofillHints.username, AutofillHints.email]
+          : const [AutofillHints.username, AutofillHints.newUsername],
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
           return isLogin

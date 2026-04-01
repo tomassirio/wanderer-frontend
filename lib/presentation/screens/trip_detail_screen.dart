@@ -107,7 +107,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   // Trip achievements
   List<UserAchievement> _tripAchievements = [];
   Timer? _achievementRefreshTimer;
-  Timer? _achievementPollTimer;
 
   // Collapsible panel states
   // Collapsible panel states
@@ -277,11 +276,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     // try now and also retry in _loadUserInfo via _subscribeUserTopic.
     _subscribeUserTopic();
 
-    // Start periodic achievement polling as a reliable fallback.
-    // WebSocket events may be delayed or missed; polling ensures the
-    // achievements section updates within a reasonable window.
-    _startAchievementPolling();
-
     debugPrint(
         'TripDetailScreen: WebSocket initialized and listening for trip ${_trip.id}');
   }
@@ -293,19 +287,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     if (userId == null) return;
     _webSocketService.subscribeToUser(userId);
     debugPrint('TripDetailScreen: Subscribed to user topic for user $userId');
-  }
-
-  /// Start periodic polling for trip achievements as a reliable fallback.
-  void _startAchievementPolling() {
-    _achievementPollTimer?.cancel();
-    _achievementPollTimer = Timer.periodic(
-      const Duration(seconds: 15),
-      (_) {
-        if (mounted) {
-          _loadTripAchievements();
-        }
-      },
-    );
   }
 
   /// Handle events from the global WebSocket stream that are relevant
@@ -1125,7 +1106,6 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     _wsSubscription?.cancel();
     _globalWsSubscription?.cancel();
     _achievementRefreshTimer?.cancel();
-    _achievementPollTimer?.cancel();
     debugPrint('TripDetailScreen: Cancelled WebSocket subscriptions');
     _webSocketService.unsubscribeFromTrip(_trip.id);
     debugPrint('TripDetailScreen: Unsubscribed from trip');
@@ -2824,7 +2804,11 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                     : AnimatedPositioned(
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeInOut,
-                        left: _isCommentsCollapsed ? 16.0 : leftPanelWidth - 16,
+                        left: _isCommentsCollapsed
+                            ? 16.0
+                            : strategy.calculateInfoColumnWidth(
+                                    constraints, layoutData) -
+                                16,
                         bottom: 16,
                         child: _buildDonationButton(),
                       ),
