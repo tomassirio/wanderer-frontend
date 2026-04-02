@@ -125,10 +125,13 @@ bundle: ## Build Android App Bundle (usage: make bundle TARGET_ENV=prod)
 	BUILD_NUM=$$((BUILD_NUM + 1)) && \
 	echo $$BUILD_NUM > .build_number && \
 	echo "📦 Building App Bundle ($(TARGET_ENV)) — build-number: $$BUILD_NUM" && \
+	echo "🧹 Cleaning build cache..." && \
+	flutter clean && \
 	source $(ENV_FILE) && \
 	B_DOMAIN=$${BUNDLE_DOMAIN:-$$DOMAIN} && \
 	B_API_PATH=$${BUNDLE_API_PATH:-$${API_PATH:-/api/1}} && \
 	echo "   Domain: $$B_DOMAIN  API path: $$B_API_PATH" && \
+	echo "   WS_BASE_URL: $${ANDROID_WS_PROTOCOL}://$$B_DOMAIN" && \
 	flutter build appbundle --release \
 		--build-number=$$BUILD_NUM \
 		--dart-define=COMMAND_BASE_URL=$${ANDROID_HTTP_PROTOCOL}://$$B_DOMAIN$$B_API_PATH/command \
