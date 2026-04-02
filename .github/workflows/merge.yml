@@ -350,7 +350,7 @@ jobs:
           # Update README badges
           if [ -f "README.md" ] && [ -n "$COVERAGE" ]; then
             sed -i "s/version-[0-9.]*-blue/version-${BASE_VERSION}-blue/" README.md
-            sed -i "s|coverage-[^)]*|coverage-${COVERAGE}%25-${COVERAGE_COLOR}|" README.md
+            sed -i "s|coverage-[^\"]*|coverage-${COVERAGE}%25-${COVERAGE_COLOR}|" README.md
           fi
 
           # Bump to next development version
