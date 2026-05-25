@@ -136,7 +136,7 @@ class CommentCard extends StatelessWidget {
               runSpacing: 4,
               children: comment.reactions!.entries
                   .where((entry) => entry.value > 0)
-                  .map((entry) => _buildReactionChip(entry.key, entry.value))
+                  .map((entry) => _buildReactionChip(context, entry.key, entry.value))
                   .toList(),
             ),
             const SizedBox(height: 8),
@@ -151,12 +151,21 @@ class CommentCard extends StatelessWidget {
                       Icon(
                         Icons.add_reaction_outlined,
                         size: 16,
-                        color: Colors.grey[600],
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.6),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         l10n.react,
-                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.7),
+                        ),
                       ),
                     ],
                   ),
@@ -166,9 +175,25 @@ class CommentCard extends StatelessWidget {
                   onTap: onReply,
                   child: Row(
                     children: [
-                      Icon(Icons.reply, size: 16, color: Colors.grey[600]),
+                      Icon(
+                        Icons.reply,
+                        size: 16,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.6),
+                      ),
                       const SizedBox(width: 4),
-                      Text(l10n.reply, style: const TextStyle(fontSize: 12)),
+                      Text(
+                        l10n.reply,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.7),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -182,12 +207,21 @@ class CommentCard extends StatelessWidget {
                       Icon(
                         isExpanded ? Icons.expand_less : Icons.expand_more,
                         size: 16,
-                        color: Colors.grey[600],
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.6),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         '${comment.responsesCount} ${comment.responsesCount == 1 ? 'reply' : 'replies'}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.7),
+                        ),
                       ),
                     ],
                   ),
@@ -205,7 +239,7 @@ class CommentCard extends StatelessWidget {
     );
   }
 
-  Widget _buildReactionChip(String reactionType, int count) {
+  Widget _buildReactionChip(BuildContext context, String reactionType, int count) {
     final emoji = _getReactionEmoji(reactionType);
     final type = _getReactionType(reactionType);
 
@@ -242,12 +276,15 @@ class CommentCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: userHasReaction
                 ? WandererTheme.primaryOrange.withOpacity(0.2)
-                : Colors.grey[100],
+                : Theme.of(context).colorScheme.onSurface.withOpacity(0.05),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: userHasReaction
                   ? WandererTheme.primaryOrange
-                  : Colors.grey[300]!,
+                  : Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withOpacity(0.2),
               width: userHasReaction ? 2 : 1,
             ),
           ),
@@ -264,7 +301,10 @@ class CommentCard extends StatelessWidget {
                       userHasReaction ? FontWeight.bold : FontWeight.w600,
                   color: userHasReaction
                       ? WandererTheme.primaryOrange
-                      : Colors.grey[700],
+                      : Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.7),
                 ),
               ),
             ],
