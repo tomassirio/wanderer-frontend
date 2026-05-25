@@ -1455,6 +1455,18 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
 
   Future<void> _loadReplies(String commentId) async {
     try {
+      // First try to get replies from the already-loaded comment
+      final comment = _comments.firstWhere((c) => c.id == commentId);
+      if (comment.replies != null) {
+        // Use cached replies from the comment object (even if empty)
+        setState(() {
+          _replies[commentId] = comment.replies!;
+          _expandedComments[commentId] = true;
+        });
+        return;
+      }
+
+      // Fallback: fetch from API if replies are not cached
       final replies = await _repository.loadReplies(commentId);
       setState(() {
         _replies[commentId] = replies;

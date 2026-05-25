@@ -26,7 +26,9 @@ class CommentService {
   }
 
   /// Get replies for a specific comment
-  /// Since the API returns comments with nested replies, we filter them from the parent comment
+  /// Since the API returns comments with nested replies, we fetch from the parent comment
+  /// Note: This method fetches the full comment to get replies - caller should use cached
+  /// replies from the original comment object if available to avoid extra API calls
   Future<List<Comment>> getRepliesByCommentId(String commentId) async {
     final comment = await _commentQueryClient.getCommentById(commentId);
     return comment.replies ?? [];
