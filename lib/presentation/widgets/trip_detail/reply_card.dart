@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
@@ -19,7 +20,11 @@ class ReplyCard extends StatelessWidget {
       margin: const EdgeInsets.only(left: 32, top: 8),
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.05),
+        border: Border.all(
+          color: WandererTheme.glassBorderColorFor(context),
+          width: 0.5,
+        ),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -48,13 +53,22 @@ class ReplyCard extends StatelessWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 12,
-                          color: Colors.grey[700],
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.7),
                         ),
                       ),
                     ),
                     Text(
                       _formatTimestamp(reply.createdAt),
-                      style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.5),
+                      ),
                     ),
                   ],
                 ),
@@ -62,7 +76,13 @@ class ReplyCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(reply.message, style: const TextStyle(fontSize: 13)),
+          Text(
+            reply.message,
+            style: TextStyle(
+              fontSize: 13,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
         ],
       ),
     );
