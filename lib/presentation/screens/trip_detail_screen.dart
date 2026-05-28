@@ -24,6 +24,7 @@ import 'package:wanderer_frontend/presentation/helpers/trip_map_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/background_location_disclosure.dart';
+import 'package:wanderer_frontend/presentation/helpers/location_permission_disclosure.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -2395,6 +2396,9 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     var permission = await Geolocator.checkPermission();
 
     if (permission == LocationPermission.denied) {
+      if (!mounted) return false;
+      final consented = await LocationPermissionDisclosure.show(context);
+      if (!consented) return false;
       permission = await Geolocator.requestPermission();
     }
 
