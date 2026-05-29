@@ -10,6 +10,7 @@ import 'package:wanderer_frontend/data/models/requests/create_trip_plan_backend_
 import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/presentation/helpers/dashed_polyline_helper.dart';
+import 'package:wanderer_frontend/presentation/helpers/location_permission_disclosure.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/web_marker_generator.dart';
 
@@ -99,6 +100,12 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
+        if (!mounted) return;
+        final consented = await LocationPermissionDisclosure.show(context);
+        if (!consented) {
+          setState(() => _isLoadingLocation = false);
+          return;
+        }
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           setState(() => _isLoadingLocation = false);
