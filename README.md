@@ -5,7 +5,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/version-1.6.6-blue" alt="Version" />
   <img src="https://img.shields.io/badge/coverage-26%25-red" alt="Coverage" />
-  <img src="https://img.shields.io/badge/Flutter-3.27.1-02569B?logo=flutter" alt="Flutter" />
+  <img src="https://img.shields.io/badge/Flutter-3.41.5-02569B?logo=flutter" alt="Flutter" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
 </p>
 
