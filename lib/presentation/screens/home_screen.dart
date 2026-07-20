@@ -683,10 +683,10 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Future<void> _navigateToAuth() async {
+  Future<void> _navigateToAuth({bool startInSignup = false}) async {
     final result = await Navigator.push(
       context,
-      PageTransitions.fade(const AuthScreen()),
+      PageTransitions.fade(AuthScreen(startInSignup: startInSignup)),
     );
 
     if (result == true && mounted) {
@@ -1693,76 +1693,131 @@ class _HomeScreenState extends State<HomeScreen>
                           // Hero section — quick controls overlaid top-right
                           Stack(
                             children: [
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 48,
-                                  horizontal: 24,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      Theme.of(context)
-                                          .colorScheme
-                                          .primary
-                                          .withOpacity(0.1),
-                                      Theme.of(context)
-                                          .colorScheme
-                                          .primary
-                                          .withOpacity(0.05),
-                                    ],
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    const WandererLogo(size: 110),
-                                    const SizedBox(height: 24),
-                                    Text(
-                                      l10n.welcomeToWanderer,
-                                      style: const TextStyle(
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: -1,
-                                      ),
-                                      textAlign: TextAlign.center,
+                              TweenAnimationBuilder<double>(
+                                tween: Tween(begin: 0.0, end: 1.0),
+                                duration: const Duration(milliseconds: 500),
+                                curve: Curves.easeOut,
+                                builder: (context, value, child) {
+                                  return Opacity(
+                                    opacity: value,
+                                    child: Transform.translate(
+                                      offset: Offset(0, (1 - value) * 20),
+                                      child: child,
                                     ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      l10n.trackAdventures,
-                                      style: TextStyle(
-                                        fontSize: 16,
+                                  );
+                                },
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 40,
+                                    horizontal: 24,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Theme.of(context)
+                                            .colorScheme
+                                            .primary
+                                            .withOpacity(0.1),
+                                        Theme.of(context)
+                                            .colorScheme
+                                            .primary
+                                            .withOpacity(0.05),
+                                      ],
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
                                         color: Theme.of(context)
                                             .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.6),
+                                            .primary
+                                            .withOpacity(0.08),
+                                        blurRadius: 24,
+                                        offset: const Offset(0, 8),
                                       ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    const SizedBox(height: 32),
-                                    ElevatedButton(
-                                      onPressed: _navigateToAuth,
-                                      style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 40,
-                                          vertical: 16,
-                                        ),
-                                        elevation: 2,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        l10n.logIn,
+                                    ],
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      const WandererLogo(size: 110),
+                                      const SizedBox(height: 24),
+                                      Text(
+                                        l10n.welcomeToWanderer,
                                         style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: -1,
                                         ),
+                                        textAlign: TextAlign.center,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        l10n.trackAdventures,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withOpacity(0.6),
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 32),
+                                      Wrap(
+                                        alignment: WrapAlignment.center,
+                                        spacing: 16,
+                                        runSpacing: 12,
+                                        children: [
+                                          ElevatedButton(
+                                            onPressed: () => _navigateToAuth(
+                                                startInSignup: true),
+                                            style: ElevatedButton.styleFrom(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 40,
+                                                vertical: 16,
+                                              ),
+                                              elevation: 2,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              l10n.getStarted,
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                          OutlinedButton(
+                                            onPressed: () => _navigateToAuth(
+                                                startInSignup: false),
+                                            style: OutlinedButton.styleFrom(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 40,
+                                                vertical: 16,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              l10n.logIn,
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                               // Language toggle — top-left corner

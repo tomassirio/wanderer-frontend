@@ -128,6 +128,7 @@ class AppLocalizations {
   String get deleteTripConfirm => _tr('deleteTripConfirm');
   String get welcomeToWanderer => _tr('welcomeToWanderer');
   String get trackAdventures => _tr('trackAdventures');
+  String get getStarted => _tr('getStarted');
   String get discoverAdventures => _tr('discoverAdventures');
   String get explorePublicTrips => _tr('explorePublicTrips');
   String get noTripsYet => _tr('noTripsYet');

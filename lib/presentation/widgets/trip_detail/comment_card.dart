@@ -136,7 +136,8 @@ class CommentCard extends StatelessWidget {
               runSpacing: 4,
               children: comment.reactions!.entries
                   .where((entry) => entry.value > 0)
-                  .map((entry) => _buildReactionChip(context, entry.key, entry.value))
+                  .map((entry) =>
+                      _buildReactionChip(context, entry.key, entry.value))
                   .toList(),
             ),
             const SizedBox(height: 8),
@@ -239,7 +240,8 @@ class CommentCard extends StatelessWidget {
     );
   }
 
-  Widget _buildReactionChip(BuildContext context, String reactionType, int count) {
+  Widget _buildReactionChip(
+      BuildContext context, String reactionType, int count) {
     final emoji = _getReactionEmoji(reactionType);
     final type = _getReactionType(reactionType);
 
@@ -281,10 +283,7 @@ class CommentCard extends StatelessWidget {
             border: Border.all(
               color: userHasReaction
                   ? WandererTheme.primaryOrange
-                  : Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withOpacity(0.2),
+                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
               width: userHasReaction ? 2 : 1,
             ),
           ),

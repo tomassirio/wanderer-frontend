@@ -16,7 +16,7 @@ void main() {
       expect(l10n.achievements, 'Achievements');
       expect(l10n.buyMeACoffee, 'Buy Me a Coffee');
       expect(l10n.logout, 'Logout');
-      expect(l10n.logIn, 'Log In / Sign Up');
+      expect(l10n.logIn, 'Log In');
       expect(l10n.guest, 'Guest');
       expect(l10n.myProfile, 'My Profile');
       expect(l10n.settings, 'Settings');
@@ -50,6 +50,10 @@ void main() {
     test('returns English home screen labels', () {
       expect(l10n.newTrip, 'New Trip');
       expect(l10n.deleteTrip, 'Delete Trip');
+      expect(l10n.welcomeToWanderer, 'Welcome to Wanderer');
+      expect(l10n.trackAdventures,
+          'Track trips in real time, share moments with friends, and unlock achievements.');
+      expect(l10n.getStarted, 'Get Started');
     });
   });
 
@@ -67,7 +71,7 @@ void main() {
       expect(l10n.achievements, 'Logros');
       expect(l10n.buyMeACoffee, 'Cómprame un Café');
       expect(l10n.logout, 'Cerrar Sesión');
-      expect(l10n.logIn, 'Iniciar Sesión / Registrarse');
+      expect(l10n.logIn, 'Iniciar Sesión');
       expect(l10n.guest, 'Invitado');
       expect(l10n.myProfile, 'Mi Perfil');
       expect(l10n.settings, 'Configuración');
@@ -101,6 +105,10 @@ void main() {
     test('returns Spanish home screen labels', () {
       expect(l10n.newTrip, 'Nuevo Viaje');
       expect(l10n.deleteTrip, 'Eliminar Viaje');
+      expect(l10n.welcomeToWanderer, 'Bienvenido a Wanderer');
+      expect(l10n.trackAdventures,
+          'Rastrea tus viajes en tiempo real, comparte momentos con amigos y desbloquea logros.');
+      expect(l10n.getStarted, 'Comenzar');
     });
   });
 
@@ -117,9 +125,16 @@ void main() {
       expect(l10n.friends, 'Amis');
       expect(l10n.achievements, 'Réalisations');
       expect(l10n.logout, 'Déconnexion');
-      expect(l10n.logIn, 'Se Connecter / S\'inscrire');
+      expect(l10n.logIn, 'Se Connecter');
       expect(l10n.guest, 'Invité');
       expect(l10n.settings, 'Paramètres');
+    });
+
+    test('returns French home screen labels', () {
+      expect(l10n.welcomeToWanderer, 'Bienvenue sur Wanderer');
+      expect(l10n.trackAdventures,
+          'Suivez vos voyages en temps réel, partagez des moments avec vos amis et débloquez des succès.');
+      expect(l10n.getStarted, 'Commencer');
     });
 
     test('returns French common action labels', () {
@@ -151,9 +166,16 @@ void main() {
       expect(l10n.friends, 'Vrienden');
       expect(l10n.achievements, 'Prestaties');
       expect(l10n.logout, 'Uitloggen');
-      expect(l10n.logIn, 'Inloggen / Registreren');
+      expect(l10n.logIn, 'Inloggen');
       expect(l10n.guest, 'Gast');
       expect(l10n.settings, 'Instellingen');
+    });
+
+    test('returns Dutch home screen labels', () {
+      expect(l10n.welcomeToWanderer, 'Welkom bij Wanderer');
+      expect(l10n.trackAdventures,
+          'Volg je reizen in realtime, deel momenten met vrienden en ontgrendel prestaties.');
+      expect(l10n.getStarted, 'Aan de Slag');
     });
 
     test('returns Dutch common action labels', () {
