@@ -81,11 +81,7 @@ class LandingScreen extends StatelessWidget {
                   const SizedBox(width: 8),
                   const Text(
                     'Wanderer',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: WandererTheme.textPrimary,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const Spacer(),
                   _PlayStoreBadge(
@@ -99,19 +95,17 @@ class LandingScreen extends StatelessWidget {
               Text(
                 l10n.landingHeadline,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: WandererTheme.textPrimary,
-                ),
+                style:
+                    const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               Text(
                 l10n.landingSubheadline,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
-                  color: WandererTheme.textSecondary,
+                  color:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
               ),
               const SizedBox(height: 24),
@@ -245,11 +239,7 @@ class LandingScreen extends StatelessWidget {
           Text(
             l10n.landingHeadline,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: WandererTheme.textPrimary,
-            ),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           _PlayStoreBadge(
@@ -495,18 +485,16 @@ class _FeatureCardState extends State<_FeatureCard> {
               const SizedBox(height: 16),
               Text(
                 widget.title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: WandererTheme.textPrimary,
-                ),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
               Text(
                 widget.description,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: WandererTheme.textSecondary,
+                  color:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.65),
                 ),
               ),
             ],
