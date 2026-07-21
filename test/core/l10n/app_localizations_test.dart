@@ -54,6 +54,7 @@ void main() {
       expect(l10n.trackAdventures,
           'Track trips in real time, share moments with friends, and unlock achievements.');
       expect(l10n.getStarted, 'Get Started');
+      expect(l10n.trackFirstAdventure, 'Track your first adventure');
     });
 
     test('returns English tutorial labels', () {
@@ -168,6 +169,7 @@ void main() {
       expect(l10n.trackAdventures,
           'Rastrea tus viajes en tiempo real, comparte momentos con amigos y desbloquea logros.');
       expect(l10n.getStarted, 'Comenzar');
+      expect(l10n.trackFirstAdventure, 'Registra tu primera aventura');
     });
 
     test('returns Spanish tutorial labels', () {
@@ -253,6 +255,7 @@ void main() {
       expect(l10n.trackAdventures,
           'Suivez vos voyages en temps réel, partagez des moments avec vos amis et débloquez des succès.');
       expect(l10n.getStarted, 'Commencer');
+      expect(l10n.trackFirstAdventure, 'Suivez votre première aventure');
     });
 
     test('returns French tutorial labels', () {
@@ -353,6 +356,7 @@ void main() {
       expect(l10n.trackAdventures,
           'Volg je reizen in realtime, deel momenten met vrienden en ontgrendel prestaties.');
       expect(l10n.getStarted, 'Aan de Slag');
+      expect(l10n.trackFirstAdventure, 'Leg je eerste avontuur vast');
     });
 
     test('returns Dutch tutorial labels', () {
