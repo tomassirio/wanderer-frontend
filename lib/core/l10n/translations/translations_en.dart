@@ -10,7 +10,60 @@ const Map<String, String> translationsEn = {
   'tripDataMaintenance': 'Trip Data Maintenance',
   'buyMeACoffee': 'Buy Me a Coffee',
   'logout': 'Logout',
-  'logIn': 'Log In / Sign Up',
+  'logIn': 'Log In',
+  'getStarted': 'Get Started',
+  'tutorialSkip': 'Skip',
+  'tutorialNext': 'Next',
+  'tutorialMenuTitle': 'Explore the Menu',
+  'tutorialMenuDescription':
+      'Trip plans, friends, achievements, and settings all live here.',
+  'tutorialSearchTitle': 'Find People & Trips',
+  'tutorialSearchDescription': 'Search for other travelers and public trips.',
+  'tutorialNotificationsTitle': 'Stay Updated',
+  'tutorialNotificationsDescription':
+      'Get notified about comments, follows, and reactions.',
+  'tutorialNewTripTitle': 'Start Your Adventure',
+  'tutorialNewTripDescription':
+      'Tap here to create your first trip and start tracking in real time.',
+  'tutorialBottomNavTitle': 'Switch Views',
+  'tutorialBottomNavDescription':
+      'Tap Discover, Feed, or My Trips to explore different views.',
+  'tutorialTripNameTitle': 'Name Your Trip',
+  'tutorialTripNameDescription':
+      'Give your trip a title so friends can find it.',
+  'tutorialTripTypeTitle': 'Choose Your Trip Type',
+  'tutorialTripTypeDescription':
+      'Simple for a single trip, Multi-Day for longer adventures with day markers.',
+  'tutorialVisibilityTitle': 'Set Your Visibility',
+  'tutorialVisibilityDescription':
+      'Choose who can see this trip: public, protected, or private.',
+  'tutorialAutoUpdatesTitle': 'Automatic Updates',
+  'tutorialAutoUpdatesDescription':
+      'Turn this on to share your location automatically at a set interval, no need to send updates manually.',
+  'tutorialCreateButtonTitle': 'Ready to Go',
+  'tutorialCreateButtonDescription':
+      'Tap here to create your trip and start your adventure.',
+  'tutorialSendUpdateTitle': 'Share an Update',
+  'tutorialSendUpdateDescription':
+      'Send a message or photo to update your followers in real time.',
+  'tutorialTripStatusTitle': 'Control Your Trip',
+  'tutorialTripStatusDescription':
+      'Start, pause, or finish your trip from here.',
+  'tutorialShareTripTitle': 'Share Your Trip',
+  'tutorialShareTripDescription':
+      'Generate a QR code or link to share this trip with others.',
+  'tutorialInfoBubbleTitle': 'Trip Details',
+  'tutorialInfoBubbleDescription':
+      'Tap here to see trip details, follow the owner, and share this trip.',
+  'tutorialCommentsBubbleTitle': 'Join the Conversation',
+  'tutorialCommentsBubbleDescription':
+      'Tap here to read and post comments on this trip.',
+  'tutorialTimelineBubbleTitle': 'View the Timeline',
+  'tutorialTimelineBubbleDescription':
+      'Tap here to see the trip\'s route history and updates over time.',
+  'tutorialSettingsBubbleTitle': 'Trip Settings',
+  'tutorialSettingsBubbleDescription':
+      'Tap here to manage automatic updates and route options for this trip.',
   'guest': 'Guest',
   'myProfile': 'My Profile',
   'settings': 'Settings',
@@ -62,7 +115,8 @@ const Map<String, String> translationsEn = {
   'deleteTrip': 'Delete Trip',
   'deleteTripConfirm': 'Are you sure you want to delete ',
   'welcomeToWanderer': 'Welcome to Wanderer',
-  'trackAdventures': 'Track your adventures, share your journeys',
+  'trackAdventures':
+      'Track trips in real time, share moments with friends, and unlock achievements.',
   'discoverAdventures': 'Discover adventures from the community',
   'explorePublicTrips': 'Explore Public Trips',
   'noTripsYet': 'No trips yet',
@@ -167,6 +221,10 @@ const Map<String, String> translationsEn = {
   'support': 'Support',
   'contactSupport': 'Contact Support',
   'contactSupportSubtitle': 'Get help via email',
+  'resetTutorials': 'Reset Tutorials',
+  'resetTutorialsSubtitle': 'Show first-time tutorials again',
+  'resetTutorialsSuccess':
+      'Tutorials reset — they\'ll show again as you use the app.',
   'termsOfService': 'Terms of Service',
   'privacyPolicy': 'Privacy Policy',
   'pushNotifications': 'Push Notifications',

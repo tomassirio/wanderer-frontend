@@ -25,6 +25,7 @@ class TripInfoCard extends StatelessWidget {
   final bool isPromoted;
   final List<UserAchievement> tripAchievements;
   final Function(Visibility)? onVisibilityChange;
+  final GlobalKey? shareButtonKey;
 
   const TripInfoCard({
     super.key,
@@ -40,6 +41,7 @@ class TripInfoCard extends StatelessWidget {
     this.isPromoted = false,
     this.tripAchievements = const [],
     this.onVisibilityChange,
+    this.shareButtonKey,
   });
 
   @override
@@ -100,6 +102,7 @@ class TripInfoCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: IconButton(
+                    key: shareButtonKey,
                     icon: Icon(
                       Icons.qr_code,
                       size: 16,

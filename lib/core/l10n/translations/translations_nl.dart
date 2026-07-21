@@ -10,7 +10,60 @@ const Map<String, String> translationsNl = {
   'tripDataMaintenance': 'Gegevensonderhoud',
   'buyMeACoffee': 'Trakteer me op een Koffie',
   'logout': 'Uitloggen',
-  'logIn': 'Inloggen / Registreren',
+  'logIn': 'Inloggen',
+  'getStarted': 'Aan de Slag',
+  'tutorialSkip': 'Overslaan',
+  'tutorialNext': 'Volgende',
+  'tutorialMenuTitle': 'Verken het Menu',
+  'tutorialMenuDescription':
+      'Reisplannen, vrienden, prestaties en instellingen vind je hier.',
+  'tutorialSearchTitle': 'Vind Mensen & Reizen',
+  'tutorialSearchDescription': 'Zoek naar andere reizigers en openbare reizen.',
+  'tutorialNotificationsTitle': 'Blijf op de Hoogte',
+  'tutorialNotificationsDescription':
+      'Ontvang meldingen over reacties, volgers en likes.',
+  'tutorialNewTripTitle': 'Begin Je Avontuur',
+  'tutorialNewTripDescription':
+      'Tik hier om je eerste reis aan te maken en in realtime te volgen.',
+  'tutorialBottomNavTitle': 'Wissel van Weergave',
+  'tutorialBottomNavDescription':
+      'Tik op Ontdekken, Feed of Mijn Reizen om verschillende weergaven te verkennen.',
+  'tutorialTripNameTitle': 'Geef Je Reis een Naam',
+  'tutorialTripNameDescription':
+      'Geef je reis een titel zodat vrienden hem kunnen vinden.',
+  'tutorialTripTypeTitle': 'Kies Je Reistype',
+  'tutorialTripTypeDescription':
+      'Eenvoudig voor één reis, Meerdaags voor langere avonturen met dagmarkeringen.',
+  'tutorialVisibilityTitle': 'Stel Je Zichtbaarheid In',
+  'tutorialVisibilityDescription':
+      'Kies wie deze reis kan zien: openbaar, beschermd of privé.',
+  'tutorialAutoUpdatesTitle': 'Automatische Updates',
+  'tutorialAutoUpdatesDescription':
+      'Zet dit aan om je locatie automatisch te delen met een vast interval, zonder handmatig updates te versturen.',
+  'tutorialCreateButtonTitle': 'Klaar om te Gaan',
+  'tutorialCreateButtonDescription':
+      'Tik hier om je reis aan te maken en je avontuur te beginnen.',
+  'tutorialSendUpdateTitle': 'Deel een Update',
+  'tutorialSendUpdateDescription':
+      'Stuur een bericht of foto om je volgers in realtime op de hoogte te houden.',
+  'tutorialTripStatusTitle': 'Beheer Je Reis',
+  'tutorialTripStatusDescription':
+      'Start, pauzeer of beëindig je reis vanaf hier.',
+  'tutorialShareTripTitle': 'Deel Je Reis',
+  'tutorialShareTripDescription':
+      'Genereer een QR-code of link om deze reis met anderen te delen.',
+  'tutorialInfoBubbleTitle': 'Reisdetails',
+  'tutorialInfoBubbleDescription':
+      'Tik hier om reisdetails te bekijken, de eigenaar te volgen en deze reis te delen.',
+  'tutorialCommentsBubbleTitle': 'Doe Mee aan het Gesprek',
+  'tutorialCommentsBubbleDescription':
+      'Tik hier om reacties op deze reis te lezen en te plaatsen.',
+  'tutorialTimelineBubbleTitle': 'Bekijk de Tijdlijn',
+  'tutorialTimelineBubbleDescription':
+      'Tik hier om de routegeschiedenis en updates van de reis te bekijken.',
+  'tutorialSettingsBubbleTitle': 'Reisinstellingen',
+  'tutorialSettingsBubbleDescription':
+      'Tik hier om automatische updates en routeopties voor deze reis te beheren.',
   'guest': 'Gast',
   'myProfile': 'Mijn Profiel',
   'settings': 'Instellingen',
@@ -62,7 +115,8 @@ const Map<String, String> translationsNl = {
   'deleteTrip': 'Reis Verwijderen',
   'deleteTripConfirm': 'Weet je zeker dat je wilt verwijderen ',
   'welcomeToWanderer': 'Welkom bij Wanderer',
-  'trackAdventures': 'Volg je avonturen, deel je reizen',
+  'trackAdventures':
+      'Volg je reizen in realtime, deel momenten met vrienden en ontgrendel prestaties.',
   'discoverAdventures': 'Ontdek avonturen van de gemeenschap',
   'explorePublicTrips': 'Ontdek Openbare Reizen',
   'noTripsYet': 'Nog geen reizen',
@@ -170,6 +224,10 @@ const Map<String, String> translationsNl = {
   'support': 'Ondersteuning',
   'contactSupport': 'Contact Ondersteuning',
   'contactSupportSubtitle': 'Hulp krijgen via e-mail',
+  'resetTutorials': 'Tutorials Resetten',
+  'resetTutorialsSubtitle': 'Toon de tutorials opnieuw',
+  'resetTutorialsSuccess':
+      'Tutorials gereset — ze verschijnen opnieuw terwijl je de app gebruikt.',
   'termsOfService': 'Gebruiksvoorwaarden',
   'privacyPolicy': 'Privacybeleid',
   'pushNotifications': 'Pushmeldingen',

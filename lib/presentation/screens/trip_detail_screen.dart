@@ -27,6 +27,7 @@ import 'package:wanderer_frontend/presentation/helpers/background_location_discl
 import 'package:wanderer_frontend/presentation/helpers/location_permission_disclosure.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
+import 'package:wanderer_frontend/presentation/helpers/tutorial_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_planned_info_window.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/reaction_picker.dart';
@@ -149,6 +150,16 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   /// API-refresh-driven animations to avoid the map jumping back to a
   /// stale position.
   static const Duration _wsCameraGuardDuration = Duration(seconds: 10);
+
+  // First-time trip detail tutorial (coach marks)
+  final GlobalKey _tutorialUpdatePanelKey = GlobalKey();
+  final GlobalKey _tutorialLifecycleKey = GlobalKey();
+  final GlobalKey _tutorialShareKey = GlobalKey();
+  final GlobalKey _tutorialInfoBubbleKey = GlobalKey();
+  final GlobalKey _tutorialCommentsBubbleKey = GlobalKey();
+  final GlobalKey _tutorialTimelineBubbleKey = GlobalKey();
+  final GlobalKey _tutorialSettingsBubbleKey = GlobalKey();
+  bool _tutorialCheckDone = false;
 
   final TextEditingController _commentController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -1136,6 +1147,8 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       _isAdmin = isAdmin;
     });
 
+    _maybeShowTripDetailTutorial();
+
     // Now that userId is available, ensure we're subscribed to the
     // user topic for NOTIFICATION_CREATED events (achievements, etc.)
     _subscribeUserTopic();
@@ -1144,6 +1157,94 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     if (userId != null && _trip.userId != userId) {
       await _loadSocialStatus();
     }
+  }
+
+  /// Shows the first-time trip detail tutorial (coach marks) once per
+  /// device, the first time this screen is ever opened. The target list is
+  /// built dynamically:
+  /// - The four collapsible bubbles (Info, Comments, Timeline, Settings)
+  ///   only collapse to bubble form on mobile — on desktop they're already
+  ///   expanded side-by-side, so those steps are mobile-only. Settings is
+  ///   further gated on it actually having content (mirrors
+  ///   `TripSettingsPanel._hasContent`), otherwise it renders a zero-size
+  ///   box and there'd be nothing to spotlight.
+  /// - Send Update and Trip Status controls only appear for the trip owner
+  ///   under the same conditions that already gate their visibility
+  ///   elsewhere in this screen.
+  /// - Share is only a standalone step on desktop, where the info card is
+  ///   never collapsed so the share button is always reachable. On mobile
+  ///   it's reachable only after expanding the Info bubble, so it's
+  ///   explained as part of that step's copy instead of a separate target.
+  Future<void> _maybeShowTripDetailTutorial() async {
+    if (_tutorialCheckDone || !mounted) return;
+    _tutorialCheckDone = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final l10n = context.l10n;
+      final isMobile = TripDetailLayoutStrategyFactory.isMobile(
+        MediaQuery.sizeOf(context).width,
+      );
+      final isOwner = _userId != null && _trip.userId == _userId;
+      final isEditableStatus = _trip.status == TripStatus.created ||
+          _trip.status == TripStatus.inProgress;
+      final settingsPanelHasContent =
+          _trip.hasPlannedRoute || (isOwner && isEditableStatus);
+
+      showFirstTimeTutorial(
+        context: context,
+        tutorialKey: TutorialKeys.tripDetail,
+        steps: [
+          if (isMobile)
+            TutorialStep(
+              key: _tutorialInfoBubbleKey,
+              title: l10n.tutorialInfoBubbleTitle,
+              description: l10n.tutorialInfoBubbleDescription,
+            ),
+          if (isMobile)
+            TutorialStep(
+              key: _tutorialCommentsBubbleKey,
+              title: l10n.tutorialCommentsBubbleTitle,
+              description: l10n.tutorialCommentsBubbleDescription,
+            ),
+          if (isMobile)
+            TutorialStep(
+              key: _tutorialTimelineBubbleKey,
+              title: l10n.tutorialTimelineBubbleTitle,
+              description: l10n.tutorialTimelineBubbleDescription,
+              align: ContentAlign.left,
+            ),
+          if (isMobile && settingsPanelHasContent)
+            TutorialStep(
+              key: _tutorialSettingsBubbleKey,
+              title: l10n.tutorialSettingsBubbleTitle,
+              description: l10n.tutorialSettingsBubbleDescription,
+            ),
+          if (_showTripUpdatePanel)
+            TutorialStep(
+              key: _tutorialUpdatePanelKey,
+              title: l10n.tutorialSendUpdateTitle,
+              description: l10n.tutorialSendUpdateDescription,
+              shape: ShapeLightFocus.RRect,
+              radius: 16,
+            ),
+          if (isMobile && isOwner && _trip.status != TripStatus.finished)
+            TutorialStep(
+              key: _tutorialLifecycleKey,
+              title: l10n.tutorialTripStatusTitle,
+              description: l10n.tutorialTripStatusDescription,
+              align: ContentAlign.left,
+            ),
+          if (!isMobile)
+            TutorialStep(
+              key: _tutorialShareKey,
+              title: l10n.tutorialShareTripTitle,
+              description: l10n.tutorialShareTripDescription,
+              align: ContentAlign.bottom,
+            ),
+        ],
+      );
+    });
   }
 
   /// Load the current user's social relationship with the trip owner
@@ -2796,6 +2897,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
                   right: 8,
                   bottom: 120,
                   child: TripLifecycleButtons(
+                    key: _tutorialLifecycleKey,
                     currentStatus: _trip.status,
                     tripModality: _trip.tripModality,
                     isOwner: true,
@@ -2918,6 +3020,12 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
       donationLink: _donationLink,
       tripAchievements: _tripAchievements,
       showPlannedWaypoints: _showPlannedWaypoints,
+      shareButtonKey: _tutorialShareKey,
+      updatePanelKey: _tutorialUpdatePanelKey,
+      infoCardKey: _tutorialInfoBubbleKey,
+      commentsSectionKey: _tutorialCommentsBubbleKey,
+      timelinePanelKey: _tutorialTimelineBubbleKey,
+      settingsPanelKey: _tutorialSettingsBubbleKey,
       onToggleTripInfo: () => _handleToggleTripInfo(isMobile),
       onToggleComments: () => _handleToggleComments(isMobile),
       onToggleTimeline: () => _handleToggleTimeline(isMobile),

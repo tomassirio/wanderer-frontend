@@ -78,6 +78,12 @@ class TripDetailLayoutData {
   final VoidCallback?
       onTogglePlannedWaypoints; // Callback to toggle planned waypoints
   final VoidCallback? onDeleteTrip; // Callback to delete the trip
+  final GlobalKey? shareButtonKey; // First-time tutorial target
+  final GlobalKey? updatePanelKey; // First-time tutorial target
+  final GlobalKey? infoCardKey; // First-time tutorial target
+  final GlobalKey? commentsSectionKey; // First-time tutorial target
+  final GlobalKey? timelinePanelKey; // First-time tutorial target
+  final GlobalKey? settingsPanelKey; // First-time tutorial target
 
   const TripDetailLayoutData({
     required this.trip,
@@ -140,6 +146,12 @@ class TripDetailLayoutData {
     this.onTestBackgroundUpdate,
     this.onVisibilityChange,
     this.onDeleteTrip,
+    this.shareButtonKey,
+    this.updatePanelKey,
+    this.infoCardKey,
+    this.commentsSectionKey,
+    this.timelinePanelKey,
+    this.settingsPanelKey,
   });
 }
 
@@ -171,6 +183,8 @@ abstract class TripDetailLayoutStrategy {
   @protected
   TripInfoCard createTripInfoCard(TripDetailLayoutData data) {
     return TripInfoCard(
+      key: data.infoCardKey,
+      shareButtonKey: data.shareButtonKey,
       trip: data.trip,
       isCollapsed: data.isTripInfoCollapsed,
       onToggleCollapse: data.onToggleTripInfo,
@@ -190,6 +204,7 @@ abstract class TripDetailLayoutStrategy {
   @protected
   TripSettingsPanel createTripSettingsPanel(TripDetailLayoutData data) {
     return TripSettingsPanel(
+      key: data.settingsPanelKey,
       isCollapsed: data.isTripSettingsCollapsed,
       onToggleCollapse: data.onToggleTripSettings,
       isOwner:
@@ -213,6 +228,7 @@ abstract class TripDetailLayoutStrategy {
   @protected
   CommentsSection createCommentsSection(TripDetailLayoutData data) {
     return CommentsSection(
+      key: data.commentsSectionKey,
       comments: data.comments,
       replies: data.replies,
       expandedComments: data.expandedComments,
@@ -245,6 +261,7 @@ abstract class TripDetailLayoutStrategy {
   @protected
   TimelinePanel createTimelinePanel(TripDetailLayoutData data) {
     return TimelinePanel(
+      key: data.timelinePanelKey,
       updates: data.tripUpdates,
       isLoading: data.isLoadingUpdates,
       isLoadingMore: data.isLoadingMoreUpdates,
@@ -262,6 +279,7 @@ abstract class TripDetailLayoutStrategy {
   @protected
   TripUpdatePanel createTripUpdatePanel(TripDetailLayoutData data) {
     return TripUpdatePanel(
+      key: data.updatePanelKey,
       isCollapsed: data.isTripUpdateCollapsed,
       isLoading: data.isSendingUpdate,
       onToggleCollapse: data.onToggleTripUpdate,

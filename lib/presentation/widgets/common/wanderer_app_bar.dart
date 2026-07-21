@@ -25,6 +25,9 @@ class WandererAppBar extends StatefulWidget implements PreferredSizeWidget {
   final VoidCallback? onSettings;
   final VoidCallback? onLogout;
   final Widget? leading;
+  final GlobalKey? menuButtonKey;
+  final GlobalKey? searchButtonKey;
+  final GlobalKey? notificationButtonKey;
 
   const WandererAppBar({
     super.key,
@@ -38,6 +41,9 @@ class WandererAppBar extends StatefulWidget implements PreferredSizeWidget {
     this.onSettings,
     this.onLogout,
     this.leading,
+    this.menuButtonKey,
+    this.searchButtonKey,
+    this.notificationButtonKey,
   });
 
   @override
@@ -53,6 +59,8 @@ class _WandererAppBarState extends State<WandererAppBar>
   final NotificationApiService _notificationService = NotificationApiService();
   final WebSocketService _webSocketService = WebSocketService();
   final GlobalKey _notificationButtonKey = GlobalKey();
+  GlobalKey get _effectiveNotificationButtonKey =>
+      widget.notificationButtonKey ?? _notificationButtonKey;
   StreamSubscription<WebSocketEvent>? _wsSubscription;
   StreamSubscription<WebSocketConnectionState>? _wsConnectionSubscription;
   String? _subscribedUserId;
@@ -253,8 +261,8 @@ class _WandererAppBarState extends State<WandererAppBar>
   }
 
   void _showNotificationsDropdown() {
-    final renderBox =
-        _notificationButtonKey.currentContext?.findRenderObject() as RenderBox?;
+    final renderBox = _effectiveNotificationButtonKey.currentContext
+        ?.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
 
     final buttonPosition = renderBox.localToGlobal(Offset.zero);
@@ -289,7 +297,14 @@ class _WandererAppBarState extends State<WandererAppBar>
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       centerTitle: isDesktop,
       titleSpacing: isDesktop ? null : 0,
-      leading: widget.leading,
+      leading: widget.leading ??
+          (widget.menuButtonKey != null
+              ? IconButton(
+                  key: widget.menuButtonKey,
+                  icon: const Icon(Icons.menu),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                )
+              : null),
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -330,6 +345,7 @@ class _WandererAppBarState extends State<WandererAppBar>
         // Search icon — only for logged in users
         if (widget.isLoggedIn)
           IconButton(
+            key: widget.searchButtonKey,
             icon: const Icon(Icons.search),
             tooltip: l10n.search,
             onPressed: _navigateToSearch,
@@ -337,7 +353,7 @@ class _WandererAppBarState extends State<WandererAppBar>
         // Notifications icon with badge (only for logged in users)
         if (widget.isLoggedIn)
           IconButton(
-            key: _notificationButtonKey,
+            key: _effectiveNotificationButtonKey,
             icon: Badge(
               isLabelVisible: _unreadCount > 0,
               label: Text(

@@ -14,6 +14,7 @@ import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
+import 'package:wanderer_frontend/presentation/helpers/tutorial_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
@@ -76,6 +77,14 @@ class _HomeScreenState extends State<HomeScreen>
   // Filter states
   TripStatus? _statusFilter;
   Visibility? _visibilityFilter;
+
+  // First-time home screen tutorial (coach marks)
+  final GlobalKey _tutorialMenuKey = GlobalKey();
+  final GlobalKey _tutorialBottomNavKey = GlobalKey();
+  final GlobalKey _tutorialSearchKey = GlobalKey();
+  final GlobalKey _tutorialNotificationsKey = GlobalKey();
+  final GlobalKey _tutorialNewTripKey = GlobalKey();
+  bool _tutorialCheckDone = false;
 
   @override
   void initState() {
@@ -353,6 +362,56 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
+  /// Shows the first-time home screen tutorial (coach marks) once per
+  /// device, the first time a logged-in user with a resolved username
+  /// reaches this screen.
+  Future<void> _maybeShowHomeTutorial() async {
+    if (_tutorialCheckDone || !_isLoggedIn || _username == null) return;
+    _tutorialCheckDone = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final l10n = context.l10n;
+      showFirstTimeTutorial(
+        context: context,
+        tutorialKey: TutorialKeys.home,
+        steps: [
+          TutorialStep(
+            key: _tutorialMenuKey,
+            title: l10n.tutorialMenuTitle,
+            description: l10n.tutorialMenuDescription,
+          ),
+          TutorialStep(
+            key: _tutorialBottomNavKey,
+            title: l10n.tutorialBottomNavTitle,
+            description: l10n.tutorialBottomNavDescription,
+            shape: ShapeLightFocus.RRect,
+            radius: 28,
+            align: ContentAlign.top,
+          ),
+          TutorialStep(
+            key: _tutorialSearchKey,
+            title: l10n.tutorialSearchTitle,
+            description: l10n.tutorialSearchDescription,
+          ),
+          TutorialStep(
+            key: _tutorialNotificationsKey,
+            title: l10n.tutorialNotificationsTitle,
+            description: l10n.tutorialNotificationsDescription,
+          ),
+          TutorialStep(
+            key: _tutorialNewTripKey,
+            title: l10n.tutorialNewTripTitle,
+            description: l10n.tutorialNewTripDescription,
+            shape: ShapeLightFocus.RRect,
+            radius: 16,
+            align: ContentAlign.top,
+          ),
+        ],
+      );
+    });
+  }
+
   Future<void> _loadTrips() async {
     setState(() {
       _isLoading = true;
@@ -450,6 +509,13 @@ class _HomeScreenState extends State<HomeScreen>
         _isLoading = false;
       });
     }
+
+    // Trigger after loading settles (not from _loadUserInfo) so the coach
+    // marks' target widgets (FAB, bottom nav) are actually mounted — showing
+    // it mid-load risks the tutorial silently marking itself "seen" without
+    // ever appearing, since tutorial_coach_mark treats a missing first
+    // target as an immediate finish.
+    _maybeShowHomeTutorial();
   }
 
   Future<void> _loadMoreTrips() async {
@@ -683,10 +749,10 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Future<void> _navigateToAuth() async {
+  Future<void> _navigateToAuth({bool startInSignup = false}) async {
     final result = await Navigator.push(
       context,
-      PageTransitions.fade(const AuthScreen()),
+      PageTransitions.fade(AuthScreen(startInSignup: startInSignup)),
     );
 
     if (result == true && mounted) {
@@ -1635,6 +1701,9 @@ class _HomeScreenState extends State<HomeScreen>
         onProfile: _handleProfile,
         onSettings: _handleSettings,
         onLogout: _logout,
+        menuButtonKey: _tutorialMenuKey,
+        searchButtonKey: _tutorialSearchKey,
+        notificationButtonKey: _tutorialNotificationsKey,
       ),
       drawer: AppSidebar(
         username: _username,
@@ -1693,76 +1762,131 @@ class _HomeScreenState extends State<HomeScreen>
                           // Hero section — quick controls overlaid top-right
                           Stack(
                             children: [
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 48,
-                                  horizontal: 24,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      Theme.of(context)
-                                          .colorScheme
-                                          .primary
-                                          .withOpacity(0.1),
-                                      Theme.of(context)
-                                          .colorScheme
-                                          .primary
-                                          .withOpacity(0.05),
-                                    ],
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    const WandererLogo(size: 110),
-                                    const SizedBox(height: 24),
-                                    Text(
-                                      l10n.welcomeToWanderer,
-                                      style: const TextStyle(
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: -1,
-                                      ),
-                                      textAlign: TextAlign.center,
+                              TweenAnimationBuilder<double>(
+                                tween: Tween(begin: 0.0, end: 1.0),
+                                duration: const Duration(milliseconds: 500),
+                                curve: Curves.easeOut,
+                                builder: (context, value, child) {
+                                  return Opacity(
+                                    opacity: value,
+                                    child: Transform.translate(
+                                      offset: Offset(0, (1 - value) * 20),
+                                      child: child,
                                     ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      l10n.trackAdventures,
-                                      style: TextStyle(
-                                        fontSize: 16,
+                                  );
+                                },
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 40,
+                                    horizontal: 24,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Theme.of(context)
+                                            .colorScheme
+                                            .primary
+                                            .withOpacity(0.1),
+                                        Theme.of(context)
+                                            .colorScheme
+                                            .primary
+                                            .withOpacity(0.05),
+                                      ],
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
                                         color: Theme.of(context)
                                             .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.6),
+                                            .primary
+                                            .withOpacity(0.08),
+                                        blurRadius: 24,
+                                        offset: const Offset(0, 8),
                                       ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    const SizedBox(height: 32),
-                                    ElevatedButton(
-                                      onPressed: _navigateToAuth,
-                                      style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 40,
-                                          vertical: 16,
-                                        ),
-                                        elevation: 2,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        l10n.logIn,
+                                    ],
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      const WandererLogo(size: 110),
+                                      const SizedBox(height: 24),
+                                      Text(
+                                        l10n.welcomeToWanderer,
                                         style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: -1,
                                         ),
+                                        textAlign: TextAlign.center,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        l10n.trackAdventures,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withOpacity(0.6),
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 32),
+                                      Wrap(
+                                        alignment: WrapAlignment.center,
+                                        spacing: 16,
+                                        runSpacing: 12,
+                                        children: [
+                                          ElevatedButton(
+                                            onPressed: () => _navigateToAuth(
+                                                startInSignup: true),
+                                            style: ElevatedButton.styleFrom(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 40,
+                                                vertical: 16,
+                                              ),
+                                              elevation: 2,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              l10n.getStarted,
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                          OutlinedButton(
+                                            onPressed: () => _navigateToAuth(
+                                                startInSignup: false),
+                                            style: OutlinedButton.styleFrom(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 40,
+                                                vertical: 16,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              l10n.logIn,
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                               // Language toggle — top-left corner
@@ -1866,6 +1990,7 @@ class _HomeScreenState extends State<HomeScreen>
                             right: 16,
                             bottom: 16 + MediaQuery.of(context).padding.bottom,
                             child: Container(
+                              key: _tutorialBottomNavKey,
                               decoration: BoxDecoration(
                                 color: Theme.of(context).colorScheme.surface,
                                 borderRadius: BorderRadius.circular(28),
@@ -1967,6 +2092,7 @@ class _HomeScreenState extends State<HomeScreen>
                             right: 16,
                             bottom: 92 + MediaQuery.of(context).padding.bottom,
                             child: FloatingActionButton.extended(
+                              key: _tutorialNewTripKey,
                               onPressed: _navigateToCreateTrip,
                               icon: const Icon(Icons.add),
                               label: Text(l10n.newTrip),

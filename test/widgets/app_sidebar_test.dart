@@ -188,7 +188,7 @@ void main() {
       expect(find.text('Logout'), findsOneWidget);
 
       // Guest-only items should not be visible
-      expect(find.text('Log In / Sign Up'), findsNothing);
+      expect(find.text('Log In'), findsNothing);
     });
 
     testWidgets('guest sidebar shows correct menu items', (
@@ -217,7 +217,7 @@ void main() {
       // Verify menu items for guests
       expect(find.text('Trips'), findsOneWidget);
       expect(find.text('Buy Me a Coffee'), findsOneWidget);
-      expect(find.text('Log In / Sign Up'), findsOneWidget);
+      expect(find.text('Log In'), findsOneWidget);
 
       // Logged-in only items should not be visible
       expect(find.text('Trip Plans'), findsNothing);
@@ -300,11 +300,11 @@ void main() {
       await tester.tap(find.byIcon(Icons.menu));
       await tester.pumpAndSettle();
 
-      // Get positions of Buy Me a Coffee and Log In / Sign Up
+      // Get positions of Buy Me a Coffee and Log In
       final buyMeACoffeePosition = tester.getCenter(
         find.text('Buy Me a Coffee'),
       );
-      final logInPosition = tester.getCenter(find.text('Log In / Sign Up'));
+      final logInPosition = tester.getCenter(find.text('Log In'));
 
       // Verify Buy Me a Coffee is above Log In (smaller y coordinate)
       expect(buyMeACoffeePosition.dy < logInPosition.dy, isTrue);

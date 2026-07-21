@@ -10,6 +10,7 @@ import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/presentation/helpers/tutorial_helper.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
 
 /// Screen for creating a new trip with a clean, modern design
@@ -38,12 +39,67 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
   late final TripPlanService _tripPlanService;
   late final TripService _tripService;
 
+  // First-time create trip tutorial (coach marks)
+  final GlobalKey _tutorialTitleKey = GlobalKey();
+  final GlobalKey _tutorialTripTypeKey = GlobalKey();
+  final GlobalKey _tutorialVisibilityKey = GlobalKey();
+  final GlobalKey _tutorialAutoUpdatesKey = GlobalKey();
+  final GlobalKey _tutorialCreateButtonKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     _tripPlanService = TripPlanService();
     _tripService = TripService();
     _loadTripPlans();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final l10n = context.l10n;
+      showFirstTimeTutorial(
+        context: context,
+        tutorialKey: TutorialKeys.createTrip,
+        steps: [
+          TutorialStep(
+            key: _tutorialTitleKey,
+            title: l10n.tutorialTripNameTitle,
+            description: l10n.tutorialTripNameDescription,
+            shape: ShapeLightFocus.RRect,
+            radius: 12,
+          ),
+          TutorialStep(
+            key: _tutorialTripTypeKey,
+            title: l10n.tutorialTripTypeTitle,
+            description: l10n.tutorialTripTypeDescription,
+            shape: ShapeLightFocus.RRect,
+            radius: 12,
+          ),
+          TutorialStep(
+            key: _tutorialVisibilityKey,
+            title: l10n.tutorialVisibilityTitle,
+            description: l10n.tutorialVisibilityDescription,
+            shape: ShapeLightFocus.RRect,
+            radius: 12,
+          ),
+          TutorialStep(
+            key: _tutorialAutoUpdatesKey,
+            title: l10n.tutorialAutoUpdatesTitle,
+            description: l10n.tutorialAutoUpdatesDescription,
+            shape: ShapeLightFocus.RRect,
+            radius: 12,
+            align: ContentAlign.top,
+          ),
+          TutorialStep(
+            key: _tutorialCreateButtonKey,
+            title: l10n.tutorialCreateButtonTitle,
+            description: l10n.tutorialCreateButtonDescription,
+            shape: ShapeLightFocus.RRect,
+            radius: 14,
+            align: ContentAlign.top,
+          ),
+        ],
+      );
+    });
   }
 
   @override
@@ -313,6 +369,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
           _buildSectionLabel('Trip Title'),
           const SizedBox(height: 8),
           TextFormField(
+            key: _tutorialTitleKey,
             controller: _titleController,
             decoration: InputDecoration(
               hintText: l10n.tripTitleHint,
@@ -398,15 +455,24 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
           // Trip Type toggle
           _buildSectionLabel(l10n.tripType),
           const SizedBox(height: 10),
-          _buildTripTypeToggle(),
+          KeyedSubtree(
+            key: _tutorialTripTypeKey,
+            child: _buildTripTypeToggle(),
+          ),
           const SizedBox(height: 24),
           // Visibility selector
           _buildSectionLabel(l10n.visibility),
           const SizedBox(height: 10),
-          _buildVisibilitySelector(),
+          KeyedSubtree(
+            key: _tutorialVisibilityKey,
+            child: _buildVisibilitySelector(),
+          ),
           const SizedBox(height: 24),
           // Automatic Updates section
-          _buildAutomaticUpdatesSection(),
+          KeyedSubtree(
+            key: _tutorialAutoUpdatesKey,
+            child: _buildAutomaticUpdatesSection(),
+          ),
         ],
       ),
     );
@@ -930,6 +996,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
         width: double.infinity,
         height: 52,
         child: ElevatedButton(
+          key: _tutorialCreateButtonKey,
           onPressed: _isLoading || !canCreate ? null : _createTrip,
           style: ElevatedButton.styleFrom(
             backgroundColor: WandererTheme.primaryOrange,

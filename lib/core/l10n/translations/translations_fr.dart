@@ -10,7 +10,61 @@ const Map<String, String> translationsFr = {
   'tripDataMaintenance': 'Maintenance des Données',
   'buyMeACoffee': 'Offrez-moi un Café',
   'logout': 'Déconnexion',
-  'logIn': 'Se Connecter / S\'inscrire',
+  'logIn': 'Se Connecter',
+  'getStarted': 'Commencer',
+  'tutorialSkip': 'Passer',
+  'tutorialNext': 'Suivant',
+  'tutorialMenuTitle': 'Explorez le Menu',
+  'tutorialMenuDescription':
+      'Plans de voyage, amis, réalisations et paramètres se trouvent ici.',
+  'tutorialSearchTitle': 'Trouvez des Personnes et des Voyages',
+  'tutorialSearchDescription':
+      'Recherchez d\'autres voyageurs et des voyages publics.',
+  'tutorialNotificationsTitle': 'Restez Informé',
+  'tutorialNotificationsDescription':
+      'Soyez notifié des commentaires, abonnements et réactions.',
+  'tutorialNewTripTitle': 'Commencez Votre Aventure',
+  'tutorialNewTripDescription':
+      'Appuyez ici pour créer votre premier voyage et commencer le suivi en temps réel.',
+  'tutorialBottomNavTitle': 'Changez de Vue',
+  'tutorialBottomNavDescription':
+      'Appuyez sur Découvrir, Feed ou Mes Voyages pour explorer différentes vues.',
+  'tutorialTripNameTitle': 'Nommez Votre Voyage',
+  'tutorialTripNameDescription':
+      'Donnez un titre à votre voyage pour que vos amis puissent le trouver.',
+  'tutorialTripTypeTitle': 'Choisissez le Type de Voyage',
+  'tutorialTripTypeDescription':
+      'Simple pour un seul voyage, Multi-Jours pour des aventures plus longues avec des repères de jour.',
+  'tutorialVisibilityTitle': 'Définissez Votre Visibilité',
+  'tutorialVisibilityDescription':
+      'Choisissez qui peut voir ce voyage : public, protégé ou privé.',
+  'tutorialAutoUpdatesTitle': 'Mises à Jour Automatiques',
+  'tutorialAutoUpdatesDescription':
+      'Activez ceci pour partager votre position automatiquement à intervalle régulier, sans envoyer de mises à jour manuellement.',
+  'tutorialCreateButtonTitle': 'Prêt à Partir',
+  'tutorialCreateButtonDescription':
+      'Appuyez ici pour créer votre voyage et commencer votre aventure.',
+  'tutorialSendUpdateTitle': 'Partagez une Mise à Jour',
+  'tutorialSendUpdateDescription':
+      'Envoyez un message ou une photo pour informer vos abonnés en temps réel.',
+  'tutorialTripStatusTitle': 'Contrôlez Votre Voyage',
+  'tutorialTripStatusDescription':
+      'Démarrez, mettez en pause ou terminez votre voyage ici.',
+  'tutorialShareTripTitle': 'Partagez Votre Voyage',
+  'tutorialShareTripDescription':
+      'Générez un code QR ou un lien pour partager ce voyage avec d\'autres.',
+  'tutorialInfoBubbleTitle': 'Détails du Voyage',
+  'tutorialInfoBubbleDescription':
+      'Appuyez ici pour voir les détails du voyage, suivre le propriétaire et partager ce voyage.',
+  'tutorialCommentsBubbleTitle': 'Rejoignez la Conversation',
+  'tutorialCommentsBubbleDescription':
+      'Appuyez ici pour lire et publier des commentaires sur ce voyage.',
+  'tutorialTimelineBubbleTitle': 'Voir la Chronologie',
+  'tutorialTimelineBubbleDescription':
+      'Appuyez ici pour voir l\'historique de l\'itinéraire et les mises à jour du voyage.',
+  'tutorialSettingsBubbleTitle': 'Paramètres du Voyage',
+  'tutorialSettingsBubbleDescription':
+      'Appuyez ici pour gérer les mises à jour automatiques et les options d\'itinéraire de ce voyage.',
   'guest': 'Invité',
   'myProfile': 'Mon Profil',
   'settings': 'Paramètres',
@@ -62,7 +116,8 @@ const Map<String, String> translationsFr = {
   'deleteTrip': 'Supprimer le Voyage',
   'deleteTripConfirm': 'Êtes-vous sûr de vouloir supprimer ',
   'welcomeToWanderer': 'Bienvenue sur Wanderer',
-  'trackAdventures': 'Suivez vos aventures, partagez vos voyages',
+  'trackAdventures':
+      'Suivez vos voyages en temps réel, partagez des moments avec vos amis et débloquez des succès.',
   'discoverAdventures': 'Découvrez les aventures de la communauté',
   'explorePublicTrips': 'Explorer les Voyages Publics',
   'noTripsYet': 'Pas encore de voyages',
@@ -175,6 +230,10 @@ const Map<String, String> translationsFr = {
   'support': 'Support',
   'contactSupport': 'Contacter le Support',
   'contactSupportSubtitle': 'Obtenir de l\'aide par e-mail',
+  'resetTutorials': 'Réinitialiser les Tutoriels',
+  'resetTutorialsSubtitle': 'Réafficher les tutoriels de première utilisation',
+  'resetTutorialsSuccess':
+      'Tutoriels réinitialisés — ils réapparaîtront en utilisant l\'application.',
   'termsOfService': 'Conditions d\'Utilisation',
   'privacyPolicy': 'Politique de Confidentialité',
   'pushNotifications': 'Notifications Push',
