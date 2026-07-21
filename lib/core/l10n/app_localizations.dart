@@ -129,6 +129,19 @@ class AppLocalizations {
   String get welcomeToWanderer => _tr('welcomeToWanderer');
   String get trackAdventures => _tr('trackAdventures');
   String get getStarted => _tr('getStarted');
+  String get landingHeadline => _tr('landingHeadline');
+  String get landingSubheadline => _tr('landingSubheadline');
+  String get landingInstallCta => _tr('landingInstallCta');
+  String get landingFeatureTrackingTitle => _tr('landingFeatureTrackingTitle');
+  String get landingFeatureTrackingDesc => _tr('landingFeatureTrackingDesc');
+  String get landingFeatureSocialTitle => _tr('landingFeatureSocialTitle');
+  String get landingFeatureSocialDesc => _tr('landingFeatureSocialDesc');
+  String get landingFeaturePlanningTitle => _tr('landingFeaturePlanningTitle');
+  String get landingFeaturePlanningDesc => _tr('landingFeaturePlanningDesc');
+  String get landingFeatureAchievementsTitle =>
+      _tr('landingFeatureAchievementsTitle');
+  String get landingFeatureAchievementsDesc =>
+      _tr('landingFeatureAchievementsDesc');
   String get tutorialSkip => _tr('tutorialSkip');
   String get tutorialNext => _tr('tutorialNext');
   String get tutorialMenuTitle => _tr('tutorialMenuTitle');
@@ -180,6 +193,7 @@ class AppLocalizations {
   String get discoverAdventures => _tr('discoverAdventures');
   String get explorePublicTrips => _tr('explorePublicTrips');
   String get noTripsYet => _tr('noTripsYet');
+  String get trackFirstAdventure => _tr('trackFirstAdventure');
   String get createFirstTrip => _tr('createFirstTrip');
   String get noTripsInFeed => _tr('noTripsInFeed');
   String get followToSeeTrips => _tr('followToSeeTrips');

@@ -1211,6 +1211,51 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  /// Full-screen CTA replacing the tabbed feed for a logged-in user with no
+  /// trips of their own yet — the feed/discover tabs have nothing relevant to
+  /// show them, so it's a single focused prompt to create their first trip.
+  Widget _buildZeroTripsTakeover(AppLocalizations l10n) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.explore_outlined,
+              size: 96,
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              l10n.trackFirstAdventure,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.createYourFirstTrip,
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _navigateToCreateTrip,
+              icon: const Icon(Icons.add),
+              label: Text(l10n.createTrip),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildMyTripsTab() {
     final filteredTrips = _getFilteredTrips(_myTrips);
     final l10n = context.l10n;
@@ -1967,139 +2012,147 @@ class _HomeScreenState extends State<HomeScreen>
                         ],
                       ),
                     )
-                  : Stack(
-                      children: [
-                        Column(
+                  : _myTrips.isEmpty
+                      ? _buildZeroTripsTakeover(l10n)
+                      : Stack(
                           children: [
-                            _buildFilterChips(),
-                            Expanded(
-                              child: TabBarView(
-                                controller: _tabController,
-                                children: [
-                                  _buildDiscoverTab(),
-                                  _buildFeedTab(),
-                                  _buildMyTripsTab(),
-                                ],
-                              ),
+                            Column(
+                              children: [
+                                _buildFilterChips(),
+                                Expanded(
+                                  child: TabBarView(
+                                    controller: _tabController,
+                                    children: [
+                                      _buildDiscoverTab(),
+                                      _buildFeedTab(),
+                                      _buildMyTripsTab(),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        if (_isLoggedIn)
-                          Positioned(
-                            left: 16,
-                            right: 16,
-                            bottom: 16 + MediaQuery.of(context).padding.bottom,
-                            child: Container(
-                              key: _tutorialBottomNavKey,
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.surface,
-                                borderRadius: BorderRadius.circular(28),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.12),
-                                    blurRadius: 16,
-                                    offset: const Offset(0, 4),
+                            if (_isLoggedIn)
+                              Positioned(
+                                left: 16,
+                                right: 16,
+                                bottom:
+                                    16 + MediaQuery.of(context).padding.bottom,
+                                child: Container(
+                                  key: _tutorialBottomNavKey,
+                                  decoration: BoxDecoration(
+                                    color:
+                                        Theme.of(context).colorScheme.surface,
+                                    borderRadius: BorderRadius.circular(28),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.12),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.04),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ],
                                   ),
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 1),
-                                  ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(28),
-                                child: SizedBox(
-                                  height: 64,
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceAround,
-                                    children: List.generate(3, (index) {
-                                      final isSelected =
-                                          _tabController.index == index;
-                                      final icons = [
-                                        Icons.explore_outlined,
-                                        Icons.dynamic_feed_outlined,
-                                        Icons.person_outline,
-                                      ];
-                                      final selectedIcons = [
-                                        Icons.explore,
-                                        Icons.dynamic_feed,
-                                        Icons.person,
-                                      ];
-                                      final labels = [
-                                        l10n.discover,
-                                        l10n.feed,
-                                        l10n.myTrips,
-                                      ];
-                                      return Expanded(
-                                        child: InkWell(
-                                          onTap: () {
-                                            setState(() {
-                                              _tabController.animateTo(index);
-                                            });
-                                          },
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(
-                                                isSelected
-                                                    ? selectedIcons[index]
-                                                    : icons[index],
-                                                color: isSelected
-                                                    ? Theme.of(
-                                                        context,
-                                                      ).colorScheme.primary
-                                                    : Theme.of(
-                                                        context,
-                                                      )
-                                                        .colorScheme
-                                                        .onSurfaceVariant,
-                                                size: 24,
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(28),
+                                    child: SizedBox(
+                                      height: 64,
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceAround,
+                                        children: List.generate(3, (index) {
+                                          final isSelected =
+                                              _tabController.index == index;
+                                          final icons = [
+                                            Icons.explore_outlined,
+                                            Icons.dynamic_feed_outlined,
+                                            Icons.person_outline,
+                                          ];
+                                          final selectedIcons = [
+                                            Icons.explore,
+                                            Icons.dynamic_feed,
+                                            Icons.person,
+                                          ];
+                                          final labels = [
+                                            l10n.discover,
+                                            l10n.feed,
+                                            l10n.myTrips,
+                                          ];
+                                          return Expanded(
+                                            child: InkWell(
+                                              onTap: () {
+                                                setState(() {
+                                                  _tabController
+                                                      .animateTo(index);
+                                                });
+                                              },
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(
+                                                    isSelected
+                                                        ? selectedIcons[index]
+                                                        : icons[index],
+                                                    color: isSelected
+                                                        ? Theme.of(
+                                                            context,
+                                                          ).colorScheme.primary
+                                                        : Theme.of(
+                                                            context,
+                                                          )
+                                                            .colorScheme
+                                                            .onSurfaceVariant,
+                                                    size: 24,
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    labels[index],
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: isSelected
+                                                          ? Theme.of(
+                                                              context,
+                                                            )
+                                                              .colorScheme
+                                                              .primary
+                                                          : Theme.of(
+                                                              context,
+                                                            )
+                                                              .colorScheme
+                                                              .onSurfaceVariant,
+                                                      fontWeight: isSelected
+                                                          ? FontWeight.w600
+                                                          : FontWeight.normal,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                labels[index],
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: isSelected
-                                                      ? Theme.of(
-                                                          context,
-                                                        ).colorScheme.primary
-                                                      : Theme.of(
-                                                          context,
-                                                        )
-                                                          .colorScheme
-                                                          .onSurfaceVariant,
-                                                  fontWeight: isSelected
-                                                      ? FontWeight.w600
-                                                      : FontWeight.normal,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    }),
+                                            ),
+                                          );
+                                        }),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ),
-                        if (_username != null)
-                          Positioned(
-                            right: 16,
-                            bottom: 92 + MediaQuery.of(context).padding.bottom,
-                            child: FloatingActionButton.extended(
-                              key: _tutorialNewTripKey,
-                              onPressed: _navigateToCreateTrip,
-                              icon: const Icon(Icons.add),
-                              label: Text(l10n.newTrip),
-                            ),
-                          ),
-                      ],
-                    ),
+                            if (_username != null)
+                              Positioned(
+                                right: 16,
+                                bottom:
+                                    92 + MediaQuery.of(context).padding.bottom,
+                                child: FloatingActionButton.extended(
+                                  key: _tutorialNewTripKey,
+                                  onPressed: _navigateToCreateTrip,
+                                  icon: const Icon(Icons.add),
+                                  label: Text(l10n.newTrip),
+                                ),
+                              ),
+                          ],
+                        ),
     );
   }
 }

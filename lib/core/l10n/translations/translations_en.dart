@@ -117,9 +117,25 @@ const Map<String, String> translationsEn = {
   'welcomeToWanderer': 'Welcome to Wanderer',
   'trackAdventures':
       'Track trips in real time, share moments with friends, and unlock achievements.',
+  'landingHeadline': 'Every trip, tracked and shared.',
+  'landingSubheadline':
+      'Real-time GPS tracking, social trip sharing, and planning tools for your next adventure.',
+  'landingInstallCta': 'Get it on Google Play',
+  'landingFeatureTrackingTitle': 'Real-Time Tracking',
+  'landingFeatureTrackingDesc':
+      'Watch your route appear live on the map as you travel.',
+  'landingFeatureSocialTitle': 'Social',
+  'landingFeatureSocialDesc':
+      'Follow friends, comment on trips, and react to updates.',
+  'landingFeaturePlanningTitle': 'Trip Planning',
+  'landingFeaturePlanningDesc': 'Map out waypoints before you hit the road.',
+  'landingFeatureAchievementsTitle': 'Achievements',
+  'landingFeatureAchievementsDesc':
+      'Unlock milestones based on your travel history.',
   'discoverAdventures': 'Discover adventures from the community',
   'explorePublicTrips': 'Explore Public Trips',
   'noTripsYet': 'No trips yet',
+  'trackFirstAdventure': 'Track your first adventure',
   'createFirstTrip': 'Create your first trip to get started!',
   'noTripsInFeed': 'No trips in your feed',
   'followToSeeTrips': 'Follow users or add friends to see their trips!',

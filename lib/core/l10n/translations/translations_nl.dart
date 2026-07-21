@@ -117,9 +117,25 @@ const Map<String, String> translationsNl = {
   'welcomeToWanderer': 'Welkom bij Wanderer',
   'trackAdventures':
       'Volg je reizen in realtime, deel momenten met vrienden en ontgrendel prestaties.',
+  'landingHeadline': 'Elke reis, gevolgd en gedeeld.',
+  'landingSubheadline':
+      'Realtime GPS-tracking, sociaal reizen delen en planningstools voor je volgende avontuur.',
+  'landingInstallCta': 'Verkrijgbaar bij Google Play',
+  'landingFeatureTrackingTitle': 'Realtime Tracking',
+  'landingFeatureTrackingDesc':
+      'Bekijk hoe je route live op de kaart verschijnt terwijl je reist.',
+  'landingFeatureSocialTitle': 'Sociaal',
+  'landingFeatureSocialDesc':
+      'Volg vrienden, reageer op reizen en geef reacties op updates.',
+  'landingFeaturePlanningTitle': 'Reisplanning',
+  'landingFeaturePlanningDesc': 'Stippel waypoints uit voordat je vertrekt.',
+  'landingFeatureAchievementsTitle': 'Prestaties',
+  'landingFeatureAchievementsDesc':
+      'Ontgrendel mijlpalen op basis van je reisgeschiedenis.',
   'discoverAdventures': 'Ontdek avonturen van de gemeenschap',
   'explorePublicTrips': 'Ontdek Openbare Reizen',
   'noTripsYet': 'Nog geen reizen',
+  'trackFirstAdventure': 'Leg je eerste avontuur vast',
   'createFirstTrip': 'Maak je eerste reis aan om te beginnen!',
   'noTripsInFeed': 'Geen reizen in je feed',
   'followToSeeTrips':

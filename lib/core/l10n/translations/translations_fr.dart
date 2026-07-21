@@ -118,9 +118,25 @@ const Map<String, String> translationsFr = {
   'welcomeToWanderer': 'Bienvenue sur Wanderer',
   'trackAdventures':
       'Suivez vos voyages en temps réel, partagez des moments avec vos amis et débloquez des succès.',
+  'landingHeadline': 'Chaque voyage, suivi et partagé.',
+  'landingSubheadline':
+      'Suivi GPS en temps réel, partage social des voyages et outils de planification pour votre prochaine aventure.',
+  'landingInstallCta': 'Disponible sur Google Play',
+  'landingFeatureTrackingTitle': 'Suivi en Temps Réel',
+  'landingFeatureTrackingDesc':
+      'Regardez votre itinéraire apparaître en direct sur la carte pendant votre voyage.',
+  'landingFeatureSocialTitle': 'Social',
+  'landingFeatureSocialDesc':
+      'Suivez vos amis, commentez les voyages et réagissez aux mises à jour.',
+  'landingFeaturePlanningTitle': 'Planification de Voyage',
+  'landingFeaturePlanningDesc': 'Tracez vos étapes avant de prendre la route.',
+  'landingFeatureAchievementsTitle': 'Succès',
+  'landingFeatureAchievementsDesc':
+      'Débloquez des succès selon votre historique de voyages.',
   'discoverAdventures': 'Découvrez les aventures de la communauté',
   'explorePublicTrips': 'Explorer les Voyages Publics',
   'noTripsYet': 'Pas encore de voyages',
+  'trackFirstAdventure': 'Suivez votre première aventure',
   'createFirstTrip': 'Créez votre premier voyage pour commencer !',
   'noTripsInFeed': 'Pas de voyages dans votre fil',
   'followToSeeTrips':

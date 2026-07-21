@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/data/storage/token_storage.dart';
 import 'package:wanderer_frontend/data/storage/token_refresh_manager.dart';
 import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/landing_screen.dart';
 
 /// Initial screen that checks auth state and shows appropriate content
 class InitialScreen extends StatefulWidget {
@@ -13,6 +15,7 @@ class InitialScreen extends StatefulWidget {
 
 class _InitialScreenState extends State<InitialScreen> {
   bool _isChecking = true;
+  bool _isLoggedIn = false;
 
   @override
   void initState() {
@@ -27,6 +30,7 @@ class _InitialScreenState extends State<InitialScreen> {
     try {
       final tokenStorage = TokenStorage();
       final isLoggedIn = await tokenStorage.isLoggedIn();
+      _isLoggedIn = isLoggedIn;
 
       if (isLoggedIn) {
         final isExpired = await tokenStorage.isAccessTokenExpired();
@@ -78,6 +82,10 @@ class _InitialScreenState extends State<InitialScreen> {
           ),
         ),
       );
+    }
+
+    if (kIsWeb && !_isLoggedIn) {
+      return const LandingScreen();
     }
 
     // Always show HomeScreen - it will handle showing public trips or user's trips

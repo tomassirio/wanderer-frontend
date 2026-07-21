@@ -33,7 +33,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
   TripPlan? _selectedTripPlan;
   List<TripPlan> _tripPlans = [];
   bool _createFromPlan = false;
-  bool _automaticUpdates = false;
+  bool _automaticUpdates = true;
   final _intervalController = TextEditingController(text: '15');
   static const int _minIntervalMinutes = 15;
   late final TripPlanService _tripPlanService;
