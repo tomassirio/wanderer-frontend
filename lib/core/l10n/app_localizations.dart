@@ -129,6 +129,54 @@ class AppLocalizations {
   String get welcomeToWanderer => _tr('welcomeToWanderer');
   String get trackAdventures => _tr('trackAdventures');
   String get getStarted => _tr('getStarted');
+  String get tutorialSkip => _tr('tutorialSkip');
+  String get tutorialNext => _tr('tutorialNext');
+  String get tutorialMenuTitle => _tr('tutorialMenuTitle');
+  String get tutorialMenuDescription => _tr('tutorialMenuDescription');
+  String get tutorialSearchTitle => _tr('tutorialSearchTitle');
+  String get tutorialSearchDescription => _tr('tutorialSearchDescription');
+  String get tutorialNotificationsTitle => _tr('tutorialNotificationsTitle');
+  String get tutorialNotificationsDescription =>
+      _tr('tutorialNotificationsDescription');
+  String get tutorialNewTripTitle => _tr('tutorialNewTripTitle');
+  String get tutorialNewTripDescription => _tr('tutorialNewTripDescription');
+  String get tutorialBottomNavTitle => _tr('tutorialBottomNavTitle');
+  String get tutorialBottomNavDescription =>
+      _tr('tutorialBottomNavDescription');
+  String get tutorialTripNameTitle => _tr('tutorialTripNameTitle');
+  String get tutorialTripNameDescription => _tr('tutorialTripNameDescription');
+  String get tutorialTripTypeTitle => _tr('tutorialTripTypeTitle');
+  String get tutorialTripTypeDescription => _tr('tutorialTripTypeDescription');
+  String get tutorialVisibilityTitle => _tr('tutorialVisibilityTitle');
+  String get tutorialVisibilityDescription =>
+      _tr('tutorialVisibilityDescription');
+  String get tutorialAutoUpdatesTitle => _tr('tutorialAutoUpdatesTitle');
+  String get tutorialAutoUpdatesDescription =>
+      _tr('tutorialAutoUpdatesDescription');
+  String get tutorialCreateButtonTitle => _tr('tutorialCreateButtonTitle');
+  String get tutorialCreateButtonDescription =>
+      _tr('tutorialCreateButtonDescription');
+  String get tutorialSendUpdateTitle => _tr('tutorialSendUpdateTitle');
+  String get tutorialSendUpdateDescription =>
+      _tr('tutorialSendUpdateDescription');
+  String get tutorialTripStatusTitle => _tr('tutorialTripStatusTitle');
+  String get tutorialTripStatusDescription =>
+      _tr('tutorialTripStatusDescription');
+  String get tutorialShareTripTitle => _tr('tutorialShareTripTitle');
+  String get tutorialShareTripDescription =>
+      _tr('tutorialShareTripDescription');
+  String get tutorialInfoBubbleTitle => _tr('tutorialInfoBubbleTitle');
+  String get tutorialInfoBubbleDescription =>
+      _tr('tutorialInfoBubbleDescription');
+  String get tutorialCommentsBubbleTitle => _tr('tutorialCommentsBubbleTitle');
+  String get tutorialCommentsBubbleDescription =>
+      _tr('tutorialCommentsBubbleDescription');
+  String get tutorialTimelineBubbleTitle => _tr('tutorialTimelineBubbleTitle');
+  String get tutorialTimelineBubbleDescription =>
+      _tr('tutorialTimelineBubbleDescription');
+  String get tutorialSettingsBubbleTitle => _tr('tutorialSettingsBubbleTitle');
+  String get tutorialSettingsBubbleDescription =>
+      _tr('tutorialSettingsBubbleDescription');
   String get discoverAdventures => _tr('discoverAdventures');
   String get explorePublicTrips => _tr('explorePublicTrips');
   String get noTripsYet => _tr('noTripsYet');
@@ -314,6 +362,9 @@ class AppLocalizations {
   String get support => _tr('support');
   String get contactSupport => _tr('contactSupport');
   String get contactSupportSubtitle => _tr('contactSupportSubtitle');
+  String get resetTutorials => _tr('resetTutorials');
+  String get resetTutorialsSubtitle => _tr('resetTutorialsSubtitle');
+  String get resetTutorialsSuccess => _tr('resetTutorialsSuccess');
   String get termsOfService => _tr('termsOfService');
   String get privacyPolicy => _tr('privacyPolicy');
   String get pushNotifications => _tr('pushNotifications');

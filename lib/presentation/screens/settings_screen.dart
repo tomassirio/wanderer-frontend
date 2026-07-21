@@ -10,6 +10,8 @@ import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/data/services/auth_service.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/data/models/requests/password_change_request.dart';
+import 'package:wanderer_frontend/data/storage/onboarding_storage.dart';
+import 'package:wanderer_frontend/presentation/helpers/tutorial_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
@@ -36,6 +38,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoading = false;
   bool _pushEnabled = true;
   bool _isDarkMode = false;
+  bool _isAdmin = false;
   String _appVersion = '';
 
   // Easter egg state
@@ -47,7 +50,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _loadPushPreference();
     _loadAppVersion();
+    _loadAdminStatus();
     _isDarkMode = ThemeController().isDarkMode;
+  }
+
+  Future<void> _loadAdminStatus() async {
+    final isAdmin = await _homeRepository.isAdmin();
+    if (mounted) {
+      setState(() {
+        _isAdmin = isAdmin;
+      });
+    }
   }
 
   @override
@@ -301,6 +314,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _handleResetTutorials() async {
+    final l10n = context.l10n;
+    final storage = OnboardingStorage();
+    await Future.wait(TutorialKeys.all.map(storage.resetTutorial));
+
+    if (mounted) {
+      UiHelpers.showSuccessMessage(context, l10n.resetTutorialsSuccess);
+    }
+  }
+
   // --- Danger Zone ---
 
   Future<void> _handleCloseAccount() async {
@@ -505,6 +528,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: l10n.contactSupportSubtitle,
                   onTap: _handleContactSupport,
                 ),
+                if (_isAdmin)
+                  _buildSettingsTile(
+                    icon: Icons.replay,
+                    iconColor: WandererTheme.statusCompleted,
+                    title: l10n.resetTutorials,
+                    subtitle: l10n.resetTutorialsSubtitle,
+                    onTap: _handleResetTutorials,
+                  ),
                 _buildSettingsTile(
                   icon: Icons.description_outlined,
                   iconColor: WandererTheme.statusCompleted,

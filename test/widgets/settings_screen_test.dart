@@ -1,8 +1,20 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
+import 'package:wanderer_frontend/data/storage/onboarding_storage.dart';
+import 'package:wanderer_frontend/presentation/helpers/tutorial_helper.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
+
+/// Creates a fake JWT token with the given roles in its payload.
+String _createFakeJwt({List<String> roles = const []}) {
+  final header = base64Url.encode(utf8.encode('{"alg":"HS256","typ":"JWT"}'));
+  final payload = base64Url.encode(utf8.encode(jsonEncode({'roles': roles})));
+  final signature = base64Url.encode(utf8.encode('fake-signature'));
+  return '$header.$payload.$signature';
+}
 
 void main() {
   group('SettingsScreen', () {
@@ -84,6 +96,66 @@ void main() {
 
       expect(find.text('Contact Support'), findsOneWidget);
       expect(find.text('Get help via email'), findsOneWidget);
+    });
+
+    testWidgets('renders Reset Tutorials option for admins', (
+      WidgetTester tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({
+        'access_token': _createFakeJwt(roles: ['ADMIN']),
+      });
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump();
+
+      await tester.scrollUntilVisible(
+        find.text('Reset Tutorials'),
+        200,
+        scrollable: find.byType(Scrollable),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reset Tutorials'), findsOneWidget);
+      expect(find.text('Show first-time tutorials again'), findsOneWidget);
+    });
+
+    testWidgets('hides Reset Tutorials option for non-admins', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reset Tutorials'), findsNothing);
+    });
+
+    testWidgets('tapping Reset Tutorials clears tutorial flags', (
+      WidgetTester tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({
+        'access_token': _createFakeJwt(roles: ['ADMIN']),
+      });
+      final storage = OnboardingStorage();
+      await storage.markTutorialSeen(TutorialKeys.home);
+      await storage.markTutorialSeen(TutorialKeys.createTrip);
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump();
+
+      await tester.scrollUntilVisible(
+        find.text('Reset Tutorials'),
+        200,
+        scrollable: find.byType(Scrollable),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Reset Tutorials'));
+      await tester.pump();
+      // FloatingNotification auto-dismisses via a delayed Future — advance
+      // past its duration so the timer fires before the test tears down.
+      await tester.pump(const Duration(seconds: 3));
+
+      expect(await storage.hasSeenTutorial(TutorialKeys.home), false);
+      expect(await storage.hasSeenTutorial(TutorialKeys.createTrip), false);
     });
 
     testWidgets('renders Terms of Service option', (WidgetTester tester) async {

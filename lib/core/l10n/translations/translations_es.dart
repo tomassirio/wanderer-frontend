@@ -12,6 +12,58 @@ const Map<String, String> translationsEs = {
   'logout': 'Cerrar Sesión',
   'logIn': 'Iniciar Sesión',
   'getStarted': 'Comenzar',
+  'tutorialSkip': 'Omitir',
+  'tutorialNext': 'Siguiente',
+  'tutorialMenuTitle': 'Explora el Menú',
+  'tutorialMenuDescription':
+      'Planes de viaje, amigos, logros y configuración están aquí.',
+  'tutorialSearchTitle': 'Encuentra Personas y Viajes',
+  'tutorialSearchDescription': 'Busca otros viajeros y viajes públicos.',
+  'tutorialNotificationsTitle': 'Mantente Actualizado',
+  'tutorialNotificationsDescription':
+      'Recibe notificaciones de comentarios, seguidores y reacciones.',
+  'tutorialNewTripTitle': 'Comienza Tu Aventura',
+  'tutorialNewTripDescription':
+      'Toca aquí para crear tu primer viaje y comenzar a rastrear en tiempo real.',
+  'tutorialBottomNavTitle': 'Cambia de Vista',
+  'tutorialBottomNavDescription':
+      'Toca Descubrir, Feed o Mis Viajes para explorar diferentes vistas.',
+  'tutorialTripNameTitle': 'Nombra Tu Viaje',
+  'tutorialTripNameDescription':
+      'Dale un título a tu viaje para que tus amigos puedan encontrarlo.',
+  'tutorialTripTypeTitle': 'Elige el Tipo de Viaje',
+  'tutorialTripTypeDescription':
+      'Simple para un solo viaje, Multi-Día para aventuras más largas con marcadores de día.',
+  'tutorialVisibilityTitle': 'Configura Tu Visibilidad',
+  'tutorialVisibilityDescription':
+      'Elige quién puede ver este viaje: público, protegido o privado.',
+  'tutorialAutoUpdatesTitle': 'Actualizaciones Automáticas',
+  'tutorialAutoUpdatesDescription':
+      'Actívalo para compartir tu ubicación automáticamente en un intervalo fijo, sin necesidad de enviar actualizaciones manualmente.',
+  'tutorialCreateButtonTitle': 'Listo para Empezar',
+  'tutorialCreateButtonDescription':
+      'Toca aquí para crear tu viaje y comenzar tu aventura.',
+  'tutorialSendUpdateTitle': 'Comparte una Actualización',
+  'tutorialSendUpdateDescription':
+      'Envía un mensaje o foto para actualizar a tus seguidores en tiempo real.',
+  'tutorialTripStatusTitle': 'Controla Tu Viaje',
+  'tutorialTripStatusDescription':
+      'Inicia, pausa o finaliza tu viaje desde aquí.',
+  'tutorialShareTripTitle': 'Comparte Tu Viaje',
+  'tutorialShareTripDescription':
+      'Genera un código QR o enlace para compartir este viaje con otros.',
+  'tutorialInfoBubbleTitle': 'Detalles del Viaje',
+  'tutorialInfoBubbleDescription':
+      'Toca aquí para ver los detalles del viaje, seguir al propietario y compartir este viaje.',
+  'tutorialCommentsBubbleTitle': 'Únete a la Conversación',
+  'tutorialCommentsBubbleDescription':
+      'Toca aquí para leer y publicar comentarios en este viaje.',
+  'tutorialTimelineBubbleTitle': 'Ver la Línea de Tiempo',
+  'tutorialTimelineBubbleDescription':
+      'Toca aquí para ver el historial de ruta y las actualizaciones del viaje.',
+  'tutorialSettingsBubbleTitle': 'Configuración del Viaje',
+  'tutorialSettingsBubbleDescription':
+      'Toca aquí para gestionar las actualizaciones automáticas y las opciones de ruta de este viaje.',
   'guest': 'Invitado',
   'myProfile': 'Mi Perfil',
   'settings': 'Configuración',
@@ -173,6 +225,10 @@ const Map<String, String> translationsEs = {
   'support': 'Soporte',
   'contactSupport': 'Contactar Soporte',
   'contactSupportSubtitle': 'Obtén ayuda por correo electrónico',
+  'resetTutorials': 'Restablecer Tutoriales',
+  'resetTutorialsSubtitle': 'Muestra los tutoriales de nuevo',
+  'resetTutorialsSuccess':
+      'Tutoriales restablecidos — se mostrarán de nuevo mientras usas la app.',
   'termsOfService': 'Términos de Servicio',
   'privacyPolicy': 'Política de Privacidad',
   'pushNotifications': 'Notificaciones Push',
