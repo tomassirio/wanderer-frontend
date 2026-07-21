@@ -5,6 +5,7 @@ import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
 
 /// Pre-signup marketing landing page shown to logged-out web visitors.
@@ -31,11 +32,18 @@ class LandingScreen extends StatelessWidget {
     }
   }
 
-  void _openAuth(BuildContext context, {bool startInSignup = false}) {
-    Navigator.push(
+  Future<void> _openAuth(BuildContext context,
+      {bool startInSignup = false}) async {
+    final result = await Navigator.push(
       context,
       PageTransitions.fade(AuthScreen(startInSignup: startInSignup)),
     );
+
+    if (result == true && context.mounted) {
+      Navigator.of(context).pushReplacement(
+        PageTransitions.fade(const HomeScreen()),
+      );
+    }
   }
 
   @override

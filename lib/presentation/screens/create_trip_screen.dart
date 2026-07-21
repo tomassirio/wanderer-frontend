@@ -55,51 +55,74 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final l10n = context.l10n;
-      showFirstTimeTutorial(
-        context: context,
-        tutorialKey: TutorialKeys.createTrip,
-        steps: [
-          TutorialStep(
-            key: _tutorialTitleKey,
-            title: l10n.tutorialTripNameTitle,
-            description: l10n.tutorialTripNameDescription,
-            shape: ShapeLightFocus.RRect,
-            radius: 12,
-          ),
-          TutorialStep(
-            key: _tutorialTripTypeKey,
-            title: l10n.tutorialTripTypeTitle,
-            description: l10n.tutorialTripTypeDescription,
-            shape: ShapeLightFocus.RRect,
-            radius: 12,
-          ),
-          TutorialStep(
-            key: _tutorialVisibilityKey,
-            title: l10n.tutorialVisibilityTitle,
-            description: l10n.tutorialVisibilityDescription,
-            shape: ShapeLightFocus.RRect,
-            radius: 12,
-          ),
-          TutorialStep(
-            key: _tutorialAutoUpdatesKey,
-            title: l10n.tutorialAutoUpdatesTitle,
-            description: l10n.tutorialAutoUpdatesDescription,
-            shape: ShapeLightFocus.RRect,
-            radius: 12,
-            align: ContentAlign.top,
-          ),
-          TutorialStep(
-            key: _tutorialCreateButtonKey,
-            title: l10n.tutorialCreateButtonTitle,
-            description: l10n.tutorialCreateButtonDescription,
-            shape: ShapeLightFocus.RRect,
-            radius: 14,
-            align: ContentAlign.top,
-          ),
-        ],
-      );
+      final route = ModalRoute.of(context);
+      final routeAnimation = route?.animation;
+      if (routeAnimation != null &&
+          routeAnimation.status != AnimationStatus.completed) {
+        late final AnimationStatusListener listener;
+        listener = (status) {
+          if (status == AnimationStatus.completed) {
+            routeAnimation.removeStatusListener(listener);
+            _startCreateTripTutorial();
+          }
+        };
+        routeAnimation.addStatusListener(listener);
+      } else {
+        _startCreateTripTutorial();
+      }
     });
+  }
+
+  /// Starts the first-time coach-mark tutorial. Only called once the
+  /// screen's own push transition has finished, so tutorial targets are
+  /// measured against their final settled positions instead of a
+  /// transient mid-animation layout (see [PageTransitions.slideFromBottom]).
+  void _startCreateTripTutorial() {
+    if (!mounted) return;
+    final l10n = context.l10n;
+    showFirstTimeTutorial(
+      context: context,
+      tutorialKey: TutorialKeys.createTrip,
+      steps: [
+        TutorialStep(
+          key: _tutorialTitleKey,
+          title: l10n.tutorialTripNameTitle,
+          description: l10n.tutorialTripNameDescription,
+          shape: ShapeLightFocus.RRect,
+          radius: 12,
+        ),
+        TutorialStep(
+          key: _tutorialTripTypeKey,
+          title: l10n.tutorialTripTypeTitle,
+          description: l10n.tutorialTripTypeDescription,
+          shape: ShapeLightFocus.RRect,
+          radius: 12,
+        ),
+        TutorialStep(
+          key: _tutorialVisibilityKey,
+          title: l10n.tutorialVisibilityTitle,
+          description: l10n.tutorialVisibilityDescription,
+          shape: ShapeLightFocus.RRect,
+          radius: 12,
+        ),
+        TutorialStep(
+          key: _tutorialAutoUpdatesKey,
+          title: l10n.tutorialAutoUpdatesTitle,
+          description: l10n.tutorialAutoUpdatesDescription,
+          shape: ShapeLightFocus.RRect,
+          radius: 12,
+          align: ContentAlign.top,
+        ),
+        TutorialStep(
+          key: _tutorialCreateButtonKey,
+          title: l10n.tutorialCreateButtonTitle,
+          description: l10n.tutorialCreateButtonDescription,
+          shape: ShapeLightFocus.RRect,
+          radius: 14,
+          align: ContentAlign.top,
+        ),
+      ],
+    );
   }
 
   @override
@@ -368,48 +391,53 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
           // Title field
           _buildSectionLabel('Trip Title'),
           const SizedBox(height: 8),
-          TextFormField(
+          KeyedSubtree(
             key: _tutorialTitleKey,
-            controller: _titleController,
-            decoration: InputDecoration(
-              hintText: l10n.tripTitleHint,
-              hintStyle: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-              ),
-              filled: true,
-              fillColor: Theme.of(context).colorScheme.surface,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+            child: TextFormField(
+              controller: _titleController,
+              decoration: InputDecoration(
+                hintText: l10n.tripTitleHint,
+                hintStyle: TextStyle(
+                  color:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                ),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color:
+                        Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color:
+                        Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: WandererTheme.primaryOrange,
+                    width: 1.5,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
                 ),
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: WandererTheme.primaryOrange,
-                  width: 1.5,
-                ),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.next,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter a title';
+                }
+                return null;
+              },
             ),
-            textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.next,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Please enter a title';
-              }
-              return null;
-            },
           ),
           const SizedBox(height: 20),
           // Description field
