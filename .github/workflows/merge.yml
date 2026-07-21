@@ -15,6 +15,7 @@ jobs:
       release-version: ${{ steps.set-release-version.outputs.version }}
       base-version: ${{ steps.set-release-version.outputs.base-version }}
       skip: ${{ steps.set-release-version.outputs.skip }}
+      build-number: ${{ steps.read-build-number.outputs.build-number }}
     permissions:
       contents: write
     steps:
@@ -27,6 +28,12 @@ jobs:
           echo "Head commit message: $COMMIT_MSG"
           echo "Head commit author: $COMMIT_AUTHOR"
           echo "Actor: $ACTOR"
+
+      - name: Read build number
+        id: read-build-number
+        run: |
+          echo "📱 Android/Play Store build number: ${{ vars.BUILD_NUMBER }}"
+          echo "build-number=${{ vars.BUILD_NUMBER }}" >> $GITHUB_OUTPUT
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -213,6 +220,7 @@ jobs:
       - name: Build APK
         run: |
           flutter build apk --release \
+            --build-number=${{ needs.prepare-release.outputs.build-number }} \
             --dart-define=COMMAND_BASE_URL=https://${{ vars.PUBLIC_URL }}/api/command \
             --dart-define=QUERY_BASE_URL=https://${{ vars.PUBLIC_URL }}/api/query \
             --dart-define=AUTH_BASE_URL=https://${{ vars.PUBLIC_URL }}/api/auth \
@@ -229,6 +237,87 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk "${APK_NAME}"
           gh release upload "v${VERSION}" "${APK_NAME}" --clobber
           echo "✅ Uploaded ${APK_NAME} to release v${VERSION}"
+
+  build-bundle:
+    needs:
+      - prepare-release
+      - create-release
+      - finalize-release
+    if: needs.prepare-release.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    environment: prod
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.prepare-release.outputs.base-version }}
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.5'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Inject Google Maps API key for Android
+        run: echo "GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}" > .env
+
+      - name: Set up keystore for signing
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+          echo "storeFile=${{ github.workspace }}/android/app/upload-keystore.jks" >> android/key.properties
+
+      - name: Build App Bundle
+        run: |
+          flutter build appbundle --release \
+            --build-number=${{ needs.prepare-release.outputs.build-number }} \
+            --dart-define=COMMAND_BASE_URL=https://${{ vars.PUBLIC_URL }}/api/command \
+            --dart-define=QUERY_BASE_URL=https://${{ vars.PUBLIC_URL }}/api/query \
+            --dart-define=AUTH_BASE_URL=https://${{ vars.PUBLIC_URL }}/api/auth \
+            --dart-define=WS_BASE_URL=wss://${{ vars.PUBLIC_URL }} \
+            --dart-define=APP_BASE_URL=https://${{ vars.PUBLIC_URL }} \
+            --dart-define=GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}
+
+      - name: Upload App Bundle to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.prepare-release.outputs.base-version }}"
+          AAB_NAME="wanderer-frontend-${VERSION}.aab"
+          cp build/app/outputs/bundle/release/app-release.aab "${AAB_NAME}"
+          gh release upload "v${VERSION}" "${AAB_NAME}" --clobber
+          echo "✅ Uploaded ${AAB_NAME} to release v${VERSION}"
+
+  bump-build-number:
+    needs:
+      - prepare-release
+      - build-apk
+      - build-bundle
+    if: needs.prepare-release.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Increment BUILD_NUMBER variable
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          CURRENT="${{ needs.prepare-release.outputs.build-number }}"
+          NEXT=$((CURRENT + 1))
+          gh variable set BUILD_NUMBER --body "$NEXT" --repo "${{ github.repository }}"
+          echo "✅ BUILD_NUMBER: ${CURRENT} → ${NEXT}"
 
   purge-cloudflare-cache:
     needs:
