@@ -174,6 +174,11 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
       groups.putIfAbsent(category, () => []);
       groups[category]!.add(achievement);
     }
+    // AchievementType is declared in display order (sub-group, then magnitude),
+    // e.g. Followers before Friends within Social, ascending threshold within each.
+    for (final list in groups.values) {
+      list.sort((a, b) => a.type.index.compareTo(b.type.index));
+    }
     final ordered = <String, List<Achievement>>{};
     for (final category in _categoryOrder) {
       if (groups.containsKey(category)) {
