@@ -156,7 +156,17 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     }
   }
 
-  /// Group achievements by category
+  /// Fixed display order for achievement categories, regardless of API order
+  static const List<String> _categoryOrder = [
+    'Getting Started',
+    'Distance',
+    'Updates',
+    'Duration',
+    'Social',
+    'Other',
+  ];
+
+  /// Group achievements by category, ordered per [_categoryOrder]
   Map<String, List<Achievement>> _groupByCategory() {
     final groups = <String, List<Achievement>>{};
     for (final achievement in _allAchievements) {
@@ -164,7 +174,16 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
       groups.putIfAbsent(category, () => []);
       groups[category]!.add(achievement);
     }
-    return groups;
+    final ordered = <String, List<Achievement>>{};
+    for (final category in _categoryOrder) {
+      if (groups.containsKey(category)) {
+        ordered[category] = groups[category]!;
+      }
+    }
+    for (final entry in groups.entries) {
+      ordered.putIfAbsent(entry.key, () => entry.value);
+    }
+    return ordered;
   }
 
   IconData _getCategoryIcon(String category) {
