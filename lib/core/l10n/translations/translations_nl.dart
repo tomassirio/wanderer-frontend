@@ -532,6 +532,7 @@ const Map<String, String> translationsNl = {
   'categoryDuration': 'Duur',
   'categorySocial': 'Sociaal',
   'categoryOther': 'Overig',
+  'categoryGettingStarted': 'Aan de Slag',
 
   // --- Profile screen (extra) ---
   'mustBeLoggedInToViewProfile':

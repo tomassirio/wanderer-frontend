@@ -156,7 +156,17 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     }
   }
 
-  /// Group achievements by category
+  /// Fixed display order for achievement categories, regardless of API order
+  static const List<String> _categoryOrder = [
+    'Getting Started',
+    'Distance',
+    'Updates',
+    'Duration',
+    'Social',
+    'Other',
+  ];
+
+  /// Group achievements by category, ordered per [_categoryOrder]
   Map<String, List<Achievement>> _groupByCategory() {
     final groups = <String, List<Achievement>>{};
     for (final achievement in _allAchievements) {
@@ -164,11 +174,27 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
       groups.putIfAbsent(category, () => []);
       groups[category]!.add(achievement);
     }
-    return groups;
+    // AchievementType is declared in display order (sub-group, then magnitude),
+    // e.g. Followers before Friends within Social, ascending threshold within each.
+    for (final list in groups.values) {
+      list.sort((a, b) => a.type.index.compareTo(b.type.index));
+    }
+    final ordered = <String, List<Achievement>>{};
+    for (final category in _categoryOrder) {
+      if (groups.containsKey(category)) {
+        ordered[category] = groups[category]!;
+      }
+    }
+    for (final entry in groups.entries) {
+      ordered.putIfAbsent(entry.key, () => entry.value);
+    }
+    return ordered;
   }
 
   IconData _getCategoryIcon(String category) {
     switch (category) {
+      case 'Getting Started':
+        return Icons.rocket_launch;
       case 'Distance':
         return Icons.directions_walk;
       case 'Updates':
@@ -184,6 +210,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
 
   Color _getCategoryColor(String category) {
     switch (category) {
+      case 'Getting Started':
+        return Colors.teal;
       case 'Distance':
         return Colors.blue;
       case 'Updates':
@@ -200,6 +228,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   String _localizeCategory(BuildContext context, String category) {
     final l10n = context.l10n;
     switch (category) {
+      case 'Getting Started':
+        return l10n.categoryGettingStarted;
       case 'Distance':
         return l10n.categoryDistance;
       case 'Updates':

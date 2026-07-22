@@ -15,7 +15,13 @@ void main() {
           'DISTANCE_2200KM');
     });
 
+    test('toJson returns correct string for getting started types', () {
+      expect(AchievementType.firstTrip.toJson(), 'FIRST_TRIP');
+      expect(AchievementType.profileCompleted.toJson(), 'PROFILE_COMPLETED');
+    });
+
     test('toJson returns correct string for update types', () {
+      expect(AchievementType.updatesOne.toJson(), 'UPDATES_1');
       expect(AchievementType.updatesTen.toJson(), 'UPDATES_10');
       expect(AchievementType.updatesFifty.toJson(), 'UPDATES_50');
       expect(AchievementType.updatesOneHundred.toJson(), 'UPDATES_100');
@@ -30,23 +36,35 @@ void main() {
     });
 
     test('toJson returns correct string for social types', () {
+      expect(AchievementType.followersOne.toJson(), 'FOLLOWERS_1');
       expect(AchievementType.followersTen.toJson(), 'FOLLOWERS_10');
       expect(AchievementType.followersFifty.toJson(), 'FOLLOWERS_50');
       expect(AchievementType.followersOneHundred.toJson(), 'FOLLOWERS_100');
+      expect(AchievementType.friendsOne.toJson(), 'FRIENDS_1');
       expect(AchievementType.friendsFive.toJson(), 'FRIENDS_5');
       expect(AchievementType.friendsTwenty.toJson(), 'FRIENDS_20');
       expect(AchievementType.friendsFifty.toJson(), 'FRIENDS_50');
     });
 
     test('fromJson parses all types correctly', () {
+      expect(
+          AchievementType.fromJson('FIRST_TRIP'), AchievementType.firstTrip);
+      expect(AchievementType.fromJson('PROFILE_COMPLETED'),
+          AchievementType.profileCompleted);
       expect(AchievementType.fromJson('DISTANCE_100KM'),
           AchievementType.distanceOneHundredKm);
+      expect(
+          AchievementType.fromJson('UPDATES_1'), AchievementType.updatesOne);
       expect(
           AchievementType.fromJson('UPDATES_10'), AchievementType.updatesTen);
       expect(AchievementType.fromJson('DURATION_7_DAYS'),
           AchievementType.durationSevenDays);
+      expect(AchievementType.fromJson('FOLLOWERS_1'),
+          AchievementType.followersOne);
       expect(AchievementType.fromJson('FOLLOWERS_10'),
           AchievementType.followersTen);
+      expect(
+          AchievementType.fromJson('FRIENDS_1'), AchievementType.friendsOne);
       expect(
           AchievementType.fromJson('FRIENDS_5'), AchievementType.friendsFive);
     });
@@ -66,10 +84,15 @@ void main() {
     });
 
     test('category returns correct grouping', () {
+      expect(AchievementType.firstTrip.category, 'Getting Started');
+      expect(AchievementType.profileCompleted.category, 'Getting Started');
       expect(AchievementType.distanceOneHundredKm.category, 'Distance');
+      expect(AchievementType.updatesOne.category, 'Updates');
       expect(AchievementType.updatesTen.category, 'Updates');
       expect(AchievementType.durationSevenDays.category, 'Duration');
+      expect(AchievementType.followersOne.category, 'Social');
       expect(AchievementType.followersTen.category, 'Social');
+      expect(AchievementType.friendsOne.category, 'Social');
       expect(AchievementType.friendsFive.category, 'Social');
     });
 

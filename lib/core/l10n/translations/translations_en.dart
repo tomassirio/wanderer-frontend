@@ -525,6 +525,7 @@ const Map<String, String> translationsEn = {
   'categoryDuration': 'Duration',
   'categorySocial': 'Social',
   'categoryOther': 'Other',
+  'categoryGettingStarted': 'Getting Started',
 
   // --- Profile screen (extra) ---
   'mustBeLoggedInToViewProfile': 'You must be logged in to view your profile',
