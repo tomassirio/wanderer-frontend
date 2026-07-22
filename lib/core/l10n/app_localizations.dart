@@ -757,6 +757,7 @@ class AppLocalizations {
   String get categoryDuration => _tr('categoryDuration');
   String get categorySocial => _tr('categorySocial');
   String get categoryOther => _tr('categoryOther');
+  String get categoryGettingStarted => _tr('categoryGettingStarted');
 
   // Achievement units
   String achievementKm(double v) => '${v.toStringAsFixed(1)} km';
@@ -776,45 +777,73 @@ class AppLocalizations {
   String achievementUpdatesCount(int v) {
     switch (_lang) {
       case 'es':
-        return '$v actualizaciones';
+        return v == 1 ? '1 actualización' : '$v actualizaciones';
       case 'fr':
-        return '$v mises à jour';
+        return v == 1 ? '1 mise à jour' : '$v mises à jour';
       case 'nl':
-        return '$v updates';
+        return v == 1 ? '1 update' : '$v updates';
       default:
-        return '$v updates';
+        return v == 1 ? '1 update' : '$v updates';
     }
   }
 
   String achievementFollowers(int v) {
     switch (_lang) {
       case 'es':
-        return '$v seguidores';
+        return v == 1 ? '1 seguidor' : '$v seguidores';
       case 'fr':
-        return '$v abonnés';
+        return v == 1 ? '1 abonné' : '$v abonnés';
       case 'nl':
-        return '$v volgers';
+        return v == 1 ? '1 volger' : '$v volgers';
       default:
-        return '$v followers';
+        return v == 1 ? '1 follower' : '$v followers';
     }
   }
 
   String achievementFriends(int v) {
     switch (_lang) {
       case 'es':
-        return '$v amigos';
+        return v == 1 ? '1 amigo' : '$v amigos';
       case 'fr':
-        return '$v amis';
+        return v == 1 ? '1 ami' : '$v amis';
       case 'nl':
-        return '$v vrienden';
+        return v == 1 ? '1 vriend' : '$v vrienden';
       default:
-        return '$v friends';
+        return v == 1 ? '1 friend' : '$v friends';
     }
   }
 
   // Achievement localized names (keyed by backend type string)
   String achievementNameFor(String typeKey) {
     switch (typeKey) {
+      case 'FIRST_TRIP':
+        switch (_lang) {
+          case 'es':
+            return 'Primer Viaje';
+          case 'fr':
+            return 'Premier Voyage';
+          case 'nl':
+            return 'Eerste Reis';
+          default:
+            return 'First Trip';
+        }
+      case 'PROFILE_COMPLETED':
+        switch (_lang) {
+          case 'es':
+            return 'Perfil Completo';
+          case 'fr':
+            return 'Profil Complet';
+          case 'nl':
+            return 'Profiel Compleet';
+          default:
+            return 'Profile Complete';
+        }
+      case 'UPDATES_1':
+        return achievementUpdatesCount(1);
+      case 'FOLLOWERS_1':
+        return achievementFollowers(1);
+      case 'FRIENDS_1':
+        return achievementFriends(1);
       case 'DISTANCE_100KM':
         return '100 km';
       case 'DISTANCE_200KM':
@@ -890,6 +919,36 @@ class AppLocalizations {
   // Achievement localized descriptions (keyed by backend type string)
   String achievementDescriptionFor(String typeKey) {
     final Map<String, Map<String, String>> descs = {
+      'FIRST_TRIP': {
+        'en': 'Create your first trip',
+        'es': 'Crea tu primer viaje',
+        'fr': 'Créez votre premier voyage',
+        'nl': 'Maak je eerste reis aan',
+      },
+      'PROFILE_COMPLETED': {
+        'en': 'Complete your profile',
+        'es': 'Completa tu perfil',
+        'fr': 'Complétez votre profil',
+        'nl': 'Voltooi je profiel',
+      },
+      'UPDATES_1': {
+        'en': 'Post your first update in a trip',
+        'es': 'Publica tu primera actualización en un viaje',
+        'fr': 'Publiez votre première mise à jour dans un voyage',
+        'nl': 'Plaats je eerste update in een reis',
+      },
+      'FOLLOWERS_1': {
+        'en': 'Gain your first follower',
+        'es': 'Consigue tu primer seguidor',
+        'fr': 'Obtenez votre premier abonné',
+        'nl': 'Krijg je eerste volger',
+      },
+      'FRIENDS_1': {
+        'en': 'Make your first friend',
+        'es': 'Haz tu primer amigo',
+        'fr': 'Faites votre premier ami',
+        'nl': 'Maak je eerste vriend',
+      },
       'DISTANCE_100KM': {
         'en': 'Walk 100 km in a single trip',
         'es': 'Camina 100 km en un solo viaje',

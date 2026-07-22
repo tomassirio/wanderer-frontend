@@ -169,6 +169,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
 
   IconData _getCategoryIcon(String category) {
     switch (category) {
+      case 'Getting Started':
+        return Icons.rocket_launch;
       case 'Distance':
         return Icons.directions_walk;
       case 'Updates':
@@ -184,6 +186,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
 
   Color _getCategoryColor(String category) {
     switch (category) {
+      case 'Getting Started':
+        return Colors.teal;
       case 'Distance':
         return Colors.blue;
       case 'Updates':
@@ -200,6 +204,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   String _localizeCategory(BuildContext context, String category) {
     final l10n = context.l10n;
     switch (category) {
+      case 'Getting Started':
+        return l10n.categoryGettingStarted;
       case 'Distance':
         return l10n.categoryDistance;
       case 'Updates':

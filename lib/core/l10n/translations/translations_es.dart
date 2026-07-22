@@ -530,6 +530,7 @@ const Map<String, String> translationsEs = {
   'categoryDuration': 'Duración',
   'categorySocial': 'Social',
   'categoryOther': 'Otro',
+  'categoryGettingStarted': 'Primeros Pasos',
 
   // --- Profile screen (extra) ---
   'mustBeLoggedInToViewProfile': 'Debes iniciar sesión para ver tu perfil',
