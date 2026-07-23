@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/services/cache_service.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
@@ -84,19 +86,19 @@ enum TripSortOption {
 }
 
 /// User profile screen showing user information, statistics, and trips
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   final String? userId;
 
   const ProfileScreen({super.key, this.userId});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  final ProfileRepository _repository = ProfileRepository();
-  final UserService _userService = UserService();
-  final WebSocketService _webSocketService = WebSocketService();
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  late final ProfileRepository _repository;
+  late final UserService _userService;
+  late final WebSocketService _webSocketService;
   StreamSubscription? _userEventSubscription;
   UserProfile? _profile;
   List<Trip> _userTrips = [];
@@ -131,6 +133,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _repository = ref.read(profileRepositoryProvider);
+    _userService = ref.read(userServiceProvider);
+    _webSocketService = ref.read(websocketServiceProvider);
     _loadProfile();
     _setupUserWebSocket();
   }
