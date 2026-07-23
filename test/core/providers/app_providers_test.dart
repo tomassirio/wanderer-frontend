@@ -20,6 +20,18 @@ import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart'
 import 'package:wanderer_frontend/data/client/query/trip_plan_query_client.dart';
 import 'package:wanderer_frontend/data/client/query/trip_query_client.dart';
 import 'package:wanderer_frontend/data/client/query/user_query_client.dart';
+import 'package:wanderer_frontend/data/services/achievement_service.dart';
+import 'package:wanderer_frontend/data/services/admin_service.dart';
+import 'package:wanderer_frontend/data/services/auth_service.dart';
+import 'package:wanderer_frontend/data/services/comment_service.dart';
+import 'package:wanderer_frontend/data/services/notification_api_service.dart';
+import 'package:wanderer_frontend/data/services/search_service.dart';
+import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
+import 'package:wanderer_frontend/data/services/trip_service.dart';
+import 'package:wanderer_frontend/data/services/trip_update_service.dart';
+import 'package:wanderer_frontend/data/services/url_shortener_service.dart';
+import 'package:wanderer_frontend/data/services/user_service.dart';
+import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/data/storage/token_storage.dart';
 
 void main() {
@@ -132,6 +144,42 @@ void main() {
       final a = container.read(tripQueryClientProvider);
       final b = container.read(tripQueryClientProvider);
       expect(identical(a, b), isTrue);
+    });
+  });
+
+  group('Service providers', () {
+    test('every service provider resolves to the correct type', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      expect(container.read(achievementServiceProvider),
+          isA<AchievementService>());
+      expect(container.read(adminServiceProvider), isA<AdminService>());
+      expect(container.read(authServiceProvider), isA<AuthService>());
+      expect(container.read(commentServiceProvider), isA<CommentService>());
+      expect(container.read(notificationApiServiceProvider),
+          isA<NotificationApiService>());
+      expect(container.read(searchServiceProvider), isA<SearchService>());
+      expect(
+          container.read(tripPlanServiceProvider), isA<TripPlanService>());
+      expect(container.read(tripServiceProvider), isA<TripService>());
+      expect(container.read(tripUpdateServiceProvider),
+          isA<TripUpdateService>());
+      expect(container.read(urlShortenerServiceProvider),
+          isA<UrlShortenerService>());
+      expect(container.read(userServiceProvider), isA<UserService>());
+      expect(container.read(websocketServiceProvider), isA<WebSocketService>());
+    });
+
+    test('websocketServiceProvider returns the existing app-wide singleton',
+        () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      // WebSocketService() is a factory constructor returning a shared
+      // singleton - the provider must not create a second instance.
+      expect(identical(container.read(websocketServiceProvider),
+          WebSocketService()), isTrue);
     });
   });
 }
