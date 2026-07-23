@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
+import 'package:wanderer_frontend/core/l10n/translation_loader.dart';
 
 const _codes = ['en', 'es', 'fr', 'nl'];
 
@@ -36,6 +38,20 @@ void main() {
     for (final code in _codes.skip(1)) {
       final keys = (maps[code]!['achievementNames'] as Map).keys.toSet();
       expect(keys, reference, reason: '$code achievementNames key mismatch');
+    }
+  });
+
+  test('TranslationLoader and asset files agree with LocaleController', () {
+    final localeCodes =
+        LocaleController.supportedLocales.map((l) => l.languageCode).toSet();
+
+    expect(TranslationLoader.supportedCodes.toSet(), localeCodes,
+        reason:
+            'TranslationLoader.supportedCodes must match LocaleController.supportedLocales');
+
+    for (final code in localeCodes) {
+      expect(File('assets/translations/$code.json').existsSync(), isTrue,
+          reason: 'Missing assets/translations/$code.json for locale $code');
     }
   });
 

@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart' show rootBundle;
 
+import 'locale_controller.dart';
+
 /// Loads and caches the app's translation JSON assets
 /// (`assets/translations/{code}.json`).
 ///
@@ -13,7 +15,10 @@ class TranslationLoader {
   TranslationLoader._internal();
   static final TranslationLoader instance = TranslationLoader._internal();
 
-  static const List<String> supportedCodes = ['en', 'es', 'fr', 'nl'];
+  /// Derived from [LocaleController.supportedLocales] so the two lists
+  /// can't drift apart.
+  static List<String> get supportedCodes =>
+      LocaleController.supportedLocales.map((l) => l.languageCode).toList();
   static const String fallbackCode = 'en';
 
   final Map<String, Map<String, dynamic>> _cache = {};
