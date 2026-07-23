@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/constants/api_endpoints.dart';
+import '../../core/constants/enums.dart';
 import '../../data/models/domain/search_result.dart';
 import '../../data/services/search_service.dart';
+import '../helpers/ui_helpers.dart';
 import 'profile_screen.dart';
 
 /// Search screen for finding users and trips
@@ -657,19 +659,10 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Color _getStatusColor(String status, ThemeData theme) {
-    switch (status) {
-      case 'IN_PROGRESS':
-        return Colors.green;
-      case 'PAUSED':
-        return Colors.orange;
-      case 'RESTING':
-        return Colors.blue;
-      case 'FINISHED':
-        return Colors.grey;
-      case 'CREATED':
-        return Colors.purple;
-      default:
-        return theme.colorScheme.primary;
+    try {
+      return UiHelpers.getStatusColor(TripStatus.fromJson(status));
+    } on ArgumentError {
+      return theme.colorScheme.primary;
     }
   }
 }
