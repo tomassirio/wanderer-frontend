@@ -209,13 +209,18 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      // Both repositories depend on authServiceProvider - reading the
-      // provider graph twice must not construct two different AuthServices.
-      final authServiceDirect = container.read(authServiceProvider);
-      expect(identical(authServiceDirect, authServiceDirect), isTrue);
-      // Sanity: reading the same provider twice is stable (already covered
-      // above); this test documents WHY repositories sharing a service
-      // provider matters - they all resolve through the same container.
+      // Both repositories depend on authServiceProvider - reading each
+      // repository provider twice from the same container must return the
+      // identical cached instance, proving they resolve through one shared
+      // container rather than each being reconstructed per read.
+      expect(
+          identical(container.read(homeRepositoryProvider),
+              container.read(homeRepositoryProvider)),
+          isTrue);
+      expect(
+          identical(container.read(authRepositoryProvider),
+              container.read(authRepositoryProvider)),
+          isTrue);
     });
   });
 }
