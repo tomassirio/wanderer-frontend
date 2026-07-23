@@ -9,6 +9,7 @@ import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:intl/intl.dart';
 
 import '../../helpers/auth_navigation_helper.dart';
+import '../../helpers/ui_helpers.dart';
 import '../common/user_avatar.dart';
 
 class TripCard extends StatefulWidget {
@@ -395,7 +396,7 @@ class _TripCardState extends State<TripCard> {
   /// Build colored status badge
   Widget _buildStatusBadge() {
     final l10n = context.l10n;
-    final statusColor = _getStatusColor(widget.trip.status);
+    final statusColor = UiHelpers.getStatusColor(widget.trip.status);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -414,7 +415,7 @@ class _TripCardState extends State<TripCard> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            _getStatusIcon(widget.trip.status),
+            UiHelpers.getStatusIcon(widget.trip.status),
             size: 10,
             color: Colors.white,
           ),
@@ -553,38 +554,6 @@ class _TripCardState extends State<TripCard> {
         color: Colors.white,
       ),
     );
-  }
-
-  /// Get status color based on trip status
-  Color _getStatusColor(TripStatus status) {
-    switch (status) {
-      case TripStatus.created:
-        return const Color(0xFF6C757D); // Gray
-      case TripStatus.inProgress:
-        return const Color(0xFF28A745); // Green
-      case TripStatus.paused:
-        return const Color(0xFFFFC107); // Yellow/Amber
-      case TripStatus.finished:
-        return const Color(0xFF007BFF); // Blue
-      case TripStatus.resting:
-        return WandererTheme.statusResting; // Indigo
-    }
-  }
-
-  /// Get status icon
-  IconData _getStatusIcon(TripStatus status) {
-    switch (status) {
-      case TripStatus.created:
-        return Icons.pending_outlined;
-      case TripStatus.inProgress:
-        return Icons.play_arrow;
-      case TripStatus.paused:
-        return Icons.pause;
-      case TripStatus.finished:
-        return Icons.check_circle_outline;
-      case TripStatus.resting:
-        return Icons.nightlight_round;
-    }
   }
 
   /// Format status text for display
