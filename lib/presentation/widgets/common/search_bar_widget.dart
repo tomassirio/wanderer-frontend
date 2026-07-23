@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/models/domain/trip.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
@@ -12,7 +14,7 @@ import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 /// the API.  Designed to be placed directly as the AppBar [title] when the
 /// user activates search.  The widget manages its own [TextEditingController],
 /// overlay dropdown and API calls.
-class SearchBarWidget extends StatefulWidget {
+class SearchBarWidget extends ConsumerStatefulWidget {
   /// Called when the search bar wants to close itself (e.g. the user tapped
   /// outside the results overlay, or navigated to a trip).
   final VoidCallback? onClose;
@@ -20,11 +22,11 @@ class SearchBarWidget extends StatefulWidget {
   const SearchBarWidget({super.key, this.onClose});
 
   @override
-  State<SearchBarWidget> createState() => SearchBarWidgetState();
+  ConsumerState<SearchBarWidget> createState() => SearchBarWidgetState();
 }
 
-class SearchBarWidgetState extends State<SearchBarWidget> {
-  final TripService _tripService = TripService();
+class SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
+  late final TripService _tripService;
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   final LayerLink _layerLink = LayerLink();
@@ -38,6 +40,7 @@ class SearchBarWidgetState extends State<SearchBarWidget> {
   @override
   void initState() {
     super.initState();
+    _tripService = ref.read(tripServiceProvider);
     _controller.addListener(_onSearchChanged);
     // Auto-focus on the next frame so the keyboard opens immediately.
     WidgetsBinding.instance.addPostFrameCallback((_) {
