@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/data/services/url_shortener_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 
 /// Dialog that shows a QR code and sharing link for a trip
@@ -40,6 +40,7 @@ class TripShareDialog extends StatefulWidget {
 
 class _TripShareDialogState extends State<TripShareDialog> {
   late final String _tripUrl;
+  final UrlShortenerService _urlShortenerService = UrlShortenerService();
   String? _shortUrl;
   bool _isLoadingShortUrl = true;
   String? _shortUrlError;
@@ -52,33 +53,16 @@ class _TripShareDialogState extends State<TripShareDialog> {
   }
 
   Future<void> _fetchShortUrl() async {
-    try {
-      final response = await http
-          .get(
-            Uri.parse(
-              'https://tinyurl.com/api-create.php?url=${Uri.encodeComponent(_tripUrl)}',
-            ),
-          )
-          .timeout(const Duration(seconds: 10));
-      if (response.statusCode == 200 && mounted) {
-        setState(() {
-          _shortUrl = response.body.trim();
-          _isLoadingShortUrl = false;
-        });
-      } else if (mounted) {
-        setState(() {
-          _shortUrlError = 'Could not shorten URL';
-          _isLoadingShortUrl = false;
-        });
+    final shortUrl = await _urlShortenerService.shorten(_tripUrl);
+    if (!mounted) return;
+    setState(() {
+      if (shortUrl != null) {
+        _shortUrl = shortUrl;
+      } else {
+        _shortUrlError = 'Could not shorten URL';
       }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _shortUrlError = 'Could not shorten URL';
-          _isLoadingShortUrl = false;
-        });
-      }
-    }
+      _isLoadingShortUrl = false;
+    });
   }
 
   void _copyToClipboard(BuildContext context, String url) {
