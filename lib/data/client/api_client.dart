@@ -30,36 +30,43 @@ class ApiClient {
   })  : _httpClient = httpClient ?? http.Client(),
         _tokenStorage = tokenStorage ?? TokenStorage();
 
-  /// GET request
-  Future<http.Response> get(
-    String endpoint, {
-    bool requireAuth = false,
-    Map<String, String>? headers,
-  }) async {
-    // Proactively refresh token if expired (OAuth2 best practice)
+  /// Runs [attempt], retrying it once with a refreshed token if it returns
+  /// a 401 and [requireAuth] is true. Proactively refreshes an expired
+  /// token before the first attempt (OAuth2 best practice). Throws
+  /// [AuthenticationRedirectException] if a 401 survives a failed refresh.
+  Future<http.Response> _withAuthRetry(
+    bool requireAuth,
+    Future<http.Response> Function() attempt,
+  ) async {
     if (requireAuth) {
       await _ensureValidToken();
     }
 
-    final uri = Uri.parse('$baseUrl$endpoint');
-    final requestHeaders = await _buildHeaders(requireAuth, headers);
+    var response = await attempt();
 
-    var response = await _httpClient.get(uri, headers: requestHeaders);
-
-    // If unauthorized and we need auth, try to refresh token (fallback)
     if (response.statusCode == 401 && requireAuth) {
       final refreshed = await _refreshTokenIfNeeded();
       if (refreshed) {
-        // Retry the request with new token
-        final newHeaders = await _buildHeaders(requireAuth, headers);
-        response = await _httpClient.get(uri, headers: newHeaders);
+        response = await attempt();
       } else {
-        // Refresh failed, redirect to login
         _handleUnauthorized();
       }
     }
 
     return response;
+  }
+
+  /// GET request
+  Future<http.Response> get(
+    String endpoint, {
+    bool requireAuth = false,
+    Map<String, String>? headers,
+  }) {
+    final uri = Uri.parse('$baseUrl$endpoint');
+    return _withAuthRetry(requireAuth, () async {
+      final requestHeaders = await _buildHeaders(requireAuth, headers);
+      return _httpClient.get(uri, headers: requestHeaders);
+    });
   }
 
   /// POST request
@@ -68,37 +75,13 @@ class ApiClient {
     required Map<String, dynamic> body,
     bool requireAuth = false,
     Map<String, String>? headers,
-  }) async {
-    // Proactively refresh token if expired (OAuth2 best practice)
-    if (requireAuth) {
-      await _ensureValidToken();
-    }
-
+  }) {
     final uri = Uri.parse('$baseUrl$endpoint');
-    final requestHeaders = await _buildHeaders(requireAuth, headers);
-
-    var response = await _httpClient.post(
-      uri,
-      headers: requestHeaders,
-      body: jsonEncode(body),
-    );
-
-    if (response.statusCode == 401 && requireAuth) {
-      final refreshed = await _refreshTokenIfNeeded();
-      if (refreshed) {
-        final newHeaders = await _buildHeaders(requireAuth, headers);
-        response = await _httpClient.post(
-          uri,
-          headers: newHeaders,
-          body: jsonEncode(body),
-        );
-      } else {
-        // Refresh failed, redirect to login
-        _handleUnauthorized();
-      }
-    }
-
-    return response;
+    return _withAuthRetry(requireAuth, () async {
+      final requestHeaders = await _buildHeaders(requireAuth, headers);
+      return _httpClient.post(uri,
+          headers: requestHeaders, body: jsonEncode(body));
+    });
   }
 
   /// POST request with raw body (for sending plain values like enums)
@@ -107,37 +90,13 @@ class ApiClient {
     required dynamic body,
     bool requireAuth = false,
     Map<String, String>? headers,
-  }) async {
-    // Proactively refresh token if expired (OAuth2 best practice)
-    if (requireAuth) {
-      await _ensureValidToken();
-    }
-
+  }) {
     final uri = Uri.parse('$baseUrl$endpoint');
-    final requestHeaders = await _buildHeaders(requireAuth, headers);
-
-    var response = await _httpClient.post(
-      uri,
-      headers: requestHeaders,
-      body: jsonEncode(body),
-    );
-
-    if (response.statusCode == 401 && requireAuth) {
-      final refreshed = await _refreshTokenIfNeeded();
-      if (refreshed) {
-        final newHeaders = await _buildHeaders(requireAuth, headers);
-        response = await _httpClient.post(
-          uri,
-          headers: newHeaders,
-          body: jsonEncode(body),
-        );
-      } else {
-        // Refresh failed, redirect to login
-        _handleUnauthorized();
-      }
-    }
-
-    return response;
+    return _withAuthRetry(requireAuth, () async {
+      final requestHeaders = await _buildHeaders(requireAuth, headers);
+      return _httpClient.post(uri,
+          headers: requestHeaders, body: jsonEncode(body));
+    });
   }
 
   /// PUT request
@@ -146,37 +105,13 @@ class ApiClient {
     required Map<String, dynamic> body,
     bool requireAuth = false,
     Map<String, String>? headers,
-  }) async {
-    // Proactively refresh token if expired (OAuth2 best practice)
-    if (requireAuth) {
-      await _ensureValidToken();
-    }
-
+  }) {
     final uri = Uri.parse('$baseUrl$endpoint');
-    final requestHeaders = await _buildHeaders(requireAuth, headers);
-
-    var response = await _httpClient.put(
-      uri,
-      headers: requestHeaders,
-      body: jsonEncode(body),
-    );
-
-    if (response.statusCode == 401 && requireAuth) {
-      final refreshed = await _refreshTokenIfNeeded();
-      if (refreshed) {
-        final newHeaders = await _buildHeaders(requireAuth, headers);
-        response = await _httpClient.put(
-          uri,
-          headers: newHeaders,
-          body: jsonEncode(body),
-        );
-      } else {
-        // Refresh failed, redirect to login
-        _handleUnauthorized();
-      }
-    }
-
-    return response;
+    return _withAuthRetry(requireAuth, () async {
+      final requestHeaders = await _buildHeaders(requireAuth, headers);
+      return _httpClient.put(uri,
+          headers: requestHeaders, body: jsonEncode(body));
+    });
   }
 
   /// PATCH request
@@ -185,37 +120,13 @@ class ApiClient {
     required Map<String, dynamic> body,
     bool requireAuth = false,
     Map<String, String>? headers,
-  }) async {
-    // Proactively refresh token if expired (OAuth2 best practice)
-    if (requireAuth) {
-      await _ensureValidToken();
-    }
-
+  }) {
     final uri = Uri.parse('$baseUrl$endpoint');
-    final requestHeaders = await _buildHeaders(requireAuth, headers);
-
-    var response = await _httpClient.patch(
-      uri,
-      headers: requestHeaders,
-      body: jsonEncode(body),
-    );
-
-    if (response.statusCode == 401 && requireAuth) {
-      final refreshed = await _refreshTokenIfNeeded();
-      if (refreshed) {
-        final newHeaders = await _buildHeaders(requireAuth, headers);
-        response = await _httpClient.patch(
-          uri,
-          headers: newHeaders,
-          body: jsonEncode(body),
-        );
-      } else {
-        // Refresh failed, redirect to login
-        _handleUnauthorized();
-      }
-    }
-
-    return response;
+    return _withAuthRetry(requireAuth, () async {
+      final requestHeaders = await _buildHeaders(requireAuth, headers);
+      return _httpClient.patch(uri,
+          headers: requestHeaders, body: jsonEncode(body));
+    });
   }
 
   /// POST request with multipart/form-data for file uploads
@@ -226,70 +137,34 @@ class ApiClient {
     required String fieldName,
     bool requireAuth = false,
     Map<String, String>? additionalFields,
-  }) async {
-    // Proactively refresh token if expired
-    if (requireAuth) {
-      await _ensureValidToken();
-    }
-
+  }) {
     final uri = Uri.parse('$baseUrl$endpoint');
-    var request = http.MultipartRequest('POST', uri);
+    final contentType = _getContentTypeFromFileName(fileName);
 
-    // Add authorization header if needed
-    if (requireAuth) {
-      final token = await _tokenStorage.getAccessToken();
-      if (token != null) {
-        request.headers['Authorization'] = 'Bearer $token';
-      }
-    }
+    return _withAuthRetry(requireAuth, () async {
+      final request = http.MultipartRequest('POST', uri);
 
-    // Determine content type from file extension
-    String? contentType = _getContentTypeFromFileName(fileName);
-
-    // Add the file
-    request.files.add(http.MultipartFile.fromBytes(
-      fieldName,
-      fileBytes,
-      filename: fileName,
-      contentType: contentType != null ? MediaType.parse(contentType) : null,
-    ));
-
-    // Add any additional fields
-    if (additionalFields != null) {
-      request.fields.addAll(additionalFields);
-    }
-
-    var streamedResponse = await request.send();
-    var response = await http.Response.fromStream(streamedResponse);
-
-    // Handle 401 with token refresh
-    if (response.statusCode == 401 && requireAuth) {
-      final refreshed = await _refreshTokenIfNeeded();
-      if (refreshed) {
-        // Retry with new token
-        request = http.MultipartRequest('POST', uri);
-        final newToken = await _tokenStorage.getAccessToken();
-        if (newToken != null) {
-          request.headers['Authorization'] = 'Bearer $newToken';
+      if (requireAuth) {
+        final token = await _tokenStorage.getAccessToken();
+        if (token != null) {
+          request.headers['Authorization'] = 'Bearer $token';
         }
-        request.files.add(http.MultipartFile.fromBytes(
-          fieldName,
-          fileBytes,
-          filename: fileName,
-          contentType:
-              contentType != null ? MediaType.parse(contentType) : null,
-        ));
-        if (additionalFields != null) {
-          request.fields.addAll(additionalFields);
-        }
-        streamedResponse = await request.send();
-        response = await http.Response.fromStream(streamedResponse);
-      } else {
-        _handleUnauthorized();
       }
-    }
 
-    return response;
+      request.files.add(http.MultipartFile.fromBytes(
+        fieldName,
+        fileBytes,
+        filename: fileName,
+        contentType: contentType != null ? MediaType.parse(contentType) : null,
+      ));
+
+      if (additionalFields != null) {
+        request.fields.addAll(additionalFields);
+      }
+
+      final streamedResponse = await _httpClient.send(request);
+      return http.Response.fromStream(streamedResponse);
+    });
   }
 
   /// Determine content type from file name extension
@@ -314,37 +189,16 @@ class ApiClient {
     Map<String, dynamic>? body,
     bool requireAuth = false,
     Map<String, String>? headers,
-  }) async {
-    // Proactively refresh token if expired (OAuth2 best practice)
-    if (requireAuth) {
-      await _ensureValidToken();
-    }
-
+  }) {
     final uri = Uri.parse('$baseUrl$endpoint');
-    final requestHeaders = await _buildHeaders(requireAuth, headers);
-
-    var response = await _httpClient.delete(
-      uri,
-      headers: requestHeaders,
-      body: body != null ? jsonEncode(body) : null,
-    );
-
-    if (response.statusCode == 401 && requireAuth) {
-      final refreshed = await _refreshTokenIfNeeded();
-      if (refreshed) {
-        final newHeaders = await _buildHeaders(requireAuth, headers);
-        response = await _httpClient.delete(
-          uri,
-          headers: newHeaders,
-          body: body != null ? jsonEncode(body) : null,
-        );
-      } else {
-        // Refresh failed, redirect to login
-        _handleUnauthorized();
-      }
-    }
-
-    return response;
+    return _withAuthRetry(requireAuth, () async {
+      final requestHeaders = await _buildHeaders(requireAuth, headers);
+      return _httpClient.delete(
+        uri,
+        headers: requestHeaders,
+        body: body != null ? jsonEncode(body) : null,
+      );
+    });
   }
 
   /// Build headers with auth token if required

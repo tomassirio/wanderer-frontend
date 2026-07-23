@@ -307,6 +307,106 @@ void main() {
       });
     });
 
+    group('postRaw requests', () {
+      test('successful postRaw without auth', () async {
+        final uri = Uri.parse('https://api.example.com/status');
+        when(
+          mockHttpClient.post(
+            uri,
+            headers: anyNamed('headers'),
+            body: anyNamed('body'),
+          ),
+        ).thenAnswer((_) async => http.Response('{"ok": true}', 200));
+
+        final response = await apiClient.postRaw('/status', body: 'PAUSED');
+
+        expect(response.statusCode, 200);
+        verify(
+          mockHttpClient.post(
+            uri,
+            headers: anyNamed('headers'),
+            body: jsonEncode('PAUSED'),
+          ),
+        ).called(1);
+      });
+
+      test('postRaw with 401 triggers token refresh and retry', () async {
+        when(
+          mockTokenStorage.isAccessTokenExpired(),
+        ).thenAnswer((_) async => false);
+        when(
+          mockTokenStorage.getAccessToken(),
+        ).thenAnswer((_) async => 'old-token');
+        when(mockTokenStorage.getTokenType()).thenAnswer((_) async => 'Bearer');
+        when(
+          mockTokenStorage.getRefreshToken(),
+        ).thenAnswer((_) async => 'refresh-token');
+
+        final uri = Uri.parse('https://api.example.com/status');
+        final refreshUri =
+            Uri.parse('http://localhost:8083/api/1/auth/refresh');
+
+        var postCallCount = 0;
+        when(
+          mockHttpClient.post(
+            uri,
+            headers: anyNamed('headers'),
+            body: anyNamed('body'),
+          ),
+        ).thenAnswer((_) async {
+          postCallCount++;
+          if (postCallCount == 1) {
+            return http.Response('Unauthorized', 401);
+          } else {
+            return http.Response('{"ok": true}', 200);
+          }
+        });
+
+        when(
+          mockHttpClient.post(
+            refreshUri,
+            headers: anyNamed('headers'),
+            body: anyNamed('body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'accessToken': 'new-token',
+              'refreshToken': 'new-refresh-token',
+              'tokenType': 'Bearer',
+              'expiresIn': 3600,
+            }),
+            200,
+          ),
+        );
+
+        when(
+          mockTokenStorage.saveTokens(
+            accessToken: anyNamed('accessToken'),
+            refreshToken: anyNamed('refreshToken'),
+            tokenType: anyNamed('tokenType'),
+            expiresIn: anyNamed('expiresIn'),
+          ),
+        ).thenAnswer((_) async => {});
+
+        final response = await apiClient.postRaw(
+          '/status',
+          body: 'PAUSED',
+          requireAuth: true,
+        );
+
+        expect(response.statusCode, 200);
+        verify(
+          mockTokenStorage.saveTokens(
+            accessToken: 'new-token',
+            refreshToken: 'new-refresh-token',
+            tokenType: 'Bearer',
+            expiresIn: 3600,
+          ),
+        ).called(1);
+      });
+    });
+
     group('PUT requests', () {
       test('successful PUT without auth', () async {
         final uri = Uri.parse('https://api.example.com/test/123');
@@ -483,6 +583,103 @@ void main() {
         );
 
         expect(response.statusCode, 200);
+      });
+    });
+
+    group('postMultipart requests', () {
+      test('successful postMultipart without auth', () async {
+        when(mockHttpClient.send(any)).thenAnswer((_) async {
+          return http.StreamedResponse(
+            Stream.value(utf8.encode('{"id": "abc"}')),
+            200,
+          );
+        });
+
+        final response = await apiClient.postMultipart(
+          '/upload',
+          fileBytes: [1, 2, 3],
+          fileName: 'photo.png',
+          fieldName: 'file',
+        );
+
+        expect(response.statusCode, 200);
+        expect(response.body, '{"id": "abc"}');
+      });
+
+      test('postMultipart with 401 triggers token refresh and retry',
+          () async {
+        when(
+          mockTokenStorage.isAccessTokenExpired(),
+        ).thenAnswer((_) async => false);
+        when(
+          mockTokenStorage.getAccessToken(),
+        ).thenAnswer((_) async => 'old-token');
+        when(mockTokenStorage.getTokenType()).thenAnswer((_) async => 'Bearer');
+        when(
+          mockTokenStorage.getRefreshToken(),
+        ).thenAnswer((_) async => 'refresh-token');
+
+        final refreshUri =
+            Uri.parse('http://localhost:8083/api/1/auth/refresh');
+
+        var sendCallCount = 0;
+        when(mockHttpClient.send(any)).thenAnswer((_) async {
+          sendCallCount++;
+          if (sendCallCount == 1) {
+            return http.StreamedResponse(Stream.value(utf8.encode('Unauthorized')), 401);
+          } else {
+            return http.StreamedResponse(
+              Stream.value(utf8.encode('{"id": "abc"}')),
+              200,
+            );
+          }
+        });
+
+        when(
+          mockHttpClient.post(
+            refreshUri,
+            headers: anyNamed('headers'),
+            body: anyNamed('body'),
+          ),
+        ).thenAnswer(
+          (_) async => http.Response(
+            jsonEncode({
+              'accessToken': 'new-token',
+              'refreshToken': 'new-refresh-token',
+              'tokenType': 'Bearer',
+              'expiresIn': 3600,
+            }),
+            200,
+          ),
+        );
+
+        when(
+          mockTokenStorage.saveTokens(
+            accessToken: anyNamed('accessToken'),
+            refreshToken: anyNamed('refreshToken'),
+            tokenType: anyNamed('tokenType'),
+            expiresIn: anyNamed('expiresIn'),
+          ),
+        ).thenAnswer((_) async => {});
+
+        final response = await apiClient.postMultipart(
+          '/upload',
+          fileBytes: [1, 2, 3],
+          fileName: 'photo.png',
+          fieldName: 'file',
+          requireAuth: true,
+        );
+
+        expect(response.statusCode, 200);
+        expect(sendCallCount, 2);
+        verify(
+          mockTokenStorage.saveTokens(
+            accessToken: 'new-token',
+            refreshToken: 'new-refresh-token',
+            tokenType: 'Bearer',
+            expiresIn: 3600,
+          ),
+        ).called(1);
       });
     });
 
