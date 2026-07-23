@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart' show TripStatus;
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
-import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 
 /// Badge widget that displays trip status with live indicator
 class StatusBadge extends StatefulWidget {
@@ -118,20 +118,7 @@ class _StatusBadgeState extends State<StatusBadge>
     );
   }
 
-  IconData _getIcon() {
-    switch (widget.status) {
-      case TripStatus.created:
-        return Icons.edit_outlined;
-      case TripStatus.inProgress:
-        return Icons.circle;
-      case TripStatus.paused:
-        return Icons.pause;
-      case TripStatus.finished:
-        return Icons.check_circle_outline;
-      case TripStatus.resting:
-        return Icons.nightlight_round;
-    }
-  }
+  IconData _getIcon() => UiHelpers.getStatusIcon(widget.status);
 
   String _getLabel(AppLocalizations l10n) {
     switch (widget.status) {
@@ -148,33 +135,8 @@ class _StatusBadgeState extends State<StatusBadge>
     }
   }
 
-  Color _getBorderColor() {
-    switch (widget.status) {
-      case TripStatus.created:
-        return Colors.grey.withOpacity(0.3);
-      case TripStatus.inProgress:
-        return Colors.green.withOpacity(0.3);
-      case TripStatus.paused:
-        return Colors.orange.withOpacity(0.3);
-      case TripStatus.finished:
-        return Colors.blue.withOpacity(0.3);
-      case TripStatus.resting:
-        return WandererTheme.statusResting.withOpacity(0.3);
-    }
-  }
+  Color _getBorderColor() =>
+      UiHelpers.getStatusColor(widget.status).withOpacity(0.3);
 
-  Color _getIconColor() {
-    switch (widget.status) {
-      case TripStatus.created:
-        return Colors.grey.shade700;
-      case TripStatus.inProgress:
-        return Colors.green.shade700;
-      case TripStatus.paused:
-        return Colors.orange.shade700;
-      case TripStatus.finished:
-        return Colors.blue.shade700;
-      case TripStatus.resting:
-        return WandererTheme.statusResting;
-    }
-  }
+  Color _getIconColor() => UiHelpers.getStatusColor(widget.status);
 }
