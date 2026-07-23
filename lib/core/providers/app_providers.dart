@@ -33,6 +33,11 @@ import '../../data/services/url_shortener_service.dart';
 import '../../data/services/user_service.dart';
 import '../../data/services/websocket_service.dart';
 import '../../data/storage/token_storage.dart';
+import '../../data/repositories/auth_repository.dart';
+import '../../data/repositories/create_trip_repository.dart';
+import '../../data/repositories/home_repository.dart';
+import '../../data/repositories/profile_repository.dart';
+import '../../data/repositories/trip_detail_repository.dart';
 
 // ---------------------------------------------------------------------------
 // Base infrastructure
@@ -238,4 +243,41 @@ final userServiceProvider = Provider<UserService>((ref) {
 /// instance.
 final websocketServiceProvider = Provider<WebSocketService>((ref) {
   return WebSocketService();
+});
+
+// ---------------------------------------------------------------------------
+// Repositories
+// ---------------------------------------------------------------------------
+
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  return AuthRepository(authService: ref.watch(authServiceProvider));
+});
+
+final createTripRepositoryProvider = Provider<CreateTripRepository>((ref) {
+  return CreateTripRepository(tripService: ref.watch(tripServiceProvider));
+});
+
+final homeRepositoryProvider = Provider<HomeRepository>((ref) {
+  return HomeRepository(
+    tripService: ref.watch(tripServiceProvider),
+    authService: ref.watch(authServiceProvider),
+    userService: ref.watch(userServiceProvider),
+  );
+});
+
+final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
+  return ProfileRepository(
+    userService: ref.watch(userServiceProvider),
+    tripService: ref.watch(tripServiceProvider),
+    authService: ref.watch(authServiceProvider),
+  );
+});
+
+final tripDetailRepositoryProvider = Provider<TripDetailRepository>((ref) {
+  return TripDetailRepository(
+    tripService: ref.watch(tripServiceProvider),
+    commentService: ref.watch(commentServiceProvider),
+    authService: ref.watch(authServiceProvider),
+    tripUpdateService: ref.watch(tripUpdateServiceProvider),
+  );
 });
