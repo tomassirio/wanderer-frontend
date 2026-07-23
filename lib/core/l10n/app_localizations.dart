@@ -1,9 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'locale_controller.dart';
-import 'translations/translations_en.dart';
-import 'translations/translations_es.dart';
-import 'translations/translations_fr.dart';
-import 'translations/translations_nl.dart';
+import 'translation_loader.dart';
 
 // ---------------------------------------------------------------------------
 // InheritedNotifier — places LocaleController.locale in the widget tree so
@@ -44,18 +41,10 @@ extension AppLocalizationsX on BuildContext {
 /// ```
 class AppLocalizations {
   final String _lang;
-  late final Map<String, String> _t;
+  final TranslationLoader _loader;
 
-  static const Map<String, Map<String, String>> _allTranslations = {
-    'en': translationsEn,
-    'es': translationsEs,
-    'fr': translationsFr,
-    'nl': translationsNl,
-  };
-
-  AppLocalizations(this._lang) {
-    _t = _allTranslations[_lang] ?? translationsEn;
-  }
+  AppLocalizations(this._lang, {TranslationLoader? loader})
+      : _loader = loader ?? TranslationLoader.instance;
 
   /// Creates an instance reflecting the current locale from [LocaleController].
   /// Prefer [BuildContext.l10n] in widget build methods for auto-rebuild.
@@ -63,7 +52,7 @@ class AppLocalizations {
       AppLocalizations(LocaleController().locale.value.languageCode);
 
   /// Look up a key, falling back to English if missing.
-  String _tr(String key) => _t[key] ?? translationsEn[key] ?? key;
+  String _tr(String key) => _loader.string(_lang, key);
 
   // --- Sidebar navigation ---
   String get trips => _tr('trips');
@@ -210,74 +199,24 @@ class AppLocalizations {
   String get explorePublicTripsSubtitle => _tr('explorePublicTripsSubtitle');
   String get feed => _tr('feed');
   String get minuteAgo => _tr('minuteAgo');
-  String minutesAgo(int n) {
-    switch (_lang) {
-      case 'es':
-        return 'hace $n minutos';
-      case 'fr':
-        return 'il y a $n minutes';
-      case 'nl':
-        return '$n minuten geleden';
-      default:
-        return '$n minutes ago';
-    }
-  }
+  String minutesAgo(int n) =>
+      TranslationTemplate.format(_tr('minutesAgo'), {'n': n});
 
   String get hourAgo => _tr('hourAgo');
-  String hoursAgo(int n) {
-    switch (_lang) {
-      case 'es':
-        return 'hace $n horas';
-      case 'fr':
-        return 'il y a $n heures';
-      case 'nl':
-        return '$n uur geleden';
-      default:
-        return '$n hours ago';
-    }
-  }
+  String hoursAgo(int n) =>
+      TranslationTemplate.format(_tr('hoursAgo'), {'n': n});
 
   String get dayAgo => _tr('dayAgo');
-  String daysAgo(int n) {
-    switch (_lang) {
-      case 'es':
-        return 'hace $n días';
-      case 'fr':
-        return 'il y a $n jours';
-      case 'nl':
-        return '$n dagen geleden';
-      default:
-        return '$n days ago';
-    }
-  }
+  String daysAgo(int n) =>
+      TranslationTemplate.format(_tr('daysAgo'), {'n': n});
 
   String get weekAgo => _tr('weekAgo');
-  String weeksAgo(int n) {
-    switch (_lang) {
-      case 'es':
-        return 'hace $n semanas';
-      case 'fr':
-        return 'il y a $n semaines';
-      case 'nl':
-        return '$n weken geleden';
-      default:
-        return '$n weeks ago';
-    }
-  }
+  String weeksAgo(int n) =>
+      TranslationTemplate.format(_tr('weeksAgo'), {'n': n});
 
   String get monthAgo => _tr('monthAgo');
-  String monthsAgo(int n) {
-    switch (_lang) {
-      case 'es':
-        return 'hace $n meses';
-      case 'fr':
-        return 'il y a $n mois';
-      case 'nl':
-        return '$n maanden geleden';
-      default:
-        return '$n months ago';
-    }
-  }
+  String monthsAgo(int n) =>
+      TranslationTemplate.format(_tr('monthsAgo'), {'n': n});
 
   String minutesAgoCompact(int n) => '${n}m';
   String hoursAgoCompact(int n) => '${n}h';
@@ -334,18 +273,8 @@ class AppLocalizations {
   String get resetPasswordTitle => _tr('resetPasswordTitle');
   String get enterEmailForReset => _tr('enterEmailForReset');
   String get sendResetLink => _tr('sendResetLink');
-  String passwordResetEmailSent(String email) {
-    switch (_lang) {
-      case 'es':
-        return 'Si existe una cuenta con $email, hemos enviado un enlace de restablecimiento. Revisa tu bandeja de entrada y sigue las instrucciones para restablecer tu contraseña.';
-      case 'fr':
-        return 'Si un compte avec $email existe, nous avons envoyé un lien de réinitialisation. Vérifiez votre boîte de réception et suivez les instructions pour réinitialiser votre mot de passe.';
-      case 'nl':
-        return 'Als er een account met $email bestaat, hebben we een herstellink gestuurd. Controleer je inbox en volg de instructies om je wachtwoord te herstellen.';
-      default:
-        return 'If an account with $email exists, we\'ve sent a password reset link. Check your inbox and follow the instructions to reset your password.';
-    }
-  }
+  String passwordResetEmailSent(String email) => TranslationTemplate.format(
+      _tr('passwordResetEmailSent'), {'email': email});
 
   String get pleaseEnterEmail => _tr('pleaseEnterEmail');
   String get pleaseEnterValidEmail => _tr('pleaseEnterValidEmail');
@@ -485,31 +414,11 @@ class AppLocalizations {
   String get sending => _tr('sending');
   String get startingToday => _tr('startingToday');
   String get startsTomorrow => _tr('startsTomorrow');
-  String startsInDays(int days) {
-    switch (_lang) {
-      case 'es':
-        return 'Empieza en $days días';
-      case 'fr':
-        return 'Commence dans $days jours';
-      case 'nl':
-        return 'Begint over $days dagen';
-      default:
-        return 'Starts in $days days';
-    }
-  }
+  String startsInDays(int days) =>
+      TranslationTemplate.format(_tr('startsInDays'), {'days': days});
 
-  String dayNumber(int day) {
-    switch (_lang) {
-      case 'es':
-        return 'Día $day';
-      case 'fr':
-        return 'Jour $day';
-      case 'nl':
-        return 'Dag $day';
-      default:
-        return 'Day $day';
-    }
-  }
+  String dayNumber(int day) =>
+      TranslationTemplate.format(_tr('dayNumber'), {'day': day});
 
   String get multiDayConvertConfirm => _tr('multiDayConvertConfirm');
   String get notSet => _tr('notSet');
@@ -664,31 +573,11 @@ class AppLocalizations {
   String get deleteTripWarning => _tr('deleteTripWarning');
 
   // Timeline day/trip markers
-  String dayNStarted(int day) {
-    switch (_lang) {
-      case 'es':
-        return 'Día $day Iniciado';
-      case 'fr':
-        return 'Jour $day Commencé';
-      case 'nl':
-        return 'Dag $day Gestart';
-      default:
-        return 'Day $day Started';
-    }
-  }
+  String dayNStarted(int day) =>
+      TranslationTemplate.format(_tr('dayNStarted'), {'day': day});
 
-  String dayNEnded(int day) {
-    switch (_lang) {
-      case 'es':
-        return 'Día $day Finalizado';
-      case 'fr':
-        return 'Jour $day Terminé';
-      case 'nl':
-        return 'Dag $day Beëindigd';
-      default:
-        return 'Day $day Ended';
-    }
-  }
+  String dayNEnded(int day) =>
+      TranslationTemplate.format(_tr('dayNEnded'), {'day': day});
 
   String get tripStartedLabel => _tr('tripStartedLabel');
   String get tripEndedLabel => _tr('tripEndedLabel');
@@ -699,57 +588,18 @@ class AppLocalizations {
   String get loginToAddComment => _tr('loginToAddComment');
 
   // Achievements screen
-  String achievementsProgress(int unlocked, int total) {
-    switch (_lang) {
-      case 'es':
-        return 'Logros ($unlocked/$total)';
-      case 'fr':
-        return 'Réalisations ($unlocked/$total)';
-      case 'nl':
-        return 'Prestaties ($unlocked/$total)';
-      default:
-        return 'Achievements ($unlocked/$total)';
-    }
-  }
+  String achievementsProgress(int unlocked, int total) =>
+      TranslationTemplate.format(
+          _tr('achievementsProgress'), {'unlocked': unlocked, 'total': total});
 
-  String achievedValue(String value) {
-    switch (_lang) {
-      case 'es':
-        return 'Logrado: $value';
-      case 'fr':
-        return 'Atteint : $value';
-      case 'nl':
-        return 'Behaald: $value';
-      default:
-        return 'Achieved: $value';
-    }
-  }
+  String achievedValue(String value) =>
+      TranslationTemplate.format(_tr('achievedValue'), {'value': value});
 
-  String unlockedOn(String date) {
-    switch (_lang) {
-      case 'es':
-        return 'Desbloqueado el $date';
-      case 'fr':
-        return 'Débloqué le $date';
-      case 'nl':
-        return 'Ontgrendeld op $date';
-      default:
-        return 'Unlocked on $date';
-    }
-  }
+  String unlockedOn(String date) =>
+      TranslationTemplate.format(_tr('unlockedOn'), {'date': date});
 
-  String goalValue(String value) {
-    switch (_lang) {
-      case 'es':
-        return 'Meta: $value';
-      case 'fr':
-        return 'Objectif : $value';
-      case 'nl':
-        return 'Doel: $value';
-      default:
-        return 'Goal: $value';
-    }
-  }
+  String goalValue(String value) =>
+      TranslationTemplate.format(_tr('goalValue'), {'value': value});
 
   // Achievement categories
   String get categoryDistance => _tr('categoryDistance');
@@ -761,319 +611,25 @@ class AppLocalizations {
 
   // Achievement units
   String achievementKm(double v) => '${v.toStringAsFixed(1)} km';
-  String achievementDays(int v) {
-    switch (_lang) {
-      case 'es':
-        return '$v días';
-      case 'fr':
-        return '$v jours';
-      case 'nl':
-        return '$v dagen';
-      default:
-        return '$v days';
-    }
-  }
+  String achievementDays(int v) =>
+      TranslationTemplate.format(_tr('achievementDays'), {'v': v});
 
-  String achievementUpdatesCount(int v) {
-    switch (_lang) {
-      case 'es':
-        return v == 1 ? '1 actualización' : '$v actualizaciones';
-      case 'fr':
-        return v == 1 ? '1 mise à jour' : '$v mises à jour';
-      case 'nl':
-        return v == 1 ? '1 update' : '$v updates';
-      default:
-        return v == 1 ? '1 update' : '$v updates';
-    }
-  }
+  String achievementUpdatesCount(int v) => TranslationTemplate.plural(
+      _loader, _lang, 'achievementUpdatesCount', v, {'v': v});
 
-  String achievementFollowers(int v) {
-    switch (_lang) {
-      case 'es':
-        return v == 1 ? '1 seguidor' : '$v seguidores';
-      case 'fr':
-        return v == 1 ? '1 abonné' : '$v abonnés';
-      case 'nl':
-        return v == 1 ? '1 volger' : '$v volgers';
-      default:
-        return v == 1 ? '1 follower' : '$v followers';
-    }
-  }
+  String achievementFollowers(int v) => TranslationTemplate.plural(
+      _loader, _lang, 'achievementFollowers', v, {'v': v});
 
-  String achievementFriends(int v) {
-    switch (_lang) {
-      case 'es':
-        return v == 1 ? '1 amigo' : '$v amigos';
-      case 'fr':
-        return v == 1 ? '1 ami' : '$v amis';
-      case 'nl':
-        return v == 1 ? '1 vriend' : '$v vrienden';
-      default:
-        return v == 1 ? '1 friend' : '$v friends';
-    }
-  }
+  String achievementFriends(int v) => TranslationTemplate.plural(
+      _loader, _lang, 'achievementFriends', v, {'v': v});
 
   // Achievement localized names (keyed by backend type string)
-  String achievementNameFor(String typeKey) {
-    switch (typeKey) {
-      case 'FIRST_TRIP':
-        switch (_lang) {
-          case 'es':
-            return 'Primer Viaje';
-          case 'fr':
-            return 'Premier Voyage';
-          case 'nl':
-            return 'Eerste Reis';
-          default:
-            return 'First Trip';
-        }
-      case 'PROFILE_COMPLETED':
-        switch (_lang) {
-          case 'es':
-            return 'Perfil Completo';
-          case 'fr':
-            return 'Profil Complet';
-          case 'nl':
-            return 'Profiel Compleet';
-          default:
-            return 'Profile Complete';
-        }
-      case 'UPDATES_1':
-        return achievementUpdatesCount(1);
-      case 'FOLLOWERS_1':
-        return achievementFollowers(1);
-      case 'FRIENDS_1':
-        return achievementFriends(1);
-      case 'DISTANCE_100KM':
-        return '100 km';
-      case 'DISTANCE_200KM':
-        return '200 km';
-      case 'DISTANCE_500KM':
-        return '500 km';
-      case 'DISTANCE_800KM':
-        return '800 km';
-      case 'DISTANCE_1000KM':
-        return _lang == 'en' || _lang == 'nl' ? '1,000 km' : '1.000 km';
-      case 'DISTANCE_1600KM':
-        return _lang == 'en' || _lang == 'nl' ? '1,600 km' : '1.600 km';
-      case 'DISTANCE_2200KM':
-        return _lang == 'en' || _lang == 'nl' ? '2,200 km' : '2.200 km';
-      case 'UPDATES_10':
-        switch (_lang) {
-          case 'es':
-            return '10 Actualizaciones';
-          case 'fr':
-            return '10 Mises à jour';
-          case 'nl':
-            return '10 Updates';
-          default:
-            return '10 Updates';
-        }
-      case 'UPDATES_50':
-        switch (_lang) {
-          case 'es':
-            return '50 Actualizaciones';
-          case 'fr':
-            return '50 Mises à jour';
-          case 'nl':
-            return '50 Updates';
-          default:
-            return '50 Updates';
-        }
-      case 'UPDATES_100':
-        switch (_lang) {
-          case 'es':
-            return '100 Actualizaciones';
-          case 'fr':
-            return '100 Mises à jour';
-          case 'nl':
-            return '100 Updates';
-          default:
-            return '100 Updates';
-        }
-      case 'DURATION_7_DAYS':
-        return achievementDays(7);
-      case 'DURATION_30_DAYS':
-        return achievementDays(30);
-      case 'DURATION_45_DAYS':
-        return achievementDays(45);
-      case 'DURATION_60_DAYS':
-        return achievementDays(60);
-      case 'FOLLOWERS_10':
-        return achievementFollowers(10);
-      case 'FOLLOWERS_50':
-        return achievementFollowers(50);
-      case 'FOLLOWERS_100':
-        return achievementFollowers(100);
-      case 'FRIENDS_5':
-        return achievementFriends(5);
-      case 'FRIENDS_20':
-        return achievementFriends(20);
-      case 'FRIENDS_50':
-        return achievementFriends(50);
-      default:
-        return typeKey;
-    }
-  }
+  String achievementNameFor(String typeKey) =>
+      _loader.nested(_lang, 'achievementNames', typeKey);
 
   // Achievement localized descriptions (keyed by backend type string)
-  String achievementDescriptionFor(String typeKey) {
-    final Map<String, Map<String, String>> descs = {
-      'FIRST_TRIP': {
-        'en': 'Create your first trip',
-        'es': 'Crea tu primer viaje',
-        'fr': 'Créez votre premier voyage',
-        'nl': 'Maak je eerste reis aan',
-      },
-      'PROFILE_COMPLETED': {
-        'en': 'Complete your profile',
-        'es': 'Completa tu perfil',
-        'fr': 'Complétez votre profil',
-        'nl': 'Voltooi je profiel',
-      },
-      'UPDATES_1': {
-        'en': 'Post your first update in a trip',
-        'es': 'Publica tu primera actualización en un viaje',
-        'fr': 'Publiez votre première mise à jour dans un voyage',
-        'nl': 'Plaats je eerste update in een reis',
-      },
-      'FOLLOWERS_1': {
-        'en': 'Gain your first follower',
-        'es': 'Consigue tu primer seguidor',
-        'fr': 'Obtenez votre premier abonné',
-        'nl': 'Krijg je eerste volger',
-      },
-      'FRIENDS_1': {
-        'en': 'Make your first friend',
-        'es': 'Haz tu primer amigo',
-        'fr': 'Faites votre premier ami',
-        'nl': 'Maak je eerste vriend',
-      },
-      'DISTANCE_100KM': {
-        'en': 'Walk 100 km in a single trip',
-        'es': 'Camina 100 km en un solo viaje',
-        'fr': 'Parcourez 100 km en un seul voyage',
-        'nl': 'Loop 100 km in een enkele reis',
-      },
-      'DISTANCE_200KM': {
-        'en': 'Walk 200 km in a single trip',
-        'es': 'Camina 200 km en un solo viaje',
-        'fr': 'Parcourez 200 km en un seul voyage',
-        'nl': 'Loop 200 km in een enkele reis',
-      },
-      'DISTANCE_500KM': {
-        'en': 'Walk 500 km in a single trip',
-        'es': 'Camina 500 km en un solo viaje',
-        'fr': 'Parcourez 500 km en un seul voyage',
-        'nl': 'Loop 500 km in een enkele reis',
-      },
-      'DISTANCE_800KM': {
-        'en': 'Walk 800 km in a single trip',
-        'es': 'Camina 800 km en un solo viaje',
-        'fr': 'Parcourez 800 km en un seul voyage',
-        'nl': 'Loop 800 km in een enkele reis',
-      },
-      'DISTANCE_1000KM': {
-        'en': 'Walk 1,000 km in a single trip',
-        'es': 'Camina 1.000 km en un solo viaje',
-        'fr': 'Parcourez 1 000 km en un seul voyage',
-        'nl': 'Loop 1.000 km in een enkele reis',
-      },
-      'DISTANCE_1600KM': {
-        'en': 'Walk 1,600 km in a single trip',
-        'es': 'Camina 1.600 km en un solo viaje',
-        'fr': 'Parcourez 1 600 km en un seul voyage',
-        'nl': 'Loop 1.600 km in een enkele reis',
-      },
-      'DISTANCE_2200KM': {
-        'en': 'Walk 2,200 km in a single trip',
-        'es': 'Camina 2.200 km en un solo viaje',
-        'fr': 'Parcourez 2 200 km en un seul voyage',
-        'nl': 'Loop 2.200 km in een enkele reis',
-      },
-      'UPDATES_10': {
-        'en': 'Post 10 updates in a trip',
-        'es': 'Publica 10 actualizaciones en un viaje',
-        'fr': 'Publiez 10 mises à jour dans un voyage',
-        'nl': 'Plaats 10 updates in een reis',
-      },
-      'UPDATES_50': {
-        'en': 'Post 50 updates in a trip',
-        'es': 'Publica 50 actualizaciones en un viaje',
-        'fr': 'Publiez 50 mises à jour dans un voyage',
-        'nl': 'Plaats 50 updates in een reis',
-      },
-      'UPDATES_100': {
-        'en': 'Post 100 updates in a trip',
-        'es': 'Publica 100 actualizaciones en un viaje',
-        'fr': 'Publiez 100 mises à jour dans un voyage',
-        'nl': 'Plaats 100 updates in een reis',
-      },
-      'DURATION_7_DAYS': {
-        'en': 'Complete a trip lasting 7 days',
-        'es': 'Completa un viaje de 7 días',
-        'fr': 'Terminez un voyage de 7 jours',
-        'nl': 'Voltooi een reis van 7 dagen',
-      },
-      'DURATION_30_DAYS': {
-        'en': 'Complete a trip lasting 30 days',
-        'es': 'Completa un viaje de 30 días',
-        'fr': 'Terminez un voyage de 30 jours',
-        'nl': 'Voltooi een reis van 30 dagen',
-      },
-      'DURATION_45_DAYS': {
-        'en': 'Complete a trip lasting 45 days',
-        'es': 'Completa un viaje de 45 días',
-        'fr': 'Terminez un voyage de 45 jours',
-        'nl': 'Voltooi een reis van 45 dagen',
-      },
-      'DURATION_60_DAYS': {
-        'en': 'Complete a trip lasting 60 days',
-        'es': 'Completa un viaje de 60 días',
-        'fr': 'Terminez un voyage de 60 jours',
-        'nl': 'Voltooi een reis van 60 dagen',
-      },
-      'FOLLOWERS_10': {
-        'en': 'Reach 10 followers',
-        'es': 'Consigue 10 seguidores',
-        'fr': 'Atteignez 10 abonnés',
-        'nl': 'Bereik 10 volgers',
-      },
-      'FOLLOWERS_50': {
-        'en': 'Reach 50 followers',
-        'es': 'Consigue 50 seguidores',
-        'fr': 'Atteignez 50 abonnés',
-        'nl': 'Bereik 50 volgers',
-      },
-      'FOLLOWERS_100': {
-        'en': 'Reach 100 followers',
-        'es': 'Consigue 100 seguidores',
-        'fr': 'Atteignez 100 abonnés',
-        'nl': 'Bereik 100 volgers',
-      },
-      'FRIENDS_5': {
-        'en': 'Make 5 friends',
-        'es': 'Haz 5 amigos',
-        'fr': 'Faites-vous 5 amis',
-        'nl': 'Maak 5 vrienden',
-      },
-      'FRIENDS_20': {
-        'en': 'Make 20 friends',
-        'es': 'Haz 20 amigos',
-        'fr': 'Faites-vous 20 amis',
-        'nl': 'Maak 20 vrienden',
-      },
-      'FRIENDS_50': {
-        'en': 'Make 50 friends',
-        'es': 'Haz 50 amigos',
-        'fr': 'Faites-vous 50 amis',
-        'nl': 'Maak 50 vrienden',
-      },
-    };
-    final desc = descs[typeKey];
-    if (desc == null) return typeKey;
-    return desc[_lang] ?? desc['en'] ?? typeKey;
-  }
+  String achievementDescriptionFor(String typeKey) =>
+      _loader.nested(_lang, 'achievementDescriptions', typeKey);
 
   // --- Profile screen (extra) ---
   String get mustBeLoggedInToViewProfile => _tr('mustBeLoggedInToViewProfile');
@@ -1091,206 +647,66 @@ class AppLocalizations {
   String get addFriendsToDiscoverMore => _tr('addFriendsToDiscoverMore');
   String myTripsLabel(bool isViewingOwnProfile) =>
       isViewingOwnProfile ? myTrips : trips;
-  String tripCountLabel(int count) {
-    switch (_lang) {
-      case 'es':
-        return count == 1 ? '1 viaje' : '$count viajes';
-      case 'fr':
-        return count == 1 ? '1 voyage' : '$count voyages';
-      case 'nl':
-        return count == 1 ? '1 reis' : '$count reizen';
-      default:
-        return count == 1 ? '1 trip' : '$count trips';
-    }
-  }
+  String tripCountLabel(int count) => TranslationTemplate.plural(
+      _loader, _lang, 'tripCountLabel', count, {'count': count});
 
   String get sortOptionStatus => _tr('sortOptionStatus');
   String get sortOptionNameAZ => _tr('sortOptionNameAZ');
   String get sortOptionNameZA => _tr('sortOptionNameZA');
   String get sortOptionNewest => _tr('sortOptionNewest');
   String get sortOptionOldest => _tr('sortOptionOldest');
-  String unfollowedUser(String username) {
-    switch (_lang) {
-      case 'es':
-        return 'Dejaste de seguir a $username';
-      case 'fr':
-        return 'Vous ne suivez plus $username';
-      case 'nl':
-        return '$username ontvolgd';
-      default:
-        return 'Unfollowed $username';
-    }
-  }
+  String unfollowedUser(String username) => TranslationTemplate.format(
+      _tr('unfollowedUser'), {'username': username});
 
-  String nowFollowingUser(String username) {
-    switch (_lang) {
-      case 'es':
-        return 'Ahora sigues a $username';
-      case 'fr':
-        return 'Vous suivez maintenant $username';
-      case 'nl':
-        return 'Je volgt nu $username';
-      default:
-        return 'You are now following $username';
-    }
-  }
+  String nowFollowingUser(String username) => TranslationTemplate.format(
+      _tr('nowFollowingUser'), {'username': username});
 
-  String noLongerFriendsWith(String username) {
-    switch (_lang) {
-      case 'es':
-        return 'Ya no eres amigo de $username';
-      case 'fr':
-        return 'Vous n\'êtes plus ami avec $username';
-      case 'nl':
-        return 'Je bent niet langer bevriend met $username';
-      default:
-        return 'You are no longer friends with $username';
-    }
-  }
+  String noLongerFriendsWith(String username) => TranslationTemplate.format(
+      _tr('noLongerFriendsWith'), {'username': username});
 
   String get friendRequestCancelled => _tr('friendRequestCancelled');
-  String friendRequestSentTo(String username) {
-    switch (_lang) {
-      case 'es':
-        return 'Solicitud de amistad enviada a $username';
-      case 'fr':
-        return 'Demande d\'ami envoyée à $username';
-      case 'nl':
-        return 'Vriendschapsverzoek gestuurd naar $username';
-      default:
-        return 'Friend request sent to $username';
-    }
-  }
+  String friendRequestSentTo(String username) => TranslationTemplate.format(
+      _tr('friendRequestSentTo'), {'username': username});
 
   // --- Friends/Followers screen ---
   String get newFollowerMsg => _tr('newFollowerMsg');
   String get friendRequestReceivedMsg => _tr('friendRequestReceivedMsg');
   String get friendRequestAcceptedMsg => _tr('friendRequestAcceptedMsg');
   String get followRequestSentMsg => _tr('followRequestSentMsg');
-  String failedToFollowUser(String e) {
-    switch (_lang) {
-      case 'es':
-        return 'No se pudo seguir al usuario: $e';
-      case 'fr':
-        return 'Impossible de suivre l\'utilisateur : $e';
-      case 'nl':
-        return 'Kan gebruiker niet volgen: $e';
-      default:
-        return 'Failed to follow user: $e';
-    }
-  }
+  String failedToFollowUser(String e) =>
+      TranslationTemplate.format(_tr('failedToFollowUser'), {'error': e});
 
   String get unfollowedUserMsg => _tr('unfollowedUserMsg');
-  String failedToUnfollowUser(String e) {
-    switch (_lang) {
-      case 'es':
-        return 'No se pudo dejar de seguir al usuario: $e';
-      case 'fr':
-        return 'Impossible de ne plus suivre l\'utilisateur : $e';
-      case 'nl':
-        return 'Kan gebruiker niet ontvolgen: $e';
-      default:
-        return 'Failed to unfollow user: $e';
-    }
-  }
+  String failedToUnfollowUser(String e) =>
+      TranslationTemplate.format(_tr('failedToUnfollowUser'), {'error': e});
 
-  String failedToAcceptFriendRequest(String e) {
-    switch (_lang) {
-      case 'es':
-        return 'No se pudo aceptar la solicitud de amistad: $e';
-      case 'fr':
-        return 'Impossible d\'accepter la demande d\'ami : $e';
-      case 'nl':
-        return 'Kan vriendschapsverzoek niet accepteren: $e';
-      default:
-        return 'Failed to accept friend request: $e';
-    }
-  }
+  String failedToAcceptFriendRequest(String e) => TranslationTemplate.format(
+      _tr('failedToAcceptFriendRequest'), {'error': e});
 
   String get friendRequestDeclinedMsg => _tr('friendRequestDeclinedMsg');
-  String failedToDeclineFriendRequest(String e) {
-    switch (_lang) {
-      case 'es':
-        return 'No se pudo rechazar la solicitud de amistad: $e';
-      case 'fr':
-        return 'Impossible de refuser la demande d\'ami : $e';
-      case 'nl':
-        return 'Kan vriendschapsverzoek niet weigeren: $e';
-      default:
-        return 'Failed to decline friend request: $e';
-    }
-  }
+  String failedToDeclineFriendRequest(String e) => TranslationTemplate.format(
+      _tr('failedToDeclineFriendRequest'), {'error': e});
 
   String get requestsTab => _tr('requestsTab');
   String get unknownUser => _tr('unknownUser');
   String get messagingComingSoon => _tr('messagingComingSoon');
   String get receivedTab => _tr('receivedTab');
   String get sentTab => _tr('sentTab');
-  String sentDateLabel(String date) {
-    switch (_lang) {
-      case 'es':
-        return 'Enviado $date';
-      case 'fr':
-        return 'Envoyé $date';
-      case 'nl':
-        return 'Verzonden $date';
-      default:
-        return 'Sent $date';
-    }
-  }
+  String sentDateLabel(String date) =>
+      TranslationTemplate.format(_tr('sentDateLabel'), {'date': date});
 
-  String daysAgoShort(int days) {
-    switch (_lang) {
-      case 'es':
-        return 'hace ${days}d';
-      case 'fr':
-        return 'il y a ${days}j';
-      case 'nl':
-        return '${days}d geleden';
-      default:
-        return '${days}d ago';
-    }
-  }
+  String daysAgoShort(int days) =>
+      TranslationTemplate.format(_tr('daysAgoShort'), {'days': days});
 
-  String hoursAgoShort(int hours) {
-    switch (_lang) {
-      case 'es':
-        return 'hace ${hours}h';
-      case 'fr':
-        return 'il y a ${hours}h';
-      case 'nl':
-        return '${hours}u geleden';
-      default:
-        return '${hours}h ago';
-    }
-  }
+  String hoursAgoShort(int hours) =>
+      TranslationTemplate.format(_tr('hoursAgoShort'), {'hours': hours});
 
-  String minutesAgoShort(int minutes) {
-    switch (_lang) {
-      case 'es':
-        return 'hace ${minutes}m';
-      case 'fr':
-        return 'il y a ${minutes}m';
-      case 'nl':
-        return '${minutes}m geleden';
-      default:
-        return '${minutes}m ago';
-    }
-  }
+  String minutesAgoShort(int minutes) =>
+      TranslationTemplate.format(_tr('minutesAgoShort'), {'minutes': minutes});
 
   // --- Easter egg ---
-  String easterEggTapsRemaining(int remaining) {
-    switch (_lang) {
-      case 'es':
-        return '$remaining toques para una sorpresa... 🥚';
-      case 'fr':
-        return 'Plus que $remaining appuis pour une surprise... 🥚';
-      case 'nl':
-        return 'Nog $remaining tikken voor een verrassing... 🥚';
-      default:
-        return '$remaining taps away from a surprise... 🥚';
-    }
-  }
+  String easterEggTapsRemaining(int remaining) => TranslationTemplate.format(
+      _tr('easterEggTapsRemaining'), {'remaining': remaining});
 
   String get easterEggFound => _tr('easterEggFound');
   String get easterEggThanks => _tr('easterEggThanks');
