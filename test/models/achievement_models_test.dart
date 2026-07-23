@@ -47,12 +47,14 @@ void main() {
     });
 
     test('fromJson parses all types correctly', () {
-      expect(AchievementType.fromJson('FIRST_TRIP'), AchievementType.firstTrip);
+      expect(
+          AchievementType.fromJson('FIRST_TRIP'), AchievementType.firstTrip);
       expect(AchievementType.fromJson('PROFILE_COMPLETED'),
           AchievementType.profileCompleted);
       expect(AchievementType.fromJson('DISTANCE_100KM'),
           AchievementType.distanceOneHundredKm);
-      expect(AchievementType.fromJson('UPDATES_1'), AchievementType.updatesOne);
+      expect(
+          AchievementType.fromJson('UPDATES_1'), AchievementType.updatesOne);
       expect(
           AchievementType.fromJson('UPDATES_10'), AchievementType.updatesTen);
       expect(AchievementType.fromJson('DURATION_7_DAYS'),
@@ -61,7 +63,8 @@ void main() {
           AchievementType.followersOne);
       expect(AchievementType.fromJson('FOLLOWERS_10'),
           AchievementType.followersTen);
-      expect(AchievementType.fromJson('FRIENDS_1'), AchievementType.friendsOne);
+      expect(
+          AchievementType.fromJson('FRIENDS_1'), AchievementType.friendsOne);
       expect(
           AchievementType.fromJson('FRIENDS_5'), AchievementType.friendsFive);
     });
