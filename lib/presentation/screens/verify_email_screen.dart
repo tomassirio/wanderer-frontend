@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/repositories/auth_repository.dart';
 
 /// Screen that handles the email verification flow.
@@ -9,15 +11,15 @@ import 'package:wanderer_frontend/data/repositories/auth_repository.dart';
 /// and calls the verify-email endpoint.
 ///
 /// On mobile: displays a text field so the user can paste the token manually.
-class VerifyEmailScreen extends StatefulWidget {
+class VerifyEmailScreen extends ConsumerStatefulWidget {
   const VerifyEmailScreen({super.key});
 
   @override
-  State<VerifyEmailScreen> createState() => _VerifyEmailScreenState();
+  ConsumerState<VerifyEmailScreen> createState() => _VerifyEmailScreenState();
 }
 
-class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
-  final AuthRepository _repository = AuthRepository();
+class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
+  late final AuthRepository _repository;
   final _tokenController = TextEditingController();
 
   bool _isLoading = false;
@@ -27,6 +29,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   @override
   void initState() {
     super.initState();
+    _repository = ref.read(authRepositoryProvider);
     // On web, read the token from the URL query string automatically
     if (kIsWeb) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
