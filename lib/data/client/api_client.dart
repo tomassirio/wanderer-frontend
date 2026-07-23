@@ -137,70 +137,34 @@ class ApiClient {
     required String fieldName,
     bool requireAuth = false,
     Map<String, String>? additionalFields,
-  }) async {
-    // Proactively refresh token if expired
-    if (requireAuth) {
-      await _ensureValidToken();
-    }
-
+  }) {
     final uri = Uri.parse('$baseUrl$endpoint');
-    var request = http.MultipartRequest('POST', uri);
+    final contentType = _getContentTypeFromFileName(fileName);
 
-    // Add authorization header if needed
-    if (requireAuth) {
-      final token = await _tokenStorage.getAccessToken();
-      if (token != null) {
-        request.headers['Authorization'] = 'Bearer $token';
-      }
-    }
+    return _withAuthRetry(requireAuth, () async {
+      final request = http.MultipartRequest('POST', uri);
 
-    // Determine content type from file extension
-    String? contentType = _getContentTypeFromFileName(fileName);
-
-    // Add the file
-    request.files.add(http.MultipartFile.fromBytes(
-      fieldName,
-      fileBytes,
-      filename: fileName,
-      contentType: contentType != null ? MediaType.parse(contentType) : null,
-    ));
-
-    // Add any additional fields
-    if (additionalFields != null) {
-      request.fields.addAll(additionalFields);
-    }
-
-    var streamedResponse = await request.send();
-    var response = await http.Response.fromStream(streamedResponse);
-
-    // Handle 401 with token refresh
-    if (response.statusCode == 401 && requireAuth) {
-      final refreshed = await _refreshTokenIfNeeded();
-      if (refreshed) {
-        // Retry with new token
-        request = http.MultipartRequest('POST', uri);
-        final newToken = await _tokenStorage.getAccessToken();
-        if (newToken != null) {
-          request.headers['Authorization'] = 'Bearer $newToken';
+      if (requireAuth) {
+        final token = await _tokenStorage.getAccessToken();
+        if (token != null) {
+          request.headers['Authorization'] = 'Bearer $token';
         }
-        request.files.add(http.MultipartFile.fromBytes(
-          fieldName,
-          fileBytes,
-          filename: fileName,
-          contentType:
-              contentType != null ? MediaType.parse(contentType) : null,
-        ));
-        if (additionalFields != null) {
-          request.fields.addAll(additionalFields);
-        }
-        streamedResponse = await request.send();
-        response = await http.Response.fromStream(streamedResponse);
-      } else {
-        _handleUnauthorized();
       }
-    }
 
-    return response;
+      request.files.add(http.MultipartFile.fromBytes(
+        fieldName,
+        fileBytes,
+        filename: fileName,
+        contentType: contentType != null ? MediaType.parse(contentType) : null,
+      ));
+
+      if (additionalFields != null) {
+        request.fields.addAll(additionalFields);
+      }
+
+      final streamedResponse = await _httpClient.send(request);
+      return http.Response.fromStream(streamedResponse);
+    });
   }
 
   /// Determine content type from file name extension
