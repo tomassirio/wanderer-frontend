@@ -1,19 +1,20 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:wanderer_frontend/data/storage/token_storage.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/storage/token_refresh_manager.dart';
 import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/landing_screen.dart';
 
 /// Initial screen that checks auth state and shows appropriate content
-class InitialScreen extends StatefulWidget {
+class InitialScreen extends ConsumerStatefulWidget {
   const InitialScreen({super.key});
 
   @override
-  State<InitialScreen> createState() => _InitialScreenState();
+  ConsumerState<InitialScreen> createState() => _InitialScreenState();
 }
 
-class _InitialScreenState extends State<InitialScreen> {
+class _InitialScreenState extends ConsumerState<InitialScreen> {
   bool _isChecking = true;
   bool _isLoggedIn = false;
 
@@ -28,7 +29,7 @@ class _InitialScreenState extends State<InitialScreen> {
     // was closed.  This prevents the user from appearing "logged out" when
     // they still have a valid refresh token.
     try {
-      final tokenStorage = TokenStorage();
+      final tokenStorage = ref.read(tokenStorageProvider);
       final isLoggedIn = await tokenStorage.isLoggedIn();
       _isLoggedIn = isLoggedIn;
 
