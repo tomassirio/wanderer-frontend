@@ -1879,7 +1879,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               .map((status) {
             final isSelected = _selectedStatusFilters.contains(status);
             final count = statusCounts[status]!;
-            final statusColor = _getStatusChipColor(status);
+            final statusColor = UiHelpers.getStatusColor(status);
 
             return GestureDetector(
               onTap: () {
@@ -1918,7 +1918,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      _getStatusIcon(status),
+                      UiHelpers.getStatusIcon(status),
                       size: 14,
                       color: isSelected ? Colors.white : statusColor,
                     ),
@@ -1962,36 +1962,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  /// Returns an icon for each trip status.
-  IconData _getStatusIcon(TripStatus status) {
-    switch (status) {
-      case TripStatus.created:
-        return Icons.edit_note_rounded;
-      case TripStatus.inProgress:
-        return Icons.directions_walk_rounded;
-      case TripStatus.paused:
-        return Icons.pause_circle_outline_rounded;
-      case TripStatus.finished:
-        return Icons.check_circle_outline_rounded;
-      case TripStatus.resting:
-        return Icons.hotel_rounded;
-    }
-  }
-
-  Color _getStatusChipColor(TripStatus status) {
-    switch (status) {
-      case TripStatus.created:
-        return Colors.grey;
-      case TripStatus.inProgress:
-        return Colors.blue;
-      case TripStatus.paused:
-        return Colors.orange;
-      case TripStatus.finished:
-        return Colors.green;
-      case TripStatus.resting:
-        return WandererTheme.statusResting;
-    }
-  }
 
   Widget _buildTripCard(Trip trip) {
     return ProfileTripCard(
@@ -2013,21 +1983,6 @@ class ProfileTripCard extends StatefulWidget {
 }
 
 class _ProfileTripCardState extends State<ProfileTripCard> {
-  Color _getStatusColor(TripStatus status) {
-    switch (status) {
-      case TripStatus.created:
-        return Colors.grey;
-      case TripStatus.inProgress:
-        return Colors.blue;
-      case TripStatus.paused:
-        return Colors.orange;
-      case TripStatus.finished:
-        return Colors.green;
-      case TripStatus.resting:
-        return WandererTheme.statusResting;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -2065,7 +2020,7 @@ class _ProfileTripCardState extends State<ProfileTripCard> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: _getStatusColor(widget.trip.status),
+                        color: UiHelpers.getStatusColor(widget.trip.status),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(

@@ -2,11 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
-import 'package:wanderer_frontend/core/constants/enums.dart';
-import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/domain/trip.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
+import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 
 /// A self-contained search bar that fetches and displays trip results from
@@ -264,7 +263,7 @@ class SearchBarWidgetState extends State<SearchBarWidget> {
               width: 10,
               height: 10,
               decoration: BoxDecoration(
-                color: _statusColor(trip.status),
+                color: UiHelpers.getStatusColor(trip.status),
                 shape: BoxShape.circle,
               ),
             ),
@@ -298,7 +297,7 @@ class SearchBarWidgetState extends State<SearchBarWidget> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: _statusColor(trip.status).withOpacity(0.12),
+                color: UiHelpers.getStatusColor(trip.status).withOpacity(0.12),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
@@ -306,7 +305,7 @@ class SearchBarWidgetState extends State<SearchBarWidget> {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: _statusColor(trip.status),
+                  color: UiHelpers.getStatusColor(trip.status),
                 ),
               ),
             ),
@@ -323,21 +322,6 @@ class SearchBarWidgetState extends State<SearchBarWidget> {
       context,
       PageTransitions.slideUp(TripDetailScreen(trip: trip)),
     );
-  }
-
-  Color _statusColor(TripStatus status) {
-    switch (status) {
-      case TripStatus.created:
-        return Colors.grey;
-      case TripStatus.inProgress:
-        return Colors.blue;
-      case TripStatus.paused:
-        return Colors.orange;
-      case TripStatus.finished:
-        return Colors.green;
-      case TripStatus.resting:
-        return WandererTheme.statusResting;
-    }
   }
 
   // ---------------------------------------------------------------------------

@@ -799,8 +799,8 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
-              _getStatusIcon(trip.status),
-              color: _getStatusColor(trip.status),
+              UiHelpers.getStatusIcon(trip.status),
+              color: UiHelpers.getStatusColor(trip.status),
               size: 24,
             ),
             const SizedBox(width: 12),
@@ -860,8 +860,8 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(
-          _getStatusIcon(trip.status),
-          color: _getStatusColor(trip.status),
+          UiHelpers.getStatusIcon(trip.status),
+          color: UiHelpers.getStatusColor(trip.status),
           size: 24,
         ),
         const SizedBox(width: 12),
@@ -917,36 +917,6 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
         ),
       ],
     );
-  }
-
-  IconData _getStatusIcon(TripStatus status) {
-    switch (status) {
-      case TripStatus.created:
-        return Icons.fiber_new;
-      case TripStatus.inProgress:
-        return Icons.directions_run;
-      case TripStatus.paused:
-        return Icons.pause_circle;
-      case TripStatus.finished:
-        return Icons.check_circle;
-      case TripStatus.resting:
-        return Icons.nightlight_round;
-    }
-  }
-
-  Color _getStatusColor(TripStatus status) {
-    switch (status) {
-      case TripStatus.created:
-        return Colors.blue;
-      case TripStatus.inProgress:
-        return Colors.green;
-      case TripStatus.paused:
-        return Colors.orange;
-      case TripStatus.finished:
-        return Colors.grey;
-      case TripStatus.resting:
-        return WandererTheme.statusResting;
-    }
   }
 
   String _getStatusLabel(TripStatus status) {

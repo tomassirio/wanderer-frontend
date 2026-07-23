@@ -991,8 +991,12 @@ class _HomeScreenState extends State<HomeScreen>
             label: _statusFilter == null
                 ? l10n.allStatus
                 : _getStatusLabel(_statusFilter!, l10n),
-            icon: _getStatusIcon(_statusFilter),
-            iconColor: _getStatusColor(_statusFilter),
+            icon: _statusFilter == null
+                ? Icons.all_inclusive
+                : UiHelpers.getStatusIcon(_statusFilter!),
+            iconColor: _statusFilter == null
+                ? Colors.grey
+                : UiHelpers.getStatusColor(_statusFilter!),
             isActive: _statusFilter != null,
             onSelected: (value) {
               setState(() => _statusFilter = value);
@@ -1129,37 +1133,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  IconData _getStatusIcon(TripStatus? status) {
-    if (status == null) return Icons.all_inclusive;
-    switch (status) {
-      case TripStatus.inProgress:
-        return Icons.circle;
-      case TripStatus.paused:
-        return Icons.pause;
-      case TripStatus.finished:
-        return Icons.check_circle_outline;
-      case TripStatus.created:
-        return Icons.edit_outlined;
-      case TripStatus.resting:
-        return Icons.nightlight_round;
-    }
-  }
-
-  Color _getStatusColor(TripStatus? status) {
-    if (status == null) return Colors.grey;
-    switch (status) {
-      case TripStatus.inProgress:
-        return Colors.green;
-      case TripStatus.paused:
-        return Colors.orange;
-      case TripStatus.finished:
-        return Colors.blue;
-      case TripStatus.created:
-        return Colors.grey;
-      case TripStatus.resting:
-        return WandererTheme.statusResting;
-    }
-  }
 
   String _getStatusLabel(TripStatus status, AppLocalizations l10n) {
     switch (status) {

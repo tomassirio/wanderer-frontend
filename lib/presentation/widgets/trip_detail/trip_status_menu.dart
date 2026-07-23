@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
-import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 
 /// AppBar actions for changing trip status.
@@ -62,7 +61,7 @@ class TripStatusMenu extends StatelessWidget {
             children: [
               Icon(
                 UiHelpers.getStatusIcon(status),
-                color: _getStatusColor(status),
+                color: UiHelpers.getStatusColor(status),
               ),
               const SizedBox(width: 8),
               Text(_getStatusLabel(status, l10n)),
@@ -71,21 +70,6 @@ class TripStatusMenu extends StatelessWidget {
         );
       }).toList(),
     );
-  }
-
-  Color _getStatusColor(TripStatus status) {
-    switch (status) {
-      case TripStatus.inProgress:
-        return Colors.green;
-      case TripStatus.paused:
-        return Colors.orange;
-      case TripStatus.resting:
-        return WandererTheme.statusResting;
-      case TripStatus.finished:
-        return Colors.grey;
-      case TripStatus.created:
-        return Colors.blue;
-    }
   }
 
   String _getStatusLabel(TripStatus status, AppLocalizations l10n) {

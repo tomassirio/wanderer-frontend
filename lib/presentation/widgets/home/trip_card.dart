@@ -6,9 +6,10 @@ import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
-import 'package:intl/intl.dart';
 
 import '../../helpers/auth_navigation_helper.dart';
+import '../../helpers/date_format_helper.dart';
+import '../../helpers/ui_helpers.dart';
 import '../common/user_avatar.dart';
 
 class TripCard extends StatefulWidget {
@@ -28,37 +29,8 @@ class TripCard extends StatefulWidget {
 }
 
 class _TripCardState extends State<TripCard> {
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-    final l10n = context.l10n;
-
-    if (difference.inDays == 0) {
-      if (difference.inHours == 0) {
-        if (difference.inMinutes == 0) {
-          return l10n.justNow;
-        }
-        return difference.inMinutes == 1
-            ? l10n.minuteAgo
-            : l10n.minutesAgo(difference.inMinutes);
-      }
-      return difference.inHours == 1
-          ? l10n.hourAgo
-          : l10n.hoursAgo(difference.inHours);
-    } else if (difference.inDays < 7) {
-      return difference.inDays == 1
-          ? l10n.dayAgo
-          : l10n.daysAgo(difference.inDays);
-    } else if (difference.inDays < 30) {
-      final weeks = (difference.inDays / 7).floor();
-      return weeks == 1 ? l10n.weekAgo : l10n.weeksAgo(weeks);
-    } else if (difference.inDays < 365) {
-      final months = (difference.inDays / 30).floor();
-      return months == 1 ? l10n.monthAgo : l10n.monthsAgo(months);
-    } else {
-      return DateFormat('MMM d, yyyy').format(date);
-    }
-  }
+  String _formatDate(DateTime date) =>
+      DateFormatHelper.formatRelativeDate(context.l10n, date);
 
   @override
   Widget build(BuildContext context) {
@@ -395,7 +367,7 @@ class _TripCardState extends State<TripCard> {
   /// Build colored status badge
   Widget _buildStatusBadge() {
     final l10n = context.l10n;
-    final statusColor = _getStatusColor(widget.trip.status);
+    final statusColor = UiHelpers.getStatusColor(widget.trip.status);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -414,7 +386,7 @@ class _TripCardState extends State<TripCard> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            _getStatusIcon(widget.trip.status),
+            UiHelpers.getStatusIcon(widget.trip.status),
             size: 10,
             color: Colors.white,
           ),
@@ -553,38 +525,6 @@ class _TripCardState extends State<TripCard> {
         color: Colors.white,
       ),
     );
-  }
-
-  /// Get status color based on trip status
-  Color _getStatusColor(TripStatus status) {
-    switch (status) {
-      case TripStatus.created:
-        return const Color(0xFF6C757D); // Gray
-      case TripStatus.inProgress:
-        return const Color(0xFF28A745); // Green
-      case TripStatus.paused:
-        return const Color(0xFFFFC107); // Yellow/Amber
-      case TripStatus.finished:
-        return const Color(0xFF007BFF); // Blue
-      case TripStatus.resting:
-        return WandererTheme.statusResting; // Indigo
-    }
-  }
-
-  /// Get status icon
-  IconData _getStatusIcon(TripStatus status) {
-    switch (status) {
-      case TripStatus.created:
-        return Icons.pending_outlined;
-      case TripStatus.inProgress:
-        return Icons.play_arrow;
-      case TripStatus.paused:
-        return Icons.pause;
-      case TripStatus.finished:
-        return Icons.check_circle_outline;
-      case TripStatus.resting:
-        return Icons.nightlight_round;
-    }
   }
 
   /// Format status text for display

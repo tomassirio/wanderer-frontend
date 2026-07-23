@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/floating_notification.dart';
 
 /// Helper class for UI-related utilities
@@ -17,6 +18,22 @@ class UiHelpers {
         return Icons.check;
       case TripStatus.resting:
         return Icons.nightlight_round;
+    }
+  }
+
+  /// Gets the canonical color for a trip status.
+  static Color getStatusColor(TripStatus status) {
+    switch (status) {
+      case TripStatus.created:
+        return const Color(0xFF6C757D);
+      case TripStatus.inProgress:
+        return const Color(0xFF4CAF50);
+      case TripStatus.paused:
+        return const Color(0xFFFF9800);
+      case TripStatus.finished:
+        return WandererTheme.statusCompleted;
+      case TripStatus.resting:
+        return WandererTheme.statusResting;
     }
   }
 
