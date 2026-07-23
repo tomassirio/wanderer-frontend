@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wanderer_frontend/core/routing/strategies/login_route_strategy.dart';
 import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
@@ -74,8 +75,10 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: AuthScreen(initialUsername: 'testuser'),
+        const ProviderScope(
+          child: MaterialApp(
+            home: AuthScreen(initialUsername: 'testuser'),
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -93,8 +96,10 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: AuthScreen(),
+        const ProviderScope(
+          child: MaterialApp(
+            home: AuthScreen(),
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -112,8 +117,10 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: AuthScreen(),
+        const ProviderScope(
+          child: MaterialApp(
+            home: AuthScreen(),
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -133,8 +140,10 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: AuthScreen(),
+        const ProviderScope(
+          child: MaterialApp(
+            home: AuthScreen(),
+          ),
         ),
       );
       await tester.pumpAndSettle();
