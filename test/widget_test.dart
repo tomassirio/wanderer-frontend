@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/main.dart';
 
 void main() {
@@ -18,5 +19,14 @@ void main() {
     expect(find.byType(MaterialApp), findsOneWidget);
 
     expect(find.byType(Scaffold), findsOneWidget);
+  });
+
+  testWidgets('MaterialApp supports every locale LocaleController supports',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const MyApp());
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.supportedLocales, LocaleController.supportedLocales);
   });
 }
