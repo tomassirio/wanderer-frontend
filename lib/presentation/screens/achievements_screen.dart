@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/models/achievement_models.dart';
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/data/services/auth_service.dart';
@@ -13,16 +15,17 @@ import 'home_screen.dart';
 import 'settings_screen.dart';
 
 /// Screen displaying all achievements and user's unlocked achievements
-class AchievementsScreen extends StatefulWidget {
+class AchievementsScreen extends ConsumerStatefulWidget {
   const AchievementsScreen({super.key});
 
   @override
-  State<AchievementsScreen> createState() => _AchievementsScreenState();
+  ConsumerState<AchievementsScreen> createState() =>
+      _AchievementsScreenState();
 }
 
-class _AchievementsScreenState extends State<AchievementsScreen> {
-  final AchievementService _achievementService = AchievementService();
-  final AuthService _authService = AuthService();
+class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
+  late final AchievementService _achievementService;
+  late final AuthService _authService;
 
   List<Achievement> _allAchievements = [];
   List<UserAchievement> _myAchievements = [];
@@ -39,6 +42,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   @override
   void initState() {
     super.initState();
+    _achievementService = ref.read(achievementServiceProvider);
+    _authService = ref.read(authServiceProvider);
     _loadData();
   }
 
@@ -131,7 +136,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     final confirm = await DialogHelper.showLogoutConfirmation(context);
 
     if (confirm) {
-      await AuthService().logout();
+      await _authService.logout();
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           PageTransitions.fade(const HomeScreen()),
