@@ -16,15 +16,12 @@ import 'package:wanderer_frontend/presentation/state/trip_detail/trip_detail_sta
 class TripDetailNotifier
     extends AutoDisposeFamilyNotifier<TripDetailState, String> {
   // `late`, not `late final`: build() can run more than once on this same
-  // instance — e.g. TripDetailScreen.deactivate()'s explicit
-  // ref.invalidate() re-runs build() on the SAME notifier object rather
-  // than replacing it, whenever the provider still has an active listener
-  // (invalidateSelf() only rebuilds in place; a brand-new instance is
-  // only constructed once the element is actually disposed, e.g. via
-  // autoDispose after zero listeners for a frame). `late final` would
-  // throw LateInitializationError on that second assignment (verified:
-  // this crashed the overlapping-listener regression test below before
-  // this field was made non-final).
+  // instance — any caller-triggered `ref.invalidate`/`invalidateSelf()` on
+  // a still-listened provider rebuilds it in place rather than replacing
+  // it (a brand-new instance is only constructed once the element is
+  // actually disposed, e.g. via autoDispose after zero listeners for a
+  // frame). `late final` would throw LateInitializationError on that
+  // second assignment.
   late TripDetailRepository _repository;
 
   @override
