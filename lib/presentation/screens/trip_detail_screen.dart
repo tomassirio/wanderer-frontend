@@ -39,6 +39,7 @@ import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_lifecycl
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/strategies/trip_detail_layout_strategy.dart';
+import 'package:wanderer_frontend/presentation/state/trip_detail/trip_detail_notifier.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'auth_screen.dart';
 import 'home_screen.dart';
@@ -64,7 +65,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   final Completer<GoogleMapController> _mapControllerCompleter = Completer();
   StreamSubscription<WebSocketEvent>? _wsSubscription;
   StreamSubscription<WebSocketEvent>? _globalWsSubscription;
-  late Trip _trip;
+  Trip get _trip => ref.watch(tripDetailNotifierProvider(widget.trip.id)).trip;
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
 
@@ -86,17 +87,24 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
   bool _isLoadingComments = false;
   bool _isAddingComment = false;
-  bool _isLoggedIn = false;
-  bool _isAdmin = false;
   bool _isChangingStatus = false;
   bool _isChangingSettings = false;
   String? _replyingToCommentId;
   CommentSortOption _sortOption = CommentSortOption.latest;
   final int _selectedSidebarIndex = -1; // Trip detail is not a main nav item
-  String? _username;
-  String? _userId;
-  String? _displayName;
-  String? _avatarUrl;
+  String? get _username =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).identity.username;
+  String? get _userId =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).identity.userId;
+  String? get _displayName => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .identity
+      .displayName;
+  String? get _avatarUrl =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).identity.avatarUrl;
+  bool get _isAdmin =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).identity.isAdmin;
+  bool _isLoggedIn = false;
 
   // Track social interactions
   bool _isFollowingTripOwner = false;
@@ -197,7 +205,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     _achievementService = ref.read(achievementServiceProvider);
     _webSocketService = ref.read(websocketServiceProvider);
 
-    _trip = widget.trip;
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .seedInitialTrip(widget.trip);
     // Default to showing the planned route when the trip has one
     _showPlannedWaypoints = _trip.hasPlannedRoute;
     // Don't call _updateMapData() here — it would use stale trip data.
@@ -402,19 +412,21 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
   void _handleTripStatusChanged(TripStatusChangedEvent event) {
     setState(() {
-      _trip = _trip.copyWith(
-        status: event.newStatus,
-        // Use currentDay from the event if available; when a multi-day trip
-        // is first started and the backend hasn't set currentDay yet, default
-        // to 1 so the "Day 1" badge shows right away.
-        currentDay: event.currentDay ??
-            ((event.newStatus == TripStatus.inProgress &&
-                    event.previousStatus == TripStatus.created &&
-                    _trip.tripModality == TripModality.multiDay &&
-                    _trip.currentDay == null)
-                ? 1
-                : null),
-      );
+      ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .applyTripOverride(_trip.copyWith(
+            status: event.newStatus,
+            // Use currentDay from the event if available; when a multi-day trip
+            // is first started and the backend hasn't set currentDay yet,
+            // default to 1 so the "Day 1" badge shows right away.
+            currentDay: event.currentDay ??
+                ((event.newStatus == TripStatus.inProgress &&
+                        event.previousStatus == TripStatus.created &&
+                        _trip.tripModality == TripModality.multiDay &&
+                        _trip.currentDay == null)
+                    ? 1
+                    : null),
+          ));
     });
 
     // Reload timeline to pick up any lifecycle markers
@@ -471,12 +483,14 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           // model hasn't propagated them yet (CQRS eventual consistency).
           // If the backend returns false/null but we already know the user
           // enabled automatic updates, keep the local value.
-          _trip = updatedTrip.copyWith(
-            automaticUpdates:
-                updatedTrip.automaticUpdates || _trip.automaticUpdates,
-            updateRefresh: updatedTrip.updateRefresh ?? _trip.updateRefresh,
-            locations: mergedLocations,
-          );
+          ref
+              .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+              .applyTripOverride(updatedTrip.copyWith(
+                automaticUpdates:
+                    updatedTrip.automaticUpdates || _trip.automaticUpdates,
+                updateRefresh: updatedTrip.updateRefresh ?? _trip.updateRefresh,
+                locations: mergedLocations,
+              ));
         });
         _updateMapData();
         // Only animate the camera on subsequent refreshes (e.g. after a
@@ -555,9 +569,11 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       _tripUpdates = [newUpdate, ..._tripUpdates];
       // Update trip's accrued distance if provided
       if (event.distanceSoFarKm != null) {
-        _trip = _trip.copyWith(
-          accruedDistanceKm: event.distanceSoFarKm,
-        );
+        ref
+            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+            .applyTripOverride(_trip.copyWith(
+              accruedDistanceKm: event.distanceSoFarKm,
+            ));
       }
     });
 
@@ -570,7 +586,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         newUpdate,
       ];
       setState(() {
-        _trip = _trip.copyWith(locations: updatedLocations);
+        ref
+            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+            .applyTripOverride(_trip.copyWith(locations: updatedLocations));
       });
       _updateMapData();
       // Animate the camera to the new location
@@ -624,9 +642,11 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       _tripUpdates = [newUpdate, ..._tripUpdates];
       // Update trip's accrued distance if provided
       if (event.distanceSoFarKm != null) {
-        _trip = _trip.copyWith(
-          accruedDistanceKm: event.distanceSoFarKm,
-        );
+        ref
+            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+            .applyTripOverride(_trip.copyWith(
+              accruedDistanceKm: event.distanceSoFarKm,
+            ));
       }
     });
 
@@ -637,7 +657,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         newUpdate,
       ];
       setState(() {
-        _trip = _trip.copyWith(locations: updatedLocations);
+        ref
+            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+            .applyTripOverride(_trip.copyWith(locations: updatedLocations));
       });
       _updateMapData();
       // Animate the camera to the new location
@@ -673,7 +695,10 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
     // Update the trip's encoded polyline and refresh the map
     setState(() {
-      _trip = _trip.copyWith(encodedPolyline: event.encodedPolyline);
+      ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .applyTripOverride(
+              _trip.copyWith(encodedPolyline: event.encodedPolyline));
     });
 
     // Redraw the polyline on the map
@@ -774,10 +799,15 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     // Background update management is already handled optimistically
     // in _handleSettingsChange to avoid duplicate stop/start cycles.
     setState(() {
-      _trip = _trip.copyWith(
-        automaticUpdates: event.automaticUpdates ?? _trip.automaticUpdates,
-        updateRefresh: event.updateRefresh ?? _trip.updateRefresh,
-      );
+      ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .applyTripOverride(
+            _trip.copyWith(
+              automaticUpdates:
+                  event.automaticUpdates ?? _trip.automaticUpdates,
+              updateRefresh: event.updateRefresh ?? _trip.updateRefresh,
+            ),
+          );
     });
   }
 
@@ -1134,24 +1164,10 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   Future<void> _loadUserInfo() async {
-    final username = await _repository.getCurrentUsername();
-    final userId = await _repository.getCurrentUserId();
-    final isAdmin = await _repository.isAdmin();
-
-    if (userId != null) {
-      await _repository.refreshUserDetails();
-    }
-
-    final displayName = await _repository.getCurrentDisplayName();
-    final avatarUrl = await _repository.getCurrentAvatarUrl();
-
-    setState(() {
-      _username = username;
-      _userId = userId;
-      _displayName = displayName;
-      _avatarUrl = avatarUrl;
-      _isAdmin = isAdmin;
-    });
+    await ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .loadUserInfo();
+    if (mounted) setState(() {});
 
     _maybeShowTripDetailTutorial();
 
@@ -1160,6 +1176,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     _subscribeUserTopic();
 
     // If logged in and viewing another user's trip, check social status
+    final userId = _userId;
     if (userId != null && _trip.userId != userId) {
       await _loadSocialStatus();
     }
@@ -1292,10 +1309,17 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   Future<void> _checkLoginStatus() async {
-    final isLoggedIn = await _repository.isLoggedIn();
-    setState(() {
-      _isLoggedIn = isLoggedIn;
-    });
+    await ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .checkLoginStatus();
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = ref
+            .read(tripDetailNotifierProvider(widget.trip.id))
+            .identity
+            .isLoggedIn;
+      });
+    }
   }
 
   Future<void> _loadTripUpdates({int retryCount = 0}) async {
@@ -1371,7 +1395,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       final seen = <String>{};
       final deduped = updatedLocations.where((l) => seen.add(l.id)).toList();
       setState(() {
-        _trip = _trip.copyWith(locations: deduped);
+        ref
+            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+            .applyTripOverride(_trip.copyWith(locations: deduped));
       });
       _updateMapData();
     } catch (e) {
@@ -2028,17 +2054,22 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
       // Update local state optimistically - WebSocket will confirm the change
       setState(() {
-        _trip = _trip.copyWith(
-          status: newStatus,
-          // When starting a multi-day trip, set currentDay to 1 immediately
-          // so the "Day 1" badge shows right away in the trip info card.
-          currentDay: (newStatus == TripStatus.inProgress &&
-                  previousStatus == TripStatus.created &&
-                  isMultiDay &&
-                  _trip.currentDay == null)
-              ? 1
-              : null,
-        );
+        ref
+            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+            .applyTripOverride(
+              _trip.copyWith(
+                status: newStatus,
+                // When starting a multi-day trip, set currentDay to 1
+                // immediately so the "Day 1" badge shows right away in
+                // the trip info card.
+                currentDay: (newStatus == TripStatus.inProgress &&
+                        previousStatus == TripStatus.created &&
+                        isMultiDay &&
+                        _trip.currentDay == null)
+                    ? 1
+                    : null,
+              ),
+            );
         _isChangingStatus = false;
       });
 
@@ -2107,7 +2138,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
       // Update local state optimistically - WebSocket will confirm the change
       setState(() {
-        _trip = _trip.copyWith(visibility: newVisibility);
+        ref
+            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+            .applyTripOverride(_trip.copyWith(visibility: newVisibility));
       });
 
       if (mounted) {
@@ -2226,7 +2259,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
         // Update local state optimistically — WebSocket will confirm
         setState(() {
-          _trip = _trip.copyWith(status: TripStatus.resting);
+          ref
+              .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+              .applyTripOverride(_trip.copyWith(status: TripStatus.resting));
           _isChangingStatus = false;
         });
 
@@ -2271,10 +2306,14 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
         // Update local state optimistically — WebSocket will confirm
         setState(() {
-          _trip = _trip.copyWith(
-            status: TripStatus.inProgress,
-            currentDay: _currentDay + 1,
-          );
+          ref
+              .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+              .applyTripOverride(
+                _trip.copyWith(
+                  status: TripStatus.inProgress,
+                  currentDay: _currentDay + 1,
+                ),
+              );
           _isChangingStatus = false;
         });
 
@@ -2343,11 +2382,15 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
       // Update local state optimistically - WebSocket will confirm the change
       setState(() {
-        _trip = _trip.copyWith(
-          automaticUpdates: automaticUpdates,
-          updateRefresh: updateRefresh,
-          tripModality: tripModality ?? _trip.tripModality,
-        );
+        ref
+            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+            .applyTripOverride(
+              _trip.copyWith(
+                automaticUpdates: automaticUpdates,
+                updateRefresh: updateRefresh,
+                tripModality: tripModality ?? _trip.tripModality,
+              ),
+            );
         _isChangingSettings = false;
       });
 
