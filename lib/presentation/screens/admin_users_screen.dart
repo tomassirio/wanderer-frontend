@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/services/admin_service.dart';
@@ -12,18 +13,19 @@ import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.d
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 
 /// Admin User Management screen for viewing all users with pagination
-class AdminUsersScreen extends StatefulWidget {
+class AdminUsersScreen extends ConsumerStatefulWidget {
   const AdminUsersScreen({super.key});
 
   @override
-  State<AdminUsersScreen> createState() => _AdminUsersScreenState();
+  ConsumerState<AdminUsersScreen> createState() => _AdminUsersScreenState();
 }
 
-class _AdminUsersScreenState extends State<AdminUsersScreen> {
-  final AdminService _adminService = AdminService();
-  final HomeRepository _homeRepository = HomeRepository();
+class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
+  late final AdminService _adminService;
+  late final HomeRepository _homeRepository;
   final TextEditingController _searchController = TextEditingController();
 
   List<UserProfile> _users = [];
@@ -54,6 +56,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   @override
   void initState() {
     super.initState();
+    _adminService = ref.read(adminServiceProvider);
+    _homeRepository = ref.read(homeRepositoryProvider);
     _loadUserInfo();
     _loadUsers();
     _searchController.addListener(_filterUsers);
