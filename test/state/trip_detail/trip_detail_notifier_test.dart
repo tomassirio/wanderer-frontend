@@ -87,6 +87,71 @@ void main() {
     );
   });
 
+  test(
+      'overlapping listeners: an explicit invalidate (mirroring '
+      'TripDetailScreen.deactivate()) hands back a fresh notifier even '
+      'while the previous screen instance\'s watch is still attached — '
+      'the actual pop-transition race, not just the sequential '
+      'dispose-then-rebuild the autoDispose test above covers', () async {
+    final container = buildContainer();
+
+    // Old screen's ref.watch — stays open. Mirrors the fact that Flutter
+    // keeps a popped route's State (and its ref.watch subscription)
+    // mounted for the entire pop transition, not just until dispose()
+    // runs — so at the moment a new screen instance re-navigates to the
+    // same trip, this subscription can still be very much alive.
+    final oldScreenSub = container.listen(
+      tripDetailNotifierProvider(trip.id),
+      (previous, next) {},
+    );
+    container
+        .read(tripDetailNotifierProvider(trip.id).notifier)
+        .seedInitialTrip(trip);
+    expect(
+      container.read(tripDetailNotifierProvider(trip.id)).trip.name,
+      'Test Trip',
+    );
+
+    // A different Trip value for the same id, as if re-fetched elsewhere
+    // and handed to a brand-new screen instance for the same trip.
+    final rushedRevisitTrip = trip.copyWith(name: 'Rushed Revisit Trip');
+
+    // The race, demonstrated: with oldScreenSub still open (old screen
+    // not yet actually torn down), a new screen's seedInitialTrip lands
+    // on the SAME still-alive instance. The guard sees a non-empty
+    // same-id trip already in state and silently discards
+    // rushedRevisitTrip — exactly the bug this task fixes.
+    container
+        .read(tripDetailNotifierProvider(trip.id).notifier)
+        .seedInitialTrip(rushedRevisitTrip);
+    expect(
+      container.read(tripDetailNotifierProvider(trip.id)).trip.name,
+      'Test Trip',
+      reason: 'demonstrates the race: seedInitialTrip no-ops against the '
+          'stale, still-listened-to instance',
+    );
+
+    // The fix: the old screen's deactivate() explicitly invalidates the
+    // provider. Synchronous per Ref.invalidate's own contract ("destroys
+    // the state immediately") — no pump()/await needed, and it does not
+    // matter that oldScreenSub is still open, unlike the sequential
+    // autoDispose test above which requires closing every listener and
+    // awaiting a pump.
+    container.invalidate(tripDetailNotifierProvider(trip.id));
+
+    // The next screen's seedInitialTrip now lands on a genuinely fresh
+    // instance and its own trip value sticks.
+    container
+        .read(tripDetailNotifierProvider(trip.id).notifier)
+        .seedInitialTrip(rushedRevisitTrip);
+    expect(
+      container.read(tripDetailNotifierProvider(trip.id)).trip.name,
+      'Rushed Revisit Trip',
+    );
+
+    oldScreenSub.close();
+  });
+
   test('checkLoginStatus sets identity.isLoggedIn from the repository',
       () async {
     when(mockRepository.isLoggedIn()).thenAnswer((_) async => true);
