@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/websocket_client.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/services/notification_api_service.dart';
@@ -14,7 +16,8 @@ import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/presentation/screens/search_screen.dart';
 
 /// Reusable AppBar for the Wanderer application
-class WandererAppBar extends StatefulWidget implements PreferredSizeWidget {
+class WandererAppBar extends ConsumerStatefulWidget
+    implements PreferredSizeWidget {
   final bool isLoggedIn;
   final VoidCallback? onLoginPressed;
   final String? username;
@@ -47,17 +50,17 @@ class WandererAppBar extends StatefulWidget implements PreferredSizeWidget {
   });
 
   @override
-  State<WandererAppBar> createState() => _WandererAppBarState();
+  ConsumerState<WandererAppBar> createState() => _WandererAppBarState();
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
 
-class _WandererAppBarState extends State<WandererAppBar>
+class _WandererAppBarState extends ConsumerState<WandererAppBar>
     with SingleTickerProviderStateMixin {
   int _unreadCount = 0;
-  final NotificationApiService _notificationService = NotificationApiService();
-  final WebSocketService _webSocketService = WebSocketService();
+  late final NotificationApiService _notificationService;
+  late final WebSocketService _webSocketService;
   final GlobalKey _notificationButtonKey = GlobalKey();
   GlobalKey get _effectiveNotificationButtonKey =>
       widget.notificationButtonKey ?? _notificationButtonKey;
@@ -87,6 +90,9 @@ class _WandererAppBarState extends State<WandererAppBar>
   @override
   void initState() {
     super.initState();
+    _notificationService = ref.read(notificationApiServiceProvider);
+    _webSocketService = ref.read(websocketServiceProvider);
+
     if (widget.isLoggedIn) {
       _fetchUnreadCount();
     }
