@@ -1,8 +1,10 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/models/notification_models.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/services/notification_api_service.dart';
@@ -56,7 +58,7 @@ class _NotificationsDropdownRoute extends PopupRoute<bool> {
   }
 }
 
-class _NotificationsDropdownContent extends StatefulWidget {
+class _NotificationsDropdownContent extends ConsumerStatefulWidget {
   const _NotificationsDropdownContent({
     required this.position,
     required this.animation,
@@ -66,13 +68,13 @@ class _NotificationsDropdownContent extends StatefulWidget {
   final Animation<double> animation;
 
   @override
-  State<_NotificationsDropdownContent> createState() =>
+  ConsumerState<_NotificationsDropdownContent> createState() =>
       _NotificationsDropdownContentState();
 }
 
 class _NotificationsDropdownContentState
-    extends State<_NotificationsDropdownContent> {
-  final NotificationApiService _notificationService = NotificationApiService();
+    extends ConsumerState<_NotificationsDropdownContent> {
+  late final NotificationApiService _notificationService;
   final List<NotificationDto> _notifications = [];
   final ScrollController _scrollController = ScrollController();
 
@@ -86,6 +88,7 @@ class _NotificationsDropdownContentState
   @override
   void initState() {
     super.initState();
+    _notificationService = ref.read(notificationApiServiceProvider);
     _loadNotifications();
   }
 
