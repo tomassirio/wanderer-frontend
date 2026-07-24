@@ -38,22 +38,20 @@ class TripDetailNotifier
   }
 
   /// Seeds state with the real [Trip] the widget was constructed with.
-  /// Safe to call multiple times — a no-op once [state] already holds a
-  /// non-empty [Trip] for this id, whether that's from an earlier call on
-  /// this same instance or because [build] re-ran on it (see
-  /// `_repository`'s doc for why that can happen on the very instance
-  /// that already seeded).
-  ///
-  /// Still meaningful now that `TripDetailScreen.deactivate()` explicitly
-  /// `ref.invalidate`s this provider on teardown (see that method's doc):
-  /// this guard is what stays correct, not just harmless, in the narrow
-  /// window where a still-alive instance can legitimately be seeded twice
-  /// — e.g. if a future caller invokes this more than once against the
-  /// same live screen instance. It no longer has to compensate for the
-  /// *absence* of disposal (that was the original bug); it's ordinary
-  /// idempotency for an already-deterministically-disposed provider.
+  /// Unconditional — always applies [trip], even if this provider instance
+  /// is being reused (e.g. a rapid re-navigation to the same trip id landed
+  /// on a not-yet-disposed instance from the previous screen). This matches
+  /// the pre-migration behavior exactly: `initState()` always assigned
+  /// `_trip = widget.trip` with no guard, because each screen used to own
+  /// an independent field. There is deliberately no "already seeded, skip
+  /// it" check here — a guard would have to decide whether the existing
+  /// state or the new [trip] is "more correct" when both are legitimate,
+  /// and no such guard can be correct in general (see the removed guard's
+  /// history in git blame for why an attempted one didn't hold up).
+  /// Whichever screen instance's `initState()` runs `seedInitialTrip` last
+  /// wins, exactly as whichever instance's constructor ran last used to
+  /// win when this was a plain field.
   void seedInitialTrip(Trip trip) {
-    if (state.trip.id == trip.id && state.trip.name.isNotEmpty) return;
     state = state.copyWith(trip: trip);
   }
 

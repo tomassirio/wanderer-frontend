@@ -1149,39 +1149,15 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   @override
-  void deactivate() {
-    // Explicit, synchronous disposal of this screen's tripDetailNotifier
-    // instance, instead of relying solely on Riverpod's autoDispose
-    // scheduling. autoDispose only tears a provider down once it has had
-    // zero listeners for a full frame (see trip_detail_notifier.dart's
-    // class doc + riverpod's scheduler), and Flutter keeps a popped
-    // route's State (and therefore this screen's ref.watch subscription)
-    // mounted for the *entire* pop transition animation, not just one
-    // frame. A rapid re-navigation to the same trip id while that
-    // transition is still in flight (or before Riverpod's scheduled
-    // disposal has actually run) could otherwise resolve to this
-    // still-alive instance instead of a fresh one, and seedInitialTrip's
-    // guard would silently discard the new screen's widget.trip.
-    // ref.invalidate destroys the state immediately (per Ref.invalidate's
-    // own contract) regardless of listener count, closing that window.
-    //
-    // This must live in deactivate(), not dispose(): `ref` stops being
-    // usable once Element.unmount() clears this element's BuildContext,
-    // which happens *before* State.dispose() runs but *after*
-    // deactivate() — calling ref.invalidate/ref.watch/ref.read inside
-    // dispose() throws `Bad state: Cannot use "ref" after the widget was
-    // disposed.` (verified empirically against this exact
-    // flutter/flutter_riverpod version). deactivate() is the latest point
-    // in the teardown sequence where ref is still guaranteed valid.
-    ref.invalidate(tripDetailNotifierProvider(widget.trip.id));
-    super.deactivate();
-  }
-
-  @override
   void dispose() {
-    // `ref` is no longer usable here (see deactivate() above), so use
+    // `ref` is not safely usable this late in teardown, so use
     // widget.trip.id — identical to _trip.id for the lifetime of this
     // screen instance, since no call site ever changes a Trip's id.
+    // (tripDetailNotifierProvider is autoDispose — Riverpod tears down
+    // this trip id's notifier on its own once nothing watches it anymore;
+    // seedInitialTrip's unconditional overwrite means a reused, not-yet-
+    // disposed instance is harmless too, so no explicit invalidate is
+    // needed here.)
     debugPrint('TripDetailScreen: Disposing for trip ${widget.trip.id}');
     _wsSubscription?.cancel();
     _globalWsSubscription?.cancel();
