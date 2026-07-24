@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
@@ -28,7 +29,9 @@ void main() {
     });
 
     Widget buildTestWidget() {
-      return const MaterialApp(home: SettingsScreen());
+      return const ProviderScope(
+        child: MaterialApp(home: SettingsScreen()),
+      );
     }
 
     testWidgets('renders app bar with Settings title', (
