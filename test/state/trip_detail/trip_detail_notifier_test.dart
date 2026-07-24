@@ -50,6 +50,43 @@ void main() {
     expect(state.identity.isLoggedIn, isFalse);
   });
 
+  test(
+      'is autoDispose: once nothing watches a tripId, the next visit gets '
+      'a fresh notifier instead of the stale cached one', () async {
+    final container = buildContainer();
+
+    // First "screen visit": subscribe (as the widget's ref.watch would),
+    // seed the real trip, and confirm it stuck.
+    final sub = container.listen(
+      tripDetailNotifierProvider(trip.id),
+      (previous, next) {},
+    );
+    container
+        .read(tripDetailNotifierProvider(trip.id).notifier)
+        .seedInitialTrip(trip);
+    expect(
+      container.read(tripDetailNotifierProvider(trip.id)).trip.name,
+      'Test Trip',
+    );
+
+    // Screen is popped: the widget's watch goes away and nothing else
+    // reads this tripId's provider — it should become eligible for
+    // disposal, matching the old field's per-screen-instance lifetime.
+    sub.close();
+    await container.pump();
+
+    // Next "screen visit" for the same tripId (e.g. re-fetched elsewhere
+    // in the app with a different Trip value): must build a fresh
+    // notifier, not resurrect the old cached state.
+    final freshState = container.read(tripDetailNotifierProvider(trip.id));
+    expect(
+      freshState.trip.name,
+      isEmpty,
+      reason: 'expected a fresh build() placeholder, not the previous '
+          'visit\'s stale cached trip',
+    );
+  });
+
   test('checkLoginStatus sets identity.isLoggedIn from the repository',
       () async {
     when(mockRepository.isLoggedIn()).thenAnswer((_) async => true);

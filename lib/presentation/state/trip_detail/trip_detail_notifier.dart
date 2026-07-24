@@ -6,7 +6,15 @@ import 'package:wanderer_frontend/presentation/state/trip_detail/trip_detail_sta
 
 /// Owns [TripDetailState] for one trip (keyed by trip id). Replaces the
 /// screen's former `State`-held business logic, migrated concern-by-concern.
-class TripDetailNotifier extends FamilyNotifier<TripDetailState, String> {
+///
+/// `autoDispose`d: `TripDetailScreen` is pushed via `Navigator.push` (a
+/// fresh `State` per visit), so this notifier must not outlive the screen
+/// that reads it — otherwise a previously-visited trip's stale data (and
+/// identity) would leak into a later visit instead of a fresh instance
+/// being built. Riverpod disposes the per-tripId instance once nothing is
+/// watching it anymore (i.e. once the screen for that trip id is popped).
+class TripDetailNotifier
+    extends AutoDisposeFamilyNotifier<TripDetailState, String> {
   late final TripDetailRepository _repository;
 
   @override
@@ -66,7 +74,7 @@ class TripDetailNotifier extends FamilyNotifier<TripDetailState, String> {
   }
 }
 
-final tripDetailNotifierProvider =
-    NotifierProvider.family<TripDetailNotifier, TripDetailState, String>(
+final tripDetailNotifierProvider = NotifierProvider.autoDispose
+    .family<TripDetailNotifier, TripDetailState, String>(
   TripDetailNotifier.new,
 );

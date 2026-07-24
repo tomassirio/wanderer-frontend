@@ -1167,7 +1167,6 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     await ref
         .read(tripDetailNotifierProvider(widget.trip.id).notifier)
         .loadUserInfo();
-    if (mounted) setState(() {});
 
     _maybeShowTripDetailTutorial();
 
