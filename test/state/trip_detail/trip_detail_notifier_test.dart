@@ -7,19 +7,22 @@ import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
+import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/presentation/state/trip_detail/trip_detail_notifier.dart';
 
 import 'trip_detail_notifier_test.mocks.dart';
 
-@GenerateMocks([TripDetailRepository, PromotionQueryClient])
+@GenerateMocks([TripDetailRepository, PromotionQueryClient, AchievementService])
 void main() {
   late MockTripDetailRepository mockRepository;
   late MockPromotionQueryClient mockPromotionClient;
+  late MockAchievementService mockAchievementService;
   late Trip trip;
 
   setUp(() {
     mockRepository = MockTripDetailRepository();
     mockPromotionClient = MockPromotionQueryClient();
+    mockAchievementService = MockAchievementService();
     trip = Trip(
       id: 'trip-1',
       userId: 'owner-1',
@@ -38,6 +41,7 @@ void main() {
     final container = ProviderContainer(overrides: [
       tripDetailRepositoryProvider.overrideWithValue(mockRepository),
       promotionQueryClientProvider.overrideWithValue(mockPromotionClient),
+      achievementServiceProvider.overrideWithValue(mockAchievementService),
     ]);
     addTearDown(container.dispose);
     return container;
@@ -229,4 +233,60 @@ void main() {
     expect(state.promotion.isPromoted, isFalse);
     expect(state.promotion.donationLink, isNull);
   });
+
+  test('loadTripAchievements populates tripAchievements from the service',
+      () async {
+    when(mockAchievementService.getTripAchievements('trip-1'))
+        .thenAnswer((_) async => []);
+    final container = buildContainer();
+    final notifier =
+        container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    await notifier.loadTripAchievements();
+
+    verify(mockAchievementService.getTripAchievements('trip-1')).called(1);
+  });
+
+  test('loadTripAchievements silently no-ops when the service throws',
+      () async {
+    when(mockAchievementService.getTripAchievements('trip-1'))
+        .thenThrow(Exception('network error'));
+    final container = buildContainer();
+    final notifier =
+        container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    await notifier.loadTripAchievements(); // must not throw
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.tripAchievements, isEmpty);
+  });
+
+  test('debouncedAchievementRefresh only calls the service once after the delay',
+      () async {
+    when(mockAchievementService.getTripAchievements('trip-1'))
+        .thenAnswer((_) async => []);
+    final container = buildContainer();
+    // Keep the autoDispose notifier alive for the duration of the debounce
+    // timer, mirroring the widget's persistent ref.watch subscription — a
+    // bare container.read() here would let the provider (and its timer) get
+    // disposed before the Timer fires.
+    final sub = container.listen(
+      tripDetailNotifierProvider(trip.id),
+      (previous, next) {},
+    );
+    final notifier =
+        container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    notifier.debouncedAchievementRefresh();
+    notifier.debouncedAchievementRefresh(); // re-arms, should not double-fire
+    notifier.debouncedAchievementRefresh();
+
+    await Future.delayed(const Duration(seconds: 4));
+
+    verify(mockAchievementService.getTripAchievements('trip-1')).called(1);
+    sub.close();
+  }, timeout: const Timeout(Duration(seconds: 10)));
 }

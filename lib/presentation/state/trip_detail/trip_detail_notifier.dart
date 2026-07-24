@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
+import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/presentation/state/trip_detail/trip_detail_state.dart';
 
 /// Owns [TripDetailState] for one trip (keyed by trip id). Replaces the
@@ -28,11 +31,17 @@ class TripDetailNotifier
   // build() can rerun on this instance, and a second assignment to a
   // `late final` field would throw LateInitializationError.
   late PromotionQueryClient _promotionQueryClient;
+  late AchievementService _achievementService;
+  Timer? _achievementRefreshTimer;
 
   @override
   TripDetailState build(String arg) {
     _repository = ref.watch(tripDetailRepositoryProvider);
     _promotionQueryClient = ref.watch(promotionQueryClientProvider);
+    _achievementService = ref.watch(achievementServiceProvider);
+    ref.onDispose(() {
+      _achievementRefreshTimer?.cancel();
+    });
     // A placeholder Trip is required to satisfy TripDetailState's
     // non-nullable `trip` field before the real widget.trip is available;
     // the widget calls seedInitialTrip() with the real Trip immediately
@@ -113,6 +122,25 @@ class TripDetailNotifier
             .copyWith(isPromoted: false, clearDonationLink: true),
       );
     }
+  }
+
+  Future<void> loadTripAchievements() async {
+    try {
+      final achievements =
+          await _achievementService.getTripAchievements(state.trip.id);
+      state = state.copyWith(tripAchievements: achievements);
+    } catch (e) {
+      // Silently fail — achievements are optional.
+    }
+  }
+
+  /// Debounce achievement refresh so rapid-fire trip updates don't
+  /// hammer the API. Waits 3 seconds after the last trigger.
+  void debouncedAchievementRefresh() {
+    _achievementRefreshTimer?.cancel();
+    _achievementRefreshTimer = Timer(const Duration(seconds: 3), () {
+      loadTripAchievements();
+    });
   }
 }
 

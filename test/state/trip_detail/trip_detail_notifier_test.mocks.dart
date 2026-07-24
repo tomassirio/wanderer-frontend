@@ -10,6 +10,7 @@ import 'package:mockito/src/dummies.dart' as _i8;
 import 'package:wanderer_frontend/core/constants/enums.dart' as _i9;
 import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart'
     as _i10;
+import 'package:wanderer_frontend/data/models/achievement_models.dart' as _i12;
 import 'package:wanderer_frontend/data/models/comment_models.dart' as _i7;
 import 'package:wanderer_frontend/data/models/domain/location_update_result.dart'
     as _i4;
@@ -18,6 +19,8 @@ import 'package:wanderer_frontend/data/models/responses/page_response.dart'
 import 'package:wanderer_frontend/data/models/trip_models.dart' as _i3;
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart'
     as _i5;
+import 'package:wanderer_frontend/data/services/achievement_service.dart'
+    as _i11;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -535,4 +538,58 @@ class MockPromotionQueryClient extends _i1.Mock
           ),
         )),
       ) as _i6.Future<_i3.TripPromotion>);
+}
+
+/// A class which mocks [AchievementService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockAchievementService extends _i1.Mock
+    implements _i11.AchievementService {
+  MockAchievementService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i6.Future<List<_i12.Achievement>> getAllAchievements() =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getAllAchievements,
+          [],
+        ),
+        returnValue:
+            _i6.Future<List<_i12.Achievement>>.value(<_i12.Achievement>[]),
+      ) as _i6.Future<List<_i12.Achievement>>);
+
+  @override
+  _i6.Future<List<_i12.UserAchievement>> getMyAchievements() =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getMyAchievements,
+          [],
+        ),
+        returnValue: _i6.Future<List<_i12.UserAchievement>>.value(
+            <_i12.UserAchievement>[]),
+      ) as _i6.Future<List<_i12.UserAchievement>>);
+
+  @override
+  _i6.Future<List<_i12.UserAchievement>> getUserAchievements(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getUserAchievements,
+          [userId],
+        ),
+        returnValue: _i6.Future<List<_i12.UserAchievement>>.value(
+            <_i12.UserAchievement>[]),
+      ) as _i6.Future<List<_i12.UserAchievement>>);
+
+  @override
+  _i6.Future<List<_i12.UserAchievement>> getTripAchievements(String? tripId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getTripAchievements,
+          [tripId],
+        ),
+        returnValue: _i6.Future<List<_i12.UserAchievement>>.value(
+            <_i12.UserAchievement>[]),
+      ) as _i6.Future<List<_i12.UserAchievement>>);
 }

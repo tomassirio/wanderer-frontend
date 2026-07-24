@@ -19,7 +19,6 @@ import 'package:wanderer_frontend/data/models/domain/location_update_result.dart
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
-import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/core/services/background_update_manager.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_map_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
@@ -57,7 +56,6 @@ class TripDetailScreen extends ConsumerStatefulWidget {
 class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   late final TripDetailRepository _repository;
   late final UserService _userService;
-  late final AchievementService _achievementService;
   late final WebSocketService _webSocketService;
   GoogleMapController? _mapController;
   final Completer<GoogleMapController> _mapControllerCompleter = Completer();
@@ -119,8 +117,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       .donationLink;
 
   // Trip achievements
-  List<UserAchievement> _tripAchievements = [];
-  Timer? _achievementRefreshTimer;
+  List<UserAchievement> get _tripAchievements =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).tripAchievements;
 
   // Collapsible panel states
   // Collapsible panel states
@@ -203,7 +201,6 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     // Initialize repository and services
     _repository = ref.read(tripDetailRepositoryProvider);
     _userService = ref.read(userServiceProvider);
-    _achievementService = ref.read(achievementServiceProvider);
     _webSocketService = ref.read(websocketServiceProvider);
 
     ref
@@ -1162,7 +1159,6 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     debugPrint('TripDetailScreen: Disposing for trip ${widget.trip.id}');
     _wsSubscription?.cancel();
     _globalWsSubscription?.cancel();
-    _achievementRefreshTimer?.cancel();
     debugPrint('TripDetailScreen: Cancelled WebSocket subscriptions');
     _webSocketService.unsubscribeFromTrip(widget.trip.id);
     debugPrint('TripDetailScreen: Unsubscribed from trip');
@@ -1423,31 +1419,17 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     if (mounted) setState(() {});
   }
 
-  /// Debounce achievement refresh so rapid-fire trip updates don't
-  /// hammer the API. Waits 3 seconds after the last trigger.
   void _debouncedAchievementRefresh() {
-    _achievementRefreshTimer?.cancel();
-    _achievementRefreshTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted) {
-        debugPrint(
-            'TripDetailScreen: Debounced achievement refresh for trip ${_trip.id}');
-        _loadTripAchievements();
-      }
-    });
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .debouncedAchievementRefresh();
   }
 
   Future<void> _loadTripAchievements() async {
-    try {
-      final achievements =
-          await _achievementService.getTripAchievements(_trip.id);
-      if (mounted) {
-        setState(() {
-          _tripAchievements = achievements;
-        });
-      }
-    } catch (e) {
-      // Silently fail — achievements are optional
-    }
+    await ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .loadTripAchievements();
+    if (mounted) setState(() {});
   }
 
   void _updateMapData() {
