@@ -229,6 +229,105 @@ class TripDetailNotifier
       ),
     );
   }
+
+  /// Transitional setter: applies a [TripDetailTimelineState] mutation
+  /// computed by a not-yet-migrated `setState` call site in
+  /// `TripDetailScreen` (WebSocket handlers, migrated in Task 9a/9b). Same
+  /// pattern as [applyTripOverride] (see Task 1 brief, Step 9).
+  void applyTimelineOverride(TripDetailTimelineState timeline) {
+    state = state.copyWith(timeline: timeline);
+  }
+
+  /// Test-only seam for setting up timeline state preconditions without a
+  /// full loadTripUpdates()/loadMoreTripUpdates() round trip.
+  @visibleForTesting
+  void debugSeedTimelineForTest(TripDetailTimelineState timeline) {
+    state = state.copyWith(timeline: timeline);
+  }
+
+  Future<void> loadTripUpdates({int retryCount = 0}) async {
+    state = state.copyWith(
+      timeline:
+          state.timeline.copyWith(isLoadingUpdates: true, currentUpdatesPage: 0),
+    );
+
+    try {
+      final pageResponse = await _repository.loadTripUpdates(
+        state.trip.id,
+        page: 0,
+        size: 50,
+      );
+      // Preserve WebSocket-added entries that the CQRS query model may not
+      // have propagated yet, so the timeline doesn't temporarily lose the
+      // most recent updates.
+      final apiIds = pageResponse.content.map((l) => l.id).toSet();
+      final wsOnlyUpdates = state.timeline.tripUpdates
+          .where((u) => u.id.startsWith('ws_') && !apiIds.contains(u.id))
+          .toList();
+      state = state.copyWith(
+        timeline: state.timeline.copyWith(
+          tripUpdates: [...wsOnlyUpdates, ...pageResponse.content],
+          hasMoreUpdates: !pageResponse.last,
+          isLoadingUpdates: false,
+        ),
+      );
+    } catch (e) {
+      state = state.copyWith(
+        timeline: state.timeline.copyWith(isLoadingUpdates: false),
+      );
+
+      // Retry with exponential back-off if we haven't exhausted retries.
+      if (retryCount < 3) {
+        final delay = Duration(seconds: 2 << retryCount); // 2s, 4s, 8s
+        await Future.delayed(delay);
+        await loadTripUpdates(retryCount: retryCount + 1);
+      } else {
+        rethrow;
+      }
+    }
+  }
+
+  Future<void> loadMoreTripUpdates() async {
+    if (state.timeline.isLoadingMoreUpdates || !state.timeline.hasMoreUpdates) {
+      return;
+    }
+
+    state = state.copyWith(
+      timeline: state.timeline.copyWith(isLoadingMoreUpdates: true),
+    );
+
+    try {
+      final nextPage = state.timeline.currentUpdatesPage + 1;
+      final pageResponse = await _repository.loadTripUpdates(
+        state.trip.id,
+        page: nextPage,
+        size: 50,
+      );
+      state = state.copyWith(
+        timeline: state.timeline.copyWith(
+          tripUpdates: [...state.timeline.tripUpdates, ...pageResponse.content],
+          currentUpdatesPage: nextPage,
+          hasMoreUpdates: !pageResponse.last,
+          isLoadingMoreUpdates: false,
+        ),
+      );
+
+      // Update the trip's locations with the newly loaded older locations
+      // so the polyline extends further back in time.
+      final updatedLocations = <TripLocation>[
+        ...(state.trip.locations ?? []),
+        ...pageResponse.content,
+      ];
+      final seen = <String>{};
+      final deduped = updatedLocations.where((l) => seen.add(l.id)).toList();
+      state = state.copyWith(trip: state.trip.copyWith(locations: deduped));
+    } catch (e) {
+      state = state.copyWith(
+        timeline: state.timeline.copyWith(isLoadingMoreUpdates: false),
+      );
+      rethrow;
+    }
+  }
 }
 
 final tripDetailNotifierProvider = NotifierProvider.autoDispose

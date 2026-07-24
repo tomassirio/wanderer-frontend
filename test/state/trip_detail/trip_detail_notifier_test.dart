@@ -451,4 +451,128 @@ void main() {
     expect(state.social.hasSentFriendRequest, isFalse);
     expect(state.social.sentFriendRequestId, isNull);
   });
+
+  test('loadTripUpdates populates timeline.tripUpdates on success', () async {
+    when(mockRepository.loadTripUpdates('trip-1', page: 0, size: 50)).thenAnswer(
+      (_) async => PageResponse<TripLocation>(
+        content: [
+          TripLocation(
+            id: 'loc-1',
+            latitude: 1.0,
+            longitude: 2.0,
+            timestamp: DateTime(2026, 1, 1),
+          ),
+        ],
+        totalElements: 1,
+        totalPages: 1,
+        number: 0,
+        size: 50,
+        first: true,
+        last: true,
+      ),
+    );
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    await notifier.loadTripUpdates();
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.timeline.tripUpdates, hasLength(1));
+    expect(state.timeline.hasMoreUpdates, isFalse);
+    expect(state.timeline.isLoadingUpdates, isFalse);
+  });
+
+  test('loadTripUpdates preserves ws_-prefixed entries not yet in the API response',
+      () async {
+    when(mockRepository.loadTripUpdates('trip-1', page: 0, size: 50)).thenAnswer(
+      (_) async => PageResponse<TripLocation>(
+        content: <TripLocation>[],
+        totalElements: 0,
+        totalPages: 0,
+        number: 0,
+        size: 50,
+        first: true,
+        last: true,
+      ),
+    );
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+    notifier.debugSeedTimelineForTest(
+      TripDetailTimelineState(
+        tripUpdates: [
+          TripLocation(
+            id: 'ws_123',
+            latitude: 1.0,
+            longitude: 2.0,
+            timestamp: DateTime(2026, 1, 1),
+          ),
+        ],
+      ),
+    );
+
+    await notifier.loadTripUpdates();
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.timeline.tripUpdates.map((u) => u.id), contains('ws_123'));
+  });
+
+  test('loadTripUpdates rethrows after exhausting retries', () async {
+    when(mockRepository.loadTripUpdates('trip-1', page: 0, size: 50))
+        .thenThrow(Exception('500'));
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    await expectLater(
+      () => notifier.loadTripUpdates(retryCount: 3),
+      throwsA(isA<Exception>()),
+    );
+  });
+
+  test('loadMoreTripUpdates appends the next page and advances currentUpdatesPage',
+      () async {
+    when(mockRepository.loadTripUpdates('trip-1', page: 1, size: 50)).thenAnswer(
+      (_) async => PageResponse<TripLocation>(
+        content: [
+          TripLocation(
+            id: 'loc-2',
+            latitude: 3.0,
+            longitude: 4.0,
+            timestamp: DateTime(2026, 1, 2),
+          ),
+        ],
+        totalElements: 1,
+        totalPages: 1,
+        number: 1,
+        size: 50,
+        first: false,
+        last: true,
+      ),
+    );
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+    notifier.debugSeedTimelineForTest(
+      const TripDetailTimelineState(hasMoreUpdates: true, currentUpdatesPage: 0),
+    );
+
+    await notifier.loadMoreTripUpdates();
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.timeline.currentUpdatesPage, 1);
+    expect(state.timeline.tripUpdates.map((u) => u.id), contains('loc-2'));
+  });
+
+  test('loadMoreTripUpdates is a no-op when hasMoreUpdates is false', () async {
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    await notifier.loadMoreTripUpdates();
+
+    verifyNever(mockRepository.loadTripUpdates(any,
+        page: anyNamed('page'), size: anyNamed('size')));
+  });
 }

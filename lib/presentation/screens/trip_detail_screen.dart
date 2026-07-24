@@ -71,12 +71,18 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   bool _isLoadingMoreComments = false;
   static const int _commentPageSize = 20;
 
-  List<TripLocation> _tripUpdates = [];
-  bool _isLoadingUpdates = false;
-  int _currentUpdatesPage = 0;
-  bool _hasMoreUpdates = false;
-  bool _isLoadingMoreUpdates = false;
-  static const int _updatesPageSize = 50;
+  List<TripLocation> get _tripUpdates =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).timeline.tripUpdates;
+  bool get _isLoadingUpdates => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .timeline
+      .isLoadingUpdates;
+  bool get _hasMoreUpdates =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).timeline.hasMoreUpdates;
+  bool get _isLoadingMoreUpdates => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .timeline
+      .isLoadingMoreUpdates;
 
   bool _isLoadingComments = false;
   bool _isAddingComment = false;
@@ -570,7 +576,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         'TripDetailScreen: Processing TRIP_UPDATED - hasLocation: $hasLocation, lat: ${event.latitude}, lng: ${event.longitude}');
 
     setState(() {
-      _tripUpdates = [newUpdate, ..._tripUpdates];
+      ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .applyTimelineOverride(ref
+              .read(tripDetailNotifierProvider(widget.trip.id))
+              .timeline
+              .copyWith(tripUpdates: [newUpdate, ..._tripUpdates]));
       // Update trip's accrued distance if provided
       if (event.distanceSoFarKm != null) {
         ref
@@ -643,7 +654,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         'TripDetailScreen: Processing TRIP_UPDATE_CREATED - hasLocation: $hasLocation, lat: ${event.latitude}, lng: ${event.longitude}');
 
     setState(() {
-      _tripUpdates = [newUpdate, ..._tripUpdates];
+      ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .applyTimelineOverride(ref
+              .read(tripDetailNotifierProvider(widget.trip.id))
+              .timeline
+              .copyWith(tripUpdates: [newUpdate, ..._tripUpdates]));
       // Update trip's accrued distance if provided
       if (event.distanceSoFarKm != null) {
         ref
@@ -1302,89 +1318,32 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     }
   }
 
-  Future<void> _loadTripUpdates({int retryCount = 0}) async {
-    setState(() {
-      _isLoadingUpdates = true;
-      _currentUpdatesPage = 0;
-    });
-
+  Future<void> _loadTripUpdates() async {
     try {
-      final pageResponse = await _repository.loadTripUpdates(
-        _trip.id,
-        page: 0,
-        size: _updatesPageSize,
-      );
-      setState(() {
-        // Preserve WebSocket-added entries that the CQRS query model may
-        // not have propagated yet, so the timeline doesn't temporarily lose
-        // the most recent updates.
-        final apiIds = pageResponse.content.map((l) => l.id).toSet();
-        final wsOnlyUpdates = _tripUpdates
-            .where((u) => u.id.startsWith('ws_') && !apiIds.contains(u.id))
-            .toList();
-        _tripUpdates = [...wsOnlyUpdates, ...pageResponse.content];
-        _hasMoreUpdates = !pageResponse.last;
-        _isLoadingUpdates = false;
-      });
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .loadTripUpdates();
     } catch (e) {
-      setState(() => _isLoadingUpdates = false);
-      debugPrint(
-          'TripDetailScreen: Error loading trip updates (attempt ${retryCount + 1}): $e');
-
-      // Retry with exponential back-off if we haven't exhausted retries
-      if (retryCount < _maxRefreshRetries && mounted) {
-        final delay = Duration(seconds: 2 << retryCount); // 2s, 4s, 8s
-        debugPrint(
-            'TripDetailScreen: Scheduling updates retry in ${delay.inSeconds}s');
-        await Future.delayed(delay);
-        if (mounted) {
-          await _loadTripUpdates(retryCount: retryCount + 1);
-        }
-      } else if (mounted) {
+      if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error loading updates: $e');
       }
+    } finally {
+      if (mounted) setState(() {});
     }
   }
 
   Future<void> _loadMoreTripUpdates() async {
-    if (_isLoadingMoreUpdates || !_hasMoreUpdates) return;
-
-    setState(() => _isLoadingMoreUpdates = true);
-
     try {
-      final nextPage = _currentUpdatesPage + 1;
-      final pageResponse = await _repository.loadTripUpdates(
-        _trip.id,
-        page: nextPage,
-        size: _updatesPageSize,
-      );
-      setState(() {
-        _tripUpdates = [..._tripUpdates, ...pageResponse.content];
-        _currentUpdatesPage = nextPage;
-        _hasMoreUpdates = !pageResponse.last;
-        _isLoadingMoreUpdates = false;
-      });
-
-      // Update the map with the newly loaded older locations so
-      // the polyline extends further back in time.
-      final updatedLocations = <TripLocation>[
-        ...(_trip.locations ?? []),
-        ...pageResponse.content,
-      ];
-      // Deduplicate by ID
-      final seen = <String>{};
-      final deduped = updatedLocations.where((l) => seen.add(l.id)).toList();
-      setState(() {
-        ref
-            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-            .applyTripOverride(_trip.copyWith(locations: deduped));
-      });
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .loadMoreTripUpdates();
       _updateMapData();
     } catch (e) {
-      setState(() => _isLoadingMoreUpdates = false);
       if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error loading more updates: $e');
       }
+    } finally {
+      if (mounted) setState(() {});
     }
   }
 
