@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
+import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
 import 'package:wanderer_frontend/presentation/state/trip_detail/trip_detail_state.dart';
@@ -23,10 +24,15 @@ class TripDetailNotifier
   // frame). `late final` would throw LateInitializationError on that
   // second assignment.
   late TripDetailRepository _repository;
+  // `late`, not `late final` — same reasoning as `_repository` above:
+  // build() can rerun on this instance, and a second assignment to a
+  // `late final` field would throw LateInitializationError.
+  late PromotionQueryClient _promotionQueryClient;
 
   @override
   TripDetailState build(String arg) {
     _repository = ref.watch(tripDetailRepositoryProvider);
+    _promotionQueryClient = ref.watch(promotionQueryClientProvider);
     // A placeholder Trip is required to satisfy TripDetailState's
     // non-nullable `trip` field before the real widget.trip is available;
     // the widget calls seedInitialTrip() with the real Trip immediately
@@ -88,6 +94,25 @@ class TripDetailNotifier
         isAdmin: isAdmin,
       ),
     );
+  }
+
+  Future<void> loadPromotionInfo() async {
+    try {
+      final promotion =
+          await _promotionQueryClient.getTripPromotion(state.trip.id);
+      state = state.copyWith(
+        promotion: state.promotion.copyWith(
+          isPromoted: true,
+          donationLink: promotion.donationLink,
+        ),
+      );
+    } catch (e) {
+      // Trip is not promoted — this is expected for most trips.
+      state = state.copyWith(
+        promotion: state.promotion
+            .copyWith(isPromoted: false, clearDonationLink: true),
+      );
+    }
   }
 }
 

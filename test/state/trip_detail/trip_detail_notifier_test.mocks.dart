@@ -8,6 +8,8 @@ import 'dart:async' as _i6;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i8;
 import 'package:wanderer_frontend/core/constants/enums.dart' as _i9;
+import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart'
+    as _i10;
 import 'package:wanderer_frontend/data/models/comment_models.dart' as _i7;
 import 'package:wanderer_frontend/data/models/domain/location_update_result.dart'
     as _i4;
@@ -56,6 +58,16 @@ class _FakeTrip_1 extends _i1.SmartFake implements _i3.Trip {
 class _FakeLocationUpdateResult_2 extends _i1.SmartFake
     implements _i4.LocationUpdateResult {
   _FakeLocationUpdateResult_2(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeTripPromotion_3 extends _i1.SmartFake implements _i3.TripPromotion {
+  _FakeTripPromotion_3(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -487,4 +499,40 @@ class MockTripDetailRepository extends _i1.Mock
           ),
         )),
       ) as _i6.Future<_i4.LocationUpdateResult>);
+}
+
+/// A class which mocks [PromotionQueryClient].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockPromotionQueryClient extends _i1.Mock
+    implements _i10.PromotionQueryClient {
+  MockPromotionQueryClient() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i6.Future<List<_i3.PromotedTrip>> getPromotedTrips() => (super.noSuchMethod(
+        Invocation.method(
+          #getPromotedTrips,
+          [],
+        ),
+        returnValue:
+            _i6.Future<List<_i3.PromotedTrip>>.value(<_i3.PromotedTrip>[]),
+      ) as _i6.Future<List<_i3.PromotedTrip>>);
+
+  @override
+  _i6.Future<_i3.TripPromotion> getTripPromotion(String? tripId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getTripPromotion,
+          [tripId],
+        ),
+        returnValue: _i6.Future<_i3.TripPromotion>.value(_FakeTripPromotion_3(
+          this,
+          Invocation.method(
+            #getTripPromotion,
+            [tripId],
+          ),
+        )),
+      ) as _i6.Future<_i3.TripPromotion>);
 }

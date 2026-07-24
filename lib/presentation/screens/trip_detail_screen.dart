@@ -17,7 +17,6 @@ import 'package:wanderer_frontend/data/models/achievement_models.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/models/domain/location_update_result.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
-import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
@@ -58,7 +57,6 @@ class TripDetailScreen extends ConsumerStatefulWidget {
 class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   late final TripDetailRepository _repository;
   late final UserService _userService;
-  late final PromotionQueryClient _promotionQueryClient;
   late final AchievementService _achievementService;
   late final WebSocketService _webSocketService;
   GoogleMapController? _mapController;
@@ -113,8 +111,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   String? _sentFriendRequestId; // Store the request ID for cancellation
 
   // Promotion state
-  bool _isPromoted = false;
-  String? _donationLink;
+  bool get _isPromoted =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).promotion.isPromoted;
+  String? get _donationLink => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .promotion
+      .donationLink;
 
   // Trip achievements
   List<UserAchievement> _tripAchievements = [];
@@ -201,7 +203,6 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     // Initialize repository and services
     _repository = ref.read(tripDetailRepositoryProvider);
     _userService = ref.read(userServiceProvider);
-    _promotionQueryClient = ref.read(promotionQueryClientProvider);
     _achievementService = ref.read(achievementServiceProvider);
     _webSocketService = ref.read(websocketServiceProvider);
 
@@ -1416,23 +1417,10 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   Future<void> _loadPromotionInfo() async {
-    try {
-      final promotion = await _promotionQueryClient.getTripPromotion(_trip.id);
-      if (mounted) {
-        setState(() {
-          _isPromoted = true;
-          _donationLink = promotion.donationLink;
-        });
-      }
-    } catch (e) {
-      // Trip is not promoted — this is expected for most trips
-      if (mounted) {
-        setState(() {
-          _isPromoted = false;
-          _donationLink = null;
-        });
-      }
-    }
+    await ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .loadPromotionInfo();
+    if (mounted) setState(() {});
   }
 
   /// Debounce achievement refresh so rapid-fire trip updates don't

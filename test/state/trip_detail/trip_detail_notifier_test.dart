@@ -4,19 +4,22 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
+import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
 import 'package:wanderer_frontend/presentation/state/trip_detail/trip_detail_notifier.dart';
 
 import 'trip_detail_notifier_test.mocks.dart';
 
-@GenerateMocks([TripDetailRepository])
+@GenerateMocks([TripDetailRepository, PromotionQueryClient])
 void main() {
   late MockTripDetailRepository mockRepository;
+  late MockPromotionQueryClient mockPromotionClient;
   late Trip trip;
 
   setUp(() {
     mockRepository = MockTripDetailRepository();
+    mockPromotionClient = MockPromotionQueryClient();
     trip = Trip(
       id: 'trip-1',
       userId: 'owner-1',
@@ -34,6 +37,7 @@ void main() {
   ProviderContainer buildContainer() {
     final container = ProviderContainer(overrides: [
       tripDetailRepositoryProvider.overrideWithValue(mockRepository),
+      promotionQueryClientProvider.overrideWithValue(mockPromotionClient),
     ]);
     addTearDown(container.dispose);
     return container;
@@ -186,5 +190,43 @@ void main() {
     await notifier.loadUserInfo();
 
     verifyNever(mockRepository.refreshUserDetails());
+  });
+
+  test('loadPromotionInfo sets isPromoted and donationLink on success',
+      () async {
+    when(mockPromotionClient.getTripPromotion('trip-1')).thenAnswer(
+      (_) async => TripPromotion(
+        tripId: 'trip-1',
+        donationLink: 'https://example.com/donate',
+        createdAt: DateTime(2026, 1, 1),
+        updatedAt: DateTime(2026, 1, 1),
+      ),
+    );
+    final container = buildContainer();
+    final notifier =
+        container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    await notifier.loadPromotionInfo();
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.promotion.isPromoted, isTrue);
+    expect(state.promotion.donationLink, 'https://example.com/donate');
+  });
+
+  test('loadPromotionInfo clears promotion state when the client throws',
+      () async {
+    when(mockPromotionClient.getTripPromotion('trip-1'))
+        .thenThrow(Exception('404 not promoted'));
+    final container = buildContainer();
+    final notifier =
+        container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    await notifier.loadPromotionInfo();
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.promotion.isPromoted, isFalse);
+    expect(state.promotion.donationLink, isNull);
   });
 }
