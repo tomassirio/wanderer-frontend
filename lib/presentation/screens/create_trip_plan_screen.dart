@@ -145,7 +145,6 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _mapController?.dispose();
-    _directionsClient.dispose();
     super.dispose();
   }
 
