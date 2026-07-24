@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/services/url_shortener_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 
 /// Dialog that shows a QR code and sharing link for a trip
-class TripShareDialog extends StatefulWidget {
+class TripShareDialog extends ConsumerStatefulWidget {
   final String tripId;
   final String tripName;
 
@@ -35,12 +37,12 @@ class TripShareDialog extends StatefulWidget {
   }
 
   @override
-  State<TripShareDialog> createState() => _TripShareDialogState();
+  ConsumerState<TripShareDialog> createState() => _TripShareDialogState();
 }
 
-class _TripShareDialogState extends State<TripShareDialog> {
+class _TripShareDialogState extends ConsumerState<TripShareDialog> {
   late final String _tripUrl;
-  final UrlShortenerService _urlShortenerService = UrlShortenerService();
+  late final UrlShortenerService _urlShortenerService;
   String? _shortUrl;
   bool _isLoadingShortUrl = true;
   String? _shortUrlError;
@@ -49,6 +51,7 @@ class _TripShareDialogState extends State<TripShareDialog> {
   void initState() {
     super.initState();
     _tripUrl = ApiEndpoints.tripDeepLink(widget.tripId);
+    _urlShortenerService = ref.read(urlShortenerServiceProvider);
     _fetchShortUrl();
   }
 
