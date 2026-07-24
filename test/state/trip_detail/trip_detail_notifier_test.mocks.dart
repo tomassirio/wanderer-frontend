@@ -3,24 +3,26 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i6;
+import 'dart:async' as _i7;
 
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i8;
-import 'package:wanderer_frontend/core/constants/enums.dart' as _i9;
+import 'package:mockito/src/dummies.dart' as _i9;
+import 'package:wanderer_frontend/core/constants/enums.dart' as _i10;
 import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart'
-    as _i10;
-import 'package:wanderer_frontend/data/models/achievement_models.dart' as _i12;
-import 'package:wanderer_frontend/data/models/comment_models.dart' as _i7;
+    as _i11;
+import 'package:wanderer_frontend/data/models/achievement_models.dart' as _i13;
+import 'package:wanderer_frontend/data/models/comment_models.dart' as _i8;
 import 'package:wanderer_frontend/data/models/domain/location_update_result.dart'
     as _i4;
 import 'package:wanderer_frontend/data/models/responses/page_response.dart'
     as _i2;
 import 'package:wanderer_frontend/data/models/trip_models.dart' as _i3;
+import 'package:wanderer_frontend/data/models/user_models.dart' as _i5;
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart'
-    as _i5;
+    as _i6;
 import 'package:wanderer_frontend/data/services/achievement_service.dart'
-    as _i11;
+    as _i12;
+import 'package:wanderer_frontend/data/services/user_service.dart' as _i14;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -79,17 +81,27 @@ class _FakeTripPromotion_3 extends _i1.SmartFake implements _i3.TripPromotion {
         );
 }
 
+class _FakeUserProfile_4 extends _i1.SmartFake implements _i5.UserProfile {
+  _FakeUserProfile_4(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
 /// A class which mocks [TripDetailRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockTripDetailRepository extends _i1.Mock
-    implements _i5.TripDetailRepository {
+    implements _i6.TripDetailRepository {
   MockTripDetailRepository() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i6.Future<_i2.PageResponse<_i7.Comment>> loadComments(
+  _i7.Future<_i2.PageResponse<_i8.Comment>> loadComments(
     String? tripId, {
     int? page = 0,
     int? size = 20,
@@ -103,8 +115,8 @@ class MockTripDetailRepository extends _i1.Mock
             #size: size,
           },
         ),
-        returnValue: _i6.Future<_i2.PageResponse<_i7.Comment>>.value(
-            _FakePageResponse_0<_i7.Comment>(
+        returnValue: _i7.Future<_i2.PageResponse<_i8.Comment>>.value(
+            _FakePageResponse_0<_i8.Comment>(
           this,
           Invocation.method(
             #loadComments,
@@ -115,45 +127,45 @@ class MockTripDetailRepository extends _i1.Mock
             },
           ),
         )),
-      ) as _i6.Future<_i2.PageResponse<_i7.Comment>>);
+      ) as _i7.Future<_i2.PageResponse<_i8.Comment>>);
 
   @override
-  _i6.Future<_i3.Trip> getTripById(String? tripId) => (super.noSuchMethod(
+  _i7.Future<_i3.Trip> getTripById(String? tripId) => (super.noSuchMethod(
         Invocation.method(
           #getTripById,
           [tripId],
         ),
-        returnValue: _i6.Future<_i3.Trip>.value(_FakeTrip_1(
+        returnValue: _i7.Future<_i3.Trip>.value(_FakeTrip_1(
           this,
           Invocation.method(
             #getTripById,
             [tripId],
           ),
         )),
-      ) as _i6.Future<_i3.Trip>);
+      ) as _i7.Future<_i3.Trip>);
 
   @override
-  _i6.Future<List<_i7.Comment>> loadReplies(String? commentId) =>
+  _i7.Future<List<_i8.Comment>> loadReplies(String? commentId) =>
       (super.noSuchMethod(
         Invocation.method(
           #loadReplies,
           [commentId],
         ),
-        returnValue: _i6.Future<List<_i7.Comment>>.value(<_i7.Comment>[]),
-      ) as _i6.Future<List<_i7.Comment>>);
+        returnValue: _i7.Future<List<_i8.Comment>>.value(<_i8.Comment>[]),
+      ) as _i7.Future<List<_i8.Comment>>);
 
   @override
-  _i6.Future<List<_i7.Reaction>> loadReactions(_i7.Comment? comment) =>
+  _i7.Future<List<_i8.Reaction>> loadReactions(_i8.Comment? comment) =>
       (super.noSuchMethod(
         Invocation.method(
           #loadReactions,
           [comment],
         ),
-        returnValue: _i6.Future<List<_i7.Reaction>>.value(<_i7.Reaction>[]),
-      ) as _i6.Future<List<_i7.Reaction>>);
+        returnValue: _i7.Future<List<_i8.Reaction>>.value(<_i8.Reaction>[]),
+      ) as _i7.Future<List<_i8.Reaction>>);
 
   @override
-  _i6.Future<String> addComment(
+  _i7.Future<String> addComment(
     String? tripId,
     String? message,
   ) =>
@@ -165,7 +177,7 @@ class MockTripDetailRepository extends _i1.Mock
             message,
           ],
         ),
-        returnValue: _i6.Future<String>.value(_i8.dummyValue<String>(
+        returnValue: _i7.Future<String>.value(_i9.dummyValue<String>(
           this,
           Invocation.method(
             #addComment,
@@ -175,10 +187,10 @@ class MockTripDetailRepository extends _i1.Mock
             ],
           ),
         )),
-      ) as _i6.Future<String>);
+      ) as _i7.Future<String>);
 
   @override
-  _i6.Future<String> addReply(
+  _i7.Future<String> addReply(
     String? tripId,
     String? parentCommentId,
     String? message,
@@ -192,7 +204,7 @@ class MockTripDetailRepository extends _i1.Mock
             message,
           ],
         ),
-        returnValue: _i6.Future<String>.value(_i8.dummyValue<String>(
+        returnValue: _i7.Future<String>.value(_i9.dummyValue<String>(
           this,
           Invocation.method(
             #addReply,
@@ -203,12 +215,12 @@ class MockTripDetailRepository extends _i1.Mock
             ],
           ),
         )),
-      ) as _i6.Future<String>);
+      ) as _i7.Future<String>);
 
   @override
-  _i6.Future<void> addReaction(
+  _i7.Future<void> addReaction(
     String? commentId,
-    _i7.ReactionType? reactionType,
+    _i8.ReactionType? reactionType,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -218,14 +230,14 @@ class MockTripDetailRepository extends _i1.Mock
             reactionType,
           ],
         ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+        returnValue: _i7.Future<void>.value(),
+        returnValueForMissingStub: _i7.Future<void>.value(),
+      ) as _i7.Future<void>);
 
   @override
-  _i6.Future<void> removeReaction(
+  _i7.Future<void> removeReaction(
     String? commentId,
-    _i7.ReactionType? reactionType,
+    _i8.ReactionType? reactionType,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -235,14 +247,14 @@ class MockTripDetailRepository extends _i1.Mock
             reactionType,
           ],
         ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+        returnValue: _i7.Future<void>.value(),
+        returnValueForMissingStub: _i7.Future<void>.value(),
+      ) as _i7.Future<void>);
 
   @override
-  _i6.Future<String> changeTripStatus(
+  _i7.Future<String> changeTripStatus(
     String? tripId,
-    _i9.TripStatus? newStatus,
+    _i10.TripStatus? newStatus,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -252,7 +264,7 @@ class MockTripDetailRepository extends _i1.Mock
             newStatus,
           ],
         ),
-        returnValue: _i6.Future<String>.value(_i8.dummyValue<String>(
+        returnValue: _i7.Future<String>.value(_i9.dummyValue<String>(
           this,
           Invocation.method(
             #changeTripStatus,
@@ -262,12 +274,12 @@ class MockTripDetailRepository extends _i1.Mock
             ],
           ),
         )),
-      ) as _i6.Future<String>);
+      ) as _i7.Future<String>);
 
   @override
-  _i6.Future<String> changeTripVisibility(
+  _i7.Future<String> changeTripVisibility(
     String? tripId,
-    _i9.Visibility? newVisibility,
+    _i10.Visibility? newVisibility,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -277,7 +289,7 @@ class MockTripDetailRepository extends _i1.Mock
             newVisibility,
           ],
         ),
-        returnValue: _i6.Future<String>.value(_i8.dummyValue<String>(
+        returnValue: _i7.Future<String>.value(_i9.dummyValue<String>(
           this,
           Invocation.method(
             #changeTripVisibility,
@@ -287,29 +299,29 @@ class MockTripDetailRepository extends _i1.Mock
             ],
           ),
         )),
-      ) as _i6.Future<String>);
+      ) as _i7.Future<String>);
 
   @override
-  _i6.Future<String> toggleDay(String? tripId) => (super.noSuchMethod(
+  _i7.Future<String> toggleDay(String? tripId) => (super.noSuchMethod(
         Invocation.method(
           #toggleDay,
           [tripId],
         ),
-        returnValue: _i6.Future<String>.value(_i8.dummyValue<String>(
+        returnValue: _i7.Future<String>.value(_i9.dummyValue<String>(
           this,
           Invocation.method(
             #toggleDay,
             [tripId],
           ),
         )),
-      ) as _i6.Future<String>);
+      ) as _i7.Future<String>);
 
   @override
-  _i6.Future<String> changeTripSettings(
+  _i7.Future<String> changeTripSettings(
     String? tripId,
     bool? automaticUpdates,
     int? updateRefresh, {
-    _i9.TripModality? tripModality,
+    _i10.TripModality? tripModality,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -321,7 +333,7 @@ class MockTripDetailRepository extends _i1.Mock
           ],
           {#tripModality: tripModality},
         ),
-        returnValue: _i6.Future<String>.value(_i8.dummyValue<String>(
+        returnValue: _i7.Future<String>.value(_i9.dummyValue<String>(
           this,
           Invocation.method(
             #changeTripSettings,
@@ -333,98 +345,98 @@ class MockTripDetailRepository extends _i1.Mock
             {#tripModality: tripModality},
           ),
         )),
-      ) as _i6.Future<String>);
+      ) as _i7.Future<String>);
 
   @override
-  _i6.Future<String> deleteTrip(String? tripId) => (super.noSuchMethod(
+  _i7.Future<String> deleteTrip(String? tripId) => (super.noSuchMethod(
         Invocation.method(
           #deleteTrip,
           [tripId],
         ),
-        returnValue: _i6.Future<String>.value(_i8.dummyValue<String>(
+        returnValue: _i7.Future<String>.value(_i9.dummyValue<String>(
           this,
           Invocation.method(
             #deleteTrip,
             [tripId],
           ),
         )),
-      ) as _i6.Future<String>);
+      ) as _i7.Future<String>);
 
   @override
-  _i6.Future<bool> isLoggedIn() => (super.noSuchMethod(
+  _i7.Future<bool> isLoggedIn() => (super.noSuchMethod(
         Invocation.method(
           #isLoggedIn,
           [],
         ),
-        returnValue: _i6.Future<bool>.value(false),
-      ) as _i6.Future<bool>);
+        returnValue: _i7.Future<bool>.value(false),
+      ) as _i7.Future<bool>);
 
   @override
-  _i6.Future<String?> getCurrentUsername() => (super.noSuchMethod(
+  _i7.Future<String?> getCurrentUsername() => (super.noSuchMethod(
         Invocation.method(
           #getCurrentUsername,
           [],
         ),
-        returnValue: _i6.Future<String?>.value(),
-      ) as _i6.Future<String?>);
+        returnValue: _i7.Future<String?>.value(),
+      ) as _i7.Future<String?>);
 
   @override
-  _i6.Future<String?> getCurrentDisplayName() => (super.noSuchMethod(
+  _i7.Future<String?> getCurrentDisplayName() => (super.noSuchMethod(
         Invocation.method(
           #getCurrentDisplayName,
           [],
         ),
-        returnValue: _i6.Future<String?>.value(),
-      ) as _i6.Future<String?>);
+        returnValue: _i7.Future<String?>.value(),
+      ) as _i7.Future<String?>);
 
   @override
-  _i6.Future<String?> getCurrentAvatarUrl() => (super.noSuchMethod(
+  _i7.Future<String?> getCurrentAvatarUrl() => (super.noSuchMethod(
         Invocation.method(
           #getCurrentAvatarUrl,
           [],
         ),
-        returnValue: _i6.Future<String?>.value(),
-      ) as _i6.Future<String?>);
+        returnValue: _i7.Future<String?>.value(),
+      ) as _i7.Future<String?>);
 
   @override
-  _i6.Future<bool> refreshUserDetails() => (super.noSuchMethod(
+  _i7.Future<bool> refreshUserDetails() => (super.noSuchMethod(
         Invocation.method(
           #refreshUserDetails,
           [],
         ),
-        returnValue: _i6.Future<bool>.value(false),
-      ) as _i6.Future<bool>);
+        returnValue: _i7.Future<bool>.value(false),
+      ) as _i7.Future<bool>);
 
   @override
-  _i6.Future<String?> getCurrentUserId() => (super.noSuchMethod(
+  _i7.Future<String?> getCurrentUserId() => (super.noSuchMethod(
         Invocation.method(
           #getCurrentUserId,
           [],
         ),
-        returnValue: _i6.Future<String?>.value(),
-      ) as _i6.Future<String?>);
+        returnValue: _i7.Future<String?>.value(),
+      ) as _i7.Future<String?>);
 
   @override
-  _i6.Future<bool> isAdmin() => (super.noSuchMethod(
+  _i7.Future<bool> isAdmin() => (super.noSuchMethod(
         Invocation.method(
           #isAdmin,
           [],
         ),
-        returnValue: _i6.Future<bool>.value(false),
-      ) as _i6.Future<bool>);
+        returnValue: _i7.Future<bool>.value(false),
+      ) as _i7.Future<bool>);
 
   @override
-  _i6.Future<void> logout() => (super.noSuchMethod(
+  _i7.Future<void> logout() => (super.noSuchMethod(
         Invocation.method(
           #logout,
           [],
         ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+        returnValue: _i7.Future<void>.value(),
+        returnValueForMissingStub: _i7.Future<void>.value(),
+      ) as _i7.Future<void>);
 
   @override
-  _i6.Future<_i2.PageResponse<_i3.TripLocation>> loadTripUpdates(
+  _i7.Future<_i2.PageResponse<_i3.TripLocation>> loadTripUpdates(
     String? tripId, {
     int? page = 0,
     int? size = 50,
@@ -438,7 +450,7 @@ class MockTripDetailRepository extends _i1.Mock
             #size: size,
           },
         ),
-        returnValue: _i6.Future<_i2.PageResponse<_i3.TripLocation>>.value(
+        returnValue: _i7.Future<_i2.PageResponse<_i3.TripLocation>>.value(
             _FakePageResponse_0<_i3.TripLocation>(
           this,
           Invocation.method(
@@ -450,10 +462,10 @@ class MockTripDetailRepository extends _i1.Mock
             },
           ),
         )),
-      ) as _i6.Future<_i2.PageResponse<_i3.TripLocation>>);
+      ) as _i7.Future<_i2.PageResponse<_i3.TripLocation>>);
 
   @override
-  _i6.Future<_i4.LocationUpdateResult> sendTripUpdate(
+  _i7.Future<_i4.LocationUpdateResult> sendTripUpdate(
     String? tripId, {
     String? message,
   }) =>
@@ -463,7 +475,7 @@ class MockTripDetailRepository extends _i1.Mock
           [tripId],
           {#message: message},
         ),
-        returnValue: _i6.Future<_i4.LocationUpdateResult>.value(
+        returnValue: _i7.Future<_i4.LocationUpdateResult>.value(
             _FakeLocationUpdateResult_2(
           this,
           Invocation.method(
@@ -472,12 +484,12 @@ class MockTripDetailRepository extends _i1.Mock
             {#message: message},
           ),
         )),
-      ) as _i6.Future<_i4.LocationUpdateResult>);
+      ) as _i7.Future<_i4.LocationUpdateResult>);
 
   @override
-  _i6.Future<_i4.LocationUpdateResult> sendLifecycleUpdate(
+  _i7.Future<_i4.LocationUpdateResult> sendLifecycleUpdate(
     String? tripId, {
-    required _i9.TripUpdateType? updateType,
+    required _i10.TripUpdateType? updateType,
     required String? message,
   }) =>
       (super.noSuchMethod(
@@ -489,7 +501,7 @@ class MockTripDetailRepository extends _i1.Mock
             #message: message,
           },
         ),
-        returnValue: _i6.Future<_i4.LocationUpdateResult>.value(
+        returnValue: _i7.Future<_i4.LocationUpdateResult>.value(
             _FakeLocationUpdateResult_2(
           this,
           Invocation.method(
@@ -501,95 +513,564 @@ class MockTripDetailRepository extends _i1.Mock
             },
           ),
         )),
-      ) as _i6.Future<_i4.LocationUpdateResult>);
+      ) as _i7.Future<_i4.LocationUpdateResult>);
 }
 
 /// A class which mocks [PromotionQueryClient].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockPromotionQueryClient extends _i1.Mock
-    implements _i10.PromotionQueryClient {
+    implements _i11.PromotionQueryClient {
   MockPromotionQueryClient() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i6.Future<List<_i3.PromotedTrip>> getPromotedTrips() => (super.noSuchMethod(
+  _i7.Future<List<_i3.PromotedTrip>> getPromotedTrips() => (super.noSuchMethod(
         Invocation.method(
           #getPromotedTrips,
           [],
         ),
         returnValue:
-            _i6.Future<List<_i3.PromotedTrip>>.value(<_i3.PromotedTrip>[]),
-      ) as _i6.Future<List<_i3.PromotedTrip>>);
+            _i7.Future<List<_i3.PromotedTrip>>.value(<_i3.PromotedTrip>[]),
+      ) as _i7.Future<List<_i3.PromotedTrip>>);
 
   @override
-  _i6.Future<_i3.TripPromotion> getTripPromotion(String? tripId) =>
+  _i7.Future<_i3.TripPromotion> getTripPromotion(String? tripId) =>
       (super.noSuchMethod(
         Invocation.method(
           #getTripPromotion,
           [tripId],
         ),
-        returnValue: _i6.Future<_i3.TripPromotion>.value(_FakeTripPromotion_3(
+        returnValue: _i7.Future<_i3.TripPromotion>.value(_FakeTripPromotion_3(
           this,
           Invocation.method(
             #getTripPromotion,
             [tripId],
           ),
         )),
-      ) as _i6.Future<_i3.TripPromotion>);
+      ) as _i7.Future<_i3.TripPromotion>);
 }
 
 /// A class which mocks [AchievementService].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockAchievementService extends _i1.Mock
-    implements _i11.AchievementService {
+    implements _i12.AchievementService {
   MockAchievementService() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i6.Future<List<_i12.Achievement>> getAllAchievements() =>
+  _i7.Future<List<_i13.Achievement>> getAllAchievements() =>
       (super.noSuchMethod(
         Invocation.method(
           #getAllAchievements,
           [],
         ),
         returnValue:
-            _i6.Future<List<_i12.Achievement>>.value(<_i12.Achievement>[]),
-      ) as _i6.Future<List<_i12.Achievement>>);
+            _i7.Future<List<_i13.Achievement>>.value(<_i13.Achievement>[]),
+      ) as _i7.Future<List<_i13.Achievement>>);
 
   @override
-  _i6.Future<List<_i12.UserAchievement>> getMyAchievements() =>
+  _i7.Future<List<_i13.UserAchievement>> getMyAchievements() =>
       (super.noSuchMethod(
         Invocation.method(
           #getMyAchievements,
           [],
         ),
-        returnValue: _i6.Future<List<_i12.UserAchievement>>.value(
-            <_i12.UserAchievement>[]),
-      ) as _i6.Future<List<_i12.UserAchievement>>);
+        returnValue: _i7.Future<List<_i13.UserAchievement>>.value(
+            <_i13.UserAchievement>[]),
+      ) as _i7.Future<List<_i13.UserAchievement>>);
 
   @override
-  _i6.Future<List<_i12.UserAchievement>> getUserAchievements(String? userId) =>
+  _i7.Future<List<_i13.UserAchievement>> getUserAchievements(String? userId) =>
       (super.noSuchMethod(
         Invocation.method(
           #getUserAchievements,
           [userId],
         ),
-        returnValue: _i6.Future<List<_i12.UserAchievement>>.value(
-            <_i12.UserAchievement>[]),
-      ) as _i6.Future<List<_i12.UserAchievement>>);
+        returnValue: _i7.Future<List<_i13.UserAchievement>>.value(
+            <_i13.UserAchievement>[]),
+      ) as _i7.Future<List<_i13.UserAchievement>>);
 
   @override
-  _i6.Future<List<_i12.UserAchievement>> getTripAchievements(String? tripId) =>
+  _i7.Future<List<_i13.UserAchievement>> getTripAchievements(String? tripId) =>
       (super.noSuchMethod(
         Invocation.method(
           #getTripAchievements,
           [tripId],
         ),
-        returnValue: _i6.Future<List<_i12.UserAchievement>>.value(
-            <_i12.UserAchievement>[]),
-      ) as _i6.Future<List<_i12.UserAchievement>>);
+        returnValue: _i7.Future<List<_i13.UserAchievement>>.value(
+            <_i13.UserAchievement>[]),
+      ) as _i7.Future<List<_i13.UserAchievement>>);
+}
+
+/// A class which mocks [UserService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockUserService extends _i1.Mock implements _i14.UserService {
+  MockUserService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i7.Future<_i5.UserProfile> getMyProfile() => (super.noSuchMethod(
+        Invocation.method(
+          #getMyProfile,
+          [],
+        ),
+        returnValue: _i7.Future<_i5.UserProfile>.value(_FakeUserProfile_4(
+          this,
+          Invocation.method(
+            #getMyProfile,
+            [],
+          ),
+        )),
+      ) as _i7.Future<_i5.UserProfile>);
+
+  @override
+  _i7.Future<_i5.UserProfile> getUserById(String? userId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getUserById,
+          [userId],
+        ),
+        returnValue: _i7.Future<_i5.UserProfile>.value(_FakeUserProfile_4(
+          this,
+          Invocation.method(
+            #getUserById,
+            [userId],
+          ),
+        )),
+      ) as _i7.Future<_i5.UserProfile>);
+
+  @override
+  _i7.Future<_i5.UserProfile> getUserByUsername(String? username) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getUserByUsername,
+          [username],
+        ),
+        returnValue: _i7.Future<_i5.UserProfile>.value(_FakeUserProfile_4(
+          this,
+          Invocation.method(
+            #getUserByUsername,
+            [username],
+          ),
+        )),
+      ) as _i7.Future<_i5.UserProfile>);
+
+  @override
+  _i7.Future<_i2.PageResponse<_i5.Friendship>> getFriends({
+    int? page = 0,
+    int? size = 20,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getFriends,
+          [],
+          {
+            #page: page,
+            #size: size,
+          },
+        ),
+        returnValue: _i7.Future<_i2.PageResponse<_i5.Friendship>>.value(
+            _FakePageResponse_0<_i5.Friendship>(
+          this,
+          Invocation.method(
+            #getFriends,
+            [],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i7.Future<_i2.PageResponse<_i5.Friendship>>);
+
+  @override
+  _i7.Future<_i2.PageResponse<_i5.UserFollow>> getFollowing({
+    int? page = 0,
+    int? size = 20,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getFollowing,
+          [],
+          {
+            #page: page,
+            #size: size,
+          },
+        ),
+        returnValue: _i7.Future<_i2.PageResponse<_i5.UserFollow>>.value(
+            _FakePageResponse_0<_i5.UserFollow>(
+          this,
+          Invocation.method(
+            #getFollowing,
+            [],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i7.Future<_i2.PageResponse<_i5.UserFollow>>);
+
+  @override
+  _i7.Future<_i2.PageResponse<_i5.UserFollow>> getFollowers({
+    int? page = 0,
+    int? size = 20,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getFollowers,
+          [],
+          {
+            #page: page,
+            #size: size,
+          },
+        ),
+        returnValue: _i7.Future<_i2.PageResponse<_i5.UserFollow>>.value(
+            _FakePageResponse_0<_i5.UserFollow>(
+          this,
+          Invocation.method(
+            #getFollowers,
+            [],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i7.Future<_i2.PageResponse<_i5.UserFollow>>);
+
+  @override
+  _i7.Future<_i2.PageResponse<_i5.UserFollow>> getUserFollowing(
+    String? userId, {
+    int? page = 0,
+    int? size = 20,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getUserFollowing,
+          [userId],
+          {
+            #page: page,
+            #size: size,
+          },
+        ),
+        returnValue: _i7.Future<_i2.PageResponse<_i5.UserFollow>>.value(
+            _FakePageResponse_0<_i5.UserFollow>(
+          this,
+          Invocation.method(
+            #getUserFollowing,
+            [userId],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i7.Future<_i2.PageResponse<_i5.UserFollow>>);
+
+  @override
+  _i7.Future<_i2.PageResponse<_i5.UserFollow>> getUserFollowers(
+    String? userId, {
+    int? page = 0,
+    int? size = 20,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getUserFollowers,
+          [userId],
+          {
+            #page: page,
+            #size: size,
+          },
+        ),
+        returnValue: _i7.Future<_i2.PageResponse<_i5.UserFollow>>.value(
+            _FakePageResponse_0<_i5.UserFollow>(
+          this,
+          Invocation.method(
+            #getUserFollowers,
+            [userId],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i7.Future<_i2.PageResponse<_i5.UserFollow>>);
+
+  @override
+  _i7.Future<_i2.PageResponse<_i5.Friendship>> getUserFriends(
+    String? userId, {
+    int? page = 0,
+    int? size = 20,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getUserFriends,
+          [userId],
+          {
+            #page: page,
+            #size: size,
+          },
+        ),
+        returnValue: _i7.Future<_i2.PageResponse<_i5.Friendship>>.value(
+            _FakePageResponse_0<_i5.Friendship>(
+          this,
+          Invocation.method(
+            #getUserFriends,
+            [userId],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i7.Future<_i2.PageResponse<_i5.Friendship>>);
+
+  @override
+  _i7.Future<List<_i5.FriendRequest>> getReceivedFriendRequests() =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getReceivedFriendRequests,
+          [],
+        ),
+        returnValue:
+            _i7.Future<List<_i5.FriendRequest>>.value(<_i5.FriendRequest>[]),
+      ) as _i7.Future<List<_i5.FriendRequest>>);
+
+  @override
+  _i7.Future<List<_i5.FriendRequest>> getSentFriendRequests() =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getSentFriendRequests,
+          [],
+        ),
+        returnValue:
+            _i7.Future<List<_i5.FriendRequest>>.value(<_i5.FriendRequest>[]),
+      ) as _i7.Future<List<_i5.FriendRequest>>);
+
+  @override
+  _i7.Future<String> sendFriendRequest(String? userId) => (super.noSuchMethod(
+        Invocation.method(
+          #sendFriendRequest,
+          [userId],
+        ),
+        returnValue: _i7.Future<String>.value(_i9.dummyValue<String>(
+          this,
+          Invocation.method(
+            #sendFriendRequest,
+            [userId],
+          ),
+        )),
+      ) as _i7.Future<String>);
+
+  @override
+  _i7.Future<String> acceptFriendRequest(String? requestId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #acceptFriendRequest,
+          [requestId],
+        ),
+        returnValue: _i7.Future<String>.value(_i9.dummyValue<String>(
+          this,
+          Invocation.method(
+            #acceptFriendRequest,
+            [requestId],
+          ),
+        )),
+      ) as _i7.Future<String>);
+
+  @override
+  _i7.Future<String> deleteFriendRequest(String? requestId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #deleteFriendRequest,
+          [requestId],
+        ),
+        returnValue: _i7.Future<String>.value(_i9.dummyValue<String>(
+          this,
+          Invocation.method(
+            #deleteFriendRequest,
+            [requestId],
+          ),
+        )),
+      ) as _i7.Future<String>);
+
+  @override
+  _i7.Future<String> removeFriend(String? friendId) => (super.noSuchMethod(
+        Invocation.method(
+          #removeFriend,
+          [friendId],
+        ),
+        returnValue: _i7.Future<String>.value(_i9.dummyValue<String>(
+          this,
+          Invocation.method(
+            #removeFriend,
+            [friendId],
+          ),
+        )),
+      ) as _i7.Future<String>);
+
+  @override
+  _i7.Future<String> followUser(String? userId) => (super.noSuchMethod(
+        Invocation.method(
+          #followUser,
+          [userId],
+        ),
+        returnValue: _i7.Future<String>.value(_i9.dummyValue<String>(
+          this,
+          Invocation.method(
+            #followUser,
+            [userId],
+          ),
+        )),
+      ) as _i7.Future<String>);
+
+  @override
+  _i7.Future<String> unfollowUser(String? userId) => (super.noSuchMethod(
+        Invocation.method(
+          #unfollowUser,
+          [userId],
+        ),
+        returnValue: _i7.Future<String>.value(_i9.dummyValue<String>(
+          this,
+          Invocation.method(
+            #unfollowUser,
+            [userId],
+          ),
+        )),
+      ) as _i7.Future<String>);
+
+  @override
+  _i7.Future<String> updateProfile(_i5.UpdateProfileRequest? request) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #updateProfile,
+          [request],
+        ),
+        returnValue: _i7.Future<String>.value(_i9.dummyValue<String>(
+          this,
+          Invocation.method(
+            #updateProfile,
+            [request],
+          ),
+        )),
+      ) as _i7.Future<String>);
+
+  @override
+  _i7.Future<String> uploadAvatar(
+    List<int>? fileBytes,
+    String? fileName,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #uploadAvatar,
+          [
+            fileBytes,
+            fileName,
+          ],
+        ),
+        returnValue: _i7.Future<String>.value(_i9.dummyValue<String>(
+          this,
+          Invocation.method(
+            #uploadAvatar,
+            [
+              fileBytes,
+              fileName,
+            ],
+          ),
+        )),
+      ) as _i7.Future<String>);
+
+  @override
+  _i7.Future<String> deleteAvatar() => (super.noSuchMethod(
+        Invocation.method(
+          #deleteAvatar,
+          [],
+        ),
+        returnValue: _i7.Future<String>.value(_i9.dummyValue<String>(
+          this,
+          Invocation.method(
+            #deleteAvatar,
+            [],
+          ),
+        )),
+      ) as _i7.Future<String>);
+
+  @override
+  _i7.Future<String> deleteMyAccount() => (super.noSuchMethod(
+        Invocation.method(
+          #deleteMyAccount,
+          [],
+        ),
+        returnValue: _i7.Future<String>.value(_i9.dummyValue<String>(
+          this,
+          Invocation.method(
+            #deleteMyAccount,
+            [],
+          ),
+        )),
+      ) as _i7.Future<String>);
+
+  @override
+  _i7.Future<_i2.PageResponse<_i5.UserProfile>> getDiscoverableUsers({
+    int? page = 0,
+    int? size = 20,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getDiscoverableUsers,
+          [],
+          {
+            #page: page,
+            #size: size,
+          },
+        ),
+        returnValue: _i7.Future<_i2.PageResponse<_i5.UserProfile>>.value(
+            _FakePageResponse_0<_i5.UserProfile>(
+          this,
+          Invocation.method(
+            #getDiscoverableUsers,
+            [],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i7.Future<_i2.PageResponse<_i5.UserProfile>>);
+
+  @override
+  _i7.Future<_i2.PageResponse<_i5.UserRelationship>> getAssociatedUsers(
+    String? userId, {
+    int? page = 0,
+    int? size = 20,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getAssociatedUsers,
+          [userId],
+          {
+            #page: page,
+            #size: size,
+          },
+        ),
+        returnValue: _i7.Future<_i2.PageResponse<_i5.UserRelationship>>.value(
+            _FakePageResponse_0<_i5.UserRelationship>(
+          this,
+          Invocation.method(
+            #getAssociatedUsers,
+            [userId],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i7.Future<_i2.PageResponse<_i5.UserRelationship>>);
 }

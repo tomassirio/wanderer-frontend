@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
+import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
+import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/presentation/state/trip_detail/trip_detail_state.dart';
 
 /// Owns [TripDetailState] for one trip (keyed by trip id). Replaces the
@@ -32,6 +35,7 @@ class TripDetailNotifier
   // `late final` field would throw LateInitializationError.
   late PromotionQueryClient _promotionQueryClient;
   late AchievementService _achievementService;
+  late UserService _userService;
   Timer? _achievementRefreshTimer;
 
   @override
@@ -39,6 +43,7 @@ class TripDetailNotifier
     _repository = ref.watch(tripDetailRepositoryProvider);
     _promotionQueryClient = ref.watch(promotionQueryClientProvider);
     _achievementService = ref.watch(achievementServiceProvider);
+    _userService = ref.watch(userServiceProvider);
     ref.onDispose(() {
       _achievementRefreshTimer?.cancel();
     });
@@ -141,6 +146,88 @@ class TripDetailNotifier
     _achievementRefreshTimer = Timer(const Duration(seconds: 3), () {
       loadTripAchievements();
     });
+  }
+
+  /// Test-only seam for setting up social state preconditions without a
+  /// full loadSocialStatus() round trip.
+  @visibleForTesting
+  void debugSetSocialForTest(TripDetailSocialState social) {
+    state = state.copyWith(social: social);
+  }
+
+  /// Load the current user's social relationship with the trip owner.
+  Future<void> loadSocialStatus() async {
+    try {
+      final followingPage = await _userService.getFollowing(page: 0, size: 100);
+      final isFollowing =
+          followingPage.content.any((f) => f.followedId == state.trip.userId);
+
+      final sentRequests = await _userService.getSentFriendRequests();
+      final pendingRequest = sentRequests.cast<FriendRequest?>().firstWhere(
+            (r) =>
+                r!.receiverId == state.trip.userId &&
+                r.status == FriendRequestStatus.pending,
+            orElse: () => null,
+          );
+      final hasSentRequest = pendingRequest != null;
+      final requestId = pendingRequest?.id;
+
+      final friendsPage = await _userService.getFriends(page: 0, size: 100);
+      final isAlreadyFriends =
+          friendsPage.content.any((f) => f.friendId == state.trip.userId);
+
+      state = state.copyWith(
+        social: TripDetailSocialState(
+          isFollowingTripOwner: isFollowing,
+          hasSentFriendRequest: hasSentRequest,
+          sentFriendRequestId: requestId,
+          isAlreadyFriends: isAlreadyFriends,
+        ),
+      );
+    } catch (e) {
+      // Silently fail - social features are optional.
+    }
+  }
+
+  Future<void> followTripOwner() async {
+    if (state.social.isFollowingTripOwner) {
+      await _userService.unfollowUser(state.trip.userId);
+      state = state.copyWith(
+        social: state.social.copyWith(isFollowingTripOwner: false),
+      );
+    } else {
+      await _userService.followUser(state.trip.userId);
+      state = state.copyWith(
+        social: state.social.copyWith(isFollowingTripOwner: true),
+      );
+    }
+  }
+
+  Future<void> sendFriendRequestToTripOwner() async {
+    if (state.social.isAlreadyFriends) {
+      await _userService.removeFriend(state.trip.userId);
+      state = state.copyWith(social: state.social.copyWith(isAlreadyFriends: false));
+      return;
+    }
+
+    if (state.social.hasSentFriendRequest && state.social.sentFriendRequestId != null) {
+      await _userService.deleteFriendRequest(state.social.sentFriendRequestId!);
+      state = state.copyWith(
+        social: state.social.copyWith(
+          hasSentFriendRequest: false,
+          clearSentFriendRequestId: true,
+        ),
+      );
+      return;
+    }
+
+    final requestId = await _userService.sendFriendRequest(state.trip.userId);
+    state = state.copyWith(
+      social: state.social.copyWith(
+        hasSentFriendRequest: true,
+        sentFriendRequestId: requestId,
+      ),
+    );
   }
 }
 

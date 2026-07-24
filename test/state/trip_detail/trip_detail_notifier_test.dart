@@ -5,24 +5,31 @@ import 'package:mockito/mockito.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
+import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
+import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
+import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/presentation/state/trip_detail/trip_detail_notifier.dart';
+import 'package:wanderer_frontend/presentation/state/trip_detail/trip_detail_state.dart';
 
 import 'trip_detail_notifier_test.mocks.dart';
 
-@GenerateMocks([TripDetailRepository, PromotionQueryClient, AchievementService])
+@GenerateMocks(
+    [TripDetailRepository, PromotionQueryClient, AchievementService, UserService])
 void main() {
   late MockTripDetailRepository mockRepository;
   late MockPromotionQueryClient mockPromotionClient;
   late MockAchievementService mockAchievementService;
+  late MockUserService mockUserService;
   late Trip trip;
 
   setUp(() {
     mockRepository = MockTripDetailRepository();
     mockPromotionClient = MockPromotionQueryClient();
     mockAchievementService = MockAchievementService();
+    mockUserService = MockUserService();
     trip = Trip(
       id: 'trip-1',
       userId: 'owner-1',
@@ -42,6 +49,7 @@ void main() {
       tripDetailRepositoryProvider.overrideWithValue(mockRepository),
       promotionQueryClientProvider.overrideWithValue(mockPromotionClient),
       achievementServiceProvider.overrideWithValue(mockAchievementService),
+      userServiceProvider.overrideWithValue(mockUserService),
     ]);
     addTearDown(container.dispose);
     return container;
@@ -289,4 +297,158 @@ void main() {
     verify(mockAchievementService.getTripAchievements('trip-1')).called(1);
     sub.close();
   }, timeout: const Timeout(Duration(seconds: 10)));
+
+  test('loadSocialStatus computes isFollowing/hasSentRequest/isAlreadyFriends',
+      () async {
+    when(mockUserService.getFollowing(page: 0, size: 100)).thenAnswer(
+      (_) async => PageResponse<UserFollow>(
+        content: [
+          UserFollow(
+            id: 'follow-1',
+            followerId: 'me',
+            followedId: 'owner-1',
+            createdAt: DateTime(2026, 1, 1),
+          ),
+        ],
+        totalElements: 1,
+        totalPages: 1,
+        number: 0,
+        size: 100,
+        first: true,
+        last: true,
+      ),
+    );
+    when(mockUserService.getSentFriendRequests()).thenAnswer((_) async => [
+          FriendRequest(
+            id: 'req-1',
+            senderId: 'me',
+            receiverId: 'owner-1',
+            status: FriendRequestStatus.pending,
+            createdAt: DateTime(2026, 1, 1),
+            updatedAt: DateTime(2026, 1, 1),
+          ),
+        ]);
+    when(mockUserService.getFriends(page: 0, size: 100)).thenAnswer(
+      (_) async => PageResponse<Friendship>(
+        content: <Friendship>[],
+        totalElements: 0,
+        totalPages: 0,
+        number: 0,
+        size: 100,
+        first: true,
+        last: true,
+      ),
+    );
+
+    final container = buildContainer();
+    final notifier =
+        container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    await notifier.loadSocialStatus();
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.social.isFollowingTripOwner, isTrue);
+    expect(state.social.hasSentFriendRequest, isTrue);
+    expect(state.social.sentFriendRequestId, 'req-1');
+    expect(state.social.isAlreadyFriends, isFalse);
+  });
+
+  test('followTripOwner(unfollow: true) calls unfollowUser and clears the flag',
+      () async {
+    when(mockUserService.unfollowUser('owner-1')).thenAnswer((_) async => 'ok');
+    final container = buildContainer();
+    final notifier =
+        container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+    notifier.debugSetSocialForTest(
+      const TripDetailSocialState(isFollowingTripOwner: true),
+    );
+
+    await notifier.followTripOwner();
+
+    verify(mockUserService.unfollowUser('owner-1')).called(1);
+    expect(
+      container.read(tripDetailNotifierProvider(trip.id)).social.isFollowingTripOwner,
+      isFalse,
+    );
+  });
+
+  test('followTripOwner(unfollow: false) calls followUser and sets the flag',
+      () async {
+    when(mockUserService.followUser('owner-1')).thenAnswer((_) async => 'ok');
+    final container = buildContainer();
+    final notifier =
+        container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    await notifier.followTripOwner();
+
+    verify(mockUserService.followUser('owner-1')).called(1);
+    expect(
+      container.read(tripDetailNotifierProvider(trip.id)).social.isFollowingTripOwner,
+      isTrue,
+    );
+  });
+
+  test('sendFriendRequestToTripOwner sends a new request when none is pending',
+      () async {
+    when(mockUserService.sendFriendRequest('owner-1'))
+        .thenAnswer((_) async => 'req-9');
+    final container = buildContainer();
+    final notifier =
+        container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    await notifier.sendFriendRequestToTripOwner();
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.social.hasSentFriendRequest, isTrue);
+    expect(state.social.sentFriendRequestId, 'req-9');
+  });
+
+  test(
+      'sendFriendRequestToTripOwner removes friend and clears the flag '
+      'when already friends', () async {
+    when(mockUserService.removeFriend('owner-1')).thenAnswer((_) async => 'ok');
+    final container = buildContainer();
+    final notifier =
+        container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+    notifier.debugSetSocialForTest(
+      const TripDetailSocialState(isAlreadyFriends: true),
+    );
+
+    await notifier.sendFriendRequestToTripOwner();
+
+    verify(mockUserService.removeFriend('owner-1')).called(1);
+    expect(
+      container.read(tripDetailNotifierProvider(trip.id)).social.isAlreadyFriends,
+      isFalse,
+    );
+  });
+
+  test(
+      'sendFriendRequestToTripOwner cancels the pending request when one '
+      'exists', () async {
+    when(mockUserService.deleteFriendRequest('req-1'))
+        .thenAnswer((_) async => 'ok');
+    final container = buildContainer();
+    final notifier =
+        container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+    notifier.debugSetSocialForTest(
+      const TripDetailSocialState(
+        hasSentFriendRequest: true,
+        sentFriendRequestId: 'req-1',
+      ),
+    );
+
+    await notifier.sendFriendRequestToTripOwner();
+
+    verify(mockUserService.deleteFriendRequest('req-1')).called(1);
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.social.hasSentFriendRequest, isFalse);
+    expect(state.social.sentFriendRequestId, isNull);
+  });
 }

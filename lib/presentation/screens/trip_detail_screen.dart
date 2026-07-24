@@ -11,14 +11,12 @@ import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/errors/error_utils.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
-import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/data/models/achievement_models.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/models/domain/location_update_result.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
-import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/core/services/background_update_manager.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_map_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
@@ -55,7 +53,6 @@ class TripDetailScreen extends ConsumerStatefulWidget {
 
 class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   late final TripDetailRepository _repository;
-  late final UserService _userService;
   late final WebSocketService _webSocketService;
   GoogleMapController? _mapController;
   final Completer<GoogleMapController> _mapControllerCompleter = Completer();
@@ -103,10 +100,20 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   bool _isLoggedIn = false;
 
   // Track social interactions
-  bool _isFollowingTripOwner = false;
-  bool _hasSentFriendRequest = false;
-  bool _isAlreadyFriends = false;
-  String? _sentFriendRequestId; // Store the request ID for cancellation
+  bool get _isFollowingTripOwner => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .social
+      .isFollowingTripOwner;
+  bool get _hasSentFriendRequest => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .social
+      .hasSentFriendRequest;
+  bool get _isAlreadyFriends =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).social.isAlreadyFriends;
+  String? get _sentFriendRequestId => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .social
+      .sentFriendRequestId;
 
   // Promotion state
   bool get _isPromoted =>
@@ -200,7 +207,6 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
     // Initialize repository and services
     _repository = ref.read(tripDetailRepositoryProvider);
-    _userService = ref.read(userServiceProvider);
     _webSocketService = ref.read(websocketServiceProvider);
 
     ref
@@ -1276,40 +1282,10 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
   /// Load the current user's social relationship with the trip owner
   Future<void> _loadSocialStatus() async {
-    try {
-      // Check if following the trip owner by looking at our following list
-      final followingPage = await _userService.getFollowing(page: 0, size: 100);
-      final isFollowing =
-          followingPage.content.any((f) => f.followedId == _trip.userId);
-
-      // Check if already sent a friend request to the trip owner
-      final sentRequests = await _userService.getSentFriendRequests();
-      final pendingRequest = sentRequests.cast<FriendRequest?>().firstWhere(
-            (r) =>
-                r!.receiverId == _trip.userId &&
-                r.status == FriendRequestStatus.pending,
-            orElse: () => null,
-          );
-      final hasSentRequest = pendingRequest != null;
-      final requestId = pendingRequest?.id;
-
-      // Check if already friends with the trip owner
-      final friendsPage = await _userService.getFriends(page: 0, size: 100);
-      final isAlreadyFriends =
-          friendsPage.content.any((f) => f.friendId == _trip.userId);
-
-      if (mounted) {
-        setState(() {
-          _isFollowingTripOwner = isFollowing;
-          _hasSentFriendRequest = hasSentRequest;
-          _sentFriendRequestId = requestId;
-          _isAlreadyFriends = isAlreadyFriends;
-        });
-      }
-    } catch (e) {
-      // Silently fail - social features are optional
-      debugPrint('Failed to load social status: $e');
-    }
+    await ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .loadSocialStatus();
+    if (mounted) setState(() {});
   }
 
   Future<void> _checkLoginStatus() async {
@@ -2654,36 +2630,28 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   Future<void> _handleFollowTripOwner() async {
     if (!_isLoggedIn || _trip.userId == _userId) return;
 
-    // Toggle between follow and unfollow
-    if (_isFollowingTripOwner) {
-      try {
-        await _userService.unfollowUser(_trip.userId);
-        setState(() {
-          _isFollowingTripOwner = false;
-        });
-        if (mounted) {
-          UiHelpers.showSuccessMessage(
-              context, 'Unfollowed @${_trip.username}');
-        }
-      } catch (e) {
-        if (mounted) {
-          UiHelpers.showErrorMessage(context, 'Failed to unfollow user: $e');
-        }
+    final wasFollowing = _isFollowingTripOwner;
+    try {
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .followTripOwner();
+      if (mounted) {
+        setState(() {});
+        UiHelpers.showSuccessMessage(
+          context,
+          wasFollowing
+              ? 'Unfollowed @${_trip.username}'
+              : 'You are now following @${_trip.username}',
+        );
       }
-    } else {
-      try {
-        await _userService.followUser(_trip.userId);
-        setState(() {
-          _isFollowingTripOwner = true;
-        });
-        if (mounted) {
-          UiHelpers.showSuccessMessage(
-              context, 'You are now following @${_trip.username}');
-        }
-      } catch (e) {
-        if (mounted) {
-          UiHelpers.showErrorMessage(context, 'Failed to follow user: $e');
-        }
+    } catch (e) {
+      if (mounted) {
+        UiHelpers.showErrorMessage(
+          context,
+          wasFollowing
+              ? 'Failed to unfollow user: $e'
+              : 'Failed to follow user: $e',
+        );
       }
     }
   }
@@ -2691,58 +2659,32 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   Future<void> _handleSendFriendRequestToTripOwner() async {
     if (!_isLoggedIn || _trip.userId == _userId) return;
 
-    // If already friends, allow unfriending
-    if (_isAlreadyFriends) {
-      try {
-        await _userService.removeFriend(_trip.userId);
-        setState(() {
-          _isAlreadyFriends = false;
-        });
-        if (mounted) {
-          UiHelpers.showSuccessMessage(
-              context, 'You are no longer friends with @${_trip.username}');
-        }
-      } catch (e) {
-        if (mounted) {
-          UiHelpers.showErrorMessage(context, 'Failed to remove friend: $e');
-        }
-      }
-      return;
-    }
+    final wasAlreadyFriends = _isAlreadyFriends;
+    final wasCancelling = _hasSentFriendRequest && _sentFriendRequestId != null;
 
-    // Cancel existing friend request
-    if (_hasSentFriendRequest && _sentFriendRequestId != null) {
-      try {
-        await _userService.deleteFriendRequest(_sentFriendRequestId!);
-        setState(() {
-          _hasSentFriendRequest = false;
-          _sentFriendRequestId = null;
-        });
-        if (mounted) {
-          UiHelpers.showSuccessMessage(context, 'Friend request cancelled');
-        }
-      } catch (e) {
-        if (mounted) {
-          UiHelpers.showErrorMessage(
-              context, 'Failed to cancel friend request: $e');
-        }
-      }
-      return;
-    }
-
-    // Send new friend request
     try {
-      final requestId = await _userService.sendFriendRequest(_trip.userId);
-      setState(() {
-        _hasSentFriendRequest = true;
-        _sentFriendRequestId = requestId;
-      });
-      if (mounted) {
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .sendFriendRequestToTripOwner();
+      if (!mounted) return;
+      setState(() {});
+      if (wasAlreadyFriends) {
+        UiHelpers.showSuccessMessage(
+            context, 'You are no longer friends with @${_trip.username}');
+      } else if (wasCancelling) {
+        UiHelpers.showSuccessMessage(context, 'Friend request cancelled');
+      } else {
         UiHelpers.showSuccessMessage(
             context, 'Friend request sent to @${_trip.username}');
       }
     } catch (e) {
-      if (mounted) {
+      if (!mounted) return;
+      if (wasAlreadyFriends) {
+        UiHelpers.showErrorMessage(context, 'Failed to remove friend: $e');
+      } else if (wasCancelling) {
+        UiHelpers.showErrorMessage(
+            context, 'Failed to cancel friend request: $e');
+      } else {
         UiHelpers.showErrorMessage(
             context, 'Failed to send friend request: $e');
       }
