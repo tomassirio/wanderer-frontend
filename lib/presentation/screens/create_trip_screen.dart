@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/repositories/create_trip_repository.dart';
@@ -12,17 +13,18 @@ import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/presentation/helpers/tutorial_helper.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 
 /// Screen for creating a new trip with a clean, modern design
-class CreateTripScreen extends StatefulWidget {
+class CreateTripScreen extends ConsumerStatefulWidget {
   const CreateTripScreen({super.key});
 
   @override
-  State<CreateTripScreen> createState() => _CreateTripScreenState();
+  ConsumerState<CreateTripScreen> createState() => _CreateTripScreenState();
 }
 
-class _CreateTripScreenState extends State<CreateTripScreen> {
-  final CreateTripRepository _repository = CreateTripRepository();
+class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
+  late final CreateTripRepository _repository;
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -49,8 +51,9 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
   @override
   void initState() {
     super.initState();
-    _tripPlanService = TripPlanService();
-    _tripService = TripService();
+    _repository = ref.read(createTripRepositoryProvider);
+    _tripPlanService = ref.read(tripPlanServiceProvider);
+    _tripService = ref.read(tripServiceProvider);
     _loadTripPlans();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
