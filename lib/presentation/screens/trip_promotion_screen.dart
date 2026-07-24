@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
@@ -14,19 +15,21 @@ import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 
 /// Trip Promotion Management screen for admins
-class TripPromotionScreen extends StatefulWidget {
+class TripPromotionScreen extends ConsumerStatefulWidget {
   const TripPromotionScreen({super.key});
 
   @override
-  State<TripPromotionScreen> createState() => _TripPromotionScreenState();
+  ConsumerState<TripPromotionScreen> createState() =>
+      _TripPromotionScreenState();
 }
 
-class _TripPromotionScreenState extends State<TripPromotionScreen> {
-  final AdminService _adminService = AdminService();
-  final HomeRepository _homeRepository = HomeRepository();
-  final TripService _tripService = TripService();
+class _TripPromotionScreenState extends ConsumerState<TripPromotionScreen> {
+  late final AdminService _adminService;
+  late final HomeRepository _homeRepository;
+  late final TripService _tripService;
   final TextEditingController _searchController = TextEditingController();
 
   List<Trip> _allTrips = [];
@@ -50,6 +53,9 @@ class _TripPromotionScreenState extends State<TripPromotionScreen> {
   @override
   void initState() {
     super.initState();
+    _adminService = ref.read(adminServiceProvider);
+    _homeRepository = ref.read(homeRepositoryProvider);
+    _tripService = ref.read(tripServiceProvider);
     _loadUserInfo();
     _loadTrips();
     _loadPromotedTrips();
