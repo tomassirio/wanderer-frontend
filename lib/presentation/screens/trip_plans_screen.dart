@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
@@ -11,6 +12,7 @@ import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.d
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_plans_content.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'auth_screen.dart';
 import 'create_trip_plan_screen.dart';
 import 'home_screen.dart';
@@ -20,16 +22,16 @@ import 'trip_plan_detail_screen.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
 /// Trip Plans screen showing list of planned trips
-class TripPlansScreen extends StatefulWidget {
+class TripPlansScreen extends ConsumerStatefulWidget {
   const TripPlansScreen({super.key});
 
   @override
-  State<TripPlansScreen> createState() => _TripPlansScreenState();
+  ConsumerState<TripPlansScreen> createState() => _TripPlansScreenState();
 }
 
-class _TripPlansScreenState extends State<TripPlansScreen> {
-  final TripPlanService _tripPlanService = TripPlanService();
-  final HomeRepository _homeRepository = HomeRepository();
+class _TripPlansScreenState extends ConsumerState<TripPlansScreen> {
+  late final TripPlanService _tripPlanService;
+  late final HomeRepository _homeRepository;
   late final TripService _tripService;
   List<TripPlan> _tripPlans = [];
   List<TripPlan> _filteredPlans = [];
@@ -46,7 +48,9 @@ class _TripPlansScreenState extends State<TripPlansScreen> {
   @override
   void initState() {
     super.initState();
-    _tripService = TripService();
+    _tripPlanService = ref.read(tripPlanServiceProvider);
+    _homeRepository = ref.read(homeRepositoryProvider);
+    _tripService = ref.read(tripServiceProvider);
     _loadUserInfo();
     _loadTripPlans();
   }

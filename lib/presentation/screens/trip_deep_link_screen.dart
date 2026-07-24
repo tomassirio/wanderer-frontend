@@ -1,28 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 
 /// Wrapper screen that resolves a trip ID from a deep link URL
 /// and navigates to the full TripDetailScreen once loaded.
-class TripDeepLinkScreen extends StatefulWidget {
+class TripDeepLinkScreen extends ConsumerStatefulWidget {
   final String tripId;
 
   const TripDeepLinkScreen({super.key, required this.tripId});
 
   @override
-  State<TripDeepLinkScreen> createState() => _TripDeepLinkScreenState();
+  ConsumerState<TripDeepLinkScreen> createState() =>
+      _TripDeepLinkScreenState();
 }
 
-class _TripDeepLinkScreenState extends State<TripDeepLinkScreen> {
-  final TripService _tripService = TripService();
+class _TripDeepLinkScreenState extends ConsumerState<TripDeepLinkScreen> {
+  late final TripService _tripService;
   bool _isLoading = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    _tripService = ref.read(tripServiceProvider);
     _loadTrip();
   }
 

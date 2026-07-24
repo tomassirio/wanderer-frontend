@@ -1,28 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/profile_screen.dart';
 
 /// Wrapper screen that resolves a username from a deep link URL
 /// and navigates to the full ProfileScreen once the user ID is resolved.
-class UserDeepLinkScreen extends StatefulWidget {
+class UserDeepLinkScreen extends ConsumerStatefulWidget {
   final String username;
 
   const UserDeepLinkScreen({super.key, required this.username});
 
   @override
-  State<UserDeepLinkScreen> createState() => _UserDeepLinkScreenState();
+  ConsumerState<UserDeepLinkScreen> createState() =>
+      _UserDeepLinkScreenState();
 }
 
-class _UserDeepLinkScreenState extends State<UserDeepLinkScreen> {
-  final UserService _userService = UserService();
+class _UserDeepLinkScreenState extends ConsumerState<UserDeepLinkScreen> {
+  late final UserService _userService;
   bool _isLoading = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    _userService = ref.read(userServiceProvider);
     _loadUser();
   }
 

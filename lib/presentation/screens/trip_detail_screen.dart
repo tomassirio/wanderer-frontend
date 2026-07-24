@@ -3,9 +3,11 @@ import 'dart:io' show Platform;
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/errors/error_utils.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
@@ -43,21 +45,21 @@ import 'home_screen.dart';
 import 'settings_screen.dart';
 
 /// Trip detail screen showing trip info, map, and comments
-class TripDetailScreen extends StatefulWidget {
+class TripDetailScreen extends ConsumerStatefulWidget {
   final Trip trip;
 
   const TripDetailScreen({super.key, required this.trip});
 
   @override
-  State<TripDetailScreen> createState() => _TripDetailScreenState();
+  ConsumerState<TripDetailScreen> createState() => _TripDetailScreenState();
 }
 
-class _TripDetailScreenState extends State<TripDetailScreen> {
+class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   late final TripDetailRepository _repository;
-  final UserService _userService = UserService();
-  final PromotionQueryClient _promotionQueryClient = PromotionQueryClient();
-  final AchievementService _achievementService = AchievementService();
-  final WebSocketService _webSocketService = WebSocketService();
+  late final UserService _userService;
+  late final PromotionQueryClient _promotionQueryClient;
+  late final AchievementService _achievementService;
+  late final WebSocketService _webSocketService;
   GoogleMapController? _mapController;
   final Completer<GoogleMapController> _mapControllerCompleter = Completer();
   StreamSubscription<WebSocketEvent>? _wsSubscription;
@@ -188,8 +190,12 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
   void initState() {
     super.initState();
 
-    // Initialize repository
-    _repository = TripDetailRepository();
+    // Initialize repository and services
+    _repository = ref.read(tripDetailRepositoryProvider);
+    _userService = ref.read(userServiceProvider);
+    _promotionQueryClient = ref.read(promotionQueryClientProvider);
+    _achievementService = ref.read(achievementServiceProvider);
+    _webSocketService = ref.read(websocketServiceProvider);
 
     _trip = widget.trip;
     // Default to showing the planned route when the trip has one

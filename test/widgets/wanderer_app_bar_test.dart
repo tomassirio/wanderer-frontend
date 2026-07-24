@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wanderer_frontend/presentation/screens/search_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
@@ -9,12 +10,14 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            appBar: WandererAppBar(
-              isLoggedIn: true,
-              username: 'testuser',
-              userId: 'user-123',
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: WandererAppBar(
+                isLoggedIn: true,
+                username: 'testuser',
+                userId: 'user-123',
+              ),
             ),
           ),
         ),
@@ -30,10 +33,12 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            appBar: WandererAppBar(
-              isLoggedIn: false,
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: WandererAppBar(
+                isLoggedIn: false,
+              ),
             ),
           ),
         ),
@@ -46,10 +51,12 @@ void main() {
 
     testWidgets('shows Wanderer title', (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            appBar: WandererAppBar(
-              isLoggedIn: false,
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: WandererAppBar(
+                isLoggedIn: false,
+              ),
             ),
           ),
         ),
@@ -60,12 +67,14 @@ void main() {
 
     testWidgets('shows search icon', (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            appBar: WandererAppBar(
-              isLoggedIn: true,
-              username: 'testuser',
-              userId: 'user-123',
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: WandererAppBar(
+                isLoggedIn: true,
+                username: 'testuser',
+                userId: 'user-123',
+              ),
             ),
           ),
         ),
@@ -80,10 +89,12 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            appBar: WandererAppBar(
-              isLoggedIn: false,
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: WandererAppBar(
+                isLoggedIn: false,
+              ),
             ),
           ),
         ),
@@ -100,11 +111,13 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            appBar: WandererAppBar(
-              isLoggedIn: false,
-              onLoginPressed: () {},
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: WandererAppBar(
+                isLoggedIn: false,
+                onLoginPressed: () {},
+              ),
             ),
           ),
         ),
@@ -118,12 +131,14 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            appBar: WandererAppBar(
-              isLoggedIn: true,
-              username: 'testuser',
-              userId: 'user-123',
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: WandererAppBar(
+                isLoggedIn: true,
+                username: 'testuser',
+                userId: 'user-123',
+              ),
             ),
           ),
         ),
@@ -139,13 +154,15 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            appBar: WandererAppBar(
-              isLoggedIn: true,
-              username: 'testuser',
-              userId: 'user-123',
-              displayName: 'John Doe',
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: WandererAppBar(
+                isLoggedIn: true,
+                username: 'testuser',
+                userId: 'user-123',
+                displayName: 'John Doe',
+              ),
             ),
           ),
         ),
@@ -161,12 +178,14 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            appBar: WandererAppBar(
-              isLoggedIn: true,
-              username: 'testuser',
-              userId: 'user-123',
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: WandererAppBar(
+                isLoggedIn: true,
+                username: 'testuser',
+                userId: 'user-123',
+              ),
             ),
           ),
         ),
@@ -190,12 +209,14 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            appBar: WandererAppBar(
-              isLoggedIn: true,
-              username: 'testuser',
-              userId: 'user-123',
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: WandererAppBar(
+                isLoggedIn: true,
+                username: 'testuser',
+                userId: 'user-123',
+              ),
             ),
           ),
         ),
@@ -222,12 +243,14 @@ void main() {
     ) async {
       // Start logged in
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            appBar: WandererAppBar(
-              isLoggedIn: true,
-              username: 'testuser',
-              userId: 'user-123',
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: WandererAppBar(
+                isLoggedIn: true,
+                username: 'testuser',
+                userId: 'user-123',
+              ),
             ),
           ),
         ),
@@ -236,10 +259,12 @@ void main() {
 
       // Rebuild with logged out state
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            appBar: WandererAppBar(
-              isLoggedIn: false,
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: WandererAppBar(
+                isLoggedIn: false,
+              ),
             ),
           ),
         ),
@@ -254,12 +279,14 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            appBar: WandererAppBar(
-              isLoggedIn: true,
-              username: 'testuser',
-              userId: 'user-123',
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: WandererAppBar(
+                isLoggedIn: true,
+                username: 'testuser',
+                userId: 'user-123',
+              ),
             ),
           ),
         ),
@@ -275,12 +302,14 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            appBar: WandererAppBar(
-              isLoggedIn: true,
-              username: 'testuser',
-              userId: 'user-123',
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: WandererAppBar(
+                isLoggedIn: true,
+                username: 'testuser',
+                userId: 'user-123',
+              ),
             ),
           ),
         ),
@@ -303,12 +332,14 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            appBar: WandererAppBar(
-              isLoggedIn: true,
-              username: 'user1',
-              userId: 'user-1',
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: WandererAppBar(
+                isLoggedIn: true,
+                username: 'user1',
+                userId: 'user-1',
+              ),
             ),
           ),
         ),
@@ -317,12 +348,14 @@ void main() {
 
       // Change user ID
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            appBar: WandererAppBar(
-              isLoggedIn: true,
-              username: 'user2',
-              userId: 'user-2',
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: WandererAppBar(
+                isLoggedIn: true,
+                username: 'user2',
+                userId: 'user-2',
+              ),
             ),
           ),
         ),

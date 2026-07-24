@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
@@ -21,17 +23,17 @@ import 'package:wanderer_frontend/presentation/widgets/common/floating_notificat
 import 'package:wanderer_frontend/presentation/widgets/common/fireworks_widget.dart';
 
 /// Settings screen with categorized options for the user.
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
-  final AuthService _authService = AuthService();
-  final UserService _userService = UserService();
-  final HomeRepository _homeRepository = HomeRepository();
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  late final AuthService _authService;
+  late final UserService _userService;
+  late final HomeRepository _homeRepository;
   final PushNotificationManager _pushNotificationManager =
       PushNotificationManager();
 
@@ -48,6 +50,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    _authService = ref.read(authServiceProvider);
+    _userService = ref.read(userServiceProvider);
+    _homeRepository = ref.read(homeRepositoryProvider);
     _loadPushPreference();
     _loadAppVersion();
     _loadAdminStatus();

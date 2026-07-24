@@ -1,8 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/client/google_directions_api_client.dart';
 import 'package:wanderer_frontend/data/client/polyline_codec.dart';
@@ -15,18 +16,19 @@ import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/web_marker_generator.dart';
 
 /// Screen for creating a new trip plan with map integration
-class CreateTripPlanScreen extends StatefulWidget {
+class CreateTripPlanScreen extends ConsumerStatefulWidget {
   const CreateTripPlanScreen({super.key});
 
   @override
-  State<CreateTripPlanScreen> createState() => _CreateTripPlanScreenState();
+  ConsumerState<CreateTripPlanScreen> createState() =>
+      _CreateTripPlanScreenState();
 }
 
 /// The type of point the user wants to place next on the map
 enum _PlacementMode { start, end, waypoint }
 
-class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
-  final TripPlanService _tripPlanService = TripPlanService();
+class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
+  late final TripPlanService _tripPlanService;
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -85,8 +87,8 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
   @override
   void initState() {
     super.initState();
-    _directionsClient =
-        GoogleDirectionsApiClient(ApiEndpoints.googleMapsApiKey);
+    _tripPlanService = ref.read(tripPlanServiceProvider);
+    _directionsClient = ref.read(googleDirectionsApiClientProvider);
     _getCurrentLocation();
   }
 
@@ -143,7 +145,6 @@ class _CreateTripPlanScreenState extends State<CreateTripPlanScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _mapController?.dispose();
-    _directionsClient.dispose();
     super.dispose();
   }
 

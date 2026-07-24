@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/data/models/admin_models.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
@@ -15,21 +16,23 @@ import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 
 /// Admin screen for managing trip data maintenance (polyline and geocoding recomputation).
 /// Allows admins to view statistics and trigger backend recomputation of encoded polylines
 /// and geocoding (city/country) for trip updates.
-class TripMaintenanceScreen extends StatefulWidget {
+class TripMaintenanceScreen extends ConsumerStatefulWidget {
   const TripMaintenanceScreen({super.key});
 
   @override
-  State<TripMaintenanceScreen> createState() => _TripMaintenanceScreenState();
+  ConsumerState<TripMaintenanceScreen> createState() =>
+      _TripMaintenanceScreenState();
 }
 
-class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
-  final AdminService _adminService = AdminService();
-  final TripService _tripService = TripService();
-  final HomeRepository _homeRepository = HomeRepository();
+class _TripMaintenanceScreenState extends ConsumerState<TripMaintenanceScreen> {
+  late final AdminService _adminService;
+  late final TripService _tripService;
+  late final HomeRepository _homeRepository;
   final TextEditingController _searchController = TextEditingController();
 
   List<Trip> _allTrips = [];
@@ -64,6 +67,9 @@ class _TripMaintenanceScreenState extends State<TripMaintenanceScreen> {
   @override
   void initState() {
     super.initState();
+    _adminService = ref.read(adminServiceProvider);
+    _tripService = ref.read(tripServiceProvider);
+    _homeRepository = ref.read(homeRepositoryProvider);
     _loadUserInfo();
     _loadTrips();
     _searchController.addListener(_filterTrips);

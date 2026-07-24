@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/achievement_models.dart';
@@ -23,12 +24,14 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: TripInfoCard(
-              trip: trip,
-              isCollapsed: false,
-              onToggleCollapse: () {},
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: TripInfoCard(
+                trip: trip,
+                isCollapsed: false,
+                onToggleCollapse: () {},
+              ),
             ),
           ),
         ),
@@ -55,12 +58,14 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: TripInfoCard(
-              trip: trip,
-              isCollapsed: false,
-              onToggleCollapse: () {},
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: TripInfoCard(
+                trip: trip,
+                isCollapsed: false,
+                onToggleCollapse: () {},
+              ),
             ),
           ),
         ),
@@ -99,12 +104,14 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: TripInfoCard(
-              trip: trip,
-              isCollapsed: false,
-              onToggleCollapse: () {},
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: TripInfoCard(
+                trip: trip,
+                isCollapsed: false,
+                onToggleCollapse: () {},
+              ),
             ),
           ),
         ),
@@ -146,13 +153,15 @@ void main() {
       ];
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: TripInfoCard(
-              trip: trip,
-              isCollapsed: false,
-              onToggleCollapse: () {},
-              tripAchievements: achievements,
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: TripInfoCard(
+                trip: trip,
+                isCollapsed: false,
+                onToggleCollapse: () {},
+                tripAchievements: achievements,
+              ),
             ),
           ),
         ),
@@ -178,12 +187,14 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: TripInfoCard(
-              trip: trip,
-              isCollapsed: false,
-              onToggleCollapse: () {},
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: TripInfoCard(
+                trip: trip,
+                isCollapsed: false,
+                onToggleCollapse: () {},
+              ),
             ),
           ),
         ),
@@ -208,12 +219,14 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: TripInfoCard(
-              trip: trip,
-              isCollapsed: false,
-              onToggleCollapse: () {},
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: TripInfoCard(
+                trip: trip,
+                isCollapsed: false,
+                onToggleCollapse: () {},
+              ),
             ),
           ),
         ),
@@ -258,13 +271,15 @@ void main() {
       ];
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: TripInfoCard(
-              trip: trip,
-              isCollapsed: false,
-              onToggleCollapse: () {},
-              tripAchievements: achievements,
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: TripInfoCard(
+                trip: trip,
+                isCollapsed: false,
+                onToggleCollapse: () {},
+                tripAchievements: achievements,
+              ),
             ),
           ),
         ),

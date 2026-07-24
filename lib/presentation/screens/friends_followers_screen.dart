@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
@@ -20,18 +22,19 @@ import 'home_screen.dart';
 import 'settings_screen.dart';
 
 /// Screen for managing friends and followers
-class FriendsFollowersScreen extends StatefulWidget {
+class FriendsFollowersScreen extends ConsumerStatefulWidget {
   const FriendsFollowersScreen({super.key});
 
   @override
-  State<FriendsFollowersScreen> createState() => _FriendsFollowersScreenState();
+  ConsumerState<FriendsFollowersScreen> createState() =>
+      _FriendsFollowersScreenState();
 }
 
-class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
+class _FriendsFollowersScreenState extends ConsumerState<FriendsFollowersScreen>
     with SingleTickerProviderStateMixin {
-  final UserService _userService = UserService();
-  final AuthService _authService = AuthService();
-  final WebSocketService _webSocketService = WebSocketService();
+  late final UserService _userService;
+  late final AuthService _authService;
+  late final WebSocketService _webSocketService;
 
   late TabController _tabController;
   StreamSubscription<WebSocketEvent>? _wsSubscription;
@@ -70,6 +73,10 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
   @override
   void initState() {
     super.initState();
+    _userService = ref.read(userServiceProvider);
+    _authService = ref.read(authServiceProvider);
+    _webSocketService = ref.read(websocketServiceProvider);
+
     _tabController = TabController(length: 3, vsync: this);
     _loadData();
 
@@ -362,7 +369,7 @@ class _FriendsFollowersScreenState extends State<FriendsFollowersScreen>
     final confirm = await DialogHelper.showLogoutConfirmation(context);
 
     if (confirm) {
-      await AuthService().logout();
+      await _authService.logout();
       if (mounted) {
         // Navigate to home screen and clear navigation stack
         Navigator.of(context).pushAndRemoveUntil(

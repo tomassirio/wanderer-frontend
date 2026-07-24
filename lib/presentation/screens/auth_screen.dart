@@ -1,14 +1,16 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/data/repositories/auth_repository.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/auth_form.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/forgot_password_form.dart';
 
 /// Authentication screen for login and registration
-class AuthScreen extends StatefulWidget {
+class AuthScreen extends ConsumerStatefulWidget {
   final bool startInSignup;
   final String? initialUsername;
 
@@ -16,11 +18,11 @@ class AuthScreen extends StatefulWidget {
       {super.key, this.startInSignup = false, this.initialUsername});
 
   @override
-  State<AuthScreen> createState() => _AuthScreenState();
+  ConsumerState<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> {
-  final AuthRepository _repository = AuthRepository();
+class _AuthScreenState extends ConsumerState<AuthScreen> {
+  late final AuthRepository _repository;
   final _formKey = GlobalKey<FormState>();
 
   // Controllers
@@ -40,6 +42,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   void initState() {
     super.initState();
+    _repository = ref.read(authRepositoryProvider);
     _prefillUsername();
   }
 

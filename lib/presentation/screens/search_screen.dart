@@ -1,22 +1,24 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/api_endpoints.dart';
 import '../../core/constants/enums.dart';
+import '../../core/providers/app_providers.dart';
 import '../../data/models/domain/search_result.dart';
 import '../../data/services/search_service.dart';
 import '../helpers/ui_helpers.dart';
 import 'profile_screen.dart';
 
 /// Search screen for finding users and trips
-class SearchScreen extends StatefulWidget {
+class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
-  final SearchService _searchService = SearchService();
+class _SearchScreenState extends ConsumerState<SearchScreen> {
+  late final SearchService _searchService;
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   Timer? _debounceTimer;
@@ -28,6 +30,12 @@ class _SearchScreenState extends State<SearchScreen> {
   int _currentUserPage = 0;
   int _currentTripPage = 0;
   static const int _pageSize = 10;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchService = ref.read(searchServiceProvider);
+  }
 
   @override
   void dispose() {

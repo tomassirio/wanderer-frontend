@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart'
     show TripModality, TripStatus, Visibility;
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
@@ -32,18 +34,18 @@ import 'trip_detail_screen.dart';
 import 'auth_screen.dart';
 
 /// Redesigned Home screen with personalized feed, visibility badges, and prioritization
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
+class _HomeScreenState extends ConsumerState<HomeScreen>
     with SingleTickerProviderStateMixin, RouteAware {
-  final HomeRepository _repository = HomeRepository();
-  final TripService _tripService = TripService();
-  final WebSocketService _webSocketService = WebSocketService();
+  late final HomeRepository _repository;
+  late final TripService _tripService;
+  late final WebSocketService _webSocketService;
   final PushNotificationManager _pushNotificationManager =
       PushNotificationManager();
   StreamSubscription<WebSocketEvent>? _wsSubscription;
@@ -89,6 +91,10 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
+    _repository = ref.read(homeRepositoryProvider);
+    _tripService = ref.read(tripServiceProvider);
+    _webSocketService = ref.read(websocketServiceProvider);
+
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_onTabChanged);
     _initializeData();

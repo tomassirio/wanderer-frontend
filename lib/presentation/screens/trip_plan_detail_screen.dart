@@ -1,7 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/google_directions_api_client.dart';
 import 'package:wanderer_frontend/data/client/polyline_codec.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
@@ -29,19 +30,20 @@ import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 enum _EditPlacementMode { start, end, waypoint }
 
 /// Screen for viewing and editing a trip plan
-class TripPlanDetailScreen extends StatefulWidget {
+class TripPlanDetailScreen extends ConsumerStatefulWidget {
   final TripPlan tripPlan;
 
   const TripPlanDetailScreen({super.key, required this.tripPlan});
 
   @override
-  State<TripPlanDetailScreen> createState() => _TripPlanDetailScreenState();
+  ConsumerState<TripPlanDetailScreen> createState() =>
+      _TripPlanDetailScreenState();
 }
 
-class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
-  final TripPlanService _tripPlanService = TripPlanService();
-  final TripService _tripService = TripService();
-  final HomeRepository _homeRepository = HomeRepository();
+class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
+  late final TripPlanService _tripPlanService;
+  late final TripService _tripService;
+  late final HomeRepository _homeRepository;
   late final GoogleDirectionsApiClient _directionsClient;
   late TripPlan _tripPlan;
   bool _isEditing = false;
@@ -98,8 +100,10 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _directionsClient =
-        GoogleDirectionsApiClient(ApiEndpoints.googleMapsApiKey);
+    _tripPlanService = ref.read(tripPlanServiceProvider);
+    _tripService = ref.read(tripServiceProvider);
+    _homeRepository = ref.read(homeRepositoryProvider);
+    _directionsClient = ref.read(googleDirectionsApiClientProvider);
     _tripPlan = widget.tripPlan;
     _nameController = TextEditingController(text: _tripPlan.name);
     _selectedPlanType = _tripPlan.planType;
@@ -114,7 +118,6 @@ class _TripPlanDetailScreenState extends State<TripPlanDetailScreen> {
   void dispose() {
     _nameController.dispose();
     _mapController?.dispose();
-    _directionsClient.dispose();
     super.dispose();
   }
 
