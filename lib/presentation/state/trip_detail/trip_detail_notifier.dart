@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
@@ -11,8 +12,6 @@ import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart'
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/presentation/state/trip_detail/trip_detail_state.dart';
-import 'package:wanderer_frontend/presentation/widgets/trip_detail/comments_section.dart'
-    show CommentSortOption;
 
 /// Owns [TripDetailState] for one trip (keyed by trip id). Replaces the
 /// screen's former `State`-held business logic, migrated concern-by-concern.
@@ -444,7 +443,7 @@ class TripDetailNotifier
     );
   }
 
-  void toggleRepliesExpanded(String commentId, bool isExpanded) {
+  Future<void> toggleRepliesExpanded(String commentId, bool isExpanded) async {
     if (isExpanded) {
       state = state.copyWith(
         comments: state.comments.copyWith(
@@ -452,7 +451,7 @@ class TripDetailNotifier
         ),
       );
     } else {
-      loadReplies(commentId);
+      await loadReplies(commentId);
     }
   }
 
@@ -511,6 +510,15 @@ class TripDetailNotifier
             comments: state.comments.copyWith(
               replies: updatedReplies,
               comments: comments,
+              expandedComments: {...state.comments.expandedComments, replyingTo: true},
+              clearReplyingToCommentId: true,
+            ),
+          );
+        } else {
+          // Duplicate reply id (effectively unreachable in practice): still
+          // reset the reply UI state, matching pre-migration behavior.
+          state = state.copyWith(
+            comments: state.comments.copyWith(
               expandedComments: {...state.comments.expandedComments, replyingTo: true},
               clearReplyingToCommentId: true,
             ),

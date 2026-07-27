@@ -1,8 +1,8 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/data/models/achievement_models.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
-import 'package:wanderer_frontend/presentation/widgets/trip_detail/comments_section.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_planned_info_window.dart';
 
 /// Current user's identity as known by this screen.

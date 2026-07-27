@@ -325,6 +325,9 @@ enum TripStatus {
   }
 }
 
+/// Sort order for a trip's comments list (UI-only, no backend serialization)
+enum CommentSortOption { latest, oldest, mostReplies, mostReactions }
+
 /// Type of trip update/location entry
 enum TripUpdateType {
   /// A regular location update

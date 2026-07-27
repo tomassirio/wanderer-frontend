@@ -30,7 +30,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_planned_info_window.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/reaction_picker.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_map_view.dart';
-import 'package:wanderer_frontend/presentation/widgets/trip_detail/comments_section.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_lifecycle_buttons.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
@@ -2263,10 +2262,18 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     FocusScope.of(context).requestFocus(FocusNode());
   }
 
-  void _handleToggleReplies(String commentId, bool isExpanded) {
-    ref
-        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-        .toggleRepliesExpanded(commentId, isExpanded);
+  Future<void> _handleToggleReplies(String commentId, bool isExpanded) async {
+    try {
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .toggleRepliesExpanded(commentId, isExpanded);
+    } catch (e) {
+      if (mounted) {
+        UiHelpers.showErrorMessage(context, 'Error loading replies: $e');
+      }
+    } finally {
+      if (mounted) setState(() {});
+    }
   }
 
   /// Handle trip update panel toggle with mobile-specific behavior

@@ -8,8 +8,6 @@ import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart'
 import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
-import 'package:wanderer_frontend/presentation/widgets/trip_detail/comments_section.dart'
-    show CommentSortOption;
 import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
@@ -698,5 +696,33 @@ void main() {
     final state = container.read(tripDetailNotifierProvider(trip.id));
     expect(state.comments.replies['parent-1'], [cachedReply]);
     expect(state.comments.expandedComments['parent-1'], isTrue);
+  });
+
+  test('loadReplies propagates a repository failure', () async {
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+    notifier.debugSeedCommentsForTest(TripDetailCommentsState(comments: [
+      Comment(id: 'parent-1', tripId: 'trip-1', userId: 'owner', username: 'owner', message: 'parent', createdAt: DateTime(2026, 1, 1), updatedAt: DateTime(2026, 1, 1)),
+    ]));
+    when(mockRepository.loadReplies('parent-1')).thenThrow(Exception('network error'));
+
+    await expectLater(notifier.loadReplies('parent-1'), throwsException);
+  });
+
+  test('toggleRepliesExpanded propagates a loadReplies failure so the caller can surface it',
+      () async {
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+    notifier.debugSeedCommentsForTest(TripDetailCommentsState(comments: [
+      Comment(id: 'parent-1', tripId: 'trip-1', userId: 'owner', username: 'owner', message: 'parent', createdAt: DateTime(2026, 1, 1), updatedAt: DateTime(2026, 1, 1)),
+    ]));
+    when(mockRepository.loadReplies('parent-1')).thenThrow(Exception('network error'));
+
+    await expectLater(
+      notifier.toggleRepliesExpanded('parent-1', false),
+      throwsException,
+    );
   });
 }
