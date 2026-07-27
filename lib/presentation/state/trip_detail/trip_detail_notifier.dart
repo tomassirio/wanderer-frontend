@@ -235,14 +235,6 @@ class TripDetailNotifier
     );
   }
 
-  /// Transitional setter: applies a [TripDetailTimelineState] mutation
-  /// computed by a not-yet-migrated `setState` call site in
-  /// `TripDetailScreen` (WebSocket handlers, migrated in Task 9a/9b). Same
-  /// pattern as [applyTripOverride] (see Task 1 brief, Step 9).
-  void applyTimelineOverride(TripDetailTimelineState timeline) {
-    state = state.copyWith(timeline: timeline);
-  }
-
   /// Test-only seam for setting up timeline state preconditions without a
   /// full loadTripUpdates()/loadMoreTripUpdates() round trip.
   @visibleForTesting
@@ -332,15 +324,6 @@ class TripDetailNotifier
       );
       rethrow;
     }
-  }
-
-  /// Transitional setter: applies a [TripDetailCommentsState] mutation
-  /// computed by a not-yet-migrated `setState` call site in
-  /// `TripDetailScreen` (the `_handleCommentAdded`/`_handleCommentReaction`
-  /// WebSocket handlers). Same pattern as [applyTripOverride]/
-  /// [applyTimelineOverride] (see Task 1 brief, Step 9).
-  void applyCommentsOverride(TripDetailCommentsState comments) {
-    state = state.copyWith(comments: comments);
   }
 
   /// Test-only seam for setting up comments state preconditions without a
@@ -648,10 +631,11 @@ class TripDetailNotifier
   }
 
   /// Records that a WebSocket event just animated the map camera, arming
-  /// [isWsCameraGuardActive] for [_wsCameraGuardDuration]. Transitional:
-  /// called directly by not-yet-migrated WebSocket handlers on the widget
-  /// (Task 9a/9b), same pattern as [applyTripOverride]/[applyTimelineOverride]/
-  /// [applyCommentsOverride].
+  /// [isWsCameraGuardActive] for [_wsCameraGuardDuration]. The decision of
+  /// *whether* a trip update warrants a camera animation is made in
+  /// [applyTripUpdateEvent] (its return value); the widget still owns the
+  /// `GoogleMapController`-bound animation itself, so it calls this method
+  /// directly right before animating.
   void markWsCameraUpdate() {
     state = state.copyWith(map: state.map.copyWith(lastWsCameraUpdate: DateTime.now()));
   }
@@ -769,6 +753,151 @@ class TripDetailNotifier
       trip: state.trip.copyWith(
         automaticUpdates: event.automaticUpdates ?? state.trip.automaticUpdates,
         updateRefresh: event.updateRefresh ?? state.trip.updateRefresh,
+      ),
+    );
+  }
+
+  /// Applies one location-bearing or lifecycle-marker trip update event to
+  /// state. Shared by both TRIP_UPDATED and TRIP_UPDATE_CREATED handling,
+  /// which differ only in how the caller derives [updateId] from the raw
+  /// event. Returns true when a NEW update with a real location was applied
+  /// (the caller should animate the map camera in that case), false when the
+  /// event was a duplicate or had no location (e.g. a lifecycle marker).
+  bool applyTripUpdateEvent({
+    required String updateId,
+    required double? latitude,
+    required double? longitude,
+    required DateTime timestamp,
+    required int? batteryLevel,
+    required String? message,
+    required String? city,
+    required String? country,
+    required double? temperatureCelsius,
+    required WeatherCondition? weatherCondition,
+    required TripUpdateType updateType,
+    required double? distanceSoFarKm,
+  }) {
+    if (state.timeline.tripUpdates.any((u) => u.id == updateId)) {
+      return false; // Duplicate delivery from trip-specific + global streams.
+    }
+
+    final hasLocation = latitude != null && longitude != null;
+    final newUpdate = TripLocation(
+      id: updateId,
+      latitude: latitude ?? 0.0,
+      longitude: longitude ?? 0.0,
+      timestamp: timestamp,
+      battery: hasLocation ? batteryLevel : null,
+      message: message,
+      city: hasLocation ? city : null,
+      country: hasLocation ? country : null,
+      temperatureCelsius: hasLocation ? temperatureCelsius : null,
+      weatherCondition: hasLocation ? weatherCondition : null,
+      updateType: updateType,
+      distanceSoFarKm: distanceSoFarKm,
+    );
+
+    state = state.copyWith(
+      timeline: state.timeline.copyWith(tripUpdates: [newUpdate, ...state.timeline.tripUpdates]),
+      trip: distanceSoFarKm != null
+          ? state.trip.copyWith(accruedDistanceKm: distanceSoFarKm)
+          : state.trip,
+    );
+
+    if (!hasLocation) return false;
+
+    state = state.copyWith(
+      trip: state.trip.copyWith(locations: [...(state.trip.locations ?? []), newUpdate]),
+    );
+    return true;
+  }
+
+  void applyCommentAdded(CommentAddedEvent event) {
+    final newComment = Comment(
+      id: event.commentId,
+      tripId: state.trip.id,
+      userId: event.userId,
+      username: event.username,
+      message: event.message,
+      parentCommentId: event.parentCommentId,
+      individualReactions: const [],
+      createdAt: event.timestamp,
+      updatedAt: event.timestamp,
+    );
+
+    if (event.parentCommentId != null) {
+      final parentId = event.parentCommentId!;
+      final existingReplies = state.comments.replies[parentId];
+      bool isNewReply = false;
+      List<Comment> updatedReplies;
+
+      if (existingReplies != null) {
+        final existingIndex = existingReplies.indexWhere((c) => c.id == event.commentId);
+        if (existingIndex != -1) {
+          updatedReplies = List<Comment>.from(existingReplies);
+          updatedReplies[existingIndex] = newComment; // Replace optimistic with server version.
+        } else {
+          updatedReplies = [...existingReplies, newComment];
+          isNewReply = true;
+        }
+      } else {
+        updatedReplies = [newComment];
+        isNewReply = true;
+      }
+
+      var comments = state.comments.comments;
+      if (isNewReply) {
+        final parentIndex = comments.indexWhere((c) => c.id == parentId);
+        if (parentIndex != -1) {
+          final updated = List<Comment>.from(comments);
+          final parent = updated[parentIndex];
+          updated[parentIndex] = Comment(
+            id: parent.id, tripId: parent.tripId, userId: parent.userId,
+            username: parent.username, userAvatarUrl: parent.userAvatarUrl,
+            message: parent.message, parentCommentId: parent.parentCommentId,
+            reactions: parent.reactions, individualReactions: parent.individualReactions,
+            replies: parent.replies, reactionsCount: parent.reactionsCount,
+            responsesCount: parent.responsesCount + 1,
+            createdAt: parent.createdAt, updatedAt: parent.updatedAt,
+          );
+          comments = updated;
+        }
+      }
+
+      state = state.copyWith(
+        comments: state.comments.copyWith(
+          replies: {...state.comments.replies, parentId: updatedReplies},
+          comments: comments,
+        ),
+      );
+    } else {
+      final existingIndex = state.comments.comments.indexWhere((c) => c.id == event.commentId);
+      final comments = List<Comment>.from(state.comments.comments);
+      if (existingIndex != -1) {
+        comments[existingIndex] = newComment; // Replace optimistic with server version.
+      } else {
+        comments.insert(0, newComment);
+      }
+      _sortComments(comments, state.comments.sortOption);
+      state = state.copyWith(comments: state.comments.copyWith(comments: comments));
+    }
+  }
+
+  void applyCommentReaction(
+    String commentId, {
+    required String? currentUserId,
+    ReactionType? oldReaction,
+    ReactionType? newReaction,
+  }) {
+    _replaceCommentOrReply(
+      commentId,
+      (comment) => applyReactionChange(
+        comment: comment,
+        userId: currentUserId ?? '',
+        username: '', // Server-sourced WS events don't carry a username.
+        oldReaction: oldReaction,
+        newReaction: newReaction,
+        skipIfDuplicate: true,
       ),
     );
   }

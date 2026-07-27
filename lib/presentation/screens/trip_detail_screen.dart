@@ -490,160 +490,68 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   void _handleTripUpdatedEvent(TripUpdatedEvent event) {
-    // Parse the update type from the event
     final parsedUpdateType = event.updateType != null
         ? TripUpdateType.fromJson(event.updateType!)
         : TripUpdateType.regular;
-
-    // Lifecycle markers (DAY_START, DAY_END, TRIP_STARTED, TRIP_ENDED) may
-    // have location: null. Add them to the timeline but don't create map pins.
-    final hasLocation = event.latitude != null && event.longitude != null;
-
     final updateId = 'ws_${event.timestamp.millisecondsSinceEpoch}';
 
-    // Guard against duplicate processing (event can arrive from both the
-    // trip-specific and global streams).
-    if (_tripUpdates.any((u) => u.id == updateId)) {
-      debugPrint(
-          'TripDetailScreen: Skipping duplicate TRIP_UPDATED event with id $updateId');
-      return;
-    }
-
-    final newUpdate = TripLocation(
-      id: updateId,
-      latitude: event.latitude ?? 0.0,
-      longitude: event.longitude ?? 0.0,
+    final notifier = ref.read(tripDetailNotifierProvider(widget.trip.id).notifier);
+    final applied = notifier.applyTripUpdateEvent(
+      updateId: updateId,
+      latitude: event.latitude,
+      longitude: event.longitude,
       timestamp: event.timestamp,
-      battery: hasLocation ? event.batteryLevel : null,
+      batteryLevel: event.batteryLevel,
       message: event.message,
-      city: hasLocation ? event.city : null,
-      country: hasLocation ? event.country : null,
-      temperatureCelsius: hasLocation ? event.temperatureCelsius : null,
-      weatherCondition: hasLocation && event.weatherCondition != null
+      city: event.city,
+      country: event.country,
+      temperatureCelsius: event.temperatureCelsius,
+      weatherCondition: event.weatherCondition != null
           ? WeatherCondition.fromJson(event.weatherCondition!)
           : null,
       updateType: parsedUpdateType,
       distanceSoFarKm: event.distanceSoFarKm,
     );
+    setState(() {});
 
-    debugPrint(
-        'TripDetailScreen: Processing TRIP_UPDATED - hasLocation: $hasLocation, lat: ${event.latitude}, lng: ${event.longitude}');
-
-    setState(() {
-      ref
-          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-          .applyTimelineOverride(ref
-              .read(tripDetailNotifierProvider(widget.trip.id))
-              .timeline
-              .copyWith(tripUpdates: [newUpdate, ..._tripUpdates]));
-      // Update trip's accrued distance if provided
-      if (event.distanceSoFarKm != null) {
-        ref
-            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-            .applyTripOverride(_trip.copyWith(
-              accruedDistanceKm: event.distanceSoFarKm,
-            ));
-      }
-    });
-
-    // Only update the map for updates with real locations
-    if (hasLocation) {
-      // Add the new location to _trip.locations so the map helper
-      // rebuilds markers correctly (previous green → orange, new → green)
-      final updatedLocations = <TripLocation>[
-        ...(_trip.locations ?? []),
-        newUpdate,
-      ];
-      setState(() {
-        ref
-            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-            .applyTripOverride(_trip.copyWith(locations: updatedLocations));
-      });
+    if (applied) {
       _updateMapData();
-      // Animate the camera to the new location
-      ref
-          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-          .markWsCameraUpdate();
+      notifier.markWsCameraUpdate();
       _animateMapToLocation(LatLng(event.latitude!, event.longitude!));
-      debugPrint('TripDetailScreen: Map updated and animated to new location');
     }
   }
 
   void _handleTripUpdateCreatedEvent(TripUpdateCreatedEvent event) {
-    // Parse the update type from the event payload (if available)
     final parsedUpdateType = event.updateType != null
         ? TripUpdateType.fromJson(event.updateType!)
         : TripUpdateType.regular;
-
-    final hasLocation = event.latitude != null && event.longitude != null;
-
     final updateId = event.tripUpdateId.isNotEmpty
         ? event.tripUpdateId
         : 'ws_${event.timestamp.millisecondsSinceEpoch}';
 
-    // Guard against duplicate processing (event can arrive from both the
-    // trip-specific and global streams).
-    if (_tripUpdates.any((u) => u.id == updateId)) {
-      debugPrint(
-          'TripDetailScreen: Skipping duplicate TRIP_UPDATE_CREATED event with id $updateId');
-      return;
-    }
-
-    final newUpdate = TripLocation(
-      id: updateId,
-      latitude: event.latitude ?? 0.0,
-      longitude: event.longitude ?? 0.0,
+    final notifier = ref.read(tripDetailNotifierProvider(widget.trip.id).notifier);
+    final applied = notifier.applyTripUpdateEvent(
+      updateId: updateId,
+      latitude: event.latitude,
+      longitude: event.longitude,
       timestamp: event.timestamp,
-      battery: hasLocation ? event.batteryLevel : null,
+      batteryLevel: event.batteryLevel,
       message: event.message,
-      city: hasLocation ? event.city : null,
-      country: hasLocation ? event.country : null,
-      temperatureCelsius: hasLocation ? event.temperatureCelsius : null,
-      weatherCondition: hasLocation && event.weatherCondition != null
+      city: event.city,
+      country: event.country,
+      temperatureCelsius: event.temperatureCelsius,
+      weatherCondition: event.weatherCondition != null
           ? WeatherCondition.fromJson(event.weatherCondition!)
           : null,
       updateType: parsedUpdateType,
       distanceSoFarKm: event.distanceSoFarKm,
     );
+    setState(() {});
 
-    debugPrint(
-        'TripDetailScreen: Processing TRIP_UPDATE_CREATED - hasLocation: $hasLocation, lat: ${event.latitude}, lng: ${event.longitude}');
-
-    setState(() {
-      ref
-          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-          .applyTimelineOverride(ref
-              .read(tripDetailNotifierProvider(widget.trip.id))
-              .timeline
-              .copyWith(tripUpdates: [newUpdate, ..._tripUpdates]));
-      // Update trip's accrued distance if provided
-      if (event.distanceSoFarKm != null) {
-        ref
-            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-            .applyTripOverride(_trip.copyWith(
-              accruedDistanceKm: event.distanceSoFarKm,
-            ));
-      }
-    });
-
-    // Only update the map for updates with real locations
-    if (hasLocation) {
-      final updatedLocations = <TripLocation>[
-        ...(_trip.locations ?? []),
-        newUpdate,
-      ];
-      setState(() {
-        ref
-            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-            .applyTripOverride(_trip.copyWith(locations: updatedLocations));
-      });
+    if (applied) {
       _updateMapData();
-      // Animate the camera to the new location
-      ref
-          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-          .markWsCameraUpdate();
+      notifier.markWsCameraUpdate();
       _animateMapToLocation(LatLng(event.latitude!, event.longitude!));
-      debugPrint('TripDetailScreen: Map updated and animated to new location');
     }
   }
 
@@ -781,365 +689,41 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   void _handleCommentAdded(CommentAddedEvent event) {
-    // Create a new comment from the event
-    final newComment = Comment(
-      id: event.commentId,
-      tripId: _trip.id,
-      userId: event.userId,
-      username: event.username,
-      message: event.message,
-      parentCommentId: event.parentCommentId,
-      individualReactions: const [],
-      createdAt: event.timestamp,
-      updatedAt: event.timestamp,
-    );
-
-    // These fields are notifier-backed getters (Task 6) — build the updated
-    // sub-state immutably and push it through the transitional
-    // applyCommentsOverride setter rather than mutating the returned
-    // List/Map in place (that instance is owned by the notifier's state and
-    // may even be a `const` literal before the first load).
-    final notifier =
-        ref.read(tripDetailNotifierProvider(widget.trip.id).notifier);
-    final commentsState =
-        ref.read(tripDetailNotifierProvider(widget.trip.id)).comments;
-
-    setState(() {
-      if (event.parentCommentId != null) {
-        // It's a reply
-        final parentId = event.parentCommentId!;
-        bool isNewReply = false;
-        final updatedReplies =
-            Map<String, List<Comment>>.from(commentsState.replies);
-
-        if (updatedReplies.containsKey(parentId)) {
-          // Check if reply already exists (avoid duplicates from optimistic updates)
-          final existingIndex =
-              updatedReplies[parentId]!.indexWhere((c) => c.id == event.commentId);
-          if (existingIndex != -1) {
-            // Replace optimistic reply with server version (has correct timestamp, etc.)
-            final list = List<Comment>.from(updatedReplies[parentId]!);
-            list[existingIndex] = newComment;
-            updatedReplies[parentId] = list;
-          } else {
-            // New reply from another user or WebSocket arrived before optimistic update
-            updatedReplies[parentId] = [...updatedReplies[parentId]!, newComment];
-            isNewReply = true;
-          }
-        } else {
-          // First reply to this comment
-          updatedReplies[parentId] = [newComment];
-          isNewReply = true;
-        }
-
-        // Update the parent comment's responsesCount if this is a new reply
-        // (not an optimistic update replacement)
-        var comments = commentsState.comments;
-        if (isNewReply) {
-          final parentIndex = comments.indexWhere((c) => c.id == parentId);
-          if (parentIndex != -1) {
-            final updatedComments = List<Comment>.from(comments);
-            final parentComment = updatedComments[parentIndex];
-            updatedComments[parentIndex] = Comment(
-              id: parentComment.id,
-              tripId: parentComment.tripId,
-              userId: parentComment.userId,
-              username: parentComment.username,
-              userAvatarUrl: parentComment.userAvatarUrl,
-              message: parentComment.message,
-              parentCommentId: parentComment.parentCommentId,
-              reactions: parentComment.reactions,
-              individualReactions: parentComment.individualReactions,
-              replies: parentComment.replies,
-              reactionsCount: parentComment.reactionsCount,
-              responsesCount: parentComment.responsesCount + 1,
-              createdAt: parentComment.createdAt,
-              updatedAt: parentComment.updatedAt,
-            );
-            comments = updatedComments;
-          }
-        }
-
-        notifier.applyCommentsOverride(
-          commentsState.copyWith(comments: comments, replies: updatedReplies),
-        );
-      } else {
-        // It's a top-level comment
-        // Check if comment already exists (avoid duplicates from optimistic updates)
-        final comments = List<Comment>.from(commentsState.comments);
-        final existingIndex =
-            comments.indexWhere((c) => c.id == event.commentId);
-        if (existingIndex != -1) {
-          // Replace optimistic comment with server version (has correct timestamp, etc.)
-          comments[existingIndex] = newComment;
-        } else {
-          // New comment from another user or WebSocket arrived before optimistic update
-          comments.insert(0, newComment);
-        }
-        notifier.applyCommentsOverride(commentsState.copyWith(comments: comments));
-        // Re-sort with the currently active sort option (was `_sortComments()`
-        // on the widget before this concern moved into the notifier).
-        notifier.changeSortOption(commentsState.sortOption);
-      }
-    });
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .applyCommentAdded(event);
+    setState(() {});
   }
 
   void _handleCommentReaction(CommentReactionEvent event) {
-    debugPrint(
-        'TripDetailScreen: Handling comment reaction event for comment ${event.commentId}');
-    debugPrint(
-        'TripDetailScreen: Event type=${event.type}, reactionType=${event.reactionType}, userId=${event.userId}, isRemoval=${event.isRemoval}');
-
-    // Normalize reaction type strings to ensure consistent map keys
-    // Backend might send "SMILEY" or "smiley", but we need consistency with ReactionType.toJson()
-    final normalizedReactionType =
-        ReactionType.fromJson(event.reactionType).toJson();
+    final normalizedReactionType = ReactionType.fromJson(event.reactionType);
     final normalizedPreviousReactionType = event.previousReactionType != null
-        ? ReactionType.fromJson(event.previousReactionType!).toJson()
+        ? ReactionType.fromJson(event.previousReactionType!)
         : null;
 
-    // Update local state directly from WebSocket event instead of making a GET request.
-    // `_comments`/`_replies` are notifier-backed getters (Task 6) — build the
-    // updated sub-state immutably from a snapshot and push it through the
-    // transitional applyCommentsOverride setter rather than mutating the
-    // returned List/Map in place.
-    final notifier =
-        ref.read(tripDetailNotifierProvider(widget.trip.id).notifier);
-    final commentsState =
-        ref.read(tripDetailNotifierProvider(widget.trip.id)).comments;
+    final ReactionType? oldReaction;
+    final ReactionType? newReaction;
+    if (normalizedPreviousReactionType != null) {
+      // REPLACED: remove the old reaction, add the new one.
+      oldReaction = normalizedPreviousReactionType;
+      newReaction = normalizedReactionType;
+    } else if (event.isRemoval) {
+      // REMOVED: only the old reaction goes away.
+      oldReaction = normalizedReactionType;
+      newReaction = null;
+    } else {
+      // ADDED: only the new reaction appears.
+      oldReaction = null;
+      newReaction = normalizedReactionType;
+    }
 
-    setState(() {
-      // Find and update the comment in top-level comments
-      final commentIndex =
-          commentsState.comments.indexWhere((c) => c.id == event.commentId);
-      if (commentIndex != -1) {
-        final comment = commentsState.comments[commentIndex];
-        final updatedReactions = Map<String, int>.from(comment.reactions ?? {});
-        final updatedIndividualReactions =
-            List<Reaction>.from(comment.individualReactions ?? []);
-
-        if (normalizedPreviousReactionType != null) {
-          // REPLACED event: remove old reaction and add new reaction
-          // Check if user already has the new reaction (duplicate event detection)
-          final hasNewReaction = updatedIndividualReactions.any((r) =>
-              r.userId == event.userId &&
-              r.reactionType.toJson() == normalizedReactionType);
-          if (hasNewReaction) {
-            debugPrint(
-                'TripDetailScreen: Ignoring duplicate REPLACED event for comment ${event.commentId}');
-            return; // Skip duplicate event
-          }
-
-          // Remove user's old reaction from individualReactions
-          updatedIndividualReactions
-              .removeWhere((r) => r.userId == event.userId);
-          // Decrement old reaction count
-          final oldCount =
-              updatedReactions[normalizedPreviousReactionType] ?? 0;
-          if (oldCount > 1) {
-            updatedReactions[normalizedPreviousReactionType] = oldCount - 1;
-          } else {
-            updatedReactions.remove(normalizedPreviousReactionType);
-          }
-          // Add new reaction to individualReactions
-          updatedIndividualReactions.add(Reaction(
-            userId: event.userId,
-            username: '', // Will be populated from full data refresh if needed
-            reactionType: ReactionType.fromJson(event.reactionType),
-            timestamp: DateTime.now(),
-          ));
-          // Increment new reaction count
-          updatedReactions[normalizedReactionType] =
-              (updatedReactions[normalizedReactionType] ?? 0) + 1;
-        } else if (event.isRemoval) {
-          // REMOVED event: remove the individual reaction
-          // Check if user actually has this reaction to remove (duplicate event detection)
-          final hasReaction = updatedIndividualReactions.any((r) =>
-              r.userId == event.userId &&
-              r.reactionType.toJson() == normalizedReactionType);
-          if (!hasReaction) {
-            debugPrint(
-                'TripDetailScreen: Ignoring duplicate REMOVED event for comment ${event.commentId}');
-            return; // Skip duplicate event
-          }
-
-          updatedIndividualReactions.removeWhere((r) =>
-              r.userId == event.userId &&
-              r.reactionType.toJson() == normalizedReactionType);
-          // Decrement reaction count
-          final currentCount = updatedReactions[normalizedReactionType] ?? 0;
-          if (currentCount > 1) {
-            updatedReactions[normalizedReactionType] = currentCount - 1;
-          } else {
-            updatedReactions.remove(normalizedReactionType);
-          }
-        } else {
-          // ADDED event: add the individual reaction
-          // Check if user already has this reaction (duplicate event detection)
-          final hasReaction = updatedIndividualReactions.any((r) =>
-              r.userId == event.userId &&
-              r.reactionType.toJson() == normalizedReactionType);
-          if (hasReaction) {
-            debugPrint(
-                'TripDetailScreen: Ignoring duplicate ADDED event for comment ${event.commentId}');
-            return; // Skip duplicate event
-          }
-
-          updatedIndividualReactions.add(Reaction(
-            userId: event.userId,
-            username: '', // Will be populated from full data refresh if needed
-            reactionType: ReactionType.fromJson(event.reactionType),
-            timestamp: DateTime.now(),
-          ));
-          // Increment reaction count
-          updatedReactions[normalizedReactionType] =
-              (updatedReactions[normalizedReactionType] ?? 0) + 1;
-        }
-
-        // Calculate new total reactions count
-        final newReactionsCount =
-            updatedReactions.values.fold(0, (sum, count) => sum + count);
-
-        final updatedComments =
-            List<Comment>.from(commentsState.comments);
-        updatedComments[commentIndex] = Comment(
-          id: comment.id,
-          tripId: comment.tripId,
-          userId: comment.userId,
-          username: comment.username,
-          userAvatarUrl: comment.userAvatarUrl,
-          message: comment.message,
-          parentCommentId: comment.parentCommentId,
-          reactions: updatedReactions.isEmpty ? null : updatedReactions,
-          individualReactions: updatedIndividualReactions.isEmpty
-              ? null
-              : updatedIndividualReactions,
-          replies: comment.replies,
-          reactionsCount: newReactionsCount,
-          responsesCount: comment.responsesCount,
-          createdAt: comment.createdAt,
-          updatedAt: comment.updatedAt,
+    ref.read(tripDetailNotifierProvider(widget.trip.id).notifier).applyCommentReaction(
+          event.commentId,
+          currentUserId: event.userId,
+          oldReaction: oldReaction,
+          newReaction: newReaction,
         );
-        notifier.applyCommentsOverride(
-          commentsState.copyWith(comments: updatedComments),
-        );
-        return;
-      }
-
-      // Check in replies
-      for (final parentId in commentsState.replies.keys) {
-        final replies = commentsState.replies[parentId]!;
-        final replyIndex = replies.indexWhere((c) => c.id == event.commentId);
-        if (replyIndex != -1) {
-          final reply = replies[replyIndex];
-          final updatedReactions = Map<String, int>.from(reply.reactions ?? {});
-          final updatedIndividualReactions =
-              List<Reaction>.from(reply.individualReactions ?? []);
-
-          if (normalizedPreviousReactionType != null) {
-            // REPLACED event: remove old reaction and add new reaction
-            // Check if user already has the new reaction (duplicate event detection)
-            final hasNewReaction = updatedIndividualReactions.any((r) =>
-                r.userId == event.userId &&
-                r.reactionType.toJson() == normalizedReactionType);
-            if (hasNewReaction) {
-              debugPrint(
-                  'TripDetailScreen: Ignoring duplicate REPLACED event for reply ${event.commentId}');
-              return; // Skip duplicate event
-            }
-
-            updatedIndividualReactions
-                .removeWhere((r) => r.userId == event.userId);
-            final oldCount =
-                updatedReactions[normalizedPreviousReactionType] ?? 0;
-            if (oldCount > 1) {
-              updatedReactions[normalizedPreviousReactionType] = oldCount - 1;
-            } else {
-              updatedReactions.remove(normalizedPreviousReactionType);
-            }
-            updatedIndividualReactions.add(Reaction(
-              userId: event.userId,
-              username: '',
-              reactionType: ReactionType.fromJson(event.reactionType),
-              timestamp: DateTime.now(),
-            ));
-            updatedReactions[normalizedReactionType] =
-                (updatedReactions[normalizedReactionType] ?? 0) + 1;
-          } else if (event.isRemoval) {
-            // REMOVED event
-            // Check if user actually has this reaction to remove (duplicate event detection)
-            final hasReaction = updatedIndividualReactions.any((r) =>
-                r.userId == event.userId &&
-                r.reactionType.toJson() == normalizedReactionType);
-            if (!hasReaction) {
-              debugPrint(
-                  'TripDetailScreen: Ignoring duplicate REMOVED event for reply ${event.commentId}');
-              return; // Skip duplicate event
-            }
-
-            updatedIndividualReactions.removeWhere((r) =>
-                r.userId == event.userId &&
-                r.reactionType.toJson() == normalizedReactionType);
-            final currentCount = updatedReactions[normalizedReactionType] ?? 0;
-            if (currentCount > 1) {
-              updatedReactions[normalizedReactionType] = currentCount - 1;
-            } else {
-              updatedReactions.remove(normalizedReactionType);
-            }
-          } else {
-            // ADDED event
-            // Check if user already has this reaction (duplicate event detection)
-            final hasReaction = updatedIndividualReactions.any((r) =>
-                r.userId == event.userId &&
-                r.reactionType.toJson() == normalizedReactionType);
-            if (hasReaction) {
-              debugPrint(
-                  'TripDetailScreen: Ignoring duplicate ADDED event for reply ${event.commentId}');
-              return; // Skip duplicate event
-            }
-
-            updatedIndividualReactions.add(Reaction(
-              userId: event.userId,
-              username: '',
-              reactionType: ReactionType.fromJson(event.reactionType),
-              timestamp: DateTime.now(),
-            ));
-            updatedReactions[normalizedReactionType] =
-                (updatedReactions[normalizedReactionType] ?? 0) + 1;
-          }
-
-          final newReactionsCount =
-              updatedReactions.values.fold(0, (sum, count) => sum + count);
-
-          final updatedReplyList = List<Comment>.from(replies);
-          updatedReplyList[replyIndex] = Comment(
-            id: reply.id,
-            tripId: reply.tripId,
-            userId: reply.userId,
-            username: reply.username,
-            userAvatarUrl: reply.userAvatarUrl,
-            message: reply.message,
-            parentCommentId: reply.parentCommentId,
-            reactions: updatedReactions.isEmpty ? null : updatedReactions,
-            individualReactions: updatedIndividualReactions.isEmpty
-                ? null
-                : updatedIndividualReactions,
-            replies: reply.replies,
-            reactionsCount: newReactionsCount,
-            responsesCount: reply.responsesCount,
-            createdAt: reply.createdAt,
-            updatedAt: reply.updatedAt,
-          );
-          final updatedRepliesMap =
-              Map<String, List<Comment>>.from(commentsState.replies);
-          updatedRepliesMap[parentId] = updatedReplyList;
-          notifier.applyCommentsOverride(
-            commentsState.copyWith(replies: updatedRepliesMap),
-          );
-          return;
-        }
-      }
-    });
+    setState(() {});
   }
 
   @override

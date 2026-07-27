@@ -900,4 +900,121 @@ void main() {
     expect(state.trip.automaticUpdates, isTrue);
     expect(state.trip.updateRefresh, 30);
   });
+
+  test('applyTripUpdateEvent adds a new update, returns true when it has a location',
+      () async {
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    final applied = notifier.applyTripUpdateEvent(
+      updateId: 'ws_1',
+      latitude: 1.0,
+      longitude: 2.0,
+      timestamp: DateTime(2026, 1, 1),
+      batteryLevel: 80,
+      message: null,
+      city: null,
+      country: null,
+      temperatureCelsius: null,
+      weatherCondition: null,
+      updateType: TripUpdateType.regular,
+      distanceSoFarKm: 5.0,
+    );
+
+    expect(applied, isTrue);
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.timeline.tripUpdates.single.id, 'ws_1');
+    expect(state.trip.accruedDistanceKm, 5.0);
+    expect(state.trip.locations?.single.id, 'ws_1');
+  });
+
+  test('applyTripUpdateEvent is a no-op for a duplicate updateId', () async {
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+    notifier.applyTripUpdateEvent(
+      updateId: 'ws_1', latitude: 1.0, longitude: 2.0, timestamp: DateTime(2026, 1, 1),
+      batteryLevel: null, message: null, city: null, country: null,
+      temperatureCelsius: null, weatherCondition: null,
+      updateType: TripUpdateType.regular, distanceSoFarKm: null,
+    );
+
+    final appliedAgain = notifier.applyTripUpdateEvent(
+      updateId: 'ws_1', latitude: 1.0, longitude: 2.0, timestamp: DateTime(2026, 1, 1),
+      batteryLevel: null, message: null, city: null, country: null,
+      temperatureCelsius: null, weatherCondition: null,
+      updateType: TripUpdateType.regular, distanceSoFarKm: null,
+    );
+
+    expect(appliedAgain, isFalse);
+    expect(container.read(tripDetailNotifierProvider(trip.id)).timeline.tripUpdates, hasLength(1));
+  });
+
+  test('applyTripUpdateEvent returns false for a lifecycle marker with no location',
+      () async {
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    final applied = notifier.applyTripUpdateEvent(
+      updateId: 'ws_2', latitude: null, longitude: null, timestamp: DateTime(2026, 1, 1),
+      batteryLevel: null, message: 'Day 1 started!', city: null, country: null,
+      temperatureCelsius: null, weatherCondition: null,
+      updateType: TripUpdateType.dayStart, distanceSoFarKm: null,
+    );
+
+    expect(applied, isFalse); // no location → timeline entry added, but no camera animation needed
+    expect(container.read(tripDetailNotifierProvider(trip.id)).timeline.tripUpdates, hasLength(1));
+  });
+
+  test('applyCommentAdded inserts a new top-level comment', () async {
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    notifier.applyCommentAdded(CommentAddedEvent(
+      tripId: 'trip-1', commentId: 'c1', userId: 'u1', username: 'alice',
+      message: 'hi', parentCommentId: null, timestamp: DateTime(2026, 1, 1),
+      payload: const {},
+    ));
+
+    expect(container.read(tripDetailNotifierProvider(trip.id)).comments.comments.single.id, 'c1');
+  });
+
+  test('applyCommentAdded increments parent responsesCount for a new reply', () async {
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+    notifier.debugSeedCommentsForTest(TripDetailCommentsState(comments: [
+      Comment(id: 'parent-1', tripId: 'trip-1', userId: 'owner', username: 'owner', message: 'parent', responsesCount: 0, createdAt: DateTime(2026, 1, 1), updatedAt: DateTime(2026, 1, 1)),
+    ]));
+
+    notifier.applyCommentAdded(CommentAddedEvent(
+      tripId: 'trip-1', commentId: 'r1', userId: 'u1', username: 'alice',
+      message: 'a reply', parentCommentId: 'parent-1', timestamp: DateTime(2026, 1, 1),
+      payload: const {},
+    ));
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.comments.replies['parent-1']?.single.id, 'r1');
+    expect(state.comments.comments.single.responsesCount, 1);
+  });
+
+  test('applyCommentReaction uses the unified reducer with skipIfDuplicate: true',
+      () async {
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+    notifier.debugSeedCommentsForTest(TripDetailCommentsState(comments: [
+      Comment(id: 'c1', tripId: 'trip-1', userId: 'owner', username: 'owner', message: 'hi', createdAt: DateTime(2026, 1, 1), updatedAt: DateTime(2026, 1, 1)),
+    ]));
+
+    notifier.applyCommentReaction('c1', currentUserId: 'user-9', newReaction: ReactionType.heart);
+    // Re-delivery of the same ADDED event must be a no-op (skipIfDuplicate).
+    notifier.applyCommentReaction('c1', currentUserId: 'user-9', newReaction: ReactionType.heart);
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.comments.comments.single.reactionsCount, 1);
+  });
 }
