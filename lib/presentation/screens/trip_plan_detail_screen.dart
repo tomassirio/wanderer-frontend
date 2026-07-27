@@ -6,7 +6,6 @@ import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/google_directions_api_client.dart';
 import 'package:wanderer_frontend/data/client/polyline_codec.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
-import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
@@ -19,6 +18,8 @@ import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
+import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_notifier.dart';
+import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_state.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
@@ -43,20 +44,20 @@ class TripPlanDetailScreen extends ConsumerStatefulWidget {
 class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   late final TripPlanService _tripPlanService;
   late final TripService _tripService;
-  late final HomeRepository _homeRepository;
   late final GoogleDirectionsApiClient _directionsClient;
   late TripPlan _tripPlan;
   bool _isEditing = false;
   bool _isLoading = false;
 
-  // User state for WandererAppBar & AppSidebar
-  String? _username;
-  String? _userId;
-  String? _displayName;
-  String? _avatarUrl;
-  bool _isLoggedIn = false;
-  bool _isAdmin = false;
   final int _selectedSidebarIndex = -1; // Not a sidebar item
+
+  UserChromeState get _userChrome => ref.watch(userChromeNotifierProvider);
+  String? get _username => _userChrome.username;
+  String? get _userId => _userChrome.userId;
+  String? get _displayName => _userChrome.displayName;
+  String? get _avatarUrl => _userChrome.avatarUrl;
+  bool get _isLoggedIn => _userChrome.isLoggedIn;
+  bool get _isAdmin => _userChrome.isAdmin;
 
   late TextEditingController _nameController;
   late String _selectedPlanType;
@@ -102,7 +103,6 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
     super.initState();
     _tripPlanService = ref.read(tripPlanServiceProvider);
     _tripService = ref.read(tripServiceProvider);
-    _homeRepository = ref.read(homeRepositoryProvider);
     _directionsClient = ref.read(googleDirectionsApiClientProvider);
     _tripPlan = widget.tripPlan;
     _nameController = TextEditingController(text: _tripPlan.name);
@@ -111,7 +111,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
     _endDate = _tripPlan.endDate;
     _initEditLocations();
     _updateMapData();
-    _loadUserInfo();
+    ref.read(userChromeNotifierProvider.notifier).loadUserInfo();
   }
 
   @override
@@ -121,36 +121,11 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
     super.dispose();
   }
 
-  Future<void> _loadUserInfo() async {
-    final username = await _homeRepository.getCurrentUsername();
-    final userId = await _homeRepository.getCurrentUserId();
-    final isLoggedIn = await _homeRepository.isLoggedIn();
-    final isAdmin = await _homeRepository.isAdmin();
-
-    if (isLoggedIn) {
-      await _homeRepository.refreshUserDetails();
-    }
-
-    final displayName = await _homeRepository.getCurrentDisplayName();
-    final avatarUrl = await _homeRepository.getCurrentAvatarUrl();
-
-    if (mounted) {
-      setState(() {
-        _username = username;
-        _userId = userId;
-        _displayName = displayName;
-        _avatarUrl = avatarUrl;
-        _isLoggedIn = isLoggedIn;
-        _isAdmin = isAdmin;
-      });
-    }
-  }
-
   Future<void> _handleLogout() async {
     final confirm = await DialogHelper.showLogoutConfirmation(context);
 
     if (confirm) {
-      await _homeRepository.logout();
+      await ref.read(userChromeNotifierProvider.notifier).logout();
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
@@ -175,7 +150,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
     );
 
     if (result == true && mounted) {
-      await _loadUserInfo();
+      await ref.read(userChromeNotifierProvider.notifier).loadUserInfo();
     }
   }
 
