@@ -12,6 +12,7 @@ import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/presentation/helpers/dashed_polyline_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/location_permission_disclosure.dart';
+import 'package:wanderer_frontend/presentation/helpers/plan_type_ui_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/web_marker_generator.dart';
 
@@ -1762,14 +1763,7 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
 
   /// Segmented plan type selector
   Widget _buildPlanTypeSelector() {
-    final types = [
-      {'value': 'SIMPLE', 'label': 'Simple', 'icon': Icons.wb_sunny_outlined},
-      {
-        'value': 'MULTI_DAY',
-        'label': 'Multi-Day',
-        'icon': Icons.luggage_outlined,
-      },
-    ];
+    final types = PlanTypeUiHelper.selectableTypes;
 
     return Container(
       decoration: BoxDecoration(
@@ -1782,10 +1776,10 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
       padding: const EdgeInsets.all(4),
       child: Row(
         children: types.map((type) {
-          final isSelected = _planType == type['value'];
+          final isSelected = _planType == type.value;
           return Expanded(
             child: GestureDetector(
-              onTap: () => setState(() => _planType = type['value'] as String),
+              onTap: () => setState(() => _planType = type.value),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 10),
@@ -1804,7 +1798,7 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
                 child: Column(
                   children: [
                     Icon(
-                      type['icon'] as IconData,
+                      type.icon,
                       size: 20,
                       color: isSelected
                           ? WandererTheme.primaryOrange
@@ -1815,7 +1809,7 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      type['label'] as String,
+                      type.label,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,

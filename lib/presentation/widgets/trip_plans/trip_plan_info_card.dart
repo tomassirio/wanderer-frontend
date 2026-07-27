@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/presentation/helpers/plan_type_ui_helper.dart';
 
 /// Widget displaying trip plan information card with glassmorphism design
 /// Supports collapsible state that shows as a floating bubble
@@ -164,8 +165,8 @@ class TripPlanInfoCard extends StatelessWidget {
                 // Plan type
                 _buildInfoRow(
                   context,
-                  _getPlanTypeIcon(tripPlan.planType),
-                  _formatPlanType(tripPlan.planType),
+                  PlanTypeUiHelper.getIcon(tripPlan.planType),
+                  PlanTypeUiHelper.formatLabel(tripPlan.planType),
                 ),
                 const SizedBox(height: 8),
                 // Dates
@@ -399,26 +400,6 @@ class TripPlanInfoCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  IconData _getPlanTypeIcon(String planType) {
-    switch (planType) {
-      case 'SIMPLE':
-        return Icons.place;
-      case 'MULTI_DAY':
-        return Icons.date_range;
-      case 'ROAD_TRIP':
-        return Icons.directions_car;
-      default:
-        return Icons.map;
-    }
-  }
-
-  String _formatPlanType(String planType) {
-    return planType
-        .split('_')
-        .map((word) => word[0] + word.substring(1).toLowerCase())
-        .join(' ');
   }
 
   String _formatDateRange() {
