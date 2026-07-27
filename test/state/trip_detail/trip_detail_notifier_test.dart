@@ -1040,6 +1040,53 @@ void main() {
     expect(state.lifecycle.isChangingStatus, isFalse);
   });
 
+  test(
+      'changeTripStatus swallows a failing fire-and-forget sendLifecycleUpdate '
+      'instead of leaking an unhandled Future error', () async {
+    when(mockRepository.changeTripStatus('trip-1', TripStatus.inProgress))
+        .thenAnswer((_) async => 'ok');
+    when(mockRepository.sendLifecycleUpdate('trip-1',
+            updateType: TripUpdateType.tripStarted, message: anyNamed('message')))
+        .thenAnswer((_) =>
+            Future<LocationUpdateResult>.error(Exception('network down')));
+    final container = buildContainer();
+    // Keep the autoDispose provider alive across the `Future.delayed` below —
+    // otherwise it gets torn down (zero listeners) before we re-read it.
+    container.listen(tripDetailNotifierProvider(trip.id), (_, __) {});
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip.copyWith(status: TripStatus.created));
+
+    await notifier.changeTripStatus(TripStatus.inProgress, isMultiDay: false);
+    // Give the unawaited sendLifecycleUpdate Future a turn to complete (and
+    // its error to be caught) before the test ends. If the notifier ever
+    // regresses to a bare `unawaited(...)` with no `.catchError`, this
+    // surfaces as an unhandled async exception failing this test.
+    await Future<void>.delayed(Duration.zero);
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.trip.status, TripStatus.inProgress);
+  });
+
+  test(
+      'toggleDay swallows a failing fire-and-forget sendLifecycleUpdate '
+      'instead of leaking an unhandled Future error', () async {
+    when(mockRepository.toggleDay('trip-1')).thenAnswer((_) async => 'ok');
+    when(mockRepository.sendLifecycleUpdate('trip-1',
+            updateType: TripUpdateType.dayEnd, message: anyNamed('message')))
+        .thenAnswer((_) =>
+            Future<LocationUpdateResult>.error(Exception('network down')));
+    final container = buildContainer();
+    container.listen(tripDetailNotifierProvider(trip.id), (_, __) {});
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip.copyWith(status: TripStatus.inProgress));
+
+    await notifier.toggleDay(isFinishingDay: true);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(container.read(tripDetailNotifierProvider(trip.id)).trip.status,
+        TripStatus.resting);
+  });
+
   test('changeTripVisibility updates trip.visibility', () async {
     when(mockRepository.changeTripVisibility('trip-1', Visibility.private))
         .thenAnswer((_) async => 'ok');

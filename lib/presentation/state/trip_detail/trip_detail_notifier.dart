@@ -907,13 +907,15 @@ class TripDetailNotifier
           state.trip.id,
           updateType: TripUpdateType.tripStarted,
           message: 'Trip Started!',
-        ));
+        ).catchError((_) =>
+            LocationUpdateResult.failure(LocationFailureReason.unknownError)));
       } else if (newStatus == TripStatus.finished) {
         unawaited(_repository.sendLifecycleUpdate(
           state.trip.id,
           updateType: TripUpdateType.tripEnded,
           message: 'Trip finished.',
-        ));
+        ).catchError((_) =>
+            LocationUpdateResult.failure(LocationFailureReason.unknownError)));
       }
 
       state = state.copyWith(
@@ -956,7 +958,8 @@ class TripDetailNotifier
           state.trip.id,
           updateType: TripUpdateType.dayEnd,
           message: 'Day $currentDay finished',
-        ));
+        ).catchError((_) =>
+            LocationUpdateResult.failure(LocationFailureReason.unknownError)));
         state = state.copyWith(
           trip: state.trip.copyWith(status: TripStatus.resting),
           lifecycle: state.lifecycle.copyWith(isChangingStatus: false),
@@ -966,7 +969,8 @@ class TripDetailNotifier
           state.trip.id,
           updateType: TripUpdateType.dayStart,
           message: 'Day ${currentDay + 1} started!',
-        ));
+        ).catchError((_) =>
+            LocationUpdateResult.failure(LocationFailureReason.unknownError)));
         state = state.copyWith(
           trip: state.trip.copyWith(status: TripStatus.inProgress, currentDay: currentDay + 1),
           lifecycle: state.lifecycle.copyWith(isChangingStatus: false),
