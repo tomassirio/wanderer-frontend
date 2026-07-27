@@ -1933,6 +1933,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   }
 
   void _fitEditBounds() {
+    if (!mounted) return;
     final allPoints = <LatLng>[
       if (_editStartLocation != null) _editStartLocation!,
       if (_editEndLocation != null) _editEndLocation!,

@@ -20,4 +20,28 @@ void main() {
       expect(bounds.northeast.longitude, -74.0);
     });
   });
+
+  group('calculateBounds', () {
+    test('returns null for an empty marker set', () {
+      expect(TripPlanMapHelper.calculateBounds(<Marker>{}), isNull);
+    });
+
+    test('returns bounds spanning all marker positions', () {
+      final bounds = TripPlanMapHelper.calculateBounds({
+        const Marker(
+          markerId: MarkerId('a'),
+          position: LatLng(40.0, -75.0),
+        ),
+        const Marker(
+          markerId: MarkerId('b'),
+          position: LatLng(41.0, -74.0),
+        ),
+      });
+      expect(bounds, isNotNull);
+      expect(bounds!.southwest.latitude, 40.0);
+      expect(bounds.southwest.longitude, -75.0);
+      expect(bounds.northeast.latitude, 41.0);
+      expect(bounds.northeast.longitude, -74.0);
+    });
+  });
 }

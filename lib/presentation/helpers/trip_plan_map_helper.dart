@@ -235,33 +235,14 @@ class TripPlanMapHelper {
   }
 
   /// Calculates bounds to fit all markers
-  static LatLngBounds? calculateBounds(Set<Marker> markers) {
-    if (markers.isEmpty) return null;
-
-    double minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
-
-    for (final marker in markers) {
-      if (marker.position.latitude < minLat) minLat = marker.position.latitude;
-      if (marker.position.latitude > maxLat) maxLat = marker.position.latitude;
-      if (marker.position.longitude < minLng) {
-        minLng = marker.position.longitude;
-      }
-      if (marker.position.longitude > maxLng) {
-        maxLng = marker.position.longitude;
-      }
-    }
-
-    return LatLngBounds(
-      southwest: LatLng(minLat, minLng),
-      northeast: LatLng(maxLat, maxLng),
-    );
-  }
+  static LatLngBounds? calculateBounds(Set<Marker> markers) =>
+      calculateBoundsForPoints(markers.map((m) => m.position).toList());
 
   /// Calculates bounds to fit a list of raw points (e.g. edit-mode
-  /// start/end/waypoints, which aren't wrapped in Markers). Callers that
-  /// require a minimum point count (the two current callers both require
-  /// at least 2) keep that check themselves, matching their pre-existing
-  /// guard style — this helper only handles the empty case.
+  /// start/end/waypoints, which aren't wrapped in Markers). The one direct
+  /// caller of this method (edit-mode bounds fitting in
+  /// `trip_plan_detail_screen.dart`) requires at least 2 points and keeps
+  /// that check itself — this helper only handles the empty case.
   static LatLngBounds? calculateBoundsForPoints(List<LatLng> points) {
     if (points.isEmpty) return null;
 

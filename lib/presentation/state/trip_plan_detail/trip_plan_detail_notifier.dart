@@ -396,15 +396,9 @@ class TripPlanDetailNotifier
   /// `editLocationsMatchTripPlan()` is false or there's no cached polyline.
   Future<void> enterEditMode() async {
     initEditLocations();
+    seedMetadataFromPlan(state.tripPlan);
     state = state.copyWith(
-      metadata: state.metadata.copyWith(
-        isEditing: true,
-        selectedPlanType: state.tripPlan.planType,
-        startDate: state.tripPlan.startDate,
-        endDate: state.tripPlan.endDate,
-        clearStartDate: state.tripPlan.startDate == null,
-        clearEndDate: state.tripPlan.endDate == null,
-      ),
+      metadata: state.metadata.copyWith(isEditing: true),
     );
     initEditPolylines();
   }
@@ -413,15 +407,9 @@ class TripPlanDetailNotifier
   /// used when the user cancels an in-progress edit. Combines with
   /// [resetEditMapToSavedPlan] for `_cancelEditing()`'s full reset.
   void exitEditModeWithoutSaving() {
+    seedMetadataFromPlan(state.tripPlan);
     state = state.copyWith(
-      metadata: state.metadata.copyWith(
-        isEditing: false,
-        selectedPlanType: state.tripPlan.planType,
-        startDate: state.tripPlan.startDate,
-        endDate: state.tripPlan.endDate,
-        clearStartDate: state.tripPlan.startDate == null,
-        clearEndDate: state.tripPlan.endDate == null,
-      ),
+      metadata: state.metadata.copyWith(isEditing: false),
     );
   }
 
