@@ -4,7 +4,12 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/google_directions_api_client.dart';
 import 'package:wanderer_frontend/data/client/polyline_codec.dart';
+import 'package:wanderer_frontend/data/models/domain/trip.dart';
 import 'package:wanderer_frontend/data/models/domain/trip_plan.dart';
+import 'package:wanderer_frontend/data/models/requests/trip_from_plan_request.dart';
+import 'package:wanderer_frontend/data/models/requests/update_trip_plan_request.dart';
+import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
+import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/route_polyline_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_plan_map_helper.dart';
 import 'package:wanderer_frontend/presentation/state/trip_plan_detail/trip_plan_detail_state.dart';
@@ -24,10 +29,14 @@ class TripPlanDetailNotifier
   // instance, and a second assignment to a `late final` field would throw
   // LateInitializationError.
   late GoogleDirectionsApiClient _directionsClient;
+  late TripPlanService _tripPlanService;
+  late TripService _tripService;
 
   @override
   TripPlanDetailState build(String arg) {
     _directionsClient = ref.watch(googleDirectionsApiClientProvider);
+    _tripPlanService = ref.watch(tripPlanServiceProvider);
+    _tripService = ref.watch(tripServiceProvider);
     return TripPlanDetailState(tripPlan: TripPlan.empty(id: arg));
   }
 
@@ -356,12 +365,137 @@ class TripPlanDetailNotifier
     );
   }
 
-  /// Transitional setter: applies a [TripPlan] reassignment computed by a
-  /// not-yet-migrated call site in `TripPlanDetailScreen` (`_saveChanges()`,
-  /// migrated in Task 5). Deleted once that task's own logic can call
-  /// `copyWith`/replace `state.tripPlan` directly.
-  void applyTripPlanOverride(TripPlan tripPlan) {
-    state = state.copyWith(tripPlan: tripPlan);
+  /// Seeds metadata fields (plan type, dates) from the trip plan the widget
+  /// was constructed with. Unconditional, called once from `initState()`
+  /// alongside `seedInitialTripPlan` — kept as its own method (rather than
+  /// folded into `seedInitialTripPlan`) so each task that added a seed
+  /// concern owns its own seed method, keeping this task independently
+  /// revertable without touching Task 2's code.
+  void seedMetadataFromPlan(TripPlan tripPlan) {
+    state = state.copyWith(
+      metadata: state.metadata.copyWith(
+        selectedPlanType: tripPlan.planType,
+        startDate: tripPlan.startDate,
+        endDate: tripPlan.endDate,
+        clearStartDate: tripPlan.startDate == null,
+        clearEndDate: tripPlan.endDate == null,
+      ),
+    );
+  }
+
+  /// Enters edit mode: seeds edit-map state and metadata fields from the
+  /// current trip plan, flips `isEditing` on. Replaces the two identical
+  /// `onEdit` closures that used to be pasted verbatim in `build()`
+  /// (desktop and mobile info-card variants).
+  Future<void> enterEditMode() async {
+    initEditLocations();
+    await initEditPolylines();
+    state = state.copyWith(
+      metadata: TripPlanDetailMetadataState(
+        isEditing: true,
+        selectedPlanType: state.tripPlan.planType,
+        startDate: state.tripPlan.startDate,
+        endDate: state.tripPlan.endDate,
+      ),
+    );
+  }
+
+  /// Resets metadata to the trip plan's saved values without persisting —
+  /// used when the user cancels an in-progress edit. Combines with
+  /// [resetEditMapToSavedPlan] for `_cancelEditing()`'s full reset.
+  void exitEditModeWithoutSaving() {
+    state = state.copyWith(
+      metadata: TripPlanDetailMetadataState(
+        isEditing: false,
+        selectedPlanType: state.tripPlan.planType,
+        startDate: state.tripPlan.startDate,
+        endDate: state.tripPlan.endDate,
+      ),
+    );
+  }
+
+  void setSelectedPlanType(String planType) {
+    state = state.copyWith(
+      metadata: state.metadata.copyWith(selectedPlanType: planType),
+    );
+  }
+
+  void setDateRange(DateTime start, DateTime end) {
+    state = state.copyWith(
+      metadata: state.metadata.copyWith(startDate: start, endDate: end),
+    );
+  }
+
+  /// Persists edited plan metadata and route to the backend, then refetches
+  /// the full updated plan. [name] comes from the widget's
+  /// `TextEditingController` (never migrated — the controller itself stays
+  /// widget-owned, matching every other screen's `TextEditingController`
+  /// handling in this codebase).
+  Future<void> saveChanges({required String name}) async {
+    state = state.copyWith(metadata: state.metadata.copyWith(isLoading: true));
+    try {
+      String? encodedPolyline = state.editMap.encodedPolyline;
+      if (encodedPolyline == null) {
+        final points = buildEditOrderedPoints();
+        if (points.length >= 2) {
+          final result = await _directionsClient.getRoutePolyline(points);
+          encodedPolyline = result ?? PolylineCodec.encode(points);
+        }
+      }
+
+      final request = UpdateTripPlanRequest(
+        name: name,
+        planType: state.metadata.selectedPlanType,
+        startDate: state.metadata.startDate,
+        endDate: state.metadata.endDate,
+        startLocation: state.editMap.startLocation != null
+            ? PlanLocation(
+                lat: state.editMap.startLocation!.latitude,
+                lon: state.editMap.startLocation!.longitude,
+              )
+            : state.tripPlan.startLocation,
+        endLocation: state.editMap.endLocation != null
+            ? PlanLocation(
+                lat: state.editMap.endLocation!.latitude,
+                lon: state.editMap.endLocation!.longitude,
+              )
+            : state.tripPlan.endLocation,
+        waypoints: state.editMap.waypoints
+            .map((w) => PlanLocation(lat: w.latitude, lon: w.longitude))
+            .toList(),
+        plannedPolyline: encodedPolyline,
+      );
+
+      final planId =
+          await _tripPlanService.updateTripPlan(state.tripPlan.id, request);
+      final updatedPlan = await _tripPlanService.getTripPlanById(planId);
+
+      state = state.copyWith(
+        tripPlan: updatedPlan,
+        metadata: state.metadata.copyWith(isEditing: false, isLoading: false),
+      );
+    } catch (e) {
+      state =
+          state.copyWith(metadata: state.metadata.copyWith(isLoading: false));
+      rethrow;
+    }
+  }
+
+  Future<void> deleteTripPlan() async {
+    state = state.copyWith(metadata: state.metadata.copyWith(isLoading: true));
+    try {
+      await _tripPlanService.deleteTripPlan(state.tripPlan.id);
+    } catch (e) {
+      state =
+          state.copyWith(metadata: state.metadata.copyWith(isLoading: false));
+      rethrow;
+    }
+  }
+
+  Future<Trip> createTripFromPlan(TripFromPlanRequest request) async {
+    final tripId =
+        await _tripService.createTripFromPlan(state.tripPlan.id, request);
+    return _tripService.getTripById(tripId);
   }
 }
 

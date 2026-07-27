@@ -2,12 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:wanderer_frontend/core/providers/app_providers.dart';
-import 'package:wanderer_frontend/data/client/google_directions_api_client.dart';
-import 'package:wanderer_frontend/data/client/polyline_codec.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
-import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
-import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
@@ -40,13 +35,16 @@ class TripPlanDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
-  late final TripPlanService _tripPlanService;
-  late final TripService _tripService;
-  late final GoogleDirectionsApiClient _directionsClient;
   TripPlan get _tripPlan =>
       ref.watch(tripPlanDetailNotifierProvider(widget.tripPlan.id)).tripPlan;
-  bool _isEditing = false;
-  bool _isLoading = false;
+
+  TripPlanDetailMetadataState get _metadataState =>
+      ref.watch(tripPlanDetailNotifierProvider(widget.tripPlan.id)).metadata;
+  bool get _isEditing => _metadataState.isEditing;
+  bool get _isLoading => _metadataState.isLoading;
+  String get _selectedPlanType => _metadataState.selectedPlanType;
+  DateTime? get _startDate => _metadataState.startDate;
+  DateTime? get _endDate => _metadataState.endDate;
 
   final int _selectedSidebarIndex = -1; // Not a sidebar item
 
@@ -59,9 +57,6 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   bool get _isAdmin => _userChrome.isAdmin;
 
   late TextEditingController _nameController;
-  late String _selectedPlanType;
-  DateTime? _startDate;
-  DateTime? _endDate;
 
   GoogleMapController? _mapController;
   Set<Marker> get _markers => ref
@@ -92,7 +87,6 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   // reads for rendering). Omitted rather than left as dead code that
   // `flutter analyze` would flag as an unused_element.
   Set<Polyline> get _editPolylines => _editMapState.polylines;
-  String? get _editEncodedPolyline => _editMapState.encodedPolyline;
   bool get _isEditComputingRoute => _editMapState.isComputingRoute;
 
   bool _editFormExpanded = false;
@@ -102,22 +96,13 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _tripPlanService = ref.read(tripPlanServiceProvider);
-    _tripService = ref.read(tripServiceProvider);
-    _directionsClient = ref.read(googleDirectionsApiClientProvider);
-    ref
-        .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
-        .seedInitialTripPlan(widget.tripPlan);
+    final notifier = ref
+        .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier);
+    notifier.seedInitialTripPlan(widget.tripPlan);
+    notifier.seedMetadataFromPlan(widget.tripPlan);
     _nameController = TextEditingController(text: _tripPlan.name);
-    _selectedPlanType = _tripPlan.planType;
-    _startDate = _tripPlan.startDate;
-    _endDate = _tripPlan.endDate;
-    ref
-        .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
-        .initEditLocations();
-    ref
-        .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
-        .updateViewMapData(onWaypointTap: _showWaypointOptions);
+    notifier.initEditLocations();
+    notifier.updateViewMapData(onWaypointTap: _showWaypointOptions);
     ref.read(userChromeNotifierProvider.notifier).loadUserInfo();
   }
 
@@ -240,10 +225,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
       }
     }
     if (picked != null && mounted) {
-      setState(() {
-        _startDate = picked!.start;
-        _endDate = picked.end;
-      });
+      notifier.setDateRange(picked.start, picked.end);
     }
   }
 
@@ -252,72 +234,17 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
       UiHelpers.showErrorMessage(context, 'Name is required');
       return;
     }
-
-    setState(() => _isLoading = true);
-
+    final notifier = ref
+        .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier);
     try {
-      // Use the already-computed encoded polyline, or compute a fallback
-      String? encodedPolyline = _editEncodedPolyline;
-      if (encodedPolyline == null) {
-        final points = ref
-            .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
-            .buildEditOrderedPoints();
-        if (points.length >= 2) {
-          final result = await _directionsClient.getRoutePolyline(points);
-          encodedPolyline = result ?? PolylineCodec.encode(points);
-        }
-      }
-
-      final request = UpdateTripPlanRequest(
-        name: _nameController.text.trim(),
-        planType: _selectedPlanType,
-        startDate: _startDate,
-        endDate: _endDate,
-        startLocation: _editStartLocation != null
-            ? PlanLocation(
-                lat: _editStartLocation!.latitude,
-                lon: _editStartLocation!.longitude,
-              )
-            : _tripPlan.startLocation,
-        endLocation: _editEndLocation != null
-            ? PlanLocation(
-                lat: _editEndLocation!.latitude,
-                lon: _editEndLocation!.longitude,
-              )
-            : _tripPlan.endLocation,
-        waypoints: _editWaypoints
-            .map((w) => PlanLocation(lat: w.latitude, lon: w.longitude))
-            .toList(),
-        plannedPolyline: encodedPolyline,
-      );
-
-      final planId = await _tripPlanService.updateTripPlan(
-        _tripPlan.id,
-        request,
-      );
-
-      // Fetch the updated plan to get full details
-      final updatedPlan = await _tripPlanService.getTripPlanById(planId);
-
+      await notifier.saveChanges(name: _nameController.text.trim());
       if (mounted) {
-        ref
-            .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
-            .applyTripPlanOverride(updatedPlan);
-        setState(() {
-          _isEditing = false;
-          _isLoading = false;
-        });
-        ref
-            .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
-            .initEditLocations();
-        ref
-            .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
-            .updateViewMapData(onWaypointTap: _showWaypointOptions);
+        notifier.initEditLocations();
+        notifier.updateViewMapData(onWaypointTap: _showWaypointOptions);
         UiHelpers.showSuccessMessage(context, 'Trip plan updated successfully');
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isLoading = false);
         UiHelpers.showErrorMessage(context, 'Error updating trip plan: $e');
       }
     }
@@ -351,17 +278,16 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
 
     if (confirm != true || !mounted) return;
 
-    setState(() => _isLoading = true);
-
+    final notifier = ref
+        .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier);
     try {
-      await _tripPlanService.deleteTripPlan(_tripPlan.id);
+      await notifier.deleteTripPlan();
       if (mounted) {
         UiHelpers.showSuccessMessage(context, 'Trip plan deleted');
         Navigator.pop(context, true); // Return true to indicate deletion
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isLoading = false);
         UiHelpers.showErrorMessage(context, 'Error deleting trip plan: $e');
       }
     }
@@ -383,9 +309,9 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
     );
 
     try {
-      final tripId =
-          await _tripService.createTripFromPlan(_tripPlan.id, request);
-      final trip = await _tripService.getTripById(tripId);
+      final trip = await ref
+          .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
+          .createTripFromPlan(request);
 
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
@@ -404,6 +330,16 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
         UiHelpers.showErrorMessage(context, 'Error creating trip: $e');
       }
     }
+  }
+
+  void _enterEditMode() {
+    ref
+        .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
+        .enterEditMode();
+    setState(() {
+      _editFormExpanded = false;
+      _showEditWaypointsList = false;
+    });
   }
 
   @override
@@ -506,18 +442,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
                         .read(tripPlanDetailNotifierProvider(widget.tripPlan.id)
                             .notifier)
                         .setInfoCollapsed(!_isInfoCollapsed),
-                    onEdit: () {
-                      final notifier = ref.read(
-                          tripPlanDetailNotifierProvider(widget.tripPlan.id)
-                              .notifier);
-                      notifier.initEditLocations();
-                      notifier.initEditPolylines();
-                      setState(() {
-                        _isEditing = true;
-                        _editFormExpanded = false;
-                        _showEditWaypointsList = false;
-                      });
-                    },
+                    onEdit: _enterEditMode,
                     onDelete: _deleteTripPlan,
                     onCreateTrip: _createTripFromPlan,
                   ),
@@ -540,18 +465,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
                                     widget.tripPlan.id)
                                 .notifier)
                             .setInfoCollapsed(!_isInfoCollapsed),
-                        onEdit: () {
-                          final notifier = ref.read(
-                              tripPlanDetailNotifierProvider(widget.tripPlan.id)
-                                  .notifier);
-                          notifier.initEditLocations();
-                          notifier.initEditPolylines();
-                          setState(() {
-                            _isEditing = true;
-                            _editFormExpanded = false;
-                            _showEditWaypointsList = false;
-                          });
-                        },
+                        onEdit: _enterEditMode,
                         onDelete: _deleteTripPlan,
                         onCreateTrip: _createTripFromPlan,
                       ),
@@ -567,15 +481,12 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
 
   /// Cancels editing and restores state
   void _cancelEditing() {
-    ref
-        .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
-        .resetEditMapToSavedPlan();
+    final notifier = ref
+        .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier);
+    _nameController.text = _tripPlan.name;
+    notifier.exitEditModeWithoutSaving();
+    notifier.resetEditMapToSavedPlan();
     setState(() {
-      _isEditing = false;
-      _nameController.text = _tripPlan.name;
-      _selectedPlanType = _tripPlan.planType;
-      _startDate = _tripPlan.startDate;
-      _endDate = _tripPlan.endDate;
       _showEditWaypointsList = false;
       _isEditPanelCollapsed = false;
     });
@@ -1809,8 +1720,10 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
           final isSelected = _selectedPlanType == type['value'];
           return Expanded(
             child: GestureDetector(
-              onTap: () =>
-                  setState(() => _selectedPlanType = type['value'] as String),
+              onTap: () => ref
+                  .read(tripPlanDetailNotifierProvider(widget.tripPlan.id)
+                      .notifier)
+                  .setSelectedPlanType(type['value'] as String),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 10),

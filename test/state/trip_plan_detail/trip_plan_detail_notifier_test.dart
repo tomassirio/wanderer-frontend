@@ -3,15 +3,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/google_directions_api_client.dart';
+import 'package:wanderer_frontend/data/models/domain/trip.dart';
 import 'package:wanderer_frontend/data/models/domain/trip_plan.dart';
+import 'package:wanderer_frontend/data/models/requests/trip_from_plan_request.dart';
+import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
+import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/presentation/state/trip_plan_detail/trip_plan_detail_notifier.dart';
 import 'package:wanderer_frontend/presentation/state/trip_plan_detail/trip_plan_detail_state.dart';
 
 import 'trip_plan_detail_notifier_test.mocks.dart';
 
-@GenerateMocks([GoogleDirectionsApiClient])
+@GenerateMocks([GoogleDirectionsApiClient, TripPlanService, TripService])
 void main() {
   late TripPlan plan;
 
@@ -337,6 +342,202 @@ void main() {
       expect(editMap.startLocation, isNull);
       expect(editMap.polylines, isEmpty);
       expect(editMap.isComputingRoute, isFalse);
+    });
+  });
+
+  group('plan metadata + save/delete/create-from-plan lifecycle', () {
+    late MockTripPlanService mockTripPlanService;
+    late MockTripService mockTripService;
+    late MockGoogleDirectionsApiClient mockDirectionsClient;
+    late TripPlan plan;
+
+    setUp(() {
+      mockTripPlanService = MockTripPlanService();
+      mockTripService = MockTripService();
+      mockDirectionsClient = MockGoogleDirectionsApiClient();
+      plan = TripPlan(
+        id: 'plan-1',
+        userId: 'owner-1',
+        name: 'Hike',
+        planType: 'SIMPLE',
+        startDate: DateTime(2026, 6, 1),
+        endDate: DateTime(2026, 6, 3),
+        createdTimestamp: DateTime(2026, 1, 1),
+      );
+    });
+
+    ProviderContainer buildLifecycleContainer() {
+      final container = ProviderContainer(overrides: [
+        tripPlanServiceProvider.overrideWithValue(mockTripPlanService),
+        tripServiceProvider.overrideWithValue(mockTripService),
+        googleDirectionsApiClientProvider
+            .overrideWithValue(mockDirectionsClient),
+      ]);
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    test('seedMetadataFromPlan seeds planType/startDate/endDate', () {
+      final container = buildLifecycleContainer();
+      final notifier =
+          container.read(tripPlanDetailNotifierProvider('plan-1').notifier);
+      notifier.seedInitialTripPlan(plan);
+      notifier.seedMetadataFromPlan(plan);
+
+      final metadata =
+          container.read(tripPlanDetailNotifierProvider('plan-1')).metadata;
+      expect(metadata.selectedPlanType, 'SIMPLE');
+      expect(metadata.startDate, DateTime(2026, 6, 1));
+      expect(metadata.endDate, DateTime(2026, 6, 3));
+    });
+
+    test('enterEditMode seeds edit-map state and flips isEditing on',
+        () async {
+      final container = buildLifecycleContainer();
+      when(mockDirectionsClient.getRouteWithPoints(any))
+          .thenAnswer((_) async => null);
+      final notifier =
+          container.read(tripPlanDetailNotifierProvider('plan-1').notifier);
+      notifier.seedInitialTripPlan(plan);
+
+      await notifier.enterEditMode();
+
+      final state = container.read(tripPlanDetailNotifierProvider('plan-1'));
+      expect(state.metadata.isEditing, isTrue);
+      expect(state.metadata.selectedPlanType, 'SIMPLE');
+    });
+
+    test('setDateRange updates metadata dates', () {
+      final container = buildLifecycleContainer();
+      final notifier =
+          container.read(tripPlanDetailNotifierProvider('plan-1').notifier);
+      notifier.seedInitialTripPlan(plan);
+
+      notifier.setDateRange(DateTime(2026, 7, 1), DateTime(2026, 7, 5));
+
+      final metadata =
+          container.read(tripPlanDetailNotifierProvider('plan-1')).metadata;
+      expect(metadata.startDate, DateTime(2026, 7, 1));
+      expect(metadata.endDate, DateTime(2026, 7, 5));
+    });
+
+    test('saveChanges persists the plan and refetches it', () async {
+      final updatedPlan = TripPlan(
+        id: 'plan-1',
+        userId: 'owner-1',
+        name: 'Renamed Hike',
+        planType: 'SIMPLE',
+        createdTimestamp: DateTime(2026, 1, 1),
+      );
+      when(mockTripPlanService.updateTripPlan('plan-1', any))
+          .thenAnswer((_) async => 'plan-1');
+      when(mockTripPlanService.getTripPlanById('plan-1'))
+          .thenAnswer((_) async => updatedPlan);
+
+      final container = buildLifecycleContainer();
+      final notifier =
+          container.read(tripPlanDetailNotifierProvider('plan-1').notifier);
+      notifier.seedInitialTripPlan(plan);
+
+      await notifier.saveChanges(name: 'Renamed Hike');
+
+      final state = container.read(tripPlanDetailNotifierProvider('plan-1'));
+      expect(state.tripPlan.name, 'Renamed Hike');
+      expect(state.metadata.isEditing, isFalse);
+      expect(state.metadata.isLoading, isFalse);
+    });
+
+    test('saveChanges resets isLoading and rethrows on failure', () async {
+      when(mockTripPlanService.updateTripPlan('plan-1', any))
+          .thenThrow(Exception('network down'));
+
+      final container = buildLifecycleContainer();
+      final notifier =
+          container.read(tripPlanDetailNotifierProvider('plan-1').notifier);
+      notifier.seedInitialTripPlan(plan);
+
+      await expectLater(
+        notifier.saveChanges(name: 'Renamed Hike'),
+        throwsException,
+      );
+      expect(
+        container
+            .read(tripPlanDetailNotifierProvider('plan-1'))
+            .metadata
+            .isLoading,
+        isFalse,
+      );
+    });
+
+    test('deleteTripPlan calls the service and resets isLoading on failure',
+        () async {
+      when(mockTripPlanService.deleteTripPlan('plan-1'))
+          .thenThrow(Exception('network down'));
+
+      final container = buildLifecycleContainer();
+      final notifier =
+          container.read(tripPlanDetailNotifierProvider('plan-1').notifier);
+      notifier.seedInitialTripPlan(plan);
+
+      await expectLater(notifier.deleteTripPlan(), throwsException);
+      expect(
+        container
+            .read(tripPlanDetailNotifierProvider('plan-1'))
+            .metadata
+            .isLoading,
+        isFalse,
+      );
+    });
+
+    test('createTripFromPlan creates then fetches the new trip', () async {
+      final newTrip = Trip(
+        id: 'trip-9',
+        userId: 'owner-1',
+        username: 'owner',
+        name: 'Hike Trip',
+        status: TripStatus.created,
+        visibility: Visibility.public,
+        createdAt: DateTime(2026, 1, 1),
+        updatedAt: DateTime(2026, 1, 1),
+      );
+      when(mockTripService.createTripFromPlan('plan-1', any))
+          .thenAnswer((_) async => 'trip-9');
+      when(mockTripService.getTripById('trip-9'))
+          .thenAnswer((_) async => newTrip);
+
+      final container = buildLifecycleContainer();
+      final notifier =
+          container.read(tripPlanDetailNotifierProvider('plan-1').notifier);
+      notifier.seedInitialTripPlan(plan);
+
+      final trip = await notifier.createTripFromPlan(
+        TripFromPlanRequest(
+          visibility: Visibility.public,
+          tripModality: TripModality.simple,
+        ),
+      );
+
+      expect(trip.id, 'trip-9');
+    });
+
+    test(
+        'exitEditModeWithoutSaving resets metadata to the trip plan\'s '
+        'saved values', () {
+      final container = buildLifecycleContainer();
+      final notifier =
+          container.read(tripPlanDetailNotifierProvider('plan-1').notifier);
+      notifier.seedInitialTripPlan(plan);
+      notifier.setSelectedPlanType('MULTI_DAY');
+      notifier.setDateRange(DateTime(2030, 1, 1), DateTime(2030, 1, 2));
+
+      notifier.exitEditModeWithoutSaving();
+
+      final metadata =
+          container.read(tripPlanDetailNotifierProvider('plan-1')).metadata;
+      expect(metadata.isEditing, isFalse);
+      expect(metadata.selectedPlanType, 'SIMPLE');
+      expect(metadata.startDate, DateTime(2026, 6, 1));
+      expect(metadata.endDate, DateTime(2026, 6, 3));
     });
   });
 }

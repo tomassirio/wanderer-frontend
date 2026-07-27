@@ -3,12 +3,17 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i3;
+import 'dart:async' as _i5;
 
-import 'package:google_maps_flutter/google_maps_flutter.dart' as _i4;
+import 'package:google_maps_flutter/google_maps_flutter.dart' as _i6;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:wanderer_frontend/data/client/google_directions_api_client.dart'
-    as _i2;
+import 'package:mockito/src/dummies.dart' as _i8;
+import 'package:wanderer_frontend/data/client/clients.dart' as _i4;
+import 'package:wanderer_frontend/data/models/responses/page_response.dart'
+    as _i3;
+import 'package:wanderer_frontend/data/models/trip_models.dart' as _i2;
+import 'package:wanderer_frontend/data/services/trip_plan_service.dart' as _i7;
+import 'package:wanderer_frontend/data/services/trip_service.dart' as _i9;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -25,35 +30,66 @@ import 'package:wanderer_frontend/data/client/google_directions_api_client.dart'
 // ignore_for_file: subtype_of_sealed_class
 // ignore_for_file: invalid_use_of_internal_member
 
+class _FakeTripPlan_0 extends _i1.SmartFake implements _i2.TripPlan {
+  _FakeTripPlan_0(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakePageResponse_1<T> extends _i1.SmartFake
+    implements _i3.PageResponse<T> {
+  _FakePageResponse_1(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeTrip_2 extends _i1.SmartFake implements _i2.Trip {
+  _FakeTrip_2(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
 /// A class which mocks [GoogleDirectionsApiClient].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockGoogleDirectionsApiClient extends _i1.Mock
-    implements _i2.GoogleDirectionsApiClient {
+    implements _i4.GoogleDirectionsApiClient {
   MockGoogleDirectionsApiClient() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i3.Future<String?> getRoutePolyline(List<_i4.LatLng>? points) =>
+  _i5.Future<String?> getRoutePolyline(List<_i6.LatLng>? points) =>
       (super.noSuchMethod(
         Invocation.method(
           #getRoutePolyline,
           [points],
         ),
-        returnValue: _i3.Future<String?>.value(),
-      ) as _i3.Future<String?>);
+        returnValue: _i5.Future<String?>.value(),
+      ) as _i5.Future<String?>);
 
   @override
-  _i3.Future<_i2.DirectionsResult?> getRouteWithPoints(
-          List<_i4.LatLng>? points) =>
+  _i5.Future<_i4.DirectionsResult?> getRouteWithPoints(
+          List<_i6.LatLng>? points) =>
       (super.noSuchMethod(
         Invocation.method(
           #getRouteWithPoints,
           [points],
         ),
-        returnValue: _i3.Future<_i2.DirectionsResult?>.value(),
-      ) as _i3.Future<_i2.DirectionsResult?>);
+        returnValue: _i5.Future<_i4.DirectionsResult?>.value(),
+      ) as _i5.Future<_i4.DirectionsResult?>);
 
   @override
   void dispose() => super.noSuchMethod(
@@ -63,4 +99,572 @@ class MockGoogleDirectionsApiClient extends _i1.Mock
         ),
         returnValueForMissingStub: null,
       );
+}
+
+/// A class which mocks [TripPlanService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockTripPlanService extends _i1.Mock implements _i7.TripPlanService {
+  MockTripPlanService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i5.Future<List<_i2.TripPlan>> getUserTripPlans() => (super.noSuchMethod(
+        Invocation.method(
+          #getUserTripPlans,
+          [],
+        ),
+        returnValue: _i5.Future<List<_i2.TripPlan>>.value(<_i2.TripPlan>[]),
+      ) as _i5.Future<List<_i2.TripPlan>>);
+
+  @override
+  _i5.Future<_i2.TripPlan> getTripPlanById(String? planId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getTripPlanById,
+          [planId],
+        ),
+        returnValue: _i5.Future<_i2.TripPlan>.value(_FakeTripPlan_0(
+          this,
+          Invocation.method(
+            #getTripPlanById,
+            [planId],
+          ),
+        )),
+      ) as _i5.Future<_i2.TripPlan>);
+
+  @override
+  _i5.Future<String> createTripPlan(_i2.CreateTripPlanRequest? request) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #createTripPlan,
+          [request],
+        ),
+        returnValue: _i5.Future<String>.value(_i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #createTripPlan,
+            [request],
+          ),
+        )),
+      ) as _i5.Future<String>);
+
+  @override
+  _i5.Future<String> updateTripPlan(
+    String? planId,
+    _i2.UpdateTripPlanRequest? request,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #updateTripPlan,
+          [
+            planId,
+            request,
+          ],
+        ),
+        returnValue: _i5.Future<String>.value(_i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #updateTripPlan,
+            [
+              planId,
+              request,
+            ],
+          ),
+        )),
+      ) as _i5.Future<String>);
+
+  @override
+  _i5.Future<String> deleteTripPlan(String? planId) => (super.noSuchMethod(
+        Invocation.method(
+          #deleteTripPlan,
+          [planId],
+        ),
+        returnValue: _i5.Future<String>.value(_i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #deleteTripPlan,
+            [planId],
+          ),
+        )),
+      ) as _i5.Future<String>);
+
+  @override
+  _i5.Future<String> createTripPlanBackend(
+          _i2.CreateTripPlanBackendRequest? request) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #createTripPlanBackend,
+          [request],
+        ),
+        returnValue: _i5.Future<String>.value(_i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #createTripPlanBackend,
+            [request],
+          ),
+        )),
+      ) as _i5.Future<String>);
+}
+
+/// A class which mocks [TripService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockTripService extends _i1.Mock implements _i9.TripService {
+  MockTripService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i5.Future<_i3.PageResponse<_i2.Trip>> getMyTrips({
+    int? page = 0,
+    int? size = 20,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getMyTrips,
+          [],
+          {
+            #page: page,
+            #size: size,
+          },
+        ),
+        returnValue: _i5.Future<_i3.PageResponse<_i2.Trip>>.value(
+            _FakePageResponse_1<_i2.Trip>(
+          this,
+          Invocation.method(
+            #getMyTrips,
+            [],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i5.Future<_i3.PageResponse<_i2.Trip>>);
+
+  @override
+  _i5.Future<_i2.Trip> getTripById(String? tripId) => (super.noSuchMethod(
+        Invocation.method(
+          #getTripById,
+          [tripId],
+        ),
+        returnValue: _i5.Future<_i2.Trip>.value(_FakeTrip_2(
+          this,
+          Invocation.method(
+            #getTripById,
+            [tripId],
+          ),
+        )),
+      ) as _i5.Future<_i2.Trip>);
+
+  @override
+  _i5.Future<_i2.Trip> getPublicTripById(String? tripId) => (super.noSuchMethod(
+        Invocation.method(
+          #getPublicTripById,
+          [tripId],
+        ),
+        returnValue: _i5.Future<_i2.Trip>.value(_FakeTrip_2(
+          this,
+          Invocation.method(
+            #getPublicTripById,
+            [tripId],
+          ),
+        )),
+      ) as _i5.Future<_i2.Trip>);
+
+  @override
+  _i5.Future<_i3.PageResponse<_i2.Trip>> getAllTrips({
+    int? page = 0,
+    int? size = 20,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getAllTrips,
+          [],
+          {
+            #page: page,
+            #size: size,
+          },
+        ),
+        returnValue: _i5.Future<_i3.PageResponse<_i2.Trip>>.value(
+            _FakePageResponse_1<_i2.Trip>(
+          this,
+          Invocation.method(
+            #getAllTrips,
+            [],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i5.Future<_i3.PageResponse<_i2.Trip>>);
+
+  @override
+  _i5.Future<_i3.PageResponse<_i2.Trip>> getPublicTrips({
+    int? page = 0,
+    int? size = 20,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getPublicTrips,
+          [],
+          {
+            #page: page,
+            #size: size,
+          },
+        ),
+        returnValue: _i5.Future<_i3.PageResponse<_i2.Trip>>.value(
+            _FakePageResponse_1<_i2.Trip>(
+          this,
+          Invocation.method(
+            #getPublicTrips,
+            [],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i5.Future<_i3.PageResponse<_i2.Trip>>);
+
+  @override
+  _i5.Future<_i3.PageResponse<_i2.Trip>> getAvailableTrips({
+    int? page = 0,
+    int? size = 20,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getAvailableTrips,
+          [],
+          {
+            #page: page,
+            #size: size,
+          },
+        ),
+        returnValue: _i5.Future<_i3.PageResponse<_i2.Trip>>.value(
+            _FakePageResponse_1<_i2.Trip>(
+          this,
+          Invocation.method(
+            #getAvailableTrips,
+            [],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i5.Future<_i3.PageResponse<_i2.Trip>>);
+
+  @override
+  _i5.Future<_i3.PageResponse<_i2.Trip>> getUserTrips(
+    String? userId, {
+    int? page = 0,
+    int? size = 20,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getUserTrips,
+          [userId],
+          {
+            #page: page,
+            #size: size,
+          },
+        ),
+        returnValue: _i5.Future<_i3.PageResponse<_i2.Trip>>.value(
+            _FakePageResponse_1<_i2.Trip>(
+          this,
+          Invocation.method(
+            #getUserTrips,
+            [userId],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i5.Future<_i3.PageResponse<_i2.Trip>>);
+
+  @override
+  _i5.Future<String> createTrip(_i2.CreateTripRequest? request) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #createTrip,
+          [request],
+        ),
+        returnValue: _i5.Future<String>.value(_i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #createTrip,
+            [request],
+          ),
+        )),
+      ) as _i5.Future<String>);
+
+  @override
+  _i5.Future<String> updateTrip(
+    String? tripId,
+    _i2.UpdateTripRequest? request,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #updateTrip,
+          [
+            tripId,
+            request,
+          ],
+        ),
+        returnValue: _i5.Future<String>.value(_i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #updateTrip,
+            [
+              tripId,
+              request,
+            ],
+          ),
+        )),
+      ) as _i5.Future<String>);
+
+  @override
+  _i5.Future<String> changeVisibility(
+    String? tripId,
+    _i2.ChangeVisibilityRequest? request,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #changeVisibility,
+          [
+            tripId,
+            request,
+          ],
+        ),
+        returnValue: _i5.Future<String>.value(_i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #changeVisibility,
+            [
+              tripId,
+              request,
+            ],
+          ),
+        )),
+      ) as _i5.Future<String>);
+
+  @override
+  _i5.Future<String> changeStatus(
+    String? tripId,
+    _i2.ChangeStatusRequest? request,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #changeStatus,
+          [
+            tripId,
+            request,
+          ],
+        ),
+        returnValue: _i5.Future<String>.value(_i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #changeStatus,
+            [
+              tripId,
+              request,
+            ],
+          ),
+        )),
+      ) as _i5.Future<String>);
+
+  @override
+  _i5.Future<String> changeSettings(
+    String? tripId,
+    _i2.ChangeTripSettingsRequest? request,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #changeSettings,
+          [
+            tripId,
+            request,
+          ],
+        ),
+        returnValue: _i5.Future<String>.value(_i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #changeSettings,
+            [
+              tripId,
+              request,
+            ],
+          ),
+        )),
+      ) as _i5.Future<String>);
+
+  @override
+  _i5.Future<String> toggleDay(String? tripId) => (super.noSuchMethod(
+        Invocation.method(
+          #toggleDay,
+          [tripId],
+        ),
+        returnValue: _i5.Future<String>.value(_i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #toggleDay,
+            [tripId],
+          ),
+        )),
+      ) as _i5.Future<String>);
+
+  @override
+  _i5.Future<String> deleteTrip(String? tripId) => (super.noSuchMethod(
+        Invocation.method(
+          #deleteTrip,
+          [tripId],
+        ),
+        returnValue: _i5.Future<String>.value(_i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #deleteTrip,
+            [tripId],
+          ),
+        )),
+      ) as _i5.Future<String>);
+
+  @override
+  _i5.Future<String> createTripFromPlan(
+    String? tripPlanId,
+    _i2.TripFromPlanRequest? request,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #createTripFromPlan,
+          [
+            tripPlanId,
+            request,
+          ],
+        ),
+        returnValue: _i5.Future<String>.value(_i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #createTripFromPlan,
+            [
+              tripPlanId,
+              request,
+            ],
+          ),
+        )),
+      ) as _i5.Future<String>);
+
+  @override
+  _i5.Future<String> sendTripUpdate(
+    String? tripId,
+    _i2.TripUpdateRequest? request,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #sendTripUpdate,
+          [
+            tripId,
+            request,
+          ],
+        ),
+        returnValue: _i5.Future<String>.value(_i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #sendTripUpdate,
+            [
+              tripId,
+              request,
+            ],
+          ),
+        )),
+      ) as _i5.Future<String>);
+
+  @override
+  _i5.Future<String> createTripPlan(_i2.CreateTripPlanRequest? request) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #createTripPlan,
+          [request],
+        ),
+        returnValue: _i5.Future<String>.value(_i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #createTripPlan,
+            [request],
+          ),
+        )),
+      ) as _i5.Future<String>);
+
+  @override
+  _i5.Future<String> updateTripPlan(
+    String? planId,
+    _i2.UpdateTripPlanRequest? request,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #updateTripPlan,
+          [
+            planId,
+            request,
+          ],
+        ),
+        returnValue: _i5.Future<String>.value(_i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #updateTripPlan,
+            [
+              planId,
+              request,
+            ],
+          ),
+        )),
+      ) as _i5.Future<String>);
+
+  @override
+  _i5.Future<String> deleteTripPlan(String? planId) => (super.noSuchMethod(
+        Invocation.method(
+          #deleteTripPlan,
+          [planId],
+        ),
+        returnValue: _i5.Future<String>.value(_i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #deleteTripPlan,
+            [planId],
+          ),
+        )),
+      ) as _i5.Future<String>);
+
+  @override
+  _i5.Future<_i3.PageResponse<_i2.TripLocation>> getTripUpdates(
+    String? tripId, {
+    int? page = 0,
+    int? size = 50,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getTripUpdates,
+          [tripId],
+          {
+            #page: page,
+            #size: size,
+          },
+        ),
+        returnValue: _i5.Future<_i3.PageResponse<_i2.TripLocation>>.value(
+            _FakePageResponse_1<_i2.TripLocation>(
+          this,
+          Invocation.method(
+            #getTripUpdates,
+            [tripId],
+            {
+              #page: page,
+              #size: size,
+            },
+          ),
+        )),
+      ) as _i5.Future<_i3.PageResponse<_i2.TripLocation>>);
 }
