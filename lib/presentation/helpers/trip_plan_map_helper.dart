@@ -256,6 +256,28 @@ class TripPlanMapHelper {
       northeast: LatLng(maxLat, maxLng),
     );
   }
+
+  /// Calculates bounds to fit a list of raw points (e.g. edit-mode
+  /// start/end/waypoints, which aren't wrapped in Markers). Callers that
+  /// require a minimum point count (the two current callers both require
+  /// at least 2) keep that check themselves, matching their pre-existing
+  /// guard style — this helper only handles the empty case.
+  static LatLngBounds? calculateBoundsForPoints(List<LatLng> points) {
+    if (points.isEmpty) return null;
+
+    double minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+    for (final p in points) {
+      if (p.latitude < minLat) minLat = p.latitude;
+      if (p.latitude > maxLat) maxLat = p.latitude;
+      if (p.longitude < minLng) minLng = p.longitude;
+      if (p.longitude > maxLng) maxLng = p.longitude;
+    }
+
+    return LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
+    );
+  }
 }
 
 /// Data class holding map markers and polylines for trip plans
