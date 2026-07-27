@@ -145,7 +145,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       ref.watch(tripDetailNotifierProvider(widget.trip.id)).identity.avatarUrl;
   bool get _isAdmin =>
       ref.watch(tripDetailNotifierProvider(widget.trip.id)).identity.isAdmin;
-  bool _isLoggedIn = false;
+  bool get _isLoggedIn =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).identity.isLoggedIn;
 
   // Track social interactions
   bool get _isFollowingTripOwner => ref
@@ -311,16 +312,17 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       ref
           .read(tripDetailNotifierProvider(widget.trip.id).notifier)
           .setMapLoading(false);
+      ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .markInitialMapPositionSet();
     }
-    ref
-        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-        .markInitialMapPositionSet();
   }
 
   Future<void> _initWebSocket() async {
     debugPrint('TripDetailScreen: Initializing WebSocket for trip ${_trip.id}');
     // Connect to WebSocket server first
     await _webSocketService.connect();
+    if (!mounted) return;
     // Subscribe to events for this specific trip
     final tripStream = _webSocketService.subscribeToTrip(_trip.id);
     _wsSubscription = tripStream.listen(_handleWebSocketEvent);
@@ -777,6 +779,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     await ref
         .read(tripDetailNotifierProvider(widget.trip.id).notifier)
         .loadUserInfo();
+    if (!mounted) return;
 
     _maybeShowTripDetailTutorial();
 
@@ -891,14 +894,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     await ref
         .read(tripDetailNotifierProvider(widget.trip.id).notifier)
         .checkLoginStatus();
-    if (mounted) {
-      setState(() {
-        _isLoggedIn = ref
-            .read(tripDetailNotifierProvider(widget.trip.id))
-            .identity
-            .isLoggedIn;
-      });
-    }
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadTripUpdates() async {
@@ -1119,6 +1115,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       await ref
           .read(tripDetailNotifierProvider(widget.trip.id).notifier)
           .changeTripStatus(newStatus, isMultiDay: _trip.tripModality == TripModality.multiDay);
+      if (!mounted) return;
 
       if (_isAndroid) {
         final backgroundManager = BackgroundUpdateManager();
@@ -1283,6 +1280,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         await ref
             .read(tripDetailNotifierProvider(widget.trip.id).notifier)
             .toggleDay(isFinishingDay: true);
+        if (!mounted) return false;
 
         if (_isAndroid) {
           final backgroundManager = BackgroundUpdateManager();
@@ -1307,10 +1305,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         await ref
             .read(tripDetailNotifierProvider(widget.trip.id).notifier)
             .toggleDay(isFinishingDay: false);
+        if (!mounted) return false;
 
         if (_isAndroid && _trip.automaticUpdates) {
           final hasPermission =
               await _ensureLocationPermission(requireBackground: true);
+          if (!mounted) return false;
           if (hasPermission) {
             final backgroundManager = BackgroundUpdateManager();
             await backgroundManager.startAutoUpdates(
@@ -1358,6 +1358,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       await ref
           .read(tripDetailNotifierProvider(widget.trip.id).notifier)
           .changeTripSettings(automaticUpdates, updateRefresh, tripModality);
+      if (!mounted) return;
 
       if (_isAndroid && _trip.status == TripStatus.inProgress) {
         final backgroundManager = BackgroundUpdateManager();
