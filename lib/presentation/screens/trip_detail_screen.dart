@@ -14,7 +14,6 @@ import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/data/models/achievement_models.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
-import 'package:wanderer_frontend/data/models/domain/location_update_result.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/core/services/background_update_manager.dart';
@@ -121,8 +120,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       ref.watch(tripDetailNotifierProvider(widget.trip.id)).comments.isLoadingComments;
   bool get _isAddingComment =>
       ref.watch(tripDetailNotifierProvider(widget.trip.id)).comments.isAddingComment;
-  bool _isChangingStatus = false;
-  bool _isChangingSettings = false;
+  bool get _isChangingStatus =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).lifecycle.isChangingStatus;
+  bool get _isChangingSettings => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .lifecycle
+      .isChangingSettings;
   String? get _replyingToCommentId => ref
       .watch(tripDetailNotifierProvider(widget.trip.id))
       .comments
@@ -179,7 +182,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   bool _isTripInfoCollapsed = false;
   bool _isTripUpdateCollapsed = true;
   bool _isTripSettingsCollapsed = true;
-  bool _isSendingUpdate = false;
+  bool get _isSendingUpdate =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).lifecycle.isSendingUpdate;
   bool _hasInitializedPanelStates = false;
 
   // Multi-day trip: current day derived from backend's currentDay field
@@ -1095,7 +1099,6 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   Future<void> _changeTripStatus(TripStatus newStatus) async {
-    // Validate that user is the trip owner
     if (_userId == null || _trip.userId != _userId) {
       if (mounted) {
         UiHelpers.showErrorMessage(
@@ -1104,101 +1107,38 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       return;
     }
 
-    setState(() => _isChangingStatus = true);
-
-    // Capture previous status before async gap — WebSocket may update _trip
-    // before the optimistic setState below runs.
-    final previousStatus = _trip.status;
-    final isMultiDay = _trip.tripModality == TripModality.multiDay;
+    if (newStatus == TripStatus.inProgress &&
+        _trip.automaticUpdates &&
+        _isAndroid) {
+      final hasPermission =
+          await _ensureLocationPermission(requireBackground: true);
+      if (!hasPermission) return;
+    }
 
     try {
-      // If starting/resuming with automatic updates, ensure background location
-      // permission is granted (shows prominent disclosure on Android).
-      if (newStatus == TripStatus.inProgress &&
-          _trip.automaticUpdates &&
-          _isAndroid) {
-        final hasPermission =
-            await _ensureLocationPermission(requireBackground: true);
-        if (!hasPermission) {
-          setState(() => _isChangingStatus = false);
-          return;
-        }
-      }
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .changeTripStatus(newStatus, isMultiDay: _trip.tripModality == TripModality.multiDay);
 
-      await _repository.changeTripStatus(_trip.id, newStatus);
-
-      // Send lifecycle trip update with GPS location (fire-and-forget)
-      // Backend no longer auto-creates these, so frontend sends them with location data
-      if (newStatus == TripStatus.inProgress &&
-          previousStatus == TripStatus.created) {
-        _repository
-            .sendLifecycleUpdate(
-          _trip.id,
-          updateType: TripUpdateType.tripStarted,
-          message: 'Trip Started!',
-        )
-            .catchError((e) {
-          debugPrint('Failed to send TRIP_STARTED update: $e');
-          return LocationUpdateResult.failure(
-              LocationFailureReason.unknownError);
-        });
-      } else if (newStatus == TripStatus.finished) {
-        _repository
-            .sendLifecycleUpdate(
-          _trip.id,
-          updateType: TripUpdateType.tripEnded,
-          message: 'Trip finished.',
-        )
-            .catchError((e) {
-          debugPrint('Failed to send TRIP_ENDED update: $e');
-          return LocationUpdateResult.failure(
-              LocationFailureReason.unknownError);
-        });
-      }
-
-      // Update local state optimistically - WebSocket will confirm the change
-      setState(() {
-        ref
-            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-            .applyTripOverride(
-              _trip.copyWith(
-                status: newStatus,
-                // When starting a multi-day trip, set currentDay to 1
-                // immediately so the "Day 1" badge shows right away in
-                // the trip info card.
-                currentDay: (newStatus == TripStatus.inProgress &&
-                        previousStatus == TripStatus.created &&
-                        isMultiDay &&
-                        _trip.currentDay == null)
-                    ? 1
-                    : null,
-              ),
-            );
-        _isChangingStatus = false;
-      });
-
-      // Manage background updates based on new status (Android only)
       if (_isAndroid) {
         final backgroundManager = BackgroundUpdateManager();
         if (newStatus == TripStatus.inProgress && _trip.automaticUpdates) {
-          // Start automatic updates when trip starts/resumes AND automatic updates is enabled
           await backgroundManager.startAutoUpdates(
             _trip.id,
             _trip.name,
             _trip.effectiveUpdateRefresh,
           );
         } else {
-          // Stop automatic updates when trip is paused/finished or automatic updates is disabled
           await backgroundManager.stopAutoUpdates(_trip.id);
         }
       }
 
-      // When starting a trip, center the map on the user's current location
       if (newStatus == TripStatus.inProgress) {
         await _centerMapOnCurrentLocation();
       }
 
       if (mounted) {
+        setState(() {});
         String message;
         switch (newStatus) {
           case TripStatus.inProgress:
@@ -1220,15 +1160,14 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         UiHelpers.showSuccessMessage(context, message);
       }
     } catch (e) {
-      setState(() => _isChangingStatus = false);
       if (mounted) {
+        setState(() {});
         UiHelpers.showErrorMessage(context, friendlyMessage(e));
       }
     }
   }
 
   Future<void> _changeTripVisibility(Visibility newVisibility) async {
-    // Validate that user is the trip owner
     if (_userId == null || _trip.userId != _userId) {
       if (mounted) {
         UiHelpers.showErrorMessage(
@@ -1238,16 +1177,11 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     }
 
     try {
-      await _repository.changeTripVisibility(_trip.id, newVisibility);
-
-      // Update local state optimistically - WebSocket will confirm the change
-      setState(() {
-        ref
-            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-            .applyTripOverride(_trip.copyWith(visibility: newVisibility));
-      });
-
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .changeTripVisibility(newVisibility);
       if (mounted) {
+        setState(() {});
         UiHelpers.showSuccessMessage(
           context,
           'Visibility changed to ${newVisibility.toJson()}',
@@ -1292,7 +1226,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     if (confirm != true || !mounted) return;
 
     try {
-      await _repository.deleteTrip(_trip.id);
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .deleteTrip();
       if (mounted) {
         UiHelpers.showSuccessMessage(context, 'Trip deleted');
         Navigator.of(context).pushAndRemoveUntil(
@@ -1343,85 +1279,35 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
       if (confirmed != true || !mounted) return false;
 
-      setState(() => _isChangingStatus = true);
-
       try {
-        await _repository.toggleDay(_trip.id);
+        await ref
+            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+            .toggleDay(isFinishingDay: true);
 
-        // Send DAY_END lifecycle update with GPS location (fire-and-forget)
-        _repository
-            .sendLifecycleUpdate(
-          _trip.id,
-          updateType: TripUpdateType.dayEnd,
-          message: 'Day $_currentDay finished',
-        )
-            .catchError((e) {
-          debugPrint('Failed to send DAY_END update: $e');
-          return LocationUpdateResult.failure(
-              LocationFailureReason.unknownError);
-        });
-
-        // Update local state optimistically — WebSocket will confirm
-        setState(() {
-          ref
-              .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-              .applyTripOverride(_trip.copyWith(status: TripStatus.resting));
-          _isChangingStatus = false;
-        });
-
-        // Stop background updates while resting (Android only)
         if (_isAndroid) {
           final backgroundManager = BackgroundUpdateManager();
           await backgroundManager.stopAutoUpdates(_trip.id);
         }
 
-        // Refresh timeline to show the day-end marker
         if (mounted) {
+          setState(() {});
           UiHelpers.showSuccessMessage(context, 'Resting for the night');
           await _loadTripUpdates();
         }
         return true;
       } catch (e) {
-        setState(() => _isChangingStatus = false);
         if (mounted) {
+          setState(() {});
           UiHelpers.showErrorMessage(context, 'Error ending day: $e');
         }
         return false;
       }
     } else if (_trip.status == TripStatus.resting) {
-      // --- Begin Day: no confirmation needed → toggle day ---
-      setState(() => _isChangingStatus = true);
-
       try {
-        await _repository.toggleDay(_trip.id);
+        await ref
+            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+            .toggleDay(isFinishingDay: false);
 
-        // Send DAY_START lifecycle update with GPS location (fire-and-forget)
-        _repository
-            .sendLifecycleUpdate(
-          _trip.id,
-          updateType: TripUpdateType.dayStart,
-          message: 'Day ${_currentDay + 1} started!',
-        )
-            .catchError((e) {
-          debugPrint('Failed to send DAY_START update: $e');
-          return LocationUpdateResult.failure(
-              LocationFailureReason.unknownError);
-        });
-
-        // Update local state optimistically — WebSocket will confirm
-        setState(() {
-          ref
-              .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-              .applyTripOverride(
-                _trip.copyWith(
-                  status: TripStatus.inProgress,
-                  currentDay: _currentDay + 1,
-                ),
-              );
-          _isChangingStatus = false;
-        });
-
-        // Resume background updates if enabled (Android only)
         if (_isAndroid && _trip.automaticUpdates) {
           final hasPermission =
               await _ensureLocationPermission(requireBackground: true);
@@ -1435,15 +1321,15 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           }
         }
 
-        // Refresh timeline to show the day-start marker
         if (mounted) {
+          setState(() {});
           UiHelpers.showSuccessMessage(context, 'Day $_currentDay started!');
           await _loadTripUpdates();
         }
         return true;
       } catch (e) {
-        setState(() => _isChangingStatus = false);
         if (mounted) {
+          setState(() {});
           UiHelpers.showErrorMessage(context, 'Error starting day: $e');
         }
         return false;
@@ -1454,7 +1340,6 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
   Future<void> _handleSettingsChange(bool automaticUpdates, int? updateRefresh,
       TripModality? tripModality) async {
-    // Only trip owner can change settings
     if (_userId == null || _trip.userId != _userId) {
       if (mounted) {
         UiHelpers.showErrorMessage(
@@ -1463,61 +1348,35 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       return;
     }
 
-    setState(() => _isChangingSettings = true);
+    if (automaticUpdates && _isAndroid) {
+      final hasPermission =
+          await _ensureLocationPermission(requireBackground: true);
+      if (!hasPermission) return;
+    }
 
     try {
-      // If enabling automatic updates on Android, ensure background location
-      // permission is granted (shows prominent disclosure).
-      if (automaticUpdates && _isAndroid) {
-        final hasPermission =
-            await _ensureLocationPermission(requireBackground: true);
-        if (!hasPermission) {
-          setState(() => _isChangingSettings = false);
-          return;
-        }
-      }
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .changeTripSettings(automaticUpdates, updateRefresh, tripModality);
 
-      await _repository.changeTripSettings(
-        _trip.id,
-        automaticUpdates,
-        updateRefresh,
-        tripModality: tripModality,
-      );
-
-      // Update local state optimistically - WebSocket will confirm the change
-      setState(() {
-        ref
-            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-            .applyTripOverride(
-              _trip.copyWith(
-                automaticUpdates: automaticUpdates,
-                updateRefresh: updateRefresh,
-                tripModality: tripModality ?? _trip.tripModality,
-              ),
-            );
-        _isChangingSettings = false;
-      });
-
-      // Manage background updates based on new settings (Android only)
       if (_isAndroid && _trip.status == TripStatus.inProgress) {
         final backgroundManager = BackgroundUpdateManager();
         if (automaticUpdates && updateRefresh != null) {
-          // Start/restart automatic updates with new interval
           await backgroundManager.startAutoUpdates(
               _trip.id, _trip.name, updateRefresh);
         } else {
-          // Stop automatic updates when disabled
           await backgroundManager.stopAutoUpdates(_trip.id);
         }
       }
 
       if (mounted) {
+        setState(() {});
         UiHelpers.showSuccessMessage(
             context, 'Trip settings updated successfully');
       }
     } catch (e) {
-      setState(() => _isChangingSettings = false);
       if (mounted) {
+        setState(() {});
         UiHelpers.showErrorMessage(context, 'Error updating settings: $e');
       }
     }
@@ -1586,31 +1445,22 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   Future<void> _sendManualUpdate(String? message) async {
-    setState(() => _isSendingUpdate = true);
-
     try {
-      // Ensure location permissions are granted before calling the service.
-      // The service intentionally does NOT request permissions (it's a UI concern).
       final permissionReady = await _ensureLocationPermission();
-      if (!permissionReady) {
-        return;
-      }
+      if (!permissionReady) return;
 
-      final result =
-          await _repository.sendTripUpdate(_trip.id, message: message);
+      final result = await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .sendManualUpdate(message);
 
       if (mounted) {
+        setState(() {});
         if (result.isSuccess) {
           UiHelpers.showSuccessMessage(context, 'Update sent successfully!');
-          // Delay the timeline refresh so the CQRS query model has time to
-          // propagate the new update. The WebSocket event handles the
-          // immediate map / marker update; this is only for timeline
-          // consistency.
           Future.delayed(const Duration(seconds: 2), () {
             if (mounted) _loadTripUpdates();
           });
 
-          // Reschedule automatic updates after manual update (Android only)
           if (_isAndroid &&
               _trip.status == TripStatus.inProgress &&
               _trip.automaticUpdates) {
@@ -1630,9 +1480,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         UiHelpers.showErrorMessage(context, 'Error sending update: $e');
       }
     } finally {
-      if (mounted) {
-        setState(() => _isSendingUpdate = false);
-      }
+      if (mounted) setState(() {});
     }
   }
 

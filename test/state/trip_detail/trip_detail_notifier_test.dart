@@ -7,6 +7,7 @@ import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
+import 'package:wanderer_frontend/data/models/domain/location_update_result.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
@@ -1016,5 +1017,107 @@ void main() {
 
     final state = container.read(tripDetailNotifierProvider(trip.id));
     expect(state.comments.comments.single.reactionsCount, 1);
+  });
+
+  test('changeTripStatus optimistically sets status and defaults currentDay for a fresh multi-day start',
+      () async {
+    when(mockRepository.changeTripStatus('trip-1', TripStatus.inProgress))
+        .thenAnswer((_) async => 'ok');
+    when(mockRepository.sendLifecycleUpdate('trip-1',
+            updateType: TripUpdateType.tripStarted, message: anyNamed('message')))
+        .thenAnswer((_) async => LocationUpdateResult.success());
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip.copyWith(
+      status: TripStatus.created, tripModality: TripModality.multiDay,
+    ));
+
+    await notifier.changeTripStatus(TripStatus.inProgress, isMultiDay: true);
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.trip.status, TripStatus.inProgress);
+    expect(state.trip.currentDay, 1);
+    expect(state.lifecycle.isChangingStatus, isFalse);
+  });
+
+  test('changeTripVisibility updates trip.visibility', () async {
+    when(mockRepository.changeTripVisibility('trip-1', Visibility.private))
+        .thenAnswer((_) async => 'ok');
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    await notifier.changeTripVisibility(Visibility.private);
+
+    expect(container.read(tripDetailNotifierProvider(trip.id)).trip.visibility, Visibility.private);
+  });
+
+  test('toggleDay(isFinishingDay: true) sets status to resting', () async {
+    when(mockRepository.toggleDay('trip-1')).thenAnswer((_) async => 'ok');
+    when(mockRepository.sendLifecycleUpdate('trip-1',
+            updateType: TripUpdateType.dayEnd, message: anyNamed('message')))
+        .thenAnswer((_) async => LocationUpdateResult.success());
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip.copyWith(status: TripStatus.inProgress));
+
+    await notifier.toggleDay(isFinishingDay: true);
+
+    expect(container.read(tripDetailNotifierProvider(trip.id)).trip.status, TripStatus.resting);
+  });
+
+  test('toggleDay(isFinishingDay: false) sets status to inProgress and increments currentDay',
+      () async {
+    when(mockRepository.toggleDay('trip-1')).thenAnswer((_) async => 'ok');
+    when(mockRepository.sendLifecycleUpdate('trip-1',
+            updateType: TripUpdateType.dayStart, message: anyNamed('message')))
+        .thenAnswer((_) async => LocationUpdateResult.success());
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip.copyWith(status: TripStatus.resting, currentDay: 1));
+
+    await notifier.toggleDay(isFinishingDay: false);
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.trip.status, TripStatus.inProgress);
+    expect(state.trip.currentDay, 2);
+  });
+
+  test('changeTripSettings updates automaticUpdates/updateRefresh/tripModality', () async {
+    when(mockRepository.changeTripSettings('trip-1', true, 15, tripModality: TripModality.multiDay))
+        .thenAnswer((_) async => 'ok');
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    await notifier.changeTripSettings(true, 15, TripModality.multiDay);
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.trip.automaticUpdates, isTrue);
+    expect(state.trip.updateRefresh, 15);
+    expect(state.trip.tripModality, TripModality.multiDay);
+  });
+
+  test('deleteTrip calls the repository', () async {
+    when(mockRepository.deleteTrip('trip-1')).thenAnswer((_) async => 'ok');
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    await notifier.deleteTrip();
+
+    verify(mockRepository.deleteTrip('trip-1')).called(1);
+  });
+
+  test('sendManualUpdate calls the repository and returns the result', () async {
+    when(mockRepository.sendTripUpdate('trip-1', message: 'hi'))
+        .thenAnswer((_) async => LocationUpdateResult.success());
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    final result = await notifier.sendManualUpdate('hi');
+
+    expect(result.isSuccess, isTrue);
   });
 }

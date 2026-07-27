@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
+import 'package:wanderer_frontend/data/models/domain/location_update_result.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
@@ -74,14 +75,6 @@ class TripDetailNotifier
   /// wins, exactly as whichever instance's constructor ran last used to
   /// win when this was a plain field.
   void seedInitialTrip(Trip trip) {
-    state = state.copyWith(trip: trip);
-  }
-
-  /// Transitional setter: applies a [Trip] mutation computed by a
-  /// not-yet-migrated `setState` call site in `TripDetailScreen`. Each call
-  /// site is deleted when the later task that owns its concern migrates the
-  /// mutation into a proper notifier method (see Task 1 brief, Step 9).
-  void applyTripOverride(Trip trip) {
     state = state.copyWith(trip: trip);
   }
 
@@ -900,6 +893,122 @@ class TripDetailNotifier
         skipIfDuplicate: true,
       ),
     );
+  }
+
+  Future<void> changeTripStatus(TripStatus newStatus, {required bool isMultiDay}) async {
+    state = state.copyWith(lifecycle: state.lifecycle.copyWith(isChangingStatus: true));
+    final previousStatus = state.trip.status;
+
+    try {
+      await _repository.changeTripStatus(state.trip.id, newStatus);
+
+      if (newStatus == TripStatus.inProgress && previousStatus == TripStatus.created) {
+        unawaited(_repository.sendLifecycleUpdate(
+          state.trip.id,
+          updateType: TripUpdateType.tripStarted,
+          message: 'Trip Started!',
+        ));
+      } else if (newStatus == TripStatus.finished) {
+        unawaited(_repository.sendLifecycleUpdate(
+          state.trip.id,
+          updateType: TripUpdateType.tripEnded,
+          message: 'Trip finished.',
+        ));
+      }
+
+      state = state.copyWith(
+        trip: state.trip.copyWith(
+          status: newStatus,
+          currentDay: (newStatus == TripStatus.inProgress &&
+                  previousStatus == TripStatus.created &&
+                  isMultiDay &&
+                  state.trip.currentDay == null)
+              ? 1
+              : null,
+        ),
+        lifecycle: state.lifecycle.copyWith(isChangingStatus: false),
+      );
+    } catch (e) {
+      state = state.copyWith(lifecycle: state.lifecycle.copyWith(isChangingStatus: false));
+      rethrow;
+    }
+  }
+
+  Future<void> changeTripVisibility(Visibility newVisibility) async {
+    await _repository.changeTripVisibility(state.trip.id, newVisibility);
+    state = state.copyWith(trip: state.trip.copyWith(visibility: newVisibility));
+  }
+
+  Future<void> deleteTrip() async {
+    await _repository.deleteTrip(state.trip.id);
+  }
+
+  /// Toggles a multi-day trip between IN_PROGRESS (a day underway) and
+  /// RESTING (between days). [isFinishingDay] selects which direction.
+  Future<void> toggleDay({required bool isFinishingDay}) async {
+    state = state.copyWith(lifecycle: state.lifecycle.copyWith(isChangingStatus: true));
+    try {
+      await _repository.toggleDay(state.trip.id);
+      final currentDay = state.trip.currentDay ?? 1;
+
+      if (isFinishingDay) {
+        unawaited(_repository.sendLifecycleUpdate(
+          state.trip.id,
+          updateType: TripUpdateType.dayEnd,
+          message: 'Day $currentDay finished',
+        ));
+        state = state.copyWith(
+          trip: state.trip.copyWith(status: TripStatus.resting),
+          lifecycle: state.lifecycle.copyWith(isChangingStatus: false),
+        );
+      } else {
+        unawaited(_repository.sendLifecycleUpdate(
+          state.trip.id,
+          updateType: TripUpdateType.dayStart,
+          message: 'Day ${currentDay + 1} started!',
+        ));
+        state = state.copyWith(
+          trip: state.trip.copyWith(status: TripStatus.inProgress, currentDay: currentDay + 1),
+          lifecycle: state.lifecycle.copyWith(isChangingStatus: false),
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(lifecycle: state.lifecycle.copyWith(isChangingStatus: false));
+      rethrow;
+    }
+  }
+
+  Future<void> changeTripSettings(
+      bool automaticUpdates, int? updateRefresh, TripModality? tripModality) async {
+    state = state.copyWith(lifecycle: state.lifecycle.copyWith(isChangingSettings: true));
+    try {
+      await _repository.changeTripSettings(
+        state.trip.id,
+        automaticUpdates,
+        updateRefresh,
+        tripModality: tripModality,
+      );
+      state = state.copyWith(
+        trip: state.trip.copyWith(
+          automaticUpdates: automaticUpdates,
+          updateRefresh: updateRefresh,
+          tripModality: tripModality ?? state.trip.tripModality,
+        ),
+        lifecycle: state.lifecycle.copyWith(isChangingSettings: false),
+      );
+    } catch (e) {
+      state = state.copyWith(lifecycle: state.lifecycle.copyWith(isChangingSettings: false));
+      rethrow;
+    }
+  }
+
+  Future<LocationUpdateResult> sendManualUpdate(String? message) async {
+    state = state.copyWith(lifecycle: state.lifecycle.copyWith(isSendingUpdate: true));
+    try {
+      return await _repository.sendTripUpdate(state.trip.id, message: message);
+    } finally {
+      state = state.copyWith(lifecycle: state.lifecycle.copyWith(isSendingUpdate: false));
+    }
   }
 }
 
