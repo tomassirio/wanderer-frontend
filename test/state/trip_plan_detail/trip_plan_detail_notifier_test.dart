@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -405,6 +407,67 @@ void main() {
       final state = container.read(tripPlanDetailNotifierProvider('plan-1'));
       expect(state.metadata.isEditing, isTrue);
       expect(state.metadata.selectedPlanType, 'SIMPLE');
+    });
+
+    test(
+        'enterEditMode flips isEditing on BEFORE route computation resolves '
+        '— the edit screen must appear immediately, with route loading in '
+        'the background (regression test: pre-migration behavior set '
+        '_isEditing synchronously in setState while _initEditPolylines ran '
+        'unawaited)', () async {
+      final container = buildLifecycleContainer();
+      // Keep the autoDispose notifier alive across the awaited gaps below —
+      // otherwise it gets torn down (zero listeners) before we re-read it.
+      container.listen(tripPlanDetailNotifierProvider('plan-1'), (_, __) {});
+      final planWithRoute = TripPlan(
+        id: 'plan-1',
+        userId: 'owner-1',
+        name: 'Hike',
+        planType: 'SIMPLE',
+        startLocation: PlanLocation(lat: 40.0, lon: -74.0),
+        endLocation: PlanLocation(lat: 41.0, lon: -75.0),
+        createdTimestamp: DateTime(2026, 1, 1),
+      );
+      // Controlled by hand so the network round trip stays pending until
+      // this test explicitly resolves it — proving isEditing flips before
+      // that resolution, not just eventually.
+      final routeCompleter = Completer<DirectionsResult?>();
+      when(mockDirectionsClient.getRouteWithPoints(any))
+          .thenAnswer((_) => routeCompleter.future);
+      final notifier =
+          container.read(tripPlanDetailNotifierProvider('plan-1').notifier);
+      notifier.seedInitialTripPlan(planWithRoute);
+
+      final enterFuture = notifier.enterEditMode();
+
+      final stateWhileRouteInFlight =
+          container.read(tripPlanDetailNotifierProvider('plan-1'));
+      expect(
+        stateWhileRouteInFlight.metadata.isEditing,
+        isTrue,
+        reason: 'isEditing must already be true while the route computation '
+            "network call is still pending — it must not wait on it",
+      );
+      expect(
+        stateWhileRouteInFlight.editMap.isComputingRoute,
+        isTrue,
+        reason: 'route computation should be running in the background, '
+            'not blocking the transition into edit mode',
+      );
+
+      routeCompleter.complete(null);
+      await enterFuture;
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        container
+            .read(tripPlanDetailNotifierProvider('plan-1'))
+            .editMap
+            .isComputingRoute,
+        isFalse,
+        reason: 'route computation should finish in the background after '
+            'resolving',
+      );
     });
 
     test('setDateRange updates metadata dates', () {

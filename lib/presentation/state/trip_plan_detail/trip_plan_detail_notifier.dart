@@ -384,20 +384,29 @@ class TripPlanDetailNotifier
   }
 
   /// Enters edit mode: seeds edit-map state and metadata fields from the
-  /// current trip plan, flips `isEditing` on. Replaces the two identical
-  /// `onEdit` closures that used to be pasted verbatim in `build()`
-  /// (desktop and mobile info-card variants).
+  /// current trip plan, flips `isEditing` on immediately, then kicks off
+  /// route computation in the background. Replaces the two identical
+  /// `onEdit` closures that used to be pasted verbatim in `build()` (desktop
+  /// and mobile info-card variants) — those set `_isEditing = true`
+  /// synchronously inside `setState` while `_initEditPolylines()` ran
+  /// unawaited, so the edit screen appeared immediately with route
+  /// computation finishing in the background. `initEditPolylines()` must
+  /// stay unawaited here for the same reason: awaiting it would block
+  /// entering edit mode behind a real network round trip whenever
+  /// `editLocationsMatchTripPlan()` is false or there's no cached polyline.
   Future<void> enterEditMode() async {
     initEditLocations();
-    await initEditPolylines();
     state = state.copyWith(
-      metadata: TripPlanDetailMetadataState(
+      metadata: state.metadata.copyWith(
         isEditing: true,
         selectedPlanType: state.tripPlan.planType,
         startDate: state.tripPlan.startDate,
         endDate: state.tripPlan.endDate,
+        clearStartDate: state.tripPlan.startDate == null,
+        clearEndDate: state.tripPlan.endDate == null,
       ),
     );
+    initEditPolylines();
   }
 
   /// Resets metadata to the trip plan's saved values without persisting —
@@ -405,11 +414,13 @@ class TripPlanDetailNotifier
   /// [resetEditMapToSavedPlan] for `_cancelEditing()`'s full reset.
   void exitEditModeWithoutSaving() {
     state = state.copyWith(
-      metadata: TripPlanDetailMetadataState(
+      metadata: state.metadata.copyWith(
         isEditing: false,
         selectedPlanType: state.tripPlan.planType,
         startDate: state.tripPlan.startDate,
         endDate: state.tripPlan.endDate,
+        clearStartDate: state.tripPlan.startDate == null,
+        clearEndDate: state.tripPlan.endDate == null,
       ),
     );
   }
