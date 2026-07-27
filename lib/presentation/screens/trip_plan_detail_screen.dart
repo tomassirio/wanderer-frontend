@@ -18,6 +18,7 @@ import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
+import 'package:wanderer_frontend/presentation/state/trip_plan_detail/trip_plan_detail_notifier.dart';
 import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_notifier.dart';
 import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_state.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
@@ -45,7 +46,8 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   late final TripPlanService _tripPlanService;
   late final TripService _tripService;
   late final GoogleDirectionsApiClient _directionsClient;
-  late TripPlan _tripPlan;
+  TripPlan get _tripPlan =>
+      ref.watch(tripPlanDetailNotifierProvider(widget.tripPlan.id)).tripPlan;
   bool _isEditing = false;
   bool _isLoading = false;
 
@@ -65,11 +67,17 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   DateTime? _endDate;
 
   GoogleMapController? _mapController;
-  Set<Marker> _markers = {};
-  Set<Polyline> _polylines = {};
+  Set<Marker> get _markers =>
+      ref.watch(tripPlanDetailNotifierProvider(widget.tripPlan.id)).viewMap
+          .markers;
+  Set<Polyline> get _polylines =>
+      ref.watch(tripPlanDetailNotifierProvider(widget.tripPlan.id)).viewMap
+          .polylines;
 
   // Collapsible panel state
-  bool _isInfoCollapsed = false;
+  bool get _isInfoCollapsed =>
+      ref.watch(tripPlanDetailNotifierProvider(widget.tripPlan.id)).viewMap
+          .isInfoCollapsed;
 
   // Edit mode map state
   List<LatLng> _editWaypoints = [];
@@ -104,13 +112,15 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
     _tripPlanService = ref.read(tripPlanServiceProvider);
     _tripService = ref.read(tripServiceProvider);
     _directionsClient = ref.read(googleDirectionsApiClientProvider);
-    _tripPlan = widget.tripPlan;
+    ref.read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
+        .seedInitialTripPlan(widget.tripPlan);
     _nameController = TextEditingController(text: _tripPlan.name);
     _selectedPlanType = _tripPlan.planType;
     _startDate = _tripPlan.startDate;
     _endDate = _tripPlan.endDate;
     _initEditLocations();
-    _updateMapData();
+    ref.read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
+        .updateViewMapData(onWaypointTap: _showWaypointOptions);
     ref.read(userChromeNotifierProvider.notifier).loadUserInfo();
   }
 
@@ -151,30 +161,6 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
 
     if (result == true && mounted) {
       await ref.read(userChromeNotifierProvider.notifier).loadUserInfo();
-    }
-  }
-
-  /// Updates map data using backend polyline or straight-line fallback
-  void _updateMapData() {
-    try {
-      final mapData = TripPlanMapHelper.createMapDataWithDirections(
-        _tripPlan,
-        onWaypointTap: _showWaypointOptions,
-      );
-      setState(() {
-        _markers = mapData.markers;
-        _polylines = mapData.polylines;
-      });
-    } catch (e) {
-      // Fallback to straight lines if decoding fails
-      final mapData = TripPlanMapHelper.createMapData(
-        _tripPlan,
-        onWaypointTap: _showWaypointOptions,
-      );
-      setState(() {
-        _markers = mapData.markers;
-        _polylines = mapData.polylines;
-      });
     }
   }
 
@@ -471,13 +457,15 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
       final updatedPlan = await _tripPlanService.getTripPlanById(planId);
 
       if (mounted) {
+        ref.read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
+            .applyTripPlanOverride(updatedPlan);
         setState(() {
-          _tripPlan = updatedPlan;
           _isEditing = false;
           _isLoading = false;
         });
         _initEditLocations();
-        _updateMapData();
+        ref.read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
+            .updateViewMapData(onWaypointTap: _showWaypointOptions);
         UiHelpers.showSuccessMessage(context, 'Trip plan updated successfully');
       }
     } catch (e) {
@@ -667,11 +655,10 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
                   child: TripPlanInfoCard(
                     tripPlan: _tripPlan,
                     isCollapsed: _isInfoCollapsed,
-                    onToggleCollapse: () {
-                      setState(() {
-                        _isInfoCollapsed = !_isInfoCollapsed;
-                      });
-                    },
+                    onToggleCollapse: () => ref
+                        .read(tripPlanDetailNotifierProvider(widget.tripPlan.id)
+                            .notifier)
+                        .setInfoCollapsed(!_isInfoCollapsed),
                     onEdit: () {
                       _initEditLocations();
                       _initEditPolylines();
@@ -698,11 +685,11 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
                       child: TripPlanInfoCard(
                         tripPlan: _tripPlan,
                         isCollapsed: _isInfoCollapsed,
-                        onToggleCollapse: () {
-                          setState(() {
-                            _isInfoCollapsed = !_isInfoCollapsed;
-                          });
-                        },
+                        onToggleCollapse: () => ref
+                            .read(tripPlanDetailNotifierProvider(
+                                    widget.tripPlan.id)
+                                .notifier)
+                            .setInfoCollapsed(!_isInfoCollapsed),
                         onEdit: () {
                           _initEditLocations();
                           _initEditPolylines();
@@ -2235,26 +2222,9 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   }
 
   void _fitBounds() {
-    if (_markers.isEmpty || _mapController == null) return;
-
-    double minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
-
-    for (final marker in _markers) {
-      if (marker.position.latitude < minLat) minLat = marker.position.latitude;
-      if (marker.position.latitude > maxLat) maxLat = marker.position.latitude;
-      if (marker.position.longitude < minLng) {
-        minLng = marker.position.longitude;
-      }
-      if (marker.position.longitude > maxLng) {
-        maxLng = marker.position.longitude;
-      }
-    }
-
-    final bounds = LatLngBounds(
-      southwest: LatLng(minLat, minLng),
-      northeast: LatLng(maxLat, maxLng),
-    );
-
+    if (_mapController == null) return;
+    final bounds = TripPlanMapHelper.calculateBounds(_markers);
+    if (bounds == null) return;
     _mapController!.animateCamera(
       CameraUpdate.newLatLngBounds(bounds, 50),
     );
