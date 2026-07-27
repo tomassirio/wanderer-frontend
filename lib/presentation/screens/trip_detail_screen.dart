@@ -62,14 +62,18 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
 
-  List<Comment> _comments = [];
-  final Map<String, List<Comment>> _replies = {};
-  final Map<String, bool> _expandedComments = {};
-
-  int _currentCommentPage = 0;
-  bool _hasMoreComments = false;
-  bool _isLoadingMoreComments = false;
-  static const int _commentPageSize = 20;
+  List<Comment> get _comments =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).comments.comments;
+  Map<String, List<Comment>> get _replies =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).comments.replies;
+  Map<String, bool> get _expandedComments =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).comments.expandedComments;
+  bool get _hasMoreComments =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).comments.hasMoreComments;
+  bool get _isLoadingMoreComments => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .comments
+      .isLoadingMoreComments;
 
   List<TripLocation> get _tripUpdates =>
       ref.watch(tripDetailNotifierProvider(widget.trip.id)).timeline.tripUpdates;
@@ -84,12 +88,18 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       .timeline
       .isLoadingMoreUpdates;
 
-  bool _isLoadingComments = false;
-  bool _isAddingComment = false;
+  bool get _isLoadingComments =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).comments.isLoadingComments;
+  bool get _isAddingComment =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).comments.isAddingComment;
   bool _isChangingStatus = false;
   bool _isChangingSettings = false;
-  String? _replyingToCommentId;
-  CommentSortOption _sortOption = CommentSortOption.latest;
+  String? get _replyingToCommentId => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .comments
+      .replyingToCommentId;
+  CommentSortOption get _sortOption =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).comments.sortOption;
   final int _selectedSidebarIndex = -1; // Trip detail is not a main nav item
   String? get _username =>
       ref.watch(tripDetailNotifierProvider(widget.trip.id)).identity.username;
@@ -845,37 +855,53 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       updatedAt: event.timestamp,
     );
 
+    // These fields are notifier-backed getters (Task 6) — build the updated
+    // sub-state immutably and push it through the transitional
+    // applyCommentsOverride setter rather than mutating the returned
+    // List/Map in place (that instance is owned by the notifier's state and
+    // may even be a `const` literal before the first load).
+    final notifier =
+        ref.read(tripDetailNotifierProvider(widget.trip.id).notifier);
+    final commentsState =
+        ref.read(tripDetailNotifierProvider(widget.trip.id)).comments;
+
     setState(() {
       if (event.parentCommentId != null) {
         // It's a reply
         final parentId = event.parentCommentId!;
         bool isNewReply = false;
+        final updatedReplies =
+            Map<String, List<Comment>>.from(commentsState.replies);
 
-        if (_replies.containsKey(parentId)) {
+        if (updatedReplies.containsKey(parentId)) {
           // Check if reply already exists (avoid duplicates from optimistic updates)
           final existingIndex =
-              _replies[parentId]!.indexWhere((c) => c.id == event.commentId);
+              updatedReplies[parentId]!.indexWhere((c) => c.id == event.commentId);
           if (existingIndex != -1) {
             // Replace optimistic reply with server version (has correct timestamp, etc.)
-            _replies[parentId]![existingIndex] = newComment;
+            final list = List<Comment>.from(updatedReplies[parentId]!);
+            list[existingIndex] = newComment;
+            updatedReplies[parentId] = list;
           } else {
             // New reply from another user or WebSocket arrived before optimistic update
-            _replies[parentId] = [..._replies[parentId]!, newComment];
+            updatedReplies[parentId] = [...updatedReplies[parentId]!, newComment];
             isNewReply = true;
           }
         } else {
           // First reply to this comment
-          _replies[parentId] = [newComment];
+          updatedReplies[parentId] = [newComment];
           isNewReply = true;
         }
 
         // Update the parent comment's responsesCount if this is a new reply
         // (not an optimistic update replacement)
+        var comments = commentsState.comments;
         if (isNewReply) {
-          final parentIndex = _comments.indexWhere((c) => c.id == parentId);
+          final parentIndex = comments.indexWhere((c) => c.id == parentId);
           if (parentIndex != -1) {
-            final parentComment = _comments[parentIndex];
-            _comments[parentIndex] = Comment(
+            final updatedComments = List<Comment>.from(comments);
+            final parentComment = updatedComments[parentIndex];
+            updatedComments[parentIndex] = Comment(
               id: parentComment.id,
               tripId: parentComment.tripId,
               userId: parentComment.userId,
@@ -891,22 +917,30 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
               createdAt: parentComment.createdAt,
               updatedAt: parentComment.updatedAt,
             );
+            comments = updatedComments;
           }
         }
+
+        notifier.applyCommentsOverride(
+          commentsState.copyWith(comments: comments, replies: updatedReplies),
+        );
       } else {
         // It's a top-level comment
         // Check if comment already exists (avoid duplicates from optimistic updates)
+        final comments = List<Comment>.from(commentsState.comments);
         final existingIndex =
-            _comments.indexWhere((c) => c.id == event.commentId);
+            comments.indexWhere((c) => c.id == event.commentId);
         if (existingIndex != -1) {
           // Replace optimistic comment with server version (has correct timestamp, etc.)
-          _comments[existingIndex] = newComment;
-          _sortComments();
+          comments[existingIndex] = newComment;
         } else {
           // New comment from another user or WebSocket arrived before optimistic update
-          _comments.insert(0, newComment);
-          _sortComments();
+          comments.insert(0, newComment);
         }
+        notifier.applyCommentsOverride(commentsState.copyWith(comments: comments));
+        // Re-sort with the currently active sort option (was `_sortComments()`
+        // on the widget before this concern moved into the notifier).
+        notifier.changeSortOption(commentsState.sortOption);
       }
     });
   }
@@ -925,12 +959,22 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         ? ReactionType.fromJson(event.previousReactionType!).toJson()
         : null;
 
-    // Update local state directly from WebSocket event instead of making a GET request
+    // Update local state directly from WebSocket event instead of making a GET request.
+    // `_comments`/`_replies` are notifier-backed getters (Task 6) — build the
+    // updated sub-state immutably from a snapshot and push it through the
+    // transitional applyCommentsOverride setter rather than mutating the
+    // returned List/Map in place.
+    final notifier =
+        ref.read(tripDetailNotifierProvider(widget.trip.id).notifier);
+    final commentsState =
+        ref.read(tripDetailNotifierProvider(widget.trip.id)).comments;
+
     setState(() {
       // Find and update the comment in top-level comments
-      final commentIndex = _comments.indexWhere((c) => c.id == event.commentId);
+      final commentIndex =
+          commentsState.comments.indexWhere((c) => c.id == event.commentId);
       if (commentIndex != -1) {
-        final comment = _comments[commentIndex];
+        final comment = commentsState.comments[commentIndex];
         final updatedReactions = Map<String, int>.from(comment.reactions ?? {});
         final updatedIndividualReactions =
             List<Reaction>.from(comment.individualReactions ?? []);
@@ -1017,7 +1061,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         final newReactionsCount =
             updatedReactions.values.fold(0, (sum, count) => sum + count);
 
-        _comments[commentIndex] = Comment(
+        final updatedComments =
+            List<Comment>.from(commentsState.comments);
+        updatedComments[commentIndex] = Comment(
           id: comment.id,
           tripId: comment.tripId,
           userId: comment.userId,
@@ -1035,12 +1081,15 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           createdAt: comment.createdAt,
           updatedAt: comment.updatedAt,
         );
+        notifier.applyCommentsOverride(
+          commentsState.copyWith(comments: updatedComments),
+        );
         return;
       }
 
       // Check in replies
-      for (final parentId in _replies.keys) {
-        final replies = _replies[parentId]!;
+      for (final parentId in commentsState.replies.keys) {
+        final replies = commentsState.replies[parentId]!;
         final replyIndex = replies.indexWhere((c) => c.id == event.commentId);
         if (replyIndex != -1) {
           final reply = replies[replyIndex];
@@ -1123,7 +1172,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           final newReactionsCount =
               updatedReactions.values.fold(0, (sum, count) => sum + count);
 
-          _replies[parentId]![replyIndex] = Comment(
+          final updatedReplyList = List<Comment>.from(replies);
+          updatedReplyList[replyIndex] = Comment(
             id: reply.id,
             tripId: reply.tripId,
             userId: reply.userId,
@@ -1140,6 +1190,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
             responsesCount: reply.responsesCount,
             createdAt: reply.createdAt,
             updatedAt: reply.updatedAt,
+          );
+          final updatedRepliesMap =
+              Map<String, List<Comment>>.from(commentsState.replies);
+          updatedRepliesMap[parentId] = updatedReplyList;
+          notifier.applyCommentsOverride(
+            commentsState.copyWith(replies: updatedRepliesMap),
           );
           return;
         }
@@ -1424,211 +1480,59 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   Future<void> _loadComments() async {
-    setState(() {
-      _isLoadingComments = true;
-      _currentCommentPage = 0;
-    });
-
     try {
-      final pageResponse = await _repository.loadComments(
-        _trip.id,
-        page: 0,
-        size: _commentPageSize,
-      );
-      setState(() {
-        _comments = pageResponse.content;
-        _hasMoreComments = !pageResponse.last;
-        _sortComments();
-        _isLoadingComments = false;
-      });
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .loadComments();
     } catch (e) {
-      setState(() => _isLoadingComments = false);
       if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error loading comments: $e');
       }
+    } finally {
+      if (mounted) setState(() {});
     }
   }
 
   Future<void> _loadMoreComments() async {
-    if (_isLoadingMoreComments || !_hasMoreComments) return;
-
-    setState(() => _isLoadingMoreComments = true);
-
     try {
-      final nextPage = _currentCommentPage + 1;
-      final pageResponse = await _repository.loadComments(
-        _trip.id,
-        page: nextPage,
-        size: _commentPageSize,
-      );
-      setState(() {
-        _comments = [..._comments, ...pageResponse.content];
-        _currentCommentPage = nextPage;
-        _hasMoreComments = !pageResponse.last;
-        _isLoadingMoreComments = false;
-      });
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .loadMoreComments();
     } catch (e) {
-      setState(() => _isLoadingMoreComments = false);
       if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error loading more comments: $e');
       }
-    }
-  }
-
-  void _sortComments() {
-    switch (_sortOption) {
-      case CommentSortOption.latest:
-        _comments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        break;
-      case CommentSortOption.oldest:
-        _comments.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-        break;
-      case CommentSortOption.mostReplies:
-        _comments.sort((a, b) => b.responsesCount.compareTo(a.responsesCount));
-        break;
-      case CommentSortOption.mostReactions:
-        _comments.sort((a, b) => b.reactionsCount.compareTo(a.reactionsCount));
-        break;
+    } finally {
+      if (mounted) setState(() {});
     }
   }
 
   void _changeSortOption(CommentSortOption option) {
-    setState(() {
-      _sortOption = option;
-      _sortComments();
-    });
-  }
-
-  Future<void> _loadReplies(String commentId) async {
-    try {
-      // First try to get replies from the already-loaded comment
-      final comment = _comments.firstWhere((c) => c.id == commentId);
-      if (comment.replies != null) {
-        // Use cached replies from the comment object (even if empty)
-        setState(() {
-          _replies[commentId] = comment.replies!;
-          _expandedComments[commentId] = true;
-        });
-        return;
-      }
-
-      // Fallback: fetch from API if replies are not cached
-      final replies = await _repository.loadReplies(commentId);
-      setState(() {
-        _replies[commentId] = replies;
-        _expandedComments[commentId] = true;
-      });
-    } catch (e) {
-      if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Error loading replies: $e');
-      }
-    }
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .changeSortOption(option);
   }
 
   Future<void> _addComment() async {
     final message = _commentController.text.trim();
     if (message.isEmpty) return;
 
-    setState(() => _isAddingComment = true);
-
     try {
-      String commentId;
-      if (_replyingToCommentId != null) {
-        // Add reply via API
-        commentId = await _repository.addReply(
-          _trip.id,
-          _replyingToCommentId!,
-          message,
-        );
-
-        // Optimistically add the reply to the UI immediately
-        final optimisticReply = Comment(
-          id: commentId,
-          tripId: _trip.id,
-          userId: _userId ?? '',
-          username: _username ?? 'You',
-          userAvatarUrl: _avatarUrl,
-          message: message,
-          parentCommentId: _replyingToCommentId,
-          individualReactions: const [],
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
-
-        setState(() {
-          final parentId = _replyingToCommentId!;
-          if (!_replies.containsKey(parentId)) {
-            _replies[parentId] = [];
-          }
-          // Check if comment already exists (shouldn't happen, but be safe)
-          if (!_replies[parentId]!.any((c) => c.id == commentId)) {
-            _replies[parentId] = [..._replies[parentId]!, optimisticReply];
-
-            // Update the parent comment's responsesCount only when actually adding a new reply
-            final parentIndex = _comments.indexWhere((c) => c.id == parentId);
-            if (parentIndex != -1) {
-              final parentComment = _comments[parentIndex];
-              _comments[parentIndex] = Comment(
-                id: parentComment.id,
-                tripId: parentComment.tripId,
-                userId: parentComment.userId,
-                username: parentComment.username,
-                userAvatarUrl: parentComment.userAvatarUrl,
-                message: parentComment.message,
-                parentCommentId: parentComment.parentCommentId,
-                reactions: parentComment.reactions,
-                individualReactions: parentComment.individualReactions,
-                replies: parentComment.replies,
-                reactionsCount: parentComment.reactionsCount,
-                responsesCount: parentComment.responsesCount + 1,
-                createdAt: parentComment.createdAt,
-                updatedAt: parentComment.updatedAt,
-              );
-            }
-          }
-
-          // Ensure the replies section is expanded so the new reply is visible
-          _expandedComments[parentId] = true;
-          _commentController.clear();
-          _replyingToCommentId = null;
-        });
-      } else {
-        // Add top-level comment via API
-        commentId = await _repository.addComment(_trip.id, message);
-
-        // Optimistically add the comment to the UI immediately
-        final optimisticComment = Comment(
-          id: commentId,
-          tripId: _trip.id,
-          userId: _userId ?? '',
-          username: _username ?? 'You',
-          userAvatarUrl: _avatarUrl,
-          message: message,
-          parentCommentId: null,
-          individualReactions: const [],
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
-
-        setState(() {
-          // Check if comment already exists (shouldn't happen, but be safe)
-          if (!_comments.any((c) => c.id == commentId)) {
-            _comments.insert(0, optimisticComment);
-            _sortComments();
-          }
-          _commentController.clear();
-        });
-      }
-
+      await ref.read(tripDetailNotifierProvider(widget.trip.id).notifier).addComment(
+            message,
+            currentUserId: _userId,
+            currentUsername: _username,
+            currentAvatarUrl: _avatarUrl,
+          );
+      _commentController.clear();
       if (mounted) {
+        setState(() {});
         UiHelpers.showSuccessMessage(context, 'Comment added!');
       }
     } catch (e) {
       if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error adding comment: $e');
       }
-    } finally {
-      setState(() => _isAddingComment = false);
     }
   }
 
@@ -2353,16 +2257,16 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   void _handleReply(String commentId) {
-    setState(() => _replyingToCommentId = commentId);
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .setReplyingTo(commentId);
     FocusScope.of(context).requestFocus(FocusNode());
   }
 
   void _handleToggleReplies(String commentId, bool isExpanded) {
-    if (isExpanded) {
-      setState(() => _expandedComments[commentId] = false);
-    } else {
-      _loadReplies(commentId);
-    }
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .toggleRepliesExpanded(commentId, isExpanded);
   }
 
   /// Handle trip update panel toggle with mobile-specific behavior
@@ -2968,7 +2872,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       onReply: _handleReply,
       onToggleReplies: _handleToggleReplies,
       onSendComment: _addComment,
-      onCancelReply: () => setState(() => _replyingToCommentId = null),
+      onCancelReply: () => ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .setReplyingTo(null),
       onLoadMoreComments: _hasMoreComments ? _loadMoreComments : null,
       onStatusChange: _changeTripStatus,
       onSettingsChange: _handleSettingsChange,

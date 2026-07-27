@@ -6,10 +6,13 @@ import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
+import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/presentation/state/trip_detail/trip_detail_state.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/comments_section.dart'
+    show CommentSortOption;
 
 /// Owns [TripDetailState] for one trip (keyed by trip id). Replaces the
 /// screen's former `State`-held business logic, migrated concern-by-concern.
@@ -326,6 +329,214 @@ class TripDetailNotifier
         timeline: state.timeline.copyWith(isLoadingMoreUpdates: false),
       );
       rethrow;
+    }
+  }
+
+  /// Transitional setter: applies a [TripDetailCommentsState] mutation
+  /// computed by a not-yet-migrated `setState` call site in
+  /// `TripDetailScreen` (the `_handleCommentAdded`/`_handleCommentReaction`
+  /// WebSocket handlers). Same pattern as [applyTripOverride]/
+  /// [applyTimelineOverride] (see Task 1 brief, Step 9).
+  void applyCommentsOverride(TripDetailCommentsState comments) {
+    state = state.copyWith(comments: comments);
+  }
+
+  /// Test-only seam for setting up comments state preconditions without a
+  /// full loadComments()/loadReplies() round trip.
+  @visibleForTesting
+  void debugSeedCommentsForTest(TripDetailCommentsState comments) {
+    state = state.copyWith(comments: comments);
+  }
+
+  void _sortComments(List<Comment> comments, CommentSortOption option) {
+    switch (option) {
+      case CommentSortOption.latest:
+        comments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+      case CommentSortOption.oldest:
+        comments.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        break;
+      case CommentSortOption.mostReplies:
+        comments.sort((a, b) => b.responsesCount.compareTo(a.responsesCount));
+        break;
+      case CommentSortOption.mostReactions:
+        comments.sort((a, b) => b.reactionsCount.compareTo(a.reactionsCount));
+        break;
+    }
+  }
+
+  Future<void> loadComments() async {
+    state = state.copyWith(
+      comments:
+          state.comments.copyWith(isLoadingComments: true, currentCommentPage: 0),
+    );
+    try {
+      final pageResponse = await _repository.loadComments(state.trip.id, page: 0, size: 20);
+      final sorted = List<Comment>.from(pageResponse.content);
+      _sortComments(sorted, state.comments.sortOption);
+      state = state.copyWith(
+        comments: state.comments.copyWith(
+          comments: sorted,
+          hasMoreComments: !pageResponse.last,
+          isLoadingComments: false,
+        ),
+      );
+    } catch (e) {
+      state = state.copyWith(comments: state.comments.copyWith(isLoadingComments: false));
+      rethrow;
+    }
+  }
+
+  Future<void> loadMoreComments() async {
+    if (state.comments.isLoadingMoreComments || !state.comments.hasMoreComments) return;
+    state = state.copyWith(comments: state.comments.copyWith(isLoadingMoreComments: true));
+    try {
+      final nextPage = state.comments.currentCommentPage + 1;
+      final pageResponse = await _repository.loadComments(state.trip.id, page: nextPage, size: 20);
+      state = state.copyWith(
+        comments: state.comments.copyWith(
+          comments: [...state.comments.comments, ...pageResponse.content],
+          currentCommentPage: nextPage,
+          hasMoreComments: !pageResponse.last,
+          isLoadingMoreComments: false,
+        ),
+      );
+    } catch (e) {
+      state = state.copyWith(comments: state.comments.copyWith(isLoadingMoreComments: false));
+      rethrow;
+    }
+  }
+
+  void changeSortOption(CommentSortOption option) {
+    final sorted = List<Comment>.from(state.comments.comments);
+    _sortComments(sorted, option);
+    state = state.copyWith(
+      comments: state.comments.copyWith(comments: sorted, sortOption: option),
+    );
+  }
+
+  Future<void> loadReplies(String commentId) async {
+    final comment = state.comments.comments.firstWhere((c) => c.id == commentId);
+    if (comment.replies != null) {
+      state = state.copyWith(
+        comments: state.comments.copyWith(
+          replies: {...state.comments.replies, commentId: comment.replies!},
+          expandedComments: {...state.comments.expandedComments, commentId: true},
+        ),
+      );
+      return;
+    }
+
+    final replies = await _repository.loadReplies(commentId);
+    state = state.copyWith(
+      comments: state.comments.copyWith(
+        replies: {...state.comments.replies, commentId: replies},
+        expandedComments: {...state.comments.expandedComments, commentId: true},
+      ),
+    );
+  }
+
+  void setReplyingTo(String? commentId) {
+    state = state.copyWith(
+      comments: commentId == null
+          ? state.comments.copyWith(clearReplyingToCommentId: true)
+          : state.comments.copyWith(replyingToCommentId: commentId),
+    );
+  }
+
+  void toggleRepliesExpanded(String commentId, bool isExpanded) {
+    if (isExpanded) {
+      state = state.copyWith(
+        comments: state.comments.copyWith(
+          expandedComments: {...state.comments.expandedComments, commentId: false},
+        ),
+      );
+    } else {
+      loadReplies(commentId);
+    }
+  }
+
+  Future<void> addComment(
+    String message, {
+    required String? currentUserId,
+    required String? currentUsername,
+    required String? currentAvatarUrl,
+  }) async {
+    state = state.copyWith(comments: state.comments.copyWith(isAddingComment: true));
+    try {
+      final replyingTo = state.comments.replyingToCommentId;
+      if (replyingTo != null) {
+        final commentId = await _repository.addReply(state.trip.id, replyingTo, message);
+        final optimisticReply = Comment(
+          id: commentId,
+          tripId: state.trip.id,
+          userId: currentUserId ?? '',
+          username: currentUsername ?? 'You',
+          userAvatarUrl: currentAvatarUrl,
+          message: message,
+          parentCommentId: replyingTo,
+          individualReactions: const [],
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        final existingReplies = state.comments.replies[replyingTo] ?? [];
+        if (!existingReplies.any((c) => c.id == commentId)) {
+          final updatedReplies = {
+            ...state.comments.replies,
+            replyingTo: [...existingReplies, optimisticReply],
+          };
+          final comments = List<Comment>.from(state.comments.comments);
+          final parentIndex = comments.indexWhere((c) => c.id == replyingTo);
+          if (parentIndex != -1) {
+            final parent = comments[parentIndex];
+            comments[parentIndex] = Comment(
+              id: parent.id,
+              tripId: parent.tripId,
+              userId: parent.userId,
+              username: parent.username,
+              userAvatarUrl: parent.userAvatarUrl,
+              message: parent.message,
+              parentCommentId: parent.parentCommentId,
+              reactions: parent.reactions,
+              individualReactions: parent.individualReactions,
+              replies: parent.replies,
+              reactionsCount: parent.reactionsCount,
+              responsesCount: parent.responsesCount + 1,
+              createdAt: parent.createdAt,
+              updatedAt: parent.updatedAt,
+            );
+          }
+          state = state.copyWith(
+            comments: state.comments.copyWith(
+              replies: updatedReplies,
+              comments: comments,
+              expandedComments: {...state.comments.expandedComments, replyingTo: true},
+              clearReplyingToCommentId: true,
+            ),
+          );
+        }
+      } else {
+        final commentId = await _repository.addComment(state.trip.id, message);
+        final optimisticComment = Comment(
+          id: commentId,
+          tripId: state.trip.id,
+          userId: currentUserId ?? '',
+          username: currentUsername ?? 'You',
+          userAvatarUrl: currentAvatarUrl,
+          message: message,
+          individualReactions: const [],
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+        if (!state.comments.comments.any((c) => c.id == commentId)) {
+          final comments = [optimisticComment, ...state.comments.comments];
+          _sortComments(comments, state.comments.sortOption);
+          state = state.copyWith(comments: state.comments.copyWith(comments: comments));
+        }
+      }
+    } finally {
+      state = state.copyWith(comments: state.comments.copyWith(isAddingComment: false));
     }
   }
 }

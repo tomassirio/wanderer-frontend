@@ -5,8 +5,11 @@ import 'package:mockito/mockito.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
+import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/comments_section.dart'
+    show CommentSortOption;
 import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
@@ -574,5 +577,126 @@ void main() {
 
     verifyNever(mockRepository.loadTripUpdates(any,
         page: anyNamed('page'), size: anyNamed('size')));
+  });
+
+  test('loadComments populates comments and sorts by latest by default',
+      () async {
+    when(mockRepository.loadComments('trip-1', page: 0, size: 20)).thenAnswer(
+      (_) async => PageResponse(
+        content: [
+          Comment(
+            id: 'c1',
+            tripId: 'trip-1',
+            userId: 'u1',
+            username: 'alice',
+            message: 'first',
+            createdAt: DateTime(2026, 1, 1),
+            updatedAt: DateTime(2026, 1, 1),
+          ),
+          Comment(
+            id: 'c2',
+            tripId: 'trip-1',
+            userId: 'u2',
+            username: 'bob',
+            message: 'second',
+            createdAt: DateTime(2026, 1, 2),
+            updatedAt: DateTime(2026, 1, 2),
+          ),
+        ],
+        totalElements: 2,
+        totalPages: 1,
+        number: 0,
+        size: 20,
+        first: true,
+        last: true,
+      ),
+    );
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    await notifier.loadComments();
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.comments.comments.map((c) => c.id), ['c2', 'c1']); // latest first
+    expect(state.comments.hasMoreComments, isFalse);
+  });
+
+  test('changeSortOption re-sorts existing comments by oldest', () async {
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+    notifier.debugSeedCommentsForTest(TripDetailCommentsState(comments: [
+      Comment(id: 'c1', tripId: 'trip-1', userId: 'u1', username: 'a', message: 'x', createdAt: DateTime(2026, 1, 2), updatedAt: DateTime(2026, 1, 2)),
+      Comment(id: 'c2', tripId: 'trip-1', userId: 'u2', username: 'b', message: 'y', createdAt: DateTime(2026, 1, 1), updatedAt: DateTime(2026, 1, 1)),
+    ]));
+
+    notifier.changeSortOption(CommentSortOption.oldest);
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.comments.comments.map((c) => c.id), ['c2', 'c1']);
+    expect(state.comments.sortOption, CommentSortOption.oldest);
+  });
+
+  test('addComment (top-level) optimistically inserts and calls the repository',
+      () async {
+    when(mockRepository.addComment('trip-1', 'hello')).thenAnswer((_) async => 'new-id');
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    await notifier.addComment(
+      'hello',
+      currentUserId: 'me',
+      currentUsername: 'me-name',
+      currentAvatarUrl: null,
+    );
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.comments.comments.first.id, 'new-id');
+    expect(state.comments.comments.first.message, 'hello');
+  });
+
+  test('addComment (reply) increments the parent responsesCount', () async {
+    when(mockRepository.addReply('trip-1', 'parent-1', 'a reply'))
+        .thenAnswer((_) async => 'reply-id');
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+    notifier.debugSeedCommentsForTest(TripDetailCommentsState(
+      comments: [
+        Comment(id: 'parent-1', tripId: 'trip-1', userId: 'owner', username: 'owner', message: 'parent', responsesCount: 0, createdAt: DateTime(2026, 1, 1), updatedAt: DateTime(2026, 1, 1)),
+      ],
+      replyingToCommentId: 'parent-1',
+    ));
+
+    await notifier.addComment(
+      'a reply',
+      currentUserId: 'me',
+      currentUsername: 'me-name',
+      currentAvatarUrl: null,
+    );
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.comments.replies['parent-1'], hasLength(1));
+    expect(state.comments.comments.first.responsesCount, 1);
+    expect(state.comments.replyingToCommentId, isNull);
+  });
+
+  test('loadReplies uses the comment\'s cached replies when present', () async {
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+    final cachedReply = Comment(id: 'r1', tripId: 'trip-1', userId: 'u1', username: 'a', message: 'cached', createdAt: DateTime(2026, 1, 1), updatedAt: DateTime(2026, 1, 1));
+    notifier.debugSeedCommentsForTest(TripDetailCommentsState(comments: [
+      Comment(id: 'parent-1', tripId: 'trip-1', userId: 'owner', username: 'owner', message: 'parent', replies: [cachedReply], createdAt: DateTime(2026, 1, 1), updatedAt: DateTime(2026, 1, 1)),
+    ]));
+
+    await notifier.loadReplies('parent-1');
+
+    verifyNever(mockRepository.loadReplies(any));
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.comments.replies['parent-1'], [cachedReply]);
+    expect(state.comments.expandedComments['parent-1'], isTrue);
   });
 }
