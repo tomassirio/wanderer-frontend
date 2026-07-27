@@ -58,8 +58,38 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   StreamSubscription<WebSocketEvent>? _wsSubscription;
   StreamSubscription<WebSocketEvent>? _globalWsSubscription;
   Trip get _trip => ref.watch(tripDetailNotifierProvider(widget.trip.id)).trip;
-  Set<Marker> _markers = {};
-  Set<Polyline> _polylines = {};
+  // Map/geolocation state below lives in TripDetailNotifier's `map` sub-state
+  // (Task 8); these getters keep the rest of the widget's code unchanged.
+  // `_mapController`/`_mapControllerCompleter` above stay as plain widget
+  // fields — they hold a platform GoogleMapController tied to the GoogleMap
+  // widget's lifecycle (received via its onMapCreated callback), which isn't
+  // meaningfully comparable/immutable data and so is not a good fit for
+  // Riverpod state.
+  Set<Marker> get _markers =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).map.markers;
+  Set<Polyline> get _polylines =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).map.polylines;
+  bool get _hasInitialMapPosition =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).map.hasInitialMapPosition;
+  bool get _isMapLoading =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).map.isMapLoading;
+  bool get _showPlannedWaypoints => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .map
+      .showPlannedWaypoints;
+  TripLocation? get _selectedMapLocation => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .map
+      .selectedMapLocation;
+  PlannedWaypointInfo? get _selectedPlannedWaypoint => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .map
+      .selectedPlannedWaypoint;
+  LatLng? get _userLocation =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).map.userLocation;
+  bool get _isWsCameraGuardActive => ref
+      .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+      .isWsCameraGuardActive;
 
   List<Comment> get _comments =>
       ref.watch(tripDetailNotifierProvider(widget.trip.id)).comments.comments;
@@ -151,11 +181,6 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   bool _isTripSettingsCollapsed = true;
   bool _isSendingUpdate = false;
   bool _hasInitializedPanelStates = false;
-  bool _hasInitialMapPosition = false;
-  bool _isMapLoading = true;
-
-  // Planned waypoints overlay toggle (for trips created from a plan)
-  bool _showPlannedWaypoints = false;
 
   // Multi-day trip: current day derived from backend's currentDay field
   int get _currentDay => _trip.currentDay ?? 1;
@@ -163,25 +188,6 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   // Desktop web: track whether the mouse is hovering over a panel
   // so we can disable map gestures only when hovering.
   bool _isHoveringOverPanel = false;
-
-  // Custom info window: currently selected map marker location
-  TripLocation? _selectedMapLocation;
-
-  // Custom info window: currently selected planned waypoint
-  PlannedWaypointInfo? _selectedPlannedWaypoint;
-
-  // User's current device location (used as fallback for empty maps)
-  LatLng? _userLocation;
-
-  /// Timestamp of the last camera animation triggered by a WebSocket event.
-  /// Used to suppress competing animations from API refreshes that may carry
-  /// stale data due to CQRS eventual consistency.
-  DateTime? _lastWsCameraUpdate;
-
-  /// How long after a WebSocket-driven camera animation we should suppress
-  /// API-refresh-driven animations to avoid the map jumping back to a
-  /// stale position.
-  static const Duration _wsCameraGuardDuration = Duration(seconds: 10);
 
   // First-time trip detail tutorial (coach marks)
   final GlobalKey _tutorialUpdatePanelKey = GlobalKey();
@@ -228,7 +234,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         .read(tripDetailNotifierProvider(widget.trip.id).notifier)
         .seedInitialTrip(widget.trip);
     // Default to showing the planned route when the trip has one
-    _showPlannedWaypoints = _trip.hasPlannedRoute;
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .setShowPlannedWaypoints(widget.trip.hasPlannedRoute);
     // Don't call _updateMapData() here — it would use stale trip data.
     // Let _initializeMapPosition() handle everything after loading fresh data.
     _checkLoginStatus();
@@ -265,9 +273,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       );
 
       if (mounted) {
-        setState(() {
-          _userLocation = LatLng(position.latitude, position.longitude);
-        });
+        ref
+            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+            .setUserLocation(LatLng(position.latitude, position.longitude));
       }
     } catch (e) {
       debugPrint('TripDetailScreen: Could not get user location: $e');
@@ -296,11 +304,13 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     if (mounted) {
       _updateMapData();
       _animateMapToLatestLocation(animate: false);
-      setState(() {
-        _isMapLoading = false;
-      });
+      ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .setMapLoading(false);
     }
-    _hasInitialMapPosition = true;
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .markInitialMapPositionSet();
   }
 
   Future<void> _initWebSocket() async {
@@ -459,58 +469,19 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     }
   }
 
-  /// Whether a WebSocket event recently animated the camera, meaning
-  /// API-refresh-driven animations should be suppressed to avoid the map
-  /// jumping back to a stale position (CQRS eventual consistency).
-  bool get _isWsCameraGuardActive {
-    if (_lastWsCameraUpdate == null) return false;
-    return DateTime.now().difference(_lastWsCameraUpdate!) <
-        _wsCameraGuardDuration;
-  }
-
-  /// Maximum number of automatic retries for [_refreshTripData] when the
-  /// backend returns an error (e.g. HTTP 500). Each retry waits a bit longer.
-  static const int _maxRefreshRetries = 3;
-
-  /// Refreshes full trip data from the backend.
+  /// Refreshes full trip data from the backend via [TripDetailNotifier].
   ///
-  /// When the API call fails (e.g. 500), the method retries up to
-  /// [_maxRefreshRetries] times with exponential back-off (2s, 4s, 8s).
-  /// Between retries the existing trip data is still rendered on the map
-  /// so the user sees whatever was available before the failure.
-  Future<void> _refreshTripData({int retryCount = 0}) async {
+  /// The notifier's `refreshTripData()` already handles retry-with-backoff
+  /// internally (see Task 8), so this widget wrapper no longer needs a
+  /// `retryCount` parameter — all call sites (`_handleTripStatusChanged` and
+  /// others) already invoke `_refreshTripData()` with no arguments, matching
+  /// how Task 5's `_loadTripUpdates` wrapper dropped its own `retryCount`.
+  Future<void> _refreshTripData() async {
     try {
-      final updatedTrip = await _repository.getTripById(_trip.id);
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .refreshTripData();
       if (mounted) {
-        // Merge locally-applied WebSocket locations that may not yet appear
-        // in the CQRS query model. This prevents the map from temporarily
-        // losing newly added markers when the backend is still propagating.
-        final apiLocationIds =
-            (updatedTrip.locations ?? []).map((l) => l.id).toSet();
-        final wsOnlyLocations = (_trip.locations ?? [])
-            .where(
-                (l) => l.id.startsWith('ws_') && !apiLocationIds.contains(l.id))
-            .toList();
-
-        final mergedLocations = <TripLocation>[
-          ...updatedTrip.locations ?? [],
-          ...wsOnlyLocations,
-        ];
-
-        setState(() {
-          // Preserve automaticUpdates / updateRefresh when the backend query
-          // model hasn't propagated them yet (CQRS eventual consistency).
-          // If the backend returns false/null but we already know the user
-          // enabled automatic updates, keep the local value.
-          ref
-              .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-              .applyTripOverride(updatedTrip.copyWith(
-                automaticUpdates:
-                    updatedTrip.automaticUpdates || _trip.automaticUpdates,
-                updateRefresh: updatedTrip.updateRefresh ?? _trip.updateRefresh,
-                locations: mergedLocations,
-              ));
-        });
         _updateMapData();
         // Only animate the camera on subsequent refreshes (e.g. after a
         // WebSocket status change). The very first positioning is handled by
@@ -523,24 +494,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         }
       }
     } catch (e) {
-      debugPrint(
-          'TripDetailScreen: Error refreshing trip data (attempt ${retryCount + 1}): $e');
-
-      // Render whatever data we already have so the map isn't blank
+      // Render whatever data we already have so the map isn't blank.
       if (mounted) {
         _updateMapData();
       }
-
-      // Retry with exponential back-off if we haven't exhausted retries
-      if (retryCount < _maxRefreshRetries && mounted) {
-        final delay = Duration(seconds: 2 << retryCount); // 2s, 4s, 8s
-        debugPrint(
-            'TripDetailScreen: Scheduling refresh retry in ${delay.inSeconds}s');
-        await Future.delayed(delay);
-        if (mounted) {
-          await _refreshTripData(retryCount: retryCount + 1);
-        }
-      }
+    } finally {
+      if (mounted) setState(() {});
     }
   }
 
@@ -616,7 +575,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       });
       _updateMapData();
       // Animate the camera to the new location
-      _lastWsCameraUpdate = DateTime.now();
+      ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .markWsCameraUpdate();
       _animateMapToLocation(LatLng(event.latitude!, event.longitude!));
       debugPrint('TripDetailScreen: Map updated and animated to new location');
     }
@@ -692,7 +653,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       });
       _updateMapData();
       // Animate the camera to the new location
-      _lastWsCameraUpdate = DateTime.now();
+      ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .markWsCameraUpdate();
       _animateMapToLocation(LatLng(event.latitude!, event.longitude!));
       debugPrint('TripDetailScreen: Map updated and animated to new location');
     }
@@ -811,9 +774,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       final target = LatLng(position.latitude, position.longitude);
 
       if (mounted) {
-        setState(() {
-          _userLocation = target;
-        });
+        ref
+            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+            .setUserLocation(target);
         await _animateMapToLocation(target);
       }
     } catch (e) {
@@ -1425,6 +1388,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   void _updateMapData() {
     debugPrint(
         'TripDetailScreen: Updating map data - locations: ${_trip.locations?.length}, encodedPolyline length: ${_trip.encodedPolyline?.length}');
+    final notifier =
+        ref.read(tripDetailNotifierProvider(widget.trip.id).notifier);
     try {
       final mapData = TripMapHelper.createMapDataWithDirections(
         _trip,
@@ -1432,12 +1397,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         onPlannedMarkerTap: _onPlannedMarkerTapped,
         showPlannedWaypoints: _showPlannedWaypoints,
       );
-      setState(() {
-        _markers = mapData.markers;
-        _polylines = mapData.polylines;
-      });
-      debugPrint(
-          'TripDetailScreen: Map updated - markers: ${_markers.length}, polylines: ${_polylines.length}');
+      notifier.setMapMarkersAndPolylines(mapData.markers, mapData.polylines);
     } catch (e) {
       debugPrint(
           'TripDetailScreen: Error in createMapDataWithDirections, falling back to straight lines: $e');
@@ -1448,34 +1408,26 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         onPlannedMarkerTap: _onPlannedMarkerTapped,
         showPlannedWaypoints: _showPlannedWaypoints,
       );
-      setState(() {
-        _markers = mapData.markers;
-        _polylines = mapData.polylines;
-      });
-      debugPrint(
-          'TripDetailScreen: Fallback map updated - markers: ${_markers.length}, polylines: ${_polylines.length}');
+      notifier.setMapMarkersAndPolylines(mapData.markers, mapData.polylines);
     }
   }
 
   void _onMapMarkerTapped(TripLocation location) {
-    setState(() {
-      _selectedMapLocation = location;
-      _selectedPlannedWaypoint = null; // clear other selection
-    });
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .selectMapLocation(location);
   }
 
   void _onPlannedMarkerTapped(PlannedWaypointInfo waypoint) {
-    setState(() {
-      _selectedPlannedWaypoint = waypoint;
-      _selectedMapLocation = null; // clear other selection
-    });
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .selectPlannedWaypoint(waypoint);
   }
 
   void _onInfoWindowClosed() {
-    setState(() {
-      _selectedMapLocation = null;
-      _selectedPlannedWaypoint = null;
-    });
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .clearMapSelection();
   }
 
   Future<void> _loadComments() async {
@@ -2676,9 +2628,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           _isLoggedIn && _trip.userId == _userId ? _handleDeleteTrip : null,
       onTogglePlannedWaypoints: _trip.hasPlannedRoute
           ? () {
-              setState(() {
-                _showPlannedWaypoints = !_showPlannedWaypoints;
-              });
+              ref
+                  .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+                  .setShowPlannedWaypoints(!_showPlannedWaypoints);
               _updateMapData();
             }
           : null,

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
@@ -12,6 +13,7 @@ import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart'
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/presentation/state/trip_detail/trip_detail_state.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_planned_info_window.dart';
 
 /// Owns [TripDetailState] for one trip (keyed by trip id). Replaces the
 /// screen's former `State`-held business logic, migrated concern-by-concern.
@@ -629,6 +631,116 @@ class TripDetailNotifier
         ),
       );
       rethrow;
+    }
+  }
+
+  static const Duration _wsCameraGuardDuration = Duration(seconds: 10);
+  static const int _maxRefreshRetries = 3;
+
+  /// Whether a WebSocket event recently animated the camera, meaning
+  /// API-refresh-driven animations should be suppressed to avoid the map
+  /// jumping back to a stale position (CQRS eventual consistency).
+  bool get isWsCameraGuardActive {
+    final last = state.map.lastWsCameraUpdate;
+    if (last == null) return false;
+    return DateTime.now().difference(last) < _wsCameraGuardDuration;
+  }
+
+  /// Records that a WebSocket event just animated the map camera, arming
+  /// [isWsCameraGuardActive] for [_wsCameraGuardDuration]. Transitional:
+  /// called directly by not-yet-migrated WebSocket handlers on the widget
+  /// (Task 9a/9b), same pattern as [applyTripOverride]/[applyTimelineOverride]/
+  /// [applyCommentsOverride].
+  void markWsCameraUpdate() {
+    state = state.copyWith(map: state.map.copyWith(lastWsCameraUpdate: DateTime.now()));
+  }
+
+  void setUserLocation(LatLng location) {
+    state = state.copyWith(map: state.map.copyWith(userLocation: location));
+  }
+
+  void setShowPlannedWaypoints(bool show) {
+    state = state.copyWith(map: state.map.copyWith(showPlannedWaypoints: show));
+  }
+
+  void setMapMarkersAndPolylines(Set<Marker> markers, Set<Polyline> polylines) {
+    state = state.copyWith(map: state.map.copyWith(markers: markers, polylines: polylines));
+  }
+
+  void selectMapLocation(TripLocation location) {
+    state = state.copyWith(
+      map: state.map.copyWith(
+        selectedMapLocation: location,
+        clearSelectedPlannedWaypoint: true,
+      ),
+    );
+  }
+
+  void selectPlannedWaypoint(PlannedWaypointInfo waypoint) {
+    state = state.copyWith(
+      map: state.map.copyWith(
+        selectedPlannedWaypoint: waypoint,
+        clearSelectedMapLocation: true,
+      ),
+    );
+  }
+
+  void clearMapSelection() {
+    state = state.copyWith(
+      map: state.map.copyWith(
+        clearSelectedMapLocation: true,
+        clearSelectedPlannedWaypoint: true,
+      ),
+    );
+  }
+
+  void setMapLoading(bool loading) {
+    state = state.copyWith(map: state.map.copyWith(isMapLoading: loading));
+  }
+
+  void markInitialMapPositionSet() {
+    state = state.copyWith(map: state.map.copyWith(hasInitialMapPosition: true));
+  }
+
+  /// Refreshes full trip data from the backend.
+  ///
+  /// When the API call fails (e.g. 500), retries up to [_maxRefreshRetries]
+  /// times with exponential back-off (2s, 4s, 8s), matching the pre-migration
+  /// `_refreshTripData` behavior exactly. Between retries, whatever trip data
+  /// is already in state stays there so the map isn't left blank.
+  Future<void> refreshTripData({int retryCount = 0}) async {
+    try {
+      final updatedTrip = await _repository.getTripById(state.trip.id);
+      // Merge locally-applied WebSocket locations that may not yet appear
+      // in the CQRS query model. This prevents the map from temporarily
+      // losing newly added markers when the backend is still propagating.
+      final apiLocationIds = (updatedTrip.locations ?? []).map((l) => l.id).toSet();
+      final wsOnlyLocations = (state.trip.locations ?? [])
+          .where((l) => l.id.startsWith('ws_') && !apiLocationIds.contains(l.id))
+          .toList();
+      final mergedLocations = <TripLocation>[
+        ...updatedTrip.locations ?? [],
+        ...wsOnlyLocations,
+      ];
+
+      state = state.copyWith(
+        trip: updatedTrip.copyWith(
+          // Preserve automaticUpdates / updateRefresh when the backend query
+          // model hasn't propagated them yet (CQRS eventual consistency).
+          automaticUpdates: updatedTrip.automaticUpdates || state.trip.automaticUpdates,
+          updateRefresh: updatedTrip.updateRefresh ?? state.trip.updateRefresh,
+          locations: mergedLocations,
+        ),
+      );
+    } catch (e) {
+      // Retry with exponential back-off if we haven't exhausted retries.
+      if (retryCount < _maxRefreshRetries) {
+        final delay = Duration(seconds: 2 << retryCount); // 2s, 4s, 8s
+        await Future.delayed(delay);
+        await refreshTripData(retryCount: retryCount + 1);
+      } else {
+        rethrow;
+      }
     }
   }
 }

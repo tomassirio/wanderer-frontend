@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
@@ -14,6 +15,7 @@ import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/presentation/state/trip_detail/trip_detail_notifier.dart';
 import 'package:wanderer_frontend/presentation/state/trip_detail/trip_detail_state.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_planned_info_window.dart';
 
 import 'trip_detail_notifier_test.mocks.dart';
 
@@ -783,5 +785,64 @@ void main() {
 
     final state = container.read(tripDetailNotifierProvider(trip.id));
     expect(state.comments.comments.first.reactions, isNull); // reverted
+  });
+
+  test('refreshTripData merges ws_-only locations not yet in the API response',
+      () async {
+    when(mockRepository.getTripById('trip-1')).thenAnswer(
+      (_) async => trip.copyWith(locations: [
+        TripLocation(id: 'api-1', latitude: 1, longitude: 1, timestamp: DateTime(2026, 1, 1)),
+      ]),
+    );
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip.copyWith(locations: [
+      TripLocation(id: 'ws_999', latitude: 2, longitude: 2, timestamp: DateTime(2026, 1, 2)),
+    ]));
+
+    await notifier.refreshTripData();
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.trip.locations?.map((l) => l.id), containsAll(['api-1', 'ws_999']));
+  });
+
+  test('refreshTripData preserves automaticUpdates when the API has not caught up',
+      () async {
+    when(mockRepository.getTripById('trip-1'))
+        .thenAnswer((_) async => trip.copyWith(automaticUpdates: false));
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip.copyWith(automaticUpdates: true));
+
+    await notifier.refreshTripData();
+
+    expect(container.read(tripDetailNotifierProvider(trip.id)).trip.automaticUpdates, isTrue);
+  });
+
+  test('markWsCameraUpdate makes isWsCameraGuardActive true immediately after', () async {
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    notifier.markWsCameraUpdate();
+
+    expect(notifier.isWsCameraGuardActive, isTrue);
+  });
+
+  test('selectMapLocation clears any selected planned waypoint', () async {
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+    notifier.selectPlannedWaypoint(
+      const PlannedWaypointInfo(type: PlannedWaypointType.start, position: LatLng(1, 1)),
+    );
+
+    notifier.selectMapLocation(
+      TripLocation(id: 'loc-1', latitude: 1, longitude: 1, timestamp: DateTime(2026, 1, 1)),
+    );
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.map.selectedMapLocation?.id, 'loc-1');
+    expect(state.map.selectedPlannedWaypoint, isNull);
   });
 }
