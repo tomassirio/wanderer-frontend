@@ -9,7 +9,6 @@ import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
-import 'package:wanderer_frontend/presentation/helpers/dashed_polyline_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_plan_map_helper.dart';
@@ -19,6 +18,7 @@ import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/state/trip_plan_detail/trip_plan_detail_notifier.dart';
+import 'package:wanderer_frontend/presentation/state/trip_plan_detail/trip_plan_detail_state.dart';
 import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_notifier.dart';
 import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_state.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
@@ -27,9 +27,6 @@ import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_plan_info_card.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
-
-/// The type of point the user wants to place next on the map in edit mode
-enum _EditPlacementMode { start, end, waypoint }
 
 /// Screen for viewing and editing a trip plan
 class TripPlanDetailScreen extends ConsumerStatefulWidget {
@@ -67,44 +64,40 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   DateTime? _endDate;
 
   GoogleMapController? _mapController;
-  Set<Marker> get _markers =>
-      ref.watch(tripPlanDetailNotifierProvider(widget.tripPlan.id)).viewMap
-          .markers;
-  Set<Polyline> get _polylines =>
-      ref.watch(tripPlanDetailNotifierProvider(widget.tripPlan.id)).viewMap
-          .polylines;
+  Set<Marker> get _markers => ref
+      .watch(tripPlanDetailNotifierProvider(widget.tripPlan.id))
+      .viewMap
+      .markers;
+  Set<Polyline> get _polylines => ref
+      .watch(tripPlanDetailNotifierProvider(widget.tripPlan.id))
+      .viewMap
+      .polylines;
 
   // Collapsible panel state
-  bool get _isInfoCollapsed =>
-      ref.watch(tripPlanDetailNotifierProvider(widget.tripPlan.id)).viewMap
-          .isInfoCollapsed;
+  bool get _isInfoCollapsed => ref
+      .watch(tripPlanDetailNotifierProvider(widget.tripPlan.id))
+      .viewMap
+      .isInfoCollapsed;
 
-  // Edit mode map state
-  List<LatLng> _editWaypoints = [];
-  LatLng? _editStartLocation;
-  LatLng? _editEndLocation;
+  TripPlanDetailEditMapState get _editMapState =>
+      ref.watch(tripPlanDetailNotifierProvider(widget.tripPlan.id)).editMap;
+  List<LatLng> get _editWaypoints => _editMapState.waypoints;
+  LatLng? get _editStartLocation => _editMapState.startLocation;
+  LatLng? get _editEndLocation => _editMapState.endLocation;
+  // `_editPlacementMode` intentionally has no widget-side getter: every
+  // remaining reference to the placement mode in this file was inside the
+  // now-migrated `_onEditMapTapped`/`_initEditLocations`/`_cancelEditing`
+  // methods, so nothing on the widget ever reads it directly anymore
+  // (unlike `_editWaypoints` etc., which the panel/chips UI below still
+  // reads for rendering). Omitted rather than left as dead code that
+  // `flutter analyze` would flag as an unused_element.
+  Set<Polyline> get _editPolylines => _editMapState.polylines;
+  String? get _editEncodedPolyline => _editMapState.encodedPolyline;
+  bool get _isEditComputingRoute => _editMapState.isComputingRoute;
+
   bool _editFormExpanded = false;
   bool _showEditWaypointsList = false;
   bool _isEditPanelCollapsed = false;
-
-  /// Placement mode for adding/moving points in edit mode
-  _EditPlacementMode _editPlacementMode = _EditPlacementMode.waypoint;
-
-  /// Polylines computed for edit mode (road-snapped or fallback)
-  final Set<Polyline> _editPolylines = {};
-
-  /// The computed encoded polyline for saving
-  String? _editEncodedPolyline;
-
-  /// Whether a route computation is in progress
-  bool _isEditComputingRoute = false;
-
-  /// Flag to ignore the next map tap on web
-  bool _editIgnoreNextMapTap = false;
-
-  /// True while a date picker dialog is open — gates map tap handling so
-  /// tapping a date inside the dialog does not also drop a waypoint.
-  bool _isPickerOpen = false;
 
   @override
   void initState() {
@@ -112,14 +105,18 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
     _tripPlanService = ref.read(tripPlanServiceProvider);
     _tripService = ref.read(tripServiceProvider);
     _directionsClient = ref.read(googleDirectionsApiClientProvider);
-    ref.read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
+    ref
+        .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
         .seedInitialTripPlan(widget.tripPlan);
     _nameController = TextEditingController(text: _tripPlan.name);
     _selectedPlanType = _tripPlan.planType;
     _startDate = _tripPlan.startDate;
     _endDate = _tripPlan.endDate;
-    _initEditLocations();
-    ref.read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
+    ref
+        .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
+        .initEditLocations();
+    ref
+        .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
         .updateViewMapData(onWaypointTap: _showWaypointOptions);
     ref.read(userChromeNotifierProvider.notifier).loadUserInfo();
   }
@@ -162,162 +159,6 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
     if (result == true && mounted) {
       await ref.read(userChromeNotifierProvider.notifier).loadUserInfo();
     }
-  }
-
-  /// Populates the editable location fields from the current trip plan
-  void _initEditLocations() {
-    _editWaypoints =
-        _tripPlan.waypoints.map((w) => LatLng(w.lat, w.lon)).toList();
-    _editStartLocation = _tripPlan.startLocation != null
-        ? LatLng(_tripPlan.startLocation!.lat, _tripPlan.startLocation!.lon)
-        : null;
-    _editEndLocation = _tripPlan.endLocation != null
-        ? LatLng(_tripPlan.endLocation!.lat, _tripPlan.endLocation!.lon)
-        : null;
-    _editPlacementMode = _EditPlacementMode.waypoint;
-    _editEncodedPolyline =
-        _tripPlan.plannedPolyline ?? _tripPlan.encodedPolyline;
-  }
-
-  /// Builds ordered points for the edit mode polyline: start → waypoints → end.
-  List<LatLng> _buildEditOrderedPoints() {
-    final points = <LatLng>[];
-    if (_editStartLocation != null) points.add(_editStartLocation!);
-    points.addAll(_editWaypoints);
-    if (_editEndLocation != null) points.add(_editEndLocation!);
-    return points;
-  }
-
-  /// Computes a road-snapped polyline via the Directions API for edit mode.
-  /// Falls back to a straight-line polyline if the API call fails.
-  Future<void> _computeEditRoutePolyline() async {
-    final points = _buildEditOrderedPoints();
-
-    if (points.length < 2) {
-      setState(() {
-        _editPolylines.clear();
-        _editEncodedPolyline = null;
-      });
-      return;
-    }
-
-    // Show straight-line fallback immediately while loading
-    setState(() {
-      _editPolylines.clear();
-      _editPolylines.addAll(
-        DashedPolylineHelper.createDashedPolylines(
-          polylineIdPrefix: 'edit_route',
-          points: points,
-          color: Colors.blue.withOpacity(0.5),
-          width: 3,
-        ),
-      );
-      _isEditComputingRoute = true;
-    });
-
-    try {
-      final result = await _directionsClient.getRouteWithPoints(points);
-
-      if (!mounted) return;
-
-      if (result != null) {
-        setState(() {
-          _editPolylines.clear();
-          _editPolylines.add(
-            Polyline(
-              polylineId: const PolylineId('edit_route'),
-              points: result.routePoints,
-              color: Colors.blue,
-              width: 5,
-              geodesic: false,
-              startCap: Cap.roundCap,
-              endCap: Cap.roundCap,
-              jointType: JointType.round,
-            ),
-          );
-          _editEncodedPolyline = result.encodedPolyline;
-          _isEditComputingRoute = false;
-        });
-      } else {
-        setState(() {
-          _editEncodedPolyline = PolylineCodec.encode(points);
-          _isEditComputingRoute = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('TripPlanDetailScreen: Edit route computation failed: $e');
-      if (!mounted) return;
-      setState(() {
-        _editEncodedPolyline = PolylineCodec.encode(points);
-        _isEditComputingRoute = false;
-      });
-    }
-  }
-
-  /// Initializes edit polylines — uses existing encoded polyline if locations
-  /// haven't changed, otherwise computes a new one.
-  void _initEditPolylines() {
-    if (_editLocationsMatchTripPlan()) {
-      final polylineStr =
-          _tripPlan.plannedPolyline ?? _tripPlan.encodedPolyline;
-      if (polylineStr != null && polylineStr.isNotEmpty) {
-        try {
-          final routePoints = PolylineCodec.decode(polylineStr);
-          setState(() {
-            _editPolylines.clear();
-            _editPolylines.add(
-              Polyline(
-                polylineId: const PolylineId('edit_route'),
-                points: routePoints,
-                color: Colors.blue,
-                width: 5,
-                geodesic: false,
-                startCap: Cap.roundCap,
-                endCap: Cap.roundCap,
-                jointType: JointType.round,
-              ),
-            );
-            _editEncodedPolyline = polylineStr;
-          });
-          return;
-        } catch (_) {
-          // Fall through to compute
-        }
-      }
-    }
-    _computeEditRoutePolyline();
-  }
-
-  /// Called when the user taps on the map in edit mode
-  void _onEditMapTapped(LatLng location) {
-    if (_editIgnoreNextMapTap) {
-      _editIgnoreNextMapTap = false;
-      return;
-    }
-    // Ignore map taps while a date picker dialog is open (Flutter Web platform
-    // view receives the click independently of the dialog overlay).
-    if (_isPickerOpen) return;
-
-    setState(() {
-      switch (_editPlacementMode) {
-        case _EditPlacementMode.start:
-          _editStartLocation = location;
-          if (_editEndLocation == null) {
-            _editPlacementMode = _EditPlacementMode.end;
-          } else {
-            _editPlacementMode = _EditPlacementMode.waypoint;
-          }
-          break;
-        case _EditPlacementMode.end:
-          _editEndLocation = location;
-          _editPlacementMode = _EditPlacementMode.waypoint;
-          break;
-        case _EditPlacementMode.waypoint:
-          _editWaypoints.add(location);
-          break;
-      }
-    });
-    _computeEditRoutePolyline();
   }
 
   /// Shows info for a waypoint in view mode (no delete)
@@ -374,7 +215,9 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   }
 
   Future<void> _selectDateRange() async {
-    setState(() => _isPickerOpen = true);
+    final notifier =
+        ref.read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier);
+    notifier.setPickerOpen(true);
     DateTimeRange? picked;
     try {
       picked = await showDateRangePicker(
@@ -390,12 +233,10 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
       );
     } finally {
       if (mounted) {
-        setState(() {
-          _isPickerOpen = false;
-          // Absorb the trailing map tap that the platform view fires
-          // after the dialog dismisses (Save / Cancel / X click).
-          _editIgnoreNextMapTap = true;
-        });
+        notifier.setPickerOpen(false);
+        // Absorb the trailing map tap that the platform view fires
+        // after the dialog dismisses (Save / Cancel / X click).
+        notifier.setIgnoreNextMapTap(true);
       }
     }
     if (picked != null && mounted) {
@@ -418,7 +259,9 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
       // Use the already-computed encoded polyline, or compute a fallback
       String? encodedPolyline = _editEncodedPolyline;
       if (encodedPolyline == null) {
-        final points = _buildEditOrderedPoints();
+        final points = ref
+            .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
+            .buildEditOrderedPoints();
         if (points.length >= 2) {
           final result = await _directionsClient.getRoutePolyline(points);
           encodedPolyline = result ?? PolylineCodec.encode(points);
@@ -457,14 +300,18 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
       final updatedPlan = await _tripPlanService.getTripPlanById(planId);
 
       if (mounted) {
-        ref.read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
+        ref
+            .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
             .applyTripPlanOverride(updatedPlan);
         setState(() {
           _isEditing = false;
           _isLoading = false;
         });
-        _initEditLocations();
-        ref.read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
+        ref
+            .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
+            .initEditLocations();
+        ref
+            .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
             .updateViewMapData(onWaypointTap: _showWaypointOptions);
         UiHelpers.showSuccessMessage(context, 'Trip plan updated successfully');
       }
@@ -660,8 +507,11 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
                             .notifier)
                         .setInfoCollapsed(!_isInfoCollapsed),
                     onEdit: () {
-                      _initEditLocations();
-                      _initEditPolylines();
+                      final notifier = ref.read(
+                          tripPlanDetailNotifierProvider(widget.tripPlan.id)
+                              .notifier);
+                      notifier.initEditLocations();
+                      notifier.initEditPolylines();
                       setState(() {
                         _isEditing = true;
                         _editFormExpanded = false;
@@ -691,8 +541,11 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
                                 .notifier)
                             .setInfoCollapsed(!_isInfoCollapsed),
                         onEdit: () {
-                          _initEditLocations();
-                          _initEditPolylines();
+                          final notifier = ref.read(
+                              tripPlanDetailNotifierProvider(widget.tripPlan.id)
+                                  .notifier);
+                          notifier.initEditLocations();
+                          notifier.initEditPolylines();
                           setState(() {
                             _isEditing = true;
                             _editFormExpanded = false;
@@ -714,32 +567,17 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
 
   /// Cancels editing and restores state
   void _cancelEditing() {
+    ref
+        .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
+        .resetEditMapToSavedPlan();
     setState(() {
       _isEditing = false;
       _nameController.text = _tripPlan.name;
       _selectedPlanType = _tripPlan.planType;
       _startDate = _tripPlan.startDate;
       _endDate = _tripPlan.endDate;
-      _editWaypoints =
-          _tripPlan.waypoints.map((w) => LatLng(w.lat, w.lon)).toList();
-      _editStartLocation = _tripPlan.startLocation != null
-          ? LatLng(
-              _tripPlan.startLocation!.lat,
-              _tripPlan.startLocation!.lon,
-            )
-          : null;
-      _editEndLocation = _tripPlan.endLocation != null
-          ? LatLng(
-              _tripPlan.endLocation!.lat,
-              _tripPlan.endLocation!.lon,
-            )
-          : null;
       _showEditWaypointsList = false;
       _isEditPanelCollapsed = false;
-      _editPolylines.clear();
-      _editEncodedPolyline = null;
-      _editPlacementMode = _EditPlacementMode.waypoint;
-      _isEditComputingRoute = false;
     });
   }
 
@@ -808,7 +646,10 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
                   });
                 }
               },
-              onTap: _onEditMapTapped,
+              onTap: (location) => ref
+                  .read(tripPlanDetailNotifierProvider(widget.tripPlan.id)
+                      .notifier)
+                  .onEditMapTapped(location),
               myLocationEnabled: true,
               myLocationButtonEnabled: true,
               zoomControlsEnabled: true,
@@ -825,7 +666,10 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
             right: 16,
             child: Listener(
               behavior: HitTestBehavior.opaque,
-              onPointerDown: (_) => _editIgnoreNextMapTap = true,
+              onPointerDown: (_) => ref
+                  .read(tripPlanDetailNotifierProvider(widget.tripPlan.id)
+                      .notifier)
+                  .setIgnoreNextMapTap(true),
               child: _buildEditLocationChips(),
             ),
           ),
@@ -836,7 +680,10 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
               right: 16,
               child: Listener(
                 behavior: HitTestBehavior.opaque,
-                onPointerDown: (_) => _editIgnoreNextMapTap = true,
+                onPointerDown: (_) => ref
+                    .read(tripPlanDetailNotifierProvider(widget.tripPlan.id)
+                        .notifier)
+                    .setIgnoreNextMapTap(true),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -883,7 +730,10 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
               bottom: 16,
               child: Listener(
                 behavior: HitTestBehavior.opaque,
-                onPointerDown: (_) => _editIgnoreNextMapTap = true,
+                onPointerDown: (_) => ref
+                    .read(tripPlanDetailNotifierProvider(widget.tripPlan.id)
+                        .notifier)
+                    .setIgnoreNextMapTap(true),
                 child: _buildEditWaypointsPanel(),
               ),
             ),
@@ -893,7 +743,10 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
             top: 0,
             child: Listener(
               behavior: HitTestBehavior.opaque,
-              onPointerDown: (_) => _editIgnoreNextMapTap = true,
+              onPointerDown: (_) => ref
+                  .read(tripPlanDetailNotifierProvider(widget.tripPlan.id)
+                      .notifier)
+                  .setIgnoreNextMapTap(true),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeInOut,
@@ -1260,7 +1113,10 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
                     });
                   }
                 },
-                onTap: _onEditMapTapped,
+                onTap: (location) => ref
+                    .read(tripPlanDetailNotifierProvider(widget.tripPlan.id)
+                        .notifier)
+                    .onEditMapTapped(location),
                 myLocationEnabled: true,
                 myLocationButtonEnabled: true,
                 zoomControlsEnabled: false,
@@ -1277,7 +1133,10 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
             right: 16,
             child: Listener(
               behavior: HitTestBehavior.opaque,
-              onPointerDown: (_) => _editIgnoreNextMapTap = true,
+              onPointerDown: (_) => ref
+                  .read(tripPlanDetailNotifierProvider(widget.tripPlan.id)
+                      .notifier)
+                  .setIgnoreNextMapTap(true),
               child: _buildEditLocationChips(),
             ),
           ),
@@ -1288,7 +1147,10 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
               right: 16,
               child: Listener(
                 behavior: HitTestBehavior.opaque,
-                onPointerDown: (_) => _editIgnoreNextMapTap = true,
+                onPointerDown: (_) => ref
+                    .read(tripPlanDetailNotifierProvider(widget.tripPlan.id)
+                        .notifier)
+                    .setIgnoreNextMapTap(true),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -1335,7 +1197,10 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
               bottom: _editFormExpanded ? expandedHeight + 10 : 210,
               child: Listener(
                 behavior: HitTestBehavior.opaque,
-                onPointerDown: (_) => _editIgnoreNextMapTap = true,
+                onPointerDown: (_) => ref
+                    .read(tripPlanDetailNotifierProvider(widget.tripPlan.id)
+                        .notifier)
+                    .setIgnoreNextMapTap(true),
                 child: _buildEditWaypointsPanel(),
               ),
             ),
@@ -1347,6 +1212,8 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   }
 
   Set<Marker> _buildEditMarkers() {
+    final notifier =
+        ref.read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier);
     final markers = <Marker>{};
     if (_editStartLocation != null) {
       markers.add(Marker(
@@ -1355,10 +1222,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
         infoWindow: const InfoWindow(title: 'Start Location'),
         icon: BitmapDescriptor.defaultMarkerWithHue(120.0), // Green
         draggable: true,
-        onDragEnd: (pos) {
-          setState(() => _editStartLocation = pos);
-          _computeEditRoutePolyline();
-        },
+        onDragEnd: (pos) => notifier.setStartLocation(pos),
         onTap: () => _showEditMarkerOptions('start', 'Start Location'),
       ));
     }
@@ -1369,10 +1233,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
         infoWindow: const InfoWindow(title: 'End Location'),
         icon: BitmapDescriptor.defaultMarkerWithHue(0.0), // Red
         draggable: true,
-        onDragEnd: (pos) {
-          setState(() => _editEndLocation = pos);
-          _computeEditRoutePolyline();
-        },
+        onDragEnd: (pos) => notifier.setEndLocation(pos),
         onTap: () => _showEditMarkerOptions('end', 'End Location'),
       ));
     }
@@ -1383,10 +1244,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
         infoWindow: InfoWindow(title: 'Waypoint ${i + 1}'),
         icon: BitmapDescriptor.defaultMarkerWithHue(240.0), // Blue
         draggable: true,
-        onDragEnd: (pos) {
-          setState(() => _editWaypoints[i] = pos);
-          _computeEditRoutePolyline();
-        },
+        onDragEnd: (pos) => notifier.updateWaypointAt(i, pos),
         onTap: () => _showEditMarkerOptions(
           'waypoint_${i + 1}',
           'Waypoint ${i + 1}',
@@ -1394,40 +1252,6 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
       ));
     }
     return markers;
-  }
-
-  /// Checks whether the edit locations still match the original trip plan
-  bool _editLocationsMatchTripPlan() {
-    // Check start location
-    if (_tripPlan.startLocation != null && _editStartLocation != null) {
-      if (_editStartLocation!.latitude != _tripPlan.startLocation!.lat ||
-          _editStartLocation!.longitude != _tripPlan.startLocation!.lon) {
-        return false;
-      }
-    } else if (_tripPlan.startLocation != null || _editStartLocation != null) {
-      return false;
-    }
-
-    // Check end location
-    if (_tripPlan.endLocation != null && _editEndLocation != null) {
-      if (_editEndLocation!.latitude != _tripPlan.endLocation!.lat ||
-          _editEndLocation!.longitude != _tripPlan.endLocation!.lon) {
-        return false;
-      }
-    } else if (_tripPlan.endLocation != null || _editEndLocation != null) {
-      return false;
-    }
-
-    // Check waypoints
-    if (_editWaypoints.length != _tripPlan.waypoints.length) return false;
-    for (int i = 0; i < _editWaypoints.length; i++) {
-      if (_editWaypoints[i].latitude != _tripPlan.waypoints[i].lat ||
-          _editWaypoints[i].longitude != _tripPlan.waypoints[i].lon) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   void _showEditMarkerOptions(String markerId, String title) {
@@ -1485,7 +1309,10 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
                   if (index != null &&
                       index > 0 &&
                       index <= _editWaypoints.length) {
-                    setState(() => _editWaypoints.removeAt(index - 1));
+                    ref
+                        .read(tripPlanDetailNotifierProvider(widget.tripPlan.id)
+                            .notifier)
+                        .removeWaypointAt(index - 1);
                   }
                 },
               ),
@@ -1706,11 +1533,10 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
                   );
                 },
                 onReorder: (oldIndex, newIndex) {
-                  setState(() {
-                    if (newIndex > oldIndex) newIndex--;
-                    final item = _editWaypoints.removeAt(oldIndex);
-                    _editWaypoints.insert(newIndex, item);
-                  });
+                  ref
+                      .read(tripPlanDetailNotifierProvider(widget.tripPlan.id)
+                          .notifier)
+                      .reorderWaypoint(oldIndex, newIndex);
                 },
                 itemBuilder: (context, index) {
                   final wp = _editWaypoints[index];
@@ -1759,8 +1585,11 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           GestureDetector(
-                            onTap: () =>
-                                setState(() => _editWaypoints.removeAt(index)),
+                            onTap: () => ref
+                                .read(tripPlanDetailNotifierProvider(
+                                        widget.tripPlan.id)
+                                    .notifier)
+                                .removeWaypointAt(index),
                             child: Icon(
                               Icons.remove_circle_outline,
                               size: 18,
@@ -1802,7 +1631,9 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
       bottom: 0,
       child: Listener(
         behavior: HitTestBehavior.opaque,
-        onPointerDown: (_) => _editIgnoreNextMapTap = true,
+        onPointerDown: (_) => ref
+            .read(tripPlanDetailNotifierProvider(widget.tripPlan.id).notifier)
+            .setIgnoreNextMapTap(true),
         child: GestureDetector(
           onVerticalDragUpdate: (details) {
             if (details.primaryDelta! < -4) {
@@ -2202,22 +2033,10 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
       ..._editWaypoints,
     ];
     if (allPoints.length < 2 || _mapController == null) return;
-
-    double minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
-    for (final p in allPoints) {
-      if (p.latitude < minLat) minLat = p.latitude;
-      if (p.latitude > maxLat) maxLat = p.latitude;
-      if (p.longitude < minLng) minLng = p.longitude;
-      if (p.longitude > maxLng) maxLng = p.longitude;
-    }
+    final bounds = TripPlanMapHelper.calculateBoundsForPoints(allPoints);
+    if (bounds == null) return;
     _mapController!.animateCamera(
-      CameraUpdate.newLatLngBounds(
-        LatLngBounds(
-          southwest: LatLng(minLat, minLng),
-          northeast: LatLng(maxLat, maxLng),
-        ),
-        50,
-      ),
+      CameraUpdate.newLatLngBounds(bounds, 50),
     );
   }
 

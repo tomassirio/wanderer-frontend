@@ -1,5 +1,11 @@
+import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
+import 'package:wanderer_frontend/data/client/google_directions_api_client.dart';
+import 'package:wanderer_frontend/data/client/polyline_codec.dart';
 import 'package:wanderer_frontend/data/models/domain/trip_plan.dart';
+import 'package:wanderer_frontend/presentation/helpers/route_polyline_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_plan_map_helper.dart';
 import 'package:wanderer_frontend/presentation/state/trip_plan_detail/trip_plan_detail_state.dart';
 
@@ -13,8 +19,15 @@ import 'package:wanderer_frontend/presentation/state/trip_plan_detail/trip_plan_
 /// outlive the screen that reads it.
 class TripPlanDetailNotifier
     extends AutoDisposeFamilyNotifier<TripPlanDetailState, String> {
+  // `late`, not `late final` — same reasoning as every other injected
+  // dependency in this codebase's notifiers: build() can rerun on this
+  // instance, and a second assignment to a `late final` field would throw
+  // LateInitializationError.
+  late GoogleDirectionsApiClient _directionsClient;
+
   @override
   TripPlanDetailState build(String arg) {
+    _directionsClient = ref.watch(googleDirectionsApiClientProvider);
     return TripPlanDetailState(tripPlan: TripPlan.empty(id: arg));
   }
 
@@ -64,6 +77,282 @@ class TripPlanDetailNotifier
   void setInfoCollapsed(bool collapsed) {
     state = state.copyWith(
       viewMap: state.viewMap.copyWith(isInfoCollapsed: collapsed),
+    );
+  }
+
+  /// Populates the editable location fields from the current trip plan.
+  /// Does NOT touch `polylines`/`isComputingRoute` — matching the
+  /// pre-migration `_initEditLocations()`'s exact scope.
+  void initEditLocations() {
+    final plan = state.tripPlan;
+    state = state.copyWith(
+      editMap: state.editMap.copyWith(
+        waypoints: plan.waypoints.map((w) => LatLng(w.lat, w.lon)).toList(),
+        startLocation: plan.startLocation != null
+            ? LatLng(plan.startLocation!.lat, plan.startLocation!.lon)
+            : null,
+        endLocation: plan.endLocation != null
+            ? LatLng(plan.endLocation!.lat, plan.endLocation!.lon)
+            : null,
+        clearStartLocation: plan.startLocation == null,
+        clearEndLocation: plan.endLocation == null,
+        placementMode: EditPlacementMode.waypoint,
+        encodedPolyline: plan.plannedPolyline ?? plan.encodedPolyline,
+        clearEncodedPolyline:
+            plan.plannedPolyline == null && plan.encodedPolyline == null,
+      ),
+    );
+  }
+
+  /// Builds ordered points for the edit-mode polyline: start → waypoints → end.
+  List<LatLng> buildEditOrderedPoints() {
+    final points = <LatLng>[];
+    if (state.editMap.startLocation != null) {
+      points.add(state.editMap.startLocation!);
+    }
+    points.addAll(state.editMap.waypoints);
+    if (state.editMap.endLocation != null) {
+      points.add(state.editMap.endLocation!);
+    }
+    return points;
+  }
+
+  /// Computes a road-snapped polyline via the Directions API for edit mode,
+  /// via the shared [RoutePolylineHelper] (Task 3). On API failure/null,
+  /// keeps whatever polyline is already showing (the dashed placeholder set
+  /// just above) rather than clearing it — matching both this screen's and
+  /// CreateTripPlanScreen's original fallback behavior exactly.
+  Future<void> computeEditRoutePolyline() async {
+    final points = buildEditOrderedPoints();
+
+    if (points.length < 2) {
+      state = state.copyWith(
+        editMap:
+            state.editMap.copyWith(polylines: {}, clearEncodedPolyline: true),
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      editMap: state.editMap.copyWith(
+        polylines: RoutePolylineHelper.placeholderPolylines(
+          points: points,
+          polylineId: 'edit_route',
+          color: Colors.blue.withOpacity(0.5),
+          width: 3,
+        ),
+        isComputingRoute: true,
+      ),
+    );
+
+    final result = await RoutePolylineHelper.computeRoute(
+      points: points,
+      directionsClient: _directionsClient,
+      polylineId: 'edit_route',
+      color: Colors.blue,
+      width: 5,
+    );
+
+    state = state.copyWith(
+      editMap: state.editMap.copyWith(
+        polylines: result.polylines.isNotEmpty
+            ? result.polylines
+            : state.editMap.polylines,
+        encodedPolyline: result.encodedPolyline,
+        clearEncodedPolyline: result.encodedPolyline == null,
+        isComputingRoute: false,
+      ),
+    );
+  }
+
+  /// Whether the current edit-map locations still match the original trip
+  /// plan (used to decide whether the existing backend polyline can be
+  /// reused as-is instead of recomputing).
+  bool editLocationsMatchTripPlan() {
+    final plan = state.tripPlan;
+    final edit = state.editMap;
+
+    if (plan.startLocation != null && edit.startLocation != null) {
+      if (edit.startLocation!.latitude != plan.startLocation!.lat ||
+          edit.startLocation!.longitude != plan.startLocation!.lon) {
+        return false;
+      }
+    } else if (plan.startLocation != null || edit.startLocation != null) {
+      return false;
+    }
+
+    if (plan.endLocation != null && edit.endLocation != null) {
+      if (edit.endLocation!.latitude != plan.endLocation!.lat ||
+          edit.endLocation!.longitude != plan.endLocation!.lon) {
+        return false;
+      }
+    } else if (plan.endLocation != null || edit.endLocation != null) {
+      return false;
+    }
+
+    if (edit.waypoints.length != plan.waypoints.length) return false;
+    for (int i = 0; i < edit.waypoints.length; i++) {
+      if (edit.waypoints[i].latitude != plan.waypoints[i].lat ||
+          edit.waypoints[i].longitude != plan.waypoints[i].lon) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// Initializes edit polylines — reuses the existing backend polyline if
+  /// locations haven't changed, otherwise computes a new one.
+  Future<void> initEditPolylines() async {
+    if (editLocationsMatchTripPlan()) {
+      final polylineStr =
+          state.tripPlan.plannedPolyline ?? state.tripPlan.encodedPolyline;
+      if (polylineStr != null && polylineStr.isNotEmpty) {
+        try {
+          final routePoints = PolylineCodec.decode(polylineStr);
+          state = state.copyWith(
+            editMap: state.editMap.copyWith(
+              polylines: {
+                Polyline(
+                  polylineId: const PolylineId('edit_route'),
+                  points: routePoints,
+                  color: Colors.blue,
+                  width: 5,
+                  geodesic: false,
+                  startCap: Cap.roundCap,
+                  endCap: Cap.roundCap,
+                  jointType: JointType.round,
+                ),
+              },
+              encodedPolyline: polylineStr,
+            ),
+          );
+          return;
+        } catch (_) {
+          // Fall through to compute.
+        }
+      }
+    }
+    await computeEditRoutePolyline();
+  }
+
+  /// Called when the user taps the map in edit mode.
+  void onEditMapTapped(LatLng location) {
+    if (state.editMap.ignoreNextMapTap) {
+      state = state.copyWith(
+        editMap: state.editMap.copyWith(ignoreNextMapTap: false),
+      );
+      return;
+    }
+    // Ignore map taps while a date picker dialog is open (Flutter Web
+    // platform view receives the click independently of the dialog overlay).
+    if (state.editMap.isPickerOpen) return;
+
+    switch (state.editMap.placementMode) {
+      case EditPlacementMode.start:
+        final becomesEnd = state.editMap.endLocation == null;
+        state = state.copyWith(
+          editMap: state.editMap.copyWith(
+            startLocation: location,
+            placementMode:
+                becomesEnd ? EditPlacementMode.end : EditPlacementMode.waypoint,
+          ),
+        );
+        break;
+      case EditPlacementMode.end:
+        state = state.copyWith(
+          editMap: state.editMap.copyWith(
+            endLocation: location,
+            placementMode: EditPlacementMode.waypoint,
+          ),
+        );
+        break;
+      case EditPlacementMode.waypoint:
+        state = state.copyWith(
+          editMap: state.editMap
+              .copyWith(waypoints: [...state.editMap.waypoints, location]),
+        );
+        break;
+    }
+    computeEditRoutePolyline();
+  }
+
+  void setStartLocation(LatLng location) {
+    state = state.copyWith(
+        editMap: state.editMap.copyWith(startLocation: location));
+    computeEditRoutePolyline();
+  }
+
+  void setEndLocation(LatLng location) {
+    state =
+        state.copyWith(editMap: state.editMap.copyWith(endLocation: location));
+    computeEditRoutePolyline();
+  }
+
+  void updateWaypointAt(int index, LatLng location) {
+    final waypoints = List<LatLng>.from(state.editMap.waypoints);
+    waypoints[index] = location;
+    state =
+        state.copyWith(editMap: state.editMap.copyWith(waypoints: waypoints));
+    computeEditRoutePolyline();
+  }
+
+  /// Removes the waypoint at [index] and recomputes the route afterward.
+  ///
+  /// The pre-migration `_showEditMarkerOptions`'s "Remove" bottom-sheet
+  /// action did NOT recompute the route after removing a waypoint — a real
+  /// bug, confirmed by cross-referencing `CreateTripPlanScreen`'s equivalent
+  /// action, which correctly recomputes. Fixed here, per this project's
+  /// established precedent of fixing-and-flagging bugs found during a
+  /// refactor rather than silently preserving them (see this plan's Global
+  /// Constraints).
+  void removeWaypointAt(int index) {
+    final waypoints = List<LatLng>.from(state.editMap.waypoints)
+      ..removeAt(index);
+    state =
+        state.copyWith(editMap: state.editMap.copyWith(waypoints: waypoints));
+    computeEditRoutePolyline();
+  }
+
+  /// Reorders a waypoint from [oldIndex] to [newIndex] (accepts
+  /// `ReorderableListView.onReorder`'s raw callback values directly — the
+  /// `newIndex > oldIndex` adjustment its contract requires is handled
+  /// internally) and recomputes the route afterward.
+  ///
+  /// The pre-migration `ReorderableListView.onReorder` handler did NOT
+  /// recompute the route after reordering — the same bug class as
+  /// [removeWaypointAt] above, fixed here for the same documented reason.
+  void reorderWaypoint(int oldIndex, int newIndex) {
+    var adjustedNewIndex = newIndex;
+    if (adjustedNewIndex > oldIndex) adjustedNewIndex--;
+    final waypoints = List<LatLng>.from(state.editMap.waypoints);
+    final item = waypoints.removeAt(oldIndex);
+    waypoints.insert(adjustedNewIndex, item);
+    state =
+        state.copyWith(editMap: state.editMap.copyWith(waypoints: waypoints));
+    computeEditRoutePolyline();
+  }
+
+  void setIgnoreNextMapTap(bool value) {
+    state = state.copyWith(
+        editMap: state.editMap.copyWith(ignoreNextMapTap: value));
+  }
+
+  void setPickerOpen(bool value) {
+    state =
+        state.copyWith(editMap: state.editMap.copyWith(isPickerOpen: value));
+  }
+
+  /// Resets edit-mode map/route state back to the current trip plan's saved
+  /// values — used when the user cancels an in-progress edit. Combines
+  /// [initEditLocations]'s field re-seeding with clearing any in-flight
+  /// route computation, matching what `_cancelEditing()`'s inline reset
+  /// used to do by hand for this portion of its state (the rest — name,
+  /// plan type, dates, panel visibility — is metadata/pure-UI concern,
+  /// reset separately by Task 5, which migrates `_cancelEditing()` itself).
+  void resetEditMapToSavedPlan() {
+    initEditLocations();
+    state = state.copyWith(
+      editMap: state.editMap.copyWith(polylines: {}, isComputingRoute: false),
     );
   }
 
