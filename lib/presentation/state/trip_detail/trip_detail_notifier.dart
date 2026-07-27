@@ -9,6 +9,7 @@ import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart'
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
+import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
@@ -742,6 +743,34 @@ class TripDetailNotifier
         rethrow;
       }
     }
+  }
+
+  void applyTripStatusChanged(TripStatusChangedEvent event) {
+    state = state.copyWith(
+      trip: state.trip.copyWith(
+        status: event.newStatus,
+        currentDay: event.currentDay ??
+            ((event.newStatus == TripStatus.inProgress &&
+                    event.previousStatus == TripStatus.created &&
+                    state.trip.tripModality == TripModality.multiDay &&
+                    state.trip.currentDay == null)
+                ? 1
+                : null),
+      ),
+    );
+  }
+
+  void applyPolylineUpdated(PolylineUpdatedEvent event) {
+    state = state.copyWith(trip: state.trip.copyWith(encodedPolyline: event.encodedPolyline));
+  }
+
+  void applyTripSettingsUpdated(TripSettingsUpdatedEvent event) {
+    state = state.copyWith(
+      trip: state.trip.copyWith(
+        automaticUpdates: event.automaticUpdates ?? state.trip.automaticUpdates,
+        updateRefresh: event.updateRefresh ?? state.trip.updateRefresh,
+      ),
+    );
   }
 }
 

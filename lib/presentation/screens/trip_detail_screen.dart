@@ -440,23 +440,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   void _handleTripStatusChanged(TripStatusChangedEvent event) {
-    setState(() {
-      ref
-          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-          .applyTripOverride(_trip.copyWith(
-            status: event.newStatus,
-            // Use currentDay from the event if available; when a multi-day trip
-            // is first started and the backend hasn't set currentDay yet,
-            // default to 1 so the "Day 1" badge shows right away.
-            currentDay: event.currentDay ??
-                ((event.newStatus == TripStatus.inProgress &&
-                        event.previousStatus == TripStatus.created &&
-                        _trip.tripModality == TripModality.multiDay &&
-                        _trip.currentDay == null)
-                    ? 1
-                    : null),
-          ));
-    });
+    final notifier = ref.read(tripDetailNotifierProvider(widget.trip.id).notifier);
+    notifier.applyTripStatusChanged(event);
+    setState(() {});
 
     // Reload timeline to pick up any lifecycle markers
     // (TRIP_STARTED, TRIP_ENDED, DAY_START, DAY_END)
@@ -686,12 +672,10 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         'TripDetailScreen: Processing POLYLINE_UPDATED - updating encoded polyline');
 
     // Update the trip's encoded polyline and refresh the map
-    setState(() {
-      ref
-          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-          .applyTripOverride(
-              _trip.copyWith(encodedPolyline: event.encodedPolyline));
-    });
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .applyPolylineUpdated(event);
+    setState(() {});
 
     // Redraw the polyline on the map
     _updateMapData();
@@ -790,17 +774,10 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     // Only update UI state from the server confirmation.
     // Background update management is already handled optimistically
     // in _handleSettingsChange to avoid duplicate stop/start cycles.
-    setState(() {
-      ref
-          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
-          .applyTripOverride(
-            _trip.copyWith(
-              automaticUpdates:
-                  event.automaticUpdates ?? _trip.automaticUpdates,
-              updateRefresh: event.updateRefresh ?? _trip.updateRefresh,
-            ),
-          );
-    });
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .applyTripSettingsUpdated(event);
+    setState(() {});
   }
 
   void _handleCommentAdded(CommentAddedEvent event) {

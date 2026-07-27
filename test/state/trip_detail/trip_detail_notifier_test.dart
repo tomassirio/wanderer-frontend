@@ -10,6 +10,7 @@ import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
+import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
@@ -844,5 +845,59 @@ void main() {
     final state = container.read(tripDetailNotifierProvider(trip.id));
     expect(state.map.selectedMapLocation?.id, 'loc-1');
     expect(state.map.selectedPlannedWaypoint, isNull);
+  });
+
+  test('applyTripStatusChanged updates trip status and defaults currentDay to 1 when starting a multi-day trip',
+      () async {
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip.copyWith(tripModality: TripModality.multiDay));
+
+    notifier.applyTripStatusChanged(TripStatusChangedEvent(
+      tripId: 'trip-1',
+      newStatus: TripStatus.inProgress,
+      previousStatus: TripStatus.created,
+      currentDay: null,
+      timestamp: DateTime(2026, 1, 1),
+      payload: const {},
+    ));
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.trip.status, TripStatus.inProgress);
+    expect(state.trip.currentDay, 1);
+  });
+
+  test('applyPolylineUpdated sets trip.encodedPolyline', () async {
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    notifier.applyPolylineUpdated(PolylineUpdatedEvent(
+      tripId: 'trip-1',
+      encodedPolyline: 'abc123',
+      timestamp: DateTime(2026, 1, 1),
+      payload: const {},
+    ));
+
+    expect(container.read(tripDetailNotifierProvider(trip.id)).trip.encodedPolyline, 'abc123');
+  });
+
+  test('applyTripSettingsUpdated updates automaticUpdates/updateRefresh from the event',
+      () async {
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+
+    notifier.applyTripSettingsUpdated(TripSettingsUpdatedEvent(
+      tripId: 'trip-1',
+      automaticUpdates: true,
+      updateRefresh: 30,
+      timestamp: DateTime(2026, 1, 1),
+      payload: const {},
+    ));
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.trip.automaticUpdates, isTrue);
+    expect(state.trip.updateRefresh, 30);
   });
 }
