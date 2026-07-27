@@ -1535,269 +1535,45 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     }
   }
 
-  /// Get the current user's reaction on a comment (if any)
-  ReactionType? _getUserReaction(String commentId) {
-    // Check top-level comments
-    final comment = _comments.firstWhere(
-      (c) => c.id == commentId,
-      orElse: () {
-        // Check in replies
-        for (final replies in _replies.values) {
-          final found = replies.firstWhere(
-            (r) => r.id == commentId,
-            orElse: () => Comment(
-              id: '',
-              tripId: '',
-              userId: '',
-              username: '',
-              message: '',
-              createdAt: DateTime.now(),
-              updatedAt: DateTime.now(),
-            ),
-          );
-          if (found.id.isNotEmpty) return found;
-        }
-        return Comment(
-          id: '',
-          tripId: '',
-          userId: '',
-          username: '',
-          message: '',
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
-      },
-    );
-
-    if (comment.id.isEmpty || comment.individualReactions == null) {
-      return null;
-    }
-
-    final userReaction = comment.individualReactions!.firstWhere(
-      (r) => r.userId == _userId,
-      orElse: () => Reaction(
-        userId: '',
-        username: '',
-        reactionType: ReactionType.heart,
-        timestamp: DateTime.now(),
-      ),
-    );
-
-    return userReaction.userId.isNotEmpty ? userReaction.reactionType : null;
-  }
-
   Future<void> _handleReactionClick(String commentId, ReactionType type) async {
-    final currentReaction = _getUserReaction(commentId);
-
-    // Determine the target reaction state for optimistic update
-    // If clicking existing reaction → remove it (newReaction = null)
-    // If clicking different reaction → replace it (newReaction = type)
-    // If no current reaction → add it (newReaction = type)
-    final newReaction = currentReaction == type ? null : type;
-
-    // Optimistically update the UI first for immediate feedback
-    _applyOptimisticReactionUpdate(commentId, currentReaction, newReaction);
+    final currentReaction = ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .getUserReaction(commentId, _userId);
+    final isRemoving = currentReaction == type;
+    final isReplacing = !isRemoving && currentReaction != null;
 
     try {
-      if (currentReaction == type) {
-        // User clicked their existing reaction → remove it
-        debugPrint(
-            'Removing reaction: commentId=$commentId, type=${type.toJson()}');
-        await _repository.removeReaction(commentId, type);
-        if (mounted) {
-          UiHelpers.showSuccessMessage(context, 'Reaction removed!');
-        }
-      } else if (currentReaction != null) {
-        // User clicked a different reaction → backend will auto-replace
-        debugPrint(
-            'Replacing reaction: commentId=$commentId, from=${currentReaction.toJson()} to=${type.toJson()}');
-        await _repository.addReaction(commentId, type);
-        if (mounted) {
-          UiHelpers.showSuccessMessage(context, 'Reaction changed!');
-        }
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .handleReactionClick(
+            commentId,
+            type,
+            currentUserId: _userId,
+            currentUsername: _username,
+          );
+      if (!mounted) return;
+      setState(() {});
+      if (isRemoving) {
+        UiHelpers.showSuccessMessage(context, 'Reaction removed!');
+      } else if (isReplacing) {
+        UiHelpers.showSuccessMessage(context, 'Reaction changed!');
       } else {
-        // User has no reaction → add new one
-        debugPrint(
-            'Adding new reaction: commentId=$commentId, type=${type.toJson()}');
-        await _repository.addReaction(commentId, type);
-        if (mounted) {
-          UiHelpers.showSuccessMessage(context, 'Reaction added!');
-        }
+        UiHelpers.showSuccessMessage(context, 'Reaction added!');
       }
     } catch (e) {
-      // Enhanced error logging for debugging backend issues
-      debugPrint('Reaction error: $e');
-      debugPrint(
-          'Context: commentId=$commentId, targetType=${type.toJson()}, currentReaction=${currentReaction?.toJson()}');
-
-      // Revert the optimistic update on error
-      _revertOptimisticReactionUpdate(commentId, currentReaction, newReaction);
-
-      // Handle 409 Conflict (shouldn't happen with proper UI logic, but be safe)
+      if (!mounted) return;
+      setState(() {});
       final errorMessage = e.toString();
       if (errorMessage.contains('409') || errorMessage.contains('Conflict')) {
-        if (mounted) {
-          UiHelpers.showInfoMessage(
-              context, 'You already have this reaction on the comment');
-        }
+        UiHelpers.showInfoMessage(
+            context, 'You already have this reaction on the comment');
       } else if (errorMessage.contains('500')) {
-        // Backend error during reaction replacement
-        if (mounted) {
-          UiHelpers.showErrorMessage(context,
-              'Server error while changing reaction. This may be a backend issue.');
-        }
+        UiHelpers.showErrorMessage(context,
+            'Server error while changing reaction. This may be a backend issue.');
       } else {
-        if (mounted) {
-          UiHelpers.showErrorMessage(context, 'Error with reaction: $e');
-        }
+        UiHelpers.showErrorMessage(context, 'Error with reaction: $e');
       }
     }
-  }
-
-  void _applyOptimisticReactionUpdate(
-      String commentId, ReactionType? currentReaction, ReactionType? newType) {
-    setState(() {
-      _updateReactionInComments(commentId, currentReaction, newType,
-          isOptimistic: true);
-    });
-  }
-
-  void _revertOptimisticReactionUpdate(String commentId,
-      ReactionType? previousReaction, ReactionType? attemptedType) {
-    setState(() {
-      // Revert by applying the reverse operation
-      _updateReactionInComments(commentId, attemptedType, previousReaction,
-          isOptimistic: true);
-    });
-  }
-
-  void _updateReactionInComments(
-      String commentId, ReactionType? oldReaction, ReactionType? newReaction,
-      {bool isOptimistic = false}) {
-    // Find and update the comment in top-level comments
-    final commentIndex = _comments.indexWhere((c) => c.id == commentId);
-    if (commentIndex != -1) {
-      _updateCommentReaction(
-          _comments, commentIndex, oldReaction, newReaction, isOptimistic);
-      return;
-    }
-
-    // Check in replies
-    for (final parentId in _replies.keys) {
-      final replies = _replies[parentId]!;
-      final replyIndex = replies.indexWhere((c) => c.id == commentId);
-      if (replyIndex != -1) {
-        _updateReplyReaction(
-            parentId, replyIndex, oldReaction, newReaction, isOptimistic);
-        return;
-      }
-    }
-  }
-
-  void _updateCommentReaction(List<Comment> comments, int commentIndex,
-      ReactionType? oldReaction, ReactionType? newReaction, bool isOptimistic) {
-    final comment = comments[commentIndex];
-    final updatedReactions = Map<String, int>.from(comment.reactions ?? {});
-    final updatedIndividualReactions =
-        List<Reaction>.from(comment.individualReactions ?? []);
-
-    // Remove old reaction if exists
-    if (oldReaction != null) {
-      updatedIndividualReactions.removeWhere((r) => r.userId == _userId);
-      final oldCount = updatedReactions[oldReaction.toJson()] ?? 0;
-      if (oldCount > 1) {
-        updatedReactions[oldReaction.toJson()] = oldCount - 1;
-      } else {
-        updatedReactions.remove(oldReaction.toJson());
-      }
-    }
-
-    // Add new reaction if specified
-    if (newReaction != null) {
-      updatedIndividualReactions.add(Reaction(
-        userId: _userId ?? '',
-        username: _username ?? '',
-        reactionType: newReaction,
-        timestamp: DateTime.now(),
-      ));
-      updatedReactions[newReaction.toJson()] =
-          (updatedReactions[newReaction.toJson()] ?? 0) + 1;
-    }
-
-    final newReactionsCount =
-        updatedReactions.values.fold(0, (sum, count) => sum + count);
-
-    comments[commentIndex] = Comment(
-      id: comment.id,
-      tripId: comment.tripId,
-      userId: comment.userId,
-      username: comment.username,
-      userAvatarUrl: comment.userAvatarUrl,
-      message: comment.message,
-      parentCommentId: comment.parentCommentId,
-      reactions: updatedReactions.isEmpty ? null : updatedReactions,
-      individualReactions: updatedIndividualReactions.isEmpty
-          ? null
-          : updatedIndividualReactions,
-      replies: comment.replies,
-      reactionsCount: newReactionsCount,
-      responsesCount: comment.responsesCount,
-      createdAt: comment.createdAt,
-      updatedAt: comment.updatedAt,
-    );
-  }
-
-  void _updateReplyReaction(String parentId, int replyIndex,
-      ReactionType? oldReaction, ReactionType? newReaction, bool isOptimistic) {
-    final reply = _replies[parentId]![replyIndex];
-    final updatedReactions = Map<String, int>.from(reply.reactions ?? {});
-    final updatedIndividualReactions =
-        List<Reaction>.from(reply.individualReactions ?? []);
-
-    // Remove old reaction if exists
-    if (oldReaction != null) {
-      updatedIndividualReactions.removeWhere((r) => r.userId == _userId);
-      final oldCount = updatedReactions[oldReaction.toJson()] ?? 0;
-      if (oldCount > 1) {
-        updatedReactions[oldReaction.toJson()] = oldCount - 1;
-      } else {
-        updatedReactions.remove(oldReaction.toJson());
-      }
-    }
-
-    // Add new reaction if specified
-    if (newReaction != null) {
-      updatedIndividualReactions.add(Reaction(
-        userId: _userId ?? '',
-        username: _username ?? '',
-        reactionType: newReaction,
-        timestamp: DateTime.now(),
-      ));
-      updatedReactions[newReaction.toJson()] =
-          (updatedReactions[newReaction.toJson()] ?? 0) + 1;
-    }
-
-    final newReactionsCount =
-        updatedReactions.values.fold(0, (sum, count) => sum + count);
-
-    _replies[parentId]![replyIndex] = Comment(
-      id: reply.id,
-      tripId: reply.tripId,
-      userId: reply.userId,
-      username: reply.username,
-      userAvatarUrl: reply.userAvatarUrl,
-      message: reply.message,
-      parentCommentId: reply.parentCommentId,
-      reactions: updatedReactions.isEmpty ? null : updatedReactions,
-      individualReactions: updatedIndividualReactions.isEmpty
-          ? null
-          : updatedIndividualReactions,
-      replies: reply.replies,
-      reactionsCount: newReactionsCount,
-      responsesCount: reply.responsesCount,
-      createdAt: reply.createdAt,
-      updatedAt: reply.updatedAt,
-    );
   }
 
   Future<void> _addReaction(String commentId, ReactionType type) async {

@@ -547,9 +547,169 @@ class TripDetailNotifier
       state = state.copyWith(comments: state.comments.copyWith(isAddingComment: false));
     }
   }
+
+  ReactionType? getUserReaction(String commentId, String? currentUserId) {
+    Comment? found = state.comments.comments
+        .cast<Comment?>()
+        .firstWhere((c) => c?.id == commentId, orElse: () => null);
+    if (found == null) {
+      for (final replies in state.comments.replies.values) {
+        found = replies.cast<Comment?>().firstWhere((c) => c?.id == commentId, orElse: () => null);
+        if (found != null) break;
+      }
+    }
+    if (found == null || found.individualReactions == null) return null;
+
+    final userReaction = found.individualReactions!
+        .cast<Reaction?>()
+        .firstWhere((r) => r?.userId == currentUserId, orElse: () => null);
+    return userReaction?.reactionType;
+  }
+
+  void _replaceCommentOrReply(String commentId, Comment Function(Comment) update) {
+    final commentIndex = state.comments.comments.indexWhere((c) => c.id == commentId);
+    if (commentIndex != -1) {
+      final comments = List<Comment>.from(state.comments.comments);
+      comments[commentIndex] = update(comments[commentIndex]);
+      state = state.copyWith(comments: state.comments.copyWith(comments: comments));
+      return;
+    }
+    for (final parentId in state.comments.replies.keys) {
+      final replies = state.comments.replies[parentId]!;
+      final replyIndex = replies.indexWhere((c) => c.id == commentId);
+      if (replyIndex != -1) {
+        final updatedReplies = List<Comment>.from(replies);
+        updatedReplies[replyIndex] = update(updatedReplies[replyIndex]);
+        state = state.copyWith(
+          comments: state.comments.copyWith(
+            replies: {...state.comments.replies, parentId: updatedReplies},
+          ),
+        );
+        return;
+      }
+    }
+  }
+
+  Future<void> handleReactionClick(
+    String commentId,
+    ReactionType type, {
+    required String? currentUserId,
+    required String? currentUsername,
+  }) async {
+    final currentReaction = getUserReaction(commentId, currentUserId);
+    final newReaction = currentReaction == type ? null : type;
+
+    _replaceCommentOrReply(
+      commentId,
+      (comment) => applyReactionChange(
+        comment: comment,
+        userId: currentUserId ?? '',
+        username: currentUsername ?? '',
+        oldReaction: currentReaction,
+        newReaction: newReaction,
+      ),
+    );
+
+    try {
+      if (currentReaction == type) {
+        await _repository.removeReaction(commentId, type);
+      } else {
+        await _repository.addReaction(commentId, type);
+      }
+    } catch (e) {
+      // Revert by applying the reverse change.
+      _replaceCommentOrReply(
+        commentId,
+        (comment) => applyReactionChange(
+          comment: comment,
+          userId: currentUserId ?? '',
+          username: currentUsername ?? '',
+          oldReaction: newReaction,
+          newReaction: currentReaction,
+        ),
+      );
+      rethrow;
+    }
+  }
 }
 
 final tripDetailNotifierProvider = NotifierProvider.autoDispose
     .family<TripDetailNotifier, TripDetailState, String>(
   TripDetailNotifier.new,
 );
+
+/// Applies a reaction change to [comment]'s reaction map/individual-reaction
+/// list and returns the updated comment. Shared by the optimistic user-click
+/// path (TripDetailNotifier.handleReactionClick) and the WebSocket-driven
+/// path (the WS reaction handler, wired in a later task) — the WS path additionally
+/// needs [skipIfDuplicate] since the same event can arrive from both the
+/// trip-specific and global WebSocket streams.
+Comment applyReactionChange({
+  required Comment comment,
+  required String userId,
+  required String username,
+  ReactionType? oldReaction,
+  ReactionType? newReaction,
+  bool skipIfDuplicate = false,
+}) {
+  final updatedReactions = Map<String, int>.from(comment.reactions ?? {});
+  final updatedIndividualReactions =
+      List<Reaction>.from(comment.individualReactions ?? []);
+
+  if (skipIfDuplicate) {
+    final hasOldReaction = oldReaction != null &&
+        updatedIndividualReactions
+            .any((r) => r.userId == userId && r.reactionType == oldReaction);
+    final hasNewReaction = newReaction != null &&
+        updatedIndividualReactions
+            .any((r) => r.userId == userId && r.reactionType == newReaction);
+    if (newReaction != null && hasNewReaction) {
+      return comment; // Re-delivered ADDED or REPLACED event.
+    }
+    if (newReaction == null && oldReaction != null && !hasOldReaction) {
+      return comment; // Re-delivered REMOVED event.
+    }
+  }
+
+  if (oldReaction != null) {
+    updatedIndividualReactions.removeWhere((r) => r.userId == userId);
+    final oldCount = updatedReactions[oldReaction.toJson()] ?? 0;
+    if (oldCount > 1) {
+      updatedReactions[oldReaction.toJson()] = oldCount - 1;
+    } else {
+      updatedReactions.remove(oldReaction.toJson());
+    }
+  }
+
+  if (newReaction != null) {
+    updatedIndividualReactions.add(Reaction(
+      userId: userId,
+      username: username,
+      reactionType: newReaction,
+      timestamp: DateTime.now(),
+    ));
+    updatedReactions[newReaction.toJson()] =
+        (updatedReactions[newReaction.toJson()] ?? 0) + 1;
+  }
+
+  final newReactionsCount =
+      updatedReactions.values.fold(0, (sum, count) => sum + count);
+
+  return Comment(
+    id: comment.id,
+    tripId: comment.tripId,
+    userId: comment.userId,
+    username: comment.username,
+    userAvatarUrl: comment.userAvatarUrl,
+    message: comment.message,
+    parentCommentId: comment.parentCommentId,
+    reactions: updatedReactions.isEmpty ? null : updatedReactions,
+    individualReactions:
+        updatedIndividualReactions.isEmpty ? null : updatedIndividualReactions,
+    replies: comment.replies,
+    reactionsCount: newReactionsCount,
+    responsesCount: comment.responsesCount,
+    createdAt: comment.createdAt,
+    updatedAt: comment.updatedAt,
+  );
+}

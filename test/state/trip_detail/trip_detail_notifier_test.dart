@@ -725,4 +725,63 @@ void main() {
       throwsException,
     );
   });
+
+  test('getUserReaction finds the current user\'s reaction on a top-level comment',
+      () async {
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+    notifier.debugSeedCommentsForTest(TripDetailCommentsState(comments: [
+      Comment(
+        id: 'c1', tripId: 'trip-1', userId: 'owner', username: 'owner', message: 'hi',
+        individualReactions: [
+          Reaction(userId: 'me', username: 'me', reactionType: ReactionType.heart, timestamp: DateTime(2026, 1, 1)),
+        ],
+        createdAt: DateTime(2026, 1, 1), updatedAt: DateTime(2026, 1, 1),
+      ),
+    ]));
+
+    expect(notifier.getUserReaction('c1', 'me'), ReactionType.heart);
+    expect(notifier.getUserReaction('c1', 'someone-else'), isNull);
+  });
+
+  test('handleReactionClick adds a reaction optimistically then calls the repository',
+      () async {
+    when(mockRepository.addReaction('c1', ReactionType.heart))
+        .thenAnswer((_) async {});
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+    notifier.debugSeedCommentsForTest(TripDetailCommentsState(comments: [
+      Comment(id: 'c1', tripId: 'trip-1', userId: 'owner', username: 'owner', message: 'hi', createdAt: DateTime(2026, 1, 1), updatedAt: DateTime(2026, 1, 1)),
+    ]));
+
+    await notifier.handleReactionClick('c1', ReactionType.heart,
+        currentUserId: 'me', currentUsername: 'me-name');
+
+    verify(mockRepository.addReaction('c1', ReactionType.heart)).called(1);
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.comments.comments.first.reactions?[ReactionType.heart.toJson()], 1);
+  });
+
+  test('handleReactionClick reverts the optimistic update when the repository throws',
+      () async {
+    when(mockRepository.addReaction('c1', ReactionType.heart))
+        .thenThrow(Exception('500'));
+    final container = buildContainer();
+    final notifier = container.read(tripDetailNotifierProvider(trip.id).notifier);
+    notifier.seedInitialTrip(trip);
+    notifier.debugSeedCommentsForTest(TripDetailCommentsState(comments: [
+      Comment(id: 'c1', tripId: 'trip-1', userId: 'owner', username: 'owner', message: 'hi', createdAt: DateTime(2026, 1, 1), updatedAt: DateTime(2026, 1, 1)),
+    ]));
+
+    await expectLater(
+      () => notifier.handleReactionClick('c1', ReactionType.heart,
+          currentUserId: 'me', currentUsername: 'me-name'),
+      throwsA(isA<Exception>()),
+    );
+
+    final state = container.read(tripDetailNotifierProvider(trip.id));
+    expect(state.comments.comments.first.reactions, isNull); // reverted
+  });
 }
