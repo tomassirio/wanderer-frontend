@@ -366,7 +366,9 @@ class TripDetailNotifier
   }
 
   Future<void> loadMoreComments() async {
-    if (state.comments.isLoadingMoreComments || !state.comments.hasMoreComments) return;
+    if (state.comments.isLoadingMoreComments || !state.comments.hasMoreComments) {
+      return;
+    }
     state = state.copyWith(comments: state.comments.copyWith(isLoadingMoreComments: true));
     try {
       final nextPage = state.comments.currentCommentPage + 1;
