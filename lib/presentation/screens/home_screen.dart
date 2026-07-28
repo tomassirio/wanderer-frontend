@@ -1,8 +1,6 @@
-import 'package:flutter/material.dart' hide Visibility;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
-import 'package:wanderer_frontend/core/constants/enums.dart'
-    show TripStatus, Visibility;
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
@@ -17,13 +15,13 @@ import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_not
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
-import 'package:wanderer_frontend/presentation/widgets/home/feed_section_header.dart';
-import 'package:wanderer_frontend/presentation/widgets/home/filter_chip_button.dart';
+import 'package:wanderer_frontend/presentation/widgets/home/discover_tab_content.dart';
+import 'package:wanderer_frontend/presentation/widgets/home/feed_tab_content.dart';
+import 'package:wanderer_frontend/presentation/widgets/home/guest_discover_section.dart';
 import 'package:wanderer_frontend/presentation/widgets/home/hero_lang_toggle.dart';
 import 'package:wanderer_frontend/presentation/widgets/home/hero_theme_toggle.dart';
-import 'package:wanderer_frontend/presentation/widgets/home/load_more_trips_button.dart';
-import 'package:wanderer_frontend/presentation/widgets/home/relationship_badge.dart';
-import 'package:wanderer_frontend/presentation/widgets/home/trip_grid.dart';
+import 'package:wanderer_frontend/presentation/widgets/home/home_filter_chips.dart';
+import 'package:wanderer_frontend/presentation/widgets/home/my_trips_tab_content.dart';
 import 'package:wanderer_frontend/presentation/widgets/home/zero_trips_takeover.dart';
 import 'package:wanderer_frontend/main.dart' show routeObserver;
 import 'create_trip_screen.dart';
@@ -57,23 +55,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool get _isAdmin => ref.watch(userChromeNotifierProvider).isAdmin;
 
   List<Trip> get _myTrips => ref.watch(homeFeedNotifierProvider).myTrips;
-  List<Trip> get _feedTrips => ref.watch(homeFeedNotifierProvider).feedTrips;
-  List<Trip> get _discoverTrips =>
-      ref.watch(homeFeedNotifierProvider).discoverTrips;
-  Set<String> get _friendIds => ref.watch(homeFeedNotifierProvider).friendIds;
-  Set<String> get _followingIds =>
-      ref.watch(homeFeedNotifierProvider).followingIds;
   bool get _isLoading => ref.watch(homeFeedNotifierProvider).isLoading;
-  bool get _isLoadingMoreTrips =>
-      ref.watch(homeFeedNotifierProvider).isLoadingMoreTrips;
-  bool get _hasMoreTrips => ref.watch(homeFeedNotifierProvider).hasMoreTrips;
   String? get _error => ref.watch(homeFeedNotifierProvider).error;
-
-  // Filter states
-  TripStatus? get _statusFilter =>
-      ref.watch(homeFeedNotifierProvider).statusFilter;
-  Visibility? get _visibilityFilter =>
-      ref.watch(homeFeedNotifierProvider).visibilityFilter;
 
   // First-time home screen tutorial (coach marks)
   final GlobalKey _tutorialMenuKey = GlobalKey();
@@ -203,9 +186,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Future<void> _loadTrips() async {
     // WebSocket trip-topic resubscription now happens inside the notifier's
     // loadTrips() itself (see HomeFeedNotifier._resyncTripSubscriptions),
-    // as does categorization (feedTrips/discoverTrips) - _feedTrips/
-    // _discoverTrips are ref.watch getters, so no local setState is needed
-    // here.
+    // as does categorization (feedTrips/discoverTrips) - the tab-content
+    // widgets read those directly off homeFeedNotifierProvider, so no
+    // local setState is needed here.
     await ref.read(homeFeedNotifierProvider.notifier).loadTrips();
 
     // Trigger after loading settles (not from _loadUserInfo) so the coach
@@ -331,673 +314,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         UiHelpers.showErrorMessage(context, 'Error deleting trip: $e');
       }
     }
-  }
-
-  Widget _buildFilterChips() {
-    final bool isMyTripsTab = _tabController.index == 2;
-    final l10n = context.l10n;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.35),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Status filter chip
-          FilterChipButton<TripStatus?>(
-            value: _statusFilter,
-            label: _statusFilter == null
-                ? l10n.allStatus
-                : _getStatusLabel(_statusFilter!, l10n),
-            icon: _statusFilter == null
-                ? Icons.all_inclusive
-                : UiHelpers.getStatusIcon(_statusFilter!),
-            iconColor: _statusFilter == null
-                ? Colors.grey
-                : UiHelpers.getStatusColor(_statusFilter!),
-            isActive: _statusFilter != null,
-            onSelected: (value) {
-              ref.read(homeFeedNotifierProvider.notifier).setStatusFilter(value);
-            },
-            items: [
-              PopupMenuItem<TripStatus?>(
-                value: null,
-                onTap: () {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    ref
-                        .read(homeFeedNotifierProvider.notifier)
-                        .setStatusFilter(null);
-                  });
-                },
-                child: Row(
-                  children: [
-                    Icon(Icons.all_inclusive, size: 18, color: Colors.grey),
-                    const SizedBox(width: 8),
-                    Text(l10n.allStatus),
-                  ],
-                ),
-              ),
-              PopupMenuItem<TripStatus?>(
-                value: TripStatus.inProgress,
-                child: Row(
-                  children: [
-                    Icon(Icons.circle, size: 18, color: Colors.green),
-                    const SizedBox(width: 8),
-                    Text(l10n.live),
-                  ],
-                ),
-              ),
-              PopupMenuItem<TripStatus?>(
-                value: TripStatus.paused,
-                child: Row(
-                  children: [
-                    Icon(Icons.pause, size: 18, color: Colors.orange),
-                    const SizedBox(width: 8),
-                    Text(l10n.paused),
-                  ],
-                ),
-              ),
-              if (isMyTripsTab) ...[
-                PopupMenuItem<TripStatus?>(
-                  value: TripStatus.finished,
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.check_circle_outline,
-                        size: 18,
-                        color: Colors.blue,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(l10n.completed),
-                    ],
-                  ),
-                ),
-                PopupMenuItem<TripStatus?>(
-                  value: TripStatus.created,
-                  child: Row(
-                    children: [
-                      Icon(Icons.edit_outlined, size: 18, color: Colors.grey),
-                      const SizedBox(width: 8),
-                      Text(l10n.draft),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-          // Visibility filter chip (My Trips tab only)
-          if (isMyTripsTab) ...[
-            const SizedBox(width: 8),
-            FilterChipButton<Visibility?>(
-              value: _visibilityFilter,
-              label: _visibilityFilter == null
-                  ? l10n.allVisibility
-                  : _getVisibilityLabel(_visibilityFilter!, l10n),
-              icon: _getVisibilityIcon(_visibilityFilter),
-              iconColor: _getVisibilityColor(_visibilityFilter),
-              isActive: _visibilityFilter != null,
-              onSelected: (value) {
-                ref
-                    .read(homeFeedNotifierProvider.notifier)
-                    .setVisibilityFilter(value);
-              },
-              items: [
-                PopupMenuItem<Visibility?>(
-                  value: null,
-                  onTap: () {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      ref
-                          .read(homeFeedNotifierProvider.notifier)
-                          .setVisibilityFilter(null);
-                    });
-                  },
-                  child: Row(
-                    children: [
-                      Icon(Icons.all_inclusive, size: 18, color: Colors.grey),
-                      const SizedBox(width: 8),
-                      Text(l10n.allVisibility),
-                    ],
-                  ),
-                ),
-                PopupMenuItem<Visibility?>(
-                  value: Visibility.public,
-                  child: Row(
-                    children: [
-                      Icon(Icons.public, size: 18, color: Colors.green),
-                      const SizedBox(width: 8),
-                      Text(l10n.publicVisibility),
-                    ],
-                  ),
-                ),
-                PopupMenuItem<Visibility?>(
-                  value: Visibility.protected,
-                  child: Row(
-                    children: [
-                      Icon(Icons.lock_outline, size: 18, color: Colors.orange),
-                      const SizedBox(width: 8),
-                      Text(l10n.protectedVisibility),
-                    ],
-                  ),
-                ),
-                PopupMenuItem<Visibility?>(
-                  value: Visibility.private,
-                  child: Row(
-                    children: [
-                      Icon(Icons.lock, size: 18, color: Colors.red),
-                      const SizedBox(width: 8),
-                      Text(l10n.privateVisibility),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  String _getStatusLabel(TripStatus status, AppLocalizations l10n) {
-    return UiHelpers.getStatusLabel(status, l10n);
-  }
-
-  IconData _getVisibilityIcon(Visibility? visibility) {
-    return visibility == null
-        ? Icons.all_inclusive
-        : UiHelpers.getVisibilityIcon(visibility);
-  }
-
-  // _getVisibilityColor stays local: this screen's filter chip uses flat
-  // Colors.green/.orange/.red, a different (simpler) visual treatment than
-  // VisibilityBadge's shade700+border scheme - not a literal duplicate, see
-  // plan Global Constraints for why color isn't unified across both.
-  Color _getVisibilityColor(Visibility? visibility) {
-    if (visibility == null) return Colors.grey;
-    switch (visibility) {
-      case Visibility.public:
-        return Colors.green;
-      case Visibility.protected:
-        return Colors.orange;
-      case Visibility.private:
-        return Colors.red;
-    }
-  }
-
-  String _getVisibilityLabel(Visibility visibility, AppLocalizations l10n) {
-    return UiHelpers.getVisibilityLabel(visibility, l10n);
-  }
-
-  Widget _buildMyTripsTab() {
-    final filteredTrips = ref.watch(homeFeedNotifierProvider).filtered(_myTrips);
-    final l10n = context.l10n;
-
-    // Group trips by status
-    // Resting trips are shown alongside active trips (like live, but with a resting badge)
-    final activeTrips = filteredTrips
-        .where(
-          (t) =>
-              t.status == TripStatus.inProgress ||
-              t.status == TripStatus.resting,
-        )
-        .toList();
-    final pausedTrips =
-        filteredTrips.where((t) => t.status == TripStatus.paused).toList();
-    final draftTrips =
-        filteredTrips.where((t) => t.status == TripStatus.created).toList();
-    final completedTrips =
-        filteredTrips.where((t) => t.status == TripStatus.finished).toList();
-
-    if (filteredTrips.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.explore_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l10n.noTripsYet,
-              style: TextStyle(
-                fontSize: 18,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.createYourFirstTrip,
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadTrips,
-      child: ListView(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: 80 + MediaQuery.of(context).padding.bottom,
-        ),
-        children: [
-          if (activeTrips.isNotEmpty) ...[
-            FeedSectionHeader(
-              title: l10n.activeTripsSection,
-              icon: Icons.location_on,
-              count: activeTrips.length,
-              subtitle: l10n.currentlyInProgress,
-            ),
-            const SizedBox(height: 12),
-            TripGrid(
-              trips: activeTrips,
-              currentUserId: _userId,
-              friendIds: _friendIds,
-              followingIds: _followingIds,
-              showDelete: true,
-              onTripTap: _navigateToTripDetail,
-              onDeleteTrip: _handleDeleteTrip,
-            ),
-            const SizedBox(height: 24),
-          ],
-          if (pausedTrips.isNotEmpty) ...[
-            FeedSectionHeader(
-              title: l10n.pausedTripsSection,
-              icon: Icons.pause_circle_outline,
-              count: pausedTrips.length,
-              subtitle: l10n.temporarilyStopped,
-            ),
-            const SizedBox(height: 12),
-            TripGrid(
-              trips: pausedTrips,
-              currentUserId: _userId,
-              friendIds: _friendIds,
-              followingIds: _followingIds,
-              showDelete: true,
-              onTripTap: _navigateToTripDetail,
-              onDeleteTrip: _handleDeleteTrip,
-            ),
-            const SizedBox(height: 24),
-          ],
-          if (draftTrips.isNotEmpty) ...[
-            FeedSectionHeader(
-              title: l10n.draftTripsSection,
-              icon: Icons.edit_outlined,
-              count: draftTrips.length,
-              subtitle: l10n.notYetStarted,
-            ),
-            const SizedBox(height: 12),
-            TripGrid(
-              trips: draftTrips,
-              currentUserId: _userId,
-              friendIds: _friendIds,
-              followingIds: _followingIds,
-              showDelete: true,
-              onTripTap: _navigateToTripDetail,
-              onDeleteTrip: _handleDeleteTrip,
-            ),
-            const SizedBox(height: 24),
-          ],
-          if (completedTrips.isNotEmpty) ...[
-            FeedSectionHeader(
-              title: l10n.completedTripsSection,
-              icon: Icons.check_circle_outline,
-              count: completedTrips.length,
-              subtitle: l10n.finishedAdventures,
-            ),
-            const SizedBox(height: 12),
-            TripGrid(
-              trips: completedTrips,
-              currentUserId: _userId,
-              friendIds: _friendIds,
-              followingIds: _followingIds,
-              showDelete: true,
-              onTripTap: _navigateToTripDetail,
-              onDeleteTrip: _handleDeleteTrip,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeedTab() {
-    final filteredTrips = ref.watch(homeFeedNotifierProvider).filtered(_feedTrips);
-    final l10n = context.l10n;
-
-    // Group by live (including resting) and other
-    final liveTrips = filteredTrips
-        .where(
-          (t) =>
-              t.status == TripStatus.inProgress ||
-              t.status == TripStatus.resting,
-        )
-        .toList();
-    final friendsTrips = filteredTrips
-        .where(
-          (t) =>
-              _friendIds.contains(t.userId) &&
-              t.status != TripStatus.inProgress &&
-              t.status != TripStatus.resting,
-        )
-        .toList();
-    final followingTrips = filteredTrips
-        .where(
-          (t) =>
-              _followingIds.contains(t.userId) &&
-              !_friendIds.contains(t.userId) &&
-              t.status != TripStatus.inProgress &&
-              t.status != TripStatus.resting,
-        )
-        .toList();
-
-    if (filteredTrips.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.people_outline,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l10n.noTripsInYourFeed,
-              style: TextStyle(
-                fontSize: 18,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.followUsersToSeeFeed,
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadTrips,
-      child: ListView(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: 80 + MediaQuery.of(context).padding.bottom,
-        ),
-        children: [
-          if (liveTrips.isNotEmpty) ...[
-            FeedSectionHeader(
-              title: l10n.liveNow,
-              icon: Icons.flash_on,
-              count: liveTrips.length,
-              subtitle: l10n.happeningRightNow,
-            ),
-            const SizedBox(height: 12),
-            TripGrid(
-              trips: liveTrips,
-              currentUserId: _userId,
-              friendIds: _friendIds,
-              followingIds: _followingIds,
-              showRelationship: true,
-              onTripTap: _navigateToTripDetail,
-              onDeleteTrip: _handleDeleteTrip,
-            ),
-            const SizedBox(height: 24),
-          ],
-          if (friendsTrips.isNotEmpty) ...[
-            FeedSectionHeader(
-              title: l10n.friendsTripsSection,
-              icon: Icons.people,
-              count: friendsTrips.length,
-              subtitle: l10n.fromYourFriends,
-            ),
-            const SizedBox(height: 12),
-            TripGrid(
-              trips: friendsTrips,
-              currentUserId: _userId,
-              friendIds: _friendIds,
-              followingIds: _followingIds,
-              showRelationship: true,
-              defaultRelationship: RelationshipType.friend,
-              onTripTap: _navigateToTripDetail,
-              onDeleteTrip: _handleDeleteTrip,
-            ),
-            const SizedBox(height: 24),
-          ],
-          if (followingTrips.isNotEmpty) ...[
-            FeedSectionHeader(
-              title: l10n.following,
-              icon: Icons.person_add_alt_1,
-              count: followingTrips.length,
-              subtitle: l10n.fromUsersYouFollow,
-            ),
-            const SizedBox(height: 12),
-            TripGrid(
-              trips: followingTrips,
-              currentUserId: _userId,
-              friendIds: _friendIds,
-              followingIds: _followingIds,
-              showRelationship: true,
-              defaultRelationship: RelationshipType.following,
-              onTripTap: _navigateToTripDetail,
-              onDeleteTrip: _handleDeleteTrip,
-            ),
-          ],
-          if (_hasMoreTrips)
-            LoadMoreTripsButton(
-              isLoading: _isLoadingMoreTrips,
-              onLoadMore: _loadMoreTrips,
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDiscoverTab() {
-    final l10n = context.l10n;
-    final filteredTrips = ref.watch(homeFeedNotifierProvider).filtered(_discoverTrips);
-
-    // Separate promoted trips (featured) from regular public trips.
-    // Backend now includes isPromoted field in Trip model
-    final promotedTripsList = filteredTrips.where((t) => t.isPromoted).toList();
-    final nonPromotedTrips = filteredTrips.where((t) => !t.isPromoted).toList();
-
-    if (nonPromotedTrips.isEmpty && promotedTripsList.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.explore_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l10n.noPublicTripsFound,
-              style: TextStyle(
-                fontSize: 18,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.checkBackLater,
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: () async {
-        await _loadTrips();
-        // Reload trips to get latest data (including promoted status)
-        await _loadTrips();
-      },
-      child: ListView(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: 80 + MediaQuery.of(context).padding.bottom,
-        ),
-        children: [
-          if (promotedTripsList.isNotEmpty) ...[
-            FeedSectionHeader(
-              title: l10n.featuredTrips,
-              icon: Icons.star,
-              subtitle: l10n.highlightedAdventures,
-            ),
-            const SizedBox(height: 12),
-            TripGrid(
-              trips: promotedTripsList,
-              currentUserId: _userId,
-              friendIds: _friendIds,
-              followingIds: _followingIds,
-              showRelationship: true,
-              onTripTap: _navigateToTripDetail,
-              onDeleteTrip: _handleDeleteTrip,
-            ),
-            const SizedBox(height: 24),
-          ],
-          if (nonPromotedTrips.isNotEmpty) ...[
-            FeedSectionHeader(
-              title: l10n.discover,
-              icon: Icons.public,
-              count: nonPromotedTrips.length,
-              subtitle: l10n.explorePublicTripsSubtitle,
-            ),
-            const SizedBox(height: 12),
-            TripGrid(
-              trips: nonPromotedTrips,
-              currentUserId: _userId,
-              friendIds: _friendIds,
-              followingIds: _followingIds,
-              showRelationship: true,
-              onTripTap: _navigateToTripDetail,
-              onDeleteTrip: _handleDeleteTrip,
-            ),
-          ],
-          if (_hasMoreTrips)
-            LoadMoreTripsButton(
-              isLoading: _isLoadingMoreTrips,
-              onLoadMore: _loadMoreTrips,
-            ),
-        ],
-      ),
-    );
-  }
-
-  // Build discover section for guest users without ListView wrapper
-  Widget _buildGuestDiscoverSection() {
-    final l10n = context.l10n;
-    final filteredTrips = ref.watch(homeFeedNotifierProvider).filtered(_discoverTrips);
-
-    // Separate promoted trips (featured) from regular public trips.
-    // Backend now includes isPromoted field in Trip model
-    final promotedTripsList = filteredTrips.where((t) => t.isPromoted).toList();
-    final nonPromotedTrips = filteredTrips.where((t) => !t.isPromoted).toList();
-
-    if (filteredTrips.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.explore_outlined,
-                size: 64,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.noPublicTripsFound,
-                style: TextStyle(
-                  fontSize: 18,
-                  color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.checkBackLater,
-                style: TextStyle(
-                  fontSize: 14,
-                  color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (promotedTripsList.isNotEmpty) ...[
-          FeedSectionHeader(
-            title: l10n.featuredTrips,
-            icon: Icons.star,
-            subtitle: l10n.highlightedAdventures,
-          ),
-          const SizedBox(height: 12),
-          TripGrid(
-            trips: promotedTripsList,
-            currentUserId: _userId,
-            friendIds: _friendIds,
-            followingIds: _followingIds,
-            showRelationship: false,
-            onTripTap: _navigateToTripDetail,
-            onDeleteTrip: _handleDeleteTrip,
-          ),
-          const SizedBox(height: 24),
-        ],
-        if (nonPromotedTrips.isNotEmpty) ...[
-          FeedSectionHeader(
-            title: l10n.discover,
-            icon: Icons.public,
-            count: nonPromotedTrips.length,
-            subtitle: l10n.explorePublicTripsSubtitle,
-          ),
-          const SizedBox(height: 12),
-          TripGrid(
-            trips: nonPromotedTrips,
-            currentUserId: _userId,
-            friendIds: _friendIds,
-            followingIds: _followingIds,
-            showRelationship: false,
-            onTripTap: _navigateToTripDetail,
-            onDeleteTrip: _handleDeleteTrip,
-          ),
-        ],
-      ],
-    );
   }
 
   @override
@@ -1273,7 +589,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 ),
                                 const SizedBox(height: 24),
                                 // Build trip grid directly for guest users (no ListView wrapper)
-                                _buildGuestDiscoverSection(),
+                                GuestDiscoverSection(
+                                  onTripTap: _navigateToTripDetail,
+                                  onDeleteTrip: _handleDeleteTrip,
+                                ),
                               ],
                             ),
                           ),
@@ -1289,14 +608,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           children: [
                             Column(
                               children: [
-                                _buildFilterChips(),
+                                HomeFilterChips(
+                                  isMyTripsTab: _tabController.index == 2,
+                                ),
                                 Expanded(
                                   child: TabBarView(
                                     controller: _tabController,
                                     children: [
-                                      _buildDiscoverTab(),
-                                      _buildFeedTab(),
-                                      _buildMyTripsTab(),
+                                      DiscoverTabContent(
+                                        onRefresh: _loadTrips,
+                                        onLoadMore: _loadMoreTrips,
+                                        onTripTap: _navigateToTripDetail,
+                                        onDeleteTrip: _handleDeleteTrip,
+                                      ),
+                                      FeedTabContent(
+                                        onRefresh: _loadTrips,
+                                        onLoadMore: _loadMoreTrips,
+                                        onTripTap: _navigateToTripDetail,
+                                        onDeleteTrip: _handleDeleteTrip,
+                                      ),
+                                      MyTripsTabContent(
+                                        onRefresh: _loadTrips,
+                                        onTripTap: _navigateToTripDetail,
+                                        onDeleteTrip: _handleDeleteTrip,
+                                      ),
                                     ],
                                   ),
                                 ),
