@@ -1,11 +1,17 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart'
-    show TripStatus, Visibility;
+    show TripModality, TripStatus, Visibility;
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
+import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
+import 'package:wanderer_frontend/data/services/trip_service.dart';
+import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/presentation/state/home_feed/home_feed_state.dart';
 import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_notifier.dart';
 import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_state.dart';
@@ -18,11 +24,178 @@ const int _tripsPageSize = 20;
 /// session, so there's no natural per-instance key to family on.
 class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
   late HomeRepository _repository;
+  late WebSocketService _webSocketService;
+  late TripService _tripService;
+  StreamSubscription<WebSocketEvent>? _wsSubscription;
+  Timer? _pollTimer;
+  Timer? _debounceTimer;
+  String? _subscribedUserId;
 
   @override
   HomeFeedState build() {
     _repository = ref.watch(homeRepositoryProvider);
+    _webSocketService = ref.watch(websocketServiceProvider);
+    _tripService = ref.watch(tripServiceProvider);
+    ref.onDispose(() {
+      _wsSubscription?.cancel();
+      _pollTimer?.cancel();
+      _debounceTimer?.cancel();
+      _webSocketService.unsubscribeFromAllTrips();
+    });
     return const HomeFeedState();
+  }
+
+  /// Starts WS event listening + periodic polling. Called once from the
+  /// widget's initState(), mirroring the exact pre-migration timing (listen
+  /// registered before the async connect/userId resolution finishes, so no
+  /// early events are missed). Takes no identity parameter - every handler
+  /// below reads `_identity` live at the moment it actually needs it.
+  void startWebSocketAndPolling() {
+    _wsSubscription = _webSocketService.events.listen(_handleWebSocketEvent);
+    _webSocketService.connect();
+    _startPolling();
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      loadTrips();
+    });
+  }
+
+  /// Ensure the user's WebSocket topic is subscribed so user-scoped events
+  /// (e.g. notifications, friend activity) are received on the global stream.
+  void ensureUserTopicSubscribed(String userId) {
+    if (_subscribedUserId == userId) return;
+    _subscribedUserId = userId;
+    _webSocketService.connect().then((_) {
+      if (_subscribedUserId != userId) return;
+      _webSocketService.subscribeToUser(userId);
+    });
+  }
+
+  /// Debounce the trip list refresh so rapid-fire WS events only trigger
+  /// one API call.
+  void _debouncedLoadTrips() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(seconds: 2), () {
+      loadTrips();
+    });
+  }
+
+  void _handleWebSocketEvent(WebSocketEvent event) {
+    switch (event.type) {
+      case WebSocketEventType.tripStatusChanged:
+        _handleTripStatusChanged(event as TripStatusChangedEvent);
+        break;
+      case WebSocketEventType.commentAdded:
+        _handleCommentAdded(event as CommentAddedEvent);
+        break;
+      case WebSocketEventType.tripUpdated:
+      case WebSocketEventType.tripCreated:
+      case WebSocketEventType.tripDeleted:
+        _debouncedLoadTrips();
+        break;
+      case WebSocketEventType.userProfileUpdated:
+      case WebSocketEventType.userAvatarUploaded:
+      case WebSocketEventType.userAvatarDeleted:
+        _refreshCurrentUserProfile();
+        break;
+      default:
+        break;
+    }
+  }
+
+  /// Test-only seam exposing the private WS dispatch method so tests can
+  /// simulate an inbound WebSocket event without wiring up a real stream.
+  @visibleForTesting
+  void debugHandleWebSocketEvent(WebSocketEvent event) {
+    _handleWebSocketEvent(event);
+  }
+
+  Future<void> _refreshCurrentUserProfile() async {
+    final identity = _identity;
+    if (!identity.isLoggedIn || identity.userId == null) return;
+    try {
+      final profile = await _repository.getMyProfile();
+      ref.read(userChromeNotifierProvider.notifier).updateAvatarUrl(profile.avatarUrl);
+    } catch (e) {
+      debugPrint('Failed to refresh user profile: $e');
+    }
+  }
+
+  void _handleTripStatusChanged(TripStatusChangedEvent event) {
+    final tripIndex = state.allTrips.indexWhere((t) => t.id == event.tripId);
+    if (tripIndex == -1) return;
+
+    final trip = state.allTrips[tripIndex];
+    final updatedTrip = trip.copyWith(
+      status: event.newStatus,
+      currentDay: event.currentDay ?? trip.currentDay,
+    );
+
+    final allTrips = [...state.allTrips];
+    allTrips[tripIndex] = updatedTrip;
+
+    final myTrips = [...state.myTrips];
+    final myIndex = myTrips.indexWhere((t) => t.id == event.tripId);
+    if (myIndex != -1) {
+      myTrips[myIndex] = myTrips[myIndex].copyWith(
+        status: event.newStatus,
+        currentDay: event.currentDay ?? myTrips[myIndex].currentDay,
+      );
+    }
+
+    state = state.copyWith(allTrips: allTrips, myTrips: myTrips);
+    categorizeTrips();
+
+    if (trip.tripModality == TripModality.multiDay && event.currentDay == null) {
+      _refreshTripById(event.tripId!);
+    }
+  }
+
+  /// Re-fetches a single trip by ID and updates it in the local lists.
+  Future<void> _refreshTripById(String tripId) async {
+    try {
+      final updatedTrip = await _tripService.getTripById(tripId);
+
+      final allTrips = [...state.allTrips];
+      final allIndex = allTrips.indexWhere((t) => t.id == tripId);
+      if (allIndex != -1) allTrips[allIndex] = updatedTrip;
+
+      final myTrips = [...state.myTrips];
+      final myIndex = myTrips.indexWhere((t) => t.id == tripId);
+      if (myIndex != -1) myTrips[myIndex] = updatedTrip;
+
+      state = state.copyWith(allTrips: allTrips, myTrips: myTrips);
+      categorizeTrips();
+    } catch (e) {
+      debugPrint('Failed to refresh trip $tripId: $e');
+    }
+  }
+
+  void _handleCommentAdded(CommentAddedEvent event) {
+    final tripId = event.tripId;
+    if (tripId == null) return;
+
+    final allTrips = [...state.allTrips];
+    final allIndex = allTrips.indexWhere((t) => t.id == tripId);
+    if (allIndex != -1) {
+      allTrips[allIndex] =
+          allTrips[allIndex].copyWith(commentsCount: allTrips[allIndex].commentsCount + 1);
+    }
+
+    final myTrips = [...state.myTrips];
+    final myIndex = myTrips.indexWhere((t) => t.id == tripId);
+    if (myIndex != -1) {
+      myTrips[myIndex] =
+          myTrips[myIndex].copyWith(commentsCount: myTrips[myIndex].commentsCount + 1);
+    }
+
+    if (allIndex != -1 || myIndex != -1) {
+      state = state.copyWith(allTrips: allTrips, myTrips: myTrips);
+      categorizeTrips();
+    }
   }
 
   /// Reads identity LIVE at call time rather than accepting it as a
@@ -190,9 +363,10 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
     }
   }
 
-  /// Public so the widget's WebSocket handlers (which still mutate
-  /// allTrips/myTrips in place - a known anti-pattern Task 4 fixes) can
-  /// trigger recategorization after they mutate state directly.
+  /// Public: called both from within this class (loadTrips/loadMoreTrips
+  /// and the WS handlers above, all of which mutate state via fresh-list
+  /// copyWith calls) and, historically, from the widget - kept public for
+  /// external callers that may still want to force a recategorization.
   void categorizeTrips() {
     final currentUserId = _identity.userId;
     final discoverTrips = <Trip>[];

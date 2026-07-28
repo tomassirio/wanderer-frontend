@@ -7,15 +7,20 @@ import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
+import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
+import 'package:wanderer_frontend/data/services/trip_service.dart';
+import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/presentation/state/home_feed/home_feed_notifier.dart';
 import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_notifier.dart';
 
 import 'home_feed_notifier_test.mocks.dart';
 
-@GenerateMocks([HomeRepository])
+@GenerateMocks([HomeRepository, WebSocketService, TripService])
 void main() {
   late MockHomeRepository mockRepository;
+  late MockWebSocketService mockWebSocketService;
+  late MockTripService mockTripService;
 
   Trip makeTrip(String id, {TripStatus status = TripStatus.inProgress}) {
     return Trip(
@@ -32,11 +37,15 @@ void main() {
 
   setUp(() {
     mockRepository = MockHomeRepository();
+    mockWebSocketService = MockWebSocketService();
+    mockTripService = MockTripService();
   });
 
   ProviderContainer buildContainer() {
     final container = ProviderContainer(overrides: [
       homeRepositoryProvider.overrideWithValue(mockRepository),
+      websocketServiceProvider.overrideWithValue(mockWebSocketService),
+      tripServiceProvider.overrideWithValue(mockTripService),
     ]);
     addTearDown(container.dispose);
     return container;
@@ -242,5 +251,35 @@ void main() {
 
     final state = container.read(homeFeedNotifierProvider);
     expect(state.feedTrips.map((t) => t.id), contains('friend-trip'));
+  });
+
+  test('handleWebSocketEvent(tripStatusChanged) updates the matching trip '
+      'in place', () async {
+    when(mockRepository.getPublicTrips(page: 0, size: 20)).thenAnswer(
+      (_) async => PageResponse(
+        content: [makeTrip('t1', status: TripStatus.created)],
+        first: true,
+        last: true,
+        totalElements: 1,
+        totalPages: 1,
+        number: 0,
+        size: 20,
+      ),
+    );
+    final container = buildContainer();
+    final notifier = container.read(homeFeedNotifierProvider.notifier);
+    await notifier.loadTrips();
+
+    notifier.debugHandleWebSocketEvent(
+      TripStatusChangedEvent(
+        tripId: 't1',
+        newStatus: TripStatus.inProgress,
+        currentDay: 1,
+        payload: const {},
+      ),
+    );
+
+    final state = container.read(homeFeedNotifierProvider);
+    expect(state.allTrips.first.status, TripStatus.inProgress);
   });
 }

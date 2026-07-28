@@ -1,16 +1,14 @@
-import 'dart:async';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart'
-    show TripModality, TripStatus, Visibility;
+    show TripStatus, Visibility;
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
-import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
@@ -48,10 +46,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late final WebSocketService _webSocketService;
   final PushNotificationManager _pushNotificationManager =
       PushNotificationManager();
-  StreamSubscription<WebSocketEvent>? _wsSubscription;
-  Timer? _pollTimer;
-  Timer? _debounceTimer;
-  String? _subscribedUserId;
 
   late TabController _tabController;
 
@@ -102,18 +96,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_onTabChanged);
     _initializeData();
-
-    // Listen to the global WebSocket events stream immediately so events
-    // are caught even before the async connect / userId resolution finishes.
-    _wsSubscription = _webSocketService.events.listen(_handleWebSocketEvent);
-
-    // Fire-and-forget: connect to WebSocket server. Once connected the
-    // pending trip / user subscriptions will be activated automatically.
-    _webSocketService.connect();
-
-    // Start periodic polling as a reliable fallback — ensures the trip
-    // list stays fresh even when WebSocket events are missed or delayed.
-    _startPolling();
+    ref.read(homeFeedNotifierProvider.notifier).startWebSocketAndPolling();
   }
 
   @override
@@ -142,183 +125,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
-  /// Start periodic polling as a reliable fallback.
-  /// This ensures the trip list stays fresh even when the WebSocket connection
-  /// is unavailable (e.g. dev server, firewall, or events are missed).
-  /// Reduced from 15s to 5 minutes - WebSocket provides real-time updates.
-  void _startPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(minutes: 5), (_) {
-      if (mounted) {
-        debugPrint('HomeScreen: Polling fallback triggered (every 5 min)');
-        _loadTrips();
-      }
-    });
-  }
-
-  void _stopPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = null;
-    _debounceTimer?.cancel();
-    _debounceTimer = null;
-  }
-
-  /// Ensure the user's WebSocket topic is subscribed so user-scoped events
-  /// (e.g. notifications, friend activity) are received on the global stream.
-  void _ensureUserTopicSubscribed(String userId) {
-    if (_subscribedUserId == userId) return;
-    _subscribedUserId = userId;
-
-    // Fire-and-forget: connect then subscribe to the user topic.
-    _webSocketService.connect().then((_) {
-      if (!mounted || _subscribedUserId != userId) return;
-      _webSocketService.subscribeToUser(userId);
-      debugPrint('HomeScreen: Subscribed to user topic for user $userId');
-    });
-  }
-
-  /// Debounce the trip list refresh so rapid-fire WS events only trigger
-  /// one API call.
-  void _debouncedLoadTrips() {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) {
-        _loadTrips();
-      }
-    });
-  }
-
-  void _handleWebSocketEvent(WebSocketEvent event) {
-    if (!mounted) return;
-
-    switch (event.type) {
-      case WebSocketEventType.tripStatusChanged:
-        _handleTripStatusChanged(event as TripStatusChangedEvent);
-        break;
-      case WebSocketEventType.commentAdded:
-        _handleCommentAdded(event as CommentAddedEvent);
-        break;
-      case WebSocketEventType.tripUpdated:
-      case WebSocketEventType.tripCreated:
-      case WebSocketEventType.tripDeleted:
-        // Debounce so rapid-fire events (e.g. multiple trip updates in
-        // quick succession) don't hammer the API.
-        _debouncedLoadTrips();
-        break;
-      case WebSocketEventType.userProfileUpdated:
-      case WebSocketEventType.userAvatarUploaded:
-      case WebSocketEventType.userAvatarDeleted:
-        _refreshCurrentUserProfile();
-        break;
-      default:
-        break;
-    }
-  }
-
-  Future<void> _refreshCurrentUserProfile() async {
-    if (!_isLoggedIn || _userId == null) return;
-
-    try {
-      final profile = await _repository.getMyProfile();
-      if (mounted) {
-        ref.read(userChromeNotifierProvider.notifier).updateAvatarUrl(
-              profile.avatarUrl,
-            );
-      }
-    } catch (e) {
-      debugPrint('Failed to refresh user profile: $e');
-    }
-  }
-
-  void _handleTripStatusChanged(TripStatusChangedEvent event) {
-    final tripIndex = _allTrips.indexWhere((t) => t.id == event.tripId);
-    if (tripIndex != -1) {
-      final trip = _allTrips[tripIndex];
-      final updatedTrip = trip.copyWith(
-        status: event.newStatus,
-        currentDay: event.currentDay ?? trip.currentDay,
-      );
-
-      setState(() {
-        _allTrips[tripIndex] = updatedTrip;
-
-        // Also update in _myTrips if present
-        final myIndex = _myTrips.indexWhere((t) => t.id == event.tripId);
-        if (myIndex != -1) {
-          _myTrips[myIndex] = _myTrips[myIndex].copyWith(
-            status: event.newStatus,
-            currentDay: event.currentDay ?? _myTrips[myIndex].currentDay,
-          );
-        }
-
-        ref.read(homeFeedNotifierProvider.notifier).categorizeTrips();
-      });
-
-      // For multi-day trips, re-fetch full data to ensure currentDay is
-      // up-to-date (in case the payload didn't include it)
-      if (trip.tripModality == TripModality.multiDay &&
-          event.currentDay == null) {
-        _refreshTripById(event.tripId!);
-      }
-    }
-  }
-
-  /// Re-fetches a single trip by ID and updates it in the local lists.
-  Future<void> _refreshTripById(String tripId) async {
-    try {
-      final updatedTrip = await _tripService.getTripById(tripId);
-      if (!mounted) return;
-
-      setState(() {
-        final allIndex = _allTrips.indexWhere((t) => t.id == tripId);
-        if (allIndex != -1) {
-          _allTrips[allIndex] = updatedTrip;
-        }
-        final myIndex = _myTrips.indexWhere((t) => t.id == tripId);
-        if (myIndex != -1) {
-          _myTrips[myIndex] = updatedTrip;
-        }
-        ref.read(homeFeedNotifierProvider.notifier).categorizeTrips();
-      });
-    } catch (e) {
-      debugPrint('Failed to refresh trip $tripId: $e');
-    }
-  }
-
-  void _handleCommentAdded(CommentAddedEvent event) {
-    final tripId = event.tripId;
-    if (tripId == null) return;
-
-    setState(() {
-      // Update in _allTrips (used by Feed and Discover tabs)
-      final allIndex = _allTrips.indexWhere((t) => t.id == tripId);
-      if (allIndex != -1) {
-        _allTrips[allIndex] = _allTrips[allIndex].copyWith(
-          commentsCount: _allTrips[allIndex].commentsCount + 1,
-        );
-      }
-
-      // Update in _myTrips (used by My Trips tab)
-      final myIndex = _myTrips.indexWhere((t) => t.id == tripId);
-      if (myIndex != -1) {
-        _myTrips[myIndex] = _myTrips[myIndex].copyWith(
-          commentsCount: _myTrips[myIndex].commentsCount + 1,
-        );
-      }
-
-      if (allIndex != -1 || myIndex != -1) {
-        ref.read(homeFeedNotifierProvider.notifier).categorizeTrips();
-      }
-    });
-  }
-
   @override
   void dispose() {
     routeObserver.unsubscribe(this);
-    _wsSubscription?.cancel();
-    _wsSubscription = null;
-    _stopPolling();
-    _webSocketService.unsubscribeFromAllTrips();
     _pushNotificationManager.stop();
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
@@ -340,7 +149,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void _ensurePushAndUserTopic(bool isLoggedIn, String? userId) {
     if (isLoggedIn && userId != null) {
       _pushNotificationManager.start(userId);
-      _ensureUserTopicSubscribed(userId);
+      ref.read(homeFeedNotifierProvider.notifier).ensureUserTopicSubscribed(userId);
     } else {
       _pushNotificationManager.stop();
     }
