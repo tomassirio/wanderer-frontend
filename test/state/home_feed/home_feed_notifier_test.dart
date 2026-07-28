@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
@@ -314,6 +316,58 @@ void main() {
 
     verifyNever(mockWebSocketService.unsubscribeFromAllTrips());
     verify(mockWebSocketService.subscribeToTrips(['t2'])).called(1);
+  });
+
+  test(
+      'startWebSocketAndPolling called twice (simulating HomeScreen '
+      're-navigation) cancels the stale subscription so a WS event is '
+      'dispatched exactly once, not twice', () async {
+    when(mockRepository.getPublicTrips(page: 0, size: 20)).thenAnswer(
+      (_) async => PageResponse(
+        content: [makeTrip('t1')],
+        first: true,
+        last: true,
+        totalElements: 1,
+        totalPages: 1,
+        number: 0,
+        size: 20,
+      ),
+    );
+    final eventsController = StreamController<WebSocketEvent>.broadcast();
+    addTearDown(eventsController.close);
+    when(mockWebSocketService.events).thenAnswer((_) => eventsController.stream);
+    when(mockWebSocketService.connect()).thenAnswer((_) async {});
+
+    final container = buildContainer();
+    // Keep this autoDispose provider alive across the `await` below -
+    // without an active listener it would dispose (and rebuild to its
+    // empty default state) the moment control yields to the event loop.
+    container.listen(homeFeedNotifierProvider, (_, __) {});
+    final notifier = container.read(homeFeedNotifierProvider.notifier);
+    await notifier.loadTrips();
+
+    // Simulate the widget's initState() re-firing on repeated HomeScreen
+    // navigation, before the previous instance's subscription is disposed.
+    notifier.startWebSocketAndPolling();
+    notifier.startWebSocketAndPolling();
+
+    eventsController.add(
+      CommentAddedEvent(
+        tripId: 't1',
+        commentId: 'c1',
+        userId: 'u1',
+        username: 'user',
+        message: 'hi',
+        payload: const {},
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    final state = container.read(homeFeedNotifierProvider);
+    expect(state.allTrips.first.commentsCount, 1,
+        reason: 'a single WS event must only be dispatched once, even after '
+            'startWebSocketAndPolling() was called twice without an '
+            'intervening dispose');
   });
 
   test('handleWebSocketEvent(tripStatusChanged) updates the matching trip '

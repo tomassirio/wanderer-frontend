@@ -51,6 +51,7 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
   /// early events are missed). Takes no identity parameter - every handler
   /// below reads `_identity` live at the moment it actually needs it.
   void startWebSocketAndPolling() {
+    _wsSubscription?.cancel();
     _wsSubscription = _webSocketService.events.listen(_handleWebSocketEvent);
     _webSocketService.connect();
     _startPolling();
@@ -147,7 +148,7 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
     }
 
     state = state.copyWith(allTrips: allTrips, myTrips: myTrips);
-    categorizeTrips();
+    _categorizeTrips();
 
     if (trip.tripModality == TripModality.multiDay && event.currentDay == null) {
       _refreshTripById(event.tripId!);
@@ -168,7 +169,7 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
       if (myIndex != -1) myTrips[myIndex] = updatedTrip;
 
       state = state.copyWith(allTrips: allTrips, myTrips: myTrips);
-      categorizeTrips();
+      _categorizeTrips();
     } catch (e) {
       debugPrint('Failed to refresh trip $tripId: $e');
     }
@@ -194,7 +195,7 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
 
     if (allIndex != -1 || myIndex != -1) {
       state = state.copyWith(allTrips: allTrips, myTrips: myTrips);
-      categorizeTrips();
+      _categorizeTrips();
     }
   }
 
@@ -251,7 +252,7 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
           followingIds: results[3] as Set<String>,
           isLoading: false,
         );
-        categorizeTrips();
+        _categorizeTrips();
         _resyncTripSubscriptions();
       } else {
         // Not logged in, only show public trips.
@@ -285,7 +286,7 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
           followingIds: const {},
           isLoading: false,
         );
-        categorizeTrips();
+        _categorizeTrips();
         _resyncTripSubscriptions();
       }
     } on AuthenticationRedirectException {
@@ -345,7 +346,7 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
           hasMoreTrips: !availablePage.last || !publicPage.last,
           isLoadingMoreTrips: false,
         );
-        categorizeTrips();
+        _categorizeTrips();
         _subscribeToNewTrips(beforeIds);
       } else {
         final tripsPage = await _repository.loadTrips(
@@ -359,7 +360,7 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
           hasMoreTrips: !tripsPage.last,
           isLoadingMoreTrips: false,
         );
-        categorizeTrips();
+        _categorizeTrips();
         _subscribeToNewTrips(beforeIds);
       }
     } catch (e) {
@@ -391,11 +392,12 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
     _webSocketService.subscribeToTrips(newIds);
   }
 
-  /// Public: called both from within this class (loadTrips/loadMoreTrips
+  /// Private: called only from within this class (loadTrips/loadMoreTrips
   /// and the WS handlers above, all of which mutate state via fresh-list
-  /// copyWith calls) and, historically, from the widget - kept public for
-  /// external callers that may still want to force a recategorization.
-  void categorizeTrips() {
+  /// copyWith calls). Was briefly public so the (now also migrated into
+  /// this class) WebSocket handlers could call it before their migration -
+  /// no external callers remain, so it stays private.
+  void _categorizeTrips() {
     final currentUserId = _identity.userId;
     final discoverTrips = <Trip>[];
 
