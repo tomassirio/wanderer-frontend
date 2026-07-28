@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
-import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart'
     show TripStatus, Visibility;
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
-import 'package:wanderer_frontend/core/theme/theme_controller.dart';
-import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/tutorial_helper.dart';
@@ -20,9 +17,14 @@ import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_not
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
-import 'package:wanderer_frontend/presentation/widgets/home/enhanced_trip_card.dart';
 import 'package:wanderer_frontend/presentation/widgets/home/feed_section_header.dart';
+import 'package:wanderer_frontend/presentation/widgets/home/filter_chip_button.dart';
+import 'package:wanderer_frontend/presentation/widgets/home/hero_lang_toggle.dart';
+import 'package:wanderer_frontend/presentation/widgets/home/hero_theme_toggle.dart';
+import 'package:wanderer_frontend/presentation/widgets/home/load_more_trips_button.dart';
 import 'package:wanderer_frontend/presentation/widgets/home/relationship_badge.dart';
+import 'package:wanderer_frontend/presentation/widgets/home/trip_grid.dart';
+import 'package:wanderer_frontend/presentation/widgets/home/zero_trips_takeover.dart';
 import 'package:wanderer_frontend/main.dart' show routeObserver;
 import 'create_trip_screen.dart';
 import 'settings_screen.dart';
@@ -331,154 +333,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
-  Widget _buildFilterChipButton<T>({
-    required T? value,
-    required String label,
-    required IconData icon,
-    required Color iconColor,
-    required List<PopupMenuEntry<T>> items,
-    required ValueChanged<T?> onSelected,
-    bool isActive = false,
-  }) {
-    final theme = Theme.of(context);
-    final chipColor = isActive
-        ? theme.colorScheme.secondaryContainer
-        : theme.colorScheme.surfaceContainerLow;
-    final contentColor = isActive
-        ? theme.colorScheme.onSecondaryContainer
-        : theme.colorScheme.onSurfaceVariant;
-
-    return PopupMenuButton<T>(
-      onSelected: onSelected,
-      itemBuilder: (_) => items,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      elevation: 2,
-      child: Material(
-        color: chipColor,
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            height: 32,
-            padding: const EdgeInsets.only(left: 8, right: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 18, color: iconColor),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: contentColor,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Icon(Icons.arrow_drop_down, size: 18, color: contentColor),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Compact language picker for the guest hero overlay (top-left).
-  Widget _buildHeroLangToggle() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: ValueListenableBuilder<Locale>(
-        valueListenable: LocaleController().locale,
-        builder: (context, locale, _) {
-          final controller = LocaleController();
-          final currentCode = controller.languageCode;
-          final flag = LocaleController.localeFlags[currentCode] ?? '🌐';
-          final label = LocaleController.localeLabels[currentCode] ?? 'EN';
-          return PopupMenuButton<String>(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            tooltip: 'Change language',
-            onSelected: (code) => controller.setLocale(Locale(code)),
-            itemBuilder: (_) => LocaleController.supportedLocales.map((loc) {
-              final code = loc.languageCode;
-              final locFlag = LocaleController.localeFlags[code] ?? '🌐';
-              final locLabel = LocaleController.localeLabels[code] ?? code;
-              return PopupMenuItem<String>(
-                value: code,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(locFlag, style: const TextStyle(fontSize: 16)),
-                    const SizedBox(width: 8),
-                    Text(
-                      locLabel,
-                      style: TextStyle(
-                        fontWeight: code == currentCode
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withOpacity(0.6),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(flag, style: const TextStyle(fontSize: 14)),
-                  const SizedBox(width: 4),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: WandererTheme.primaryOrange,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                    ),
-                  ),
-                  Icon(Icons.arrow_drop_down,
-                      color: WandererTheme.primaryOrange, size: 16),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  /// Compact dark/light mode toggle for the guest hero overlay (top-right).
-  Widget _buildHeroThemeToggle(AppLocalizations l10n) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      child: ValueListenableBuilder<ThemeMode>(
-        valueListenable: ThemeController().themeMode,
-        builder: (context, mode, _) {
-          final isDark = mode == ThemeMode.dark;
-          return IconButton(
-            icon: Icon(
-              isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-              color: WandererTheme.primaryOrange,
-              size: 20,
-            ),
-            tooltip: isDark ? l10n.switchToLightMode : l10n.switchToDarkMode,
-            onPressed: () => ThemeController().setDarkMode(!isDark),
-            visualDensity: VisualDensity.compact,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-            padding: EdgeInsets.zero,
-          );
-        },
-      ),
-    );
-  }
-
   Widget _buildFilterChips() {
     final bool isMyTripsTab = _tabController.index == 2;
     final l10n = context.l10n;
@@ -493,7 +347,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Status filter chip
-          _buildFilterChipButton<TripStatus?>(
+          FilterChipButton<TripStatus?>(
             value: _statusFilter,
             label: _statusFilter == null
                 ? l10n.allStatus
@@ -577,7 +431,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           // Visibility filter chip (My Trips tab only)
           if (isMyTripsTab) ...[
             const SizedBox(width: 8),
-            _buildFilterChipButton<Visibility?>(
+            FilterChipButton<Visibility?>(
               value: _visibilityFilter,
               label: _visibilityFilter == null
                   ? l10n.allVisibility
@@ -676,51 +530,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return UiHelpers.getVisibilityLabel(visibility, l10n);
   }
 
-  /// Full-screen CTA replacing the tabbed feed for a logged-in user with no
-  /// trips of their own yet — the feed/discover tabs have nothing relevant to
-  /// show them, so it's a single focused prompt to create their first trip.
-  Widget _buildZeroTripsTakeover(AppLocalizations l10n) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.explore_outlined,
-              size: 96,
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              l10n.trackFirstAdventure,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.createYourFirstTrip,
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _navigateToCreateTrip,
-              icon: const Icon(Icons.add),
-              label: Text(l10n.createTrip),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildMyTripsTab() {
     final filteredTrips = ref.watch(homeFeedNotifierProvider).filtered(_myTrips);
     final l10n = context.l10n;
@@ -790,7 +599,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               subtitle: l10n.currentlyInProgress,
             ),
             const SizedBox(height: 12),
-            _buildTripGrid(activeTrips, showDelete: true),
+            TripGrid(
+              trips: activeTrips,
+              currentUserId: _userId,
+              friendIds: _friendIds,
+              followingIds: _followingIds,
+              showDelete: true,
+              onTripTap: _navigateToTripDetail,
+              onDeleteTrip: _handleDeleteTrip,
+            ),
             const SizedBox(height: 24),
           ],
           if (pausedTrips.isNotEmpty) ...[
@@ -801,7 +618,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               subtitle: l10n.temporarilyStopped,
             ),
             const SizedBox(height: 12),
-            _buildTripGrid(pausedTrips, showDelete: true),
+            TripGrid(
+              trips: pausedTrips,
+              currentUserId: _userId,
+              friendIds: _friendIds,
+              followingIds: _followingIds,
+              showDelete: true,
+              onTripTap: _navigateToTripDetail,
+              onDeleteTrip: _handleDeleteTrip,
+            ),
             const SizedBox(height: 24),
           ],
           if (draftTrips.isNotEmpty) ...[
@@ -812,7 +637,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               subtitle: l10n.notYetStarted,
             ),
             const SizedBox(height: 12),
-            _buildTripGrid(draftTrips, showDelete: true),
+            TripGrid(
+              trips: draftTrips,
+              currentUserId: _userId,
+              friendIds: _friendIds,
+              followingIds: _followingIds,
+              showDelete: true,
+              onTripTap: _navigateToTripDetail,
+              onDeleteTrip: _handleDeleteTrip,
+            ),
             const SizedBox(height: 24),
           ],
           if (completedTrips.isNotEmpty) ...[
@@ -823,7 +656,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               subtitle: l10n.finishedAdventures,
             ),
             const SizedBox(height: 12),
-            _buildTripGrid(completedTrips, showDelete: true),
+            TripGrid(
+              trips: completedTrips,
+              currentUserId: _userId,
+              friendIds: _friendIds,
+              followingIds: _followingIds,
+              showDelete: true,
+              onTripTap: _navigateToTripDetail,
+              onDeleteTrip: _handleDeleteTrip,
+            ),
           ],
         ],
       ),
@@ -910,7 +751,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               subtitle: l10n.happeningRightNow,
             ),
             const SizedBox(height: 12),
-            _buildTripGrid(liveTrips, showRelationship: true),
+            TripGrid(
+              trips: liveTrips,
+              currentUserId: _userId,
+              friendIds: _friendIds,
+              followingIds: _followingIds,
+              showRelationship: true,
+              onTripTap: _navigateToTripDetail,
+              onDeleteTrip: _handleDeleteTrip,
+            ),
             const SizedBox(height: 24),
           ],
           if (friendsTrips.isNotEmpty) ...[
@@ -921,10 +770,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               subtitle: l10n.fromYourFriends,
             ),
             const SizedBox(height: 12),
-            _buildTripGrid(
-              friendsTrips,
+            TripGrid(
+              trips: friendsTrips,
+              currentUserId: _userId,
+              friendIds: _friendIds,
+              followingIds: _followingIds,
               showRelationship: true,
               defaultRelationship: RelationshipType.friend,
+              onTripTap: _navigateToTripDetail,
+              onDeleteTrip: _handleDeleteTrip,
             ),
             const SizedBox(height: 24),
           ],
@@ -936,13 +790,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               subtitle: l10n.fromUsersYouFollow,
             ),
             const SizedBox(height: 12),
-            _buildTripGrid(
-              followingTrips,
+            TripGrid(
+              trips: followingTrips,
+              currentUserId: _userId,
+              friendIds: _friendIds,
+              followingIds: _followingIds,
               showRelationship: true,
               defaultRelationship: RelationshipType.following,
+              onTripTap: _navigateToTripDetail,
+              onDeleteTrip: _handleDeleteTrip,
             ),
           ],
-          if (_hasMoreTrips) _buildLoadMoreTripsButton(),
+          if (_hasMoreTrips)
+            LoadMoreTripsButton(
+              isLoading: _isLoadingMoreTrips,
+              onLoadMore: _loadMoreTrips,
+            ),
         ],
       ),
     );
@@ -1009,7 +872,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               subtitle: l10n.highlightedAdventures,
             ),
             const SizedBox(height: 12),
-            _buildTripGrid(promotedTripsList, showRelationship: true),
+            TripGrid(
+              trips: promotedTripsList,
+              currentUserId: _userId,
+              friendIds: _friendIds,
+              followingIds: _followingIds,
+              showRelationship: true,
+              onTripTap: _navigateToTripDetail,
+              onDeleteTrip: _handleDeleteTrip,
+            ),
             const SizedBox(height: 24),
           ],
           if (nonPromotedTrips.isNotEmpty) ...[
@@ -1020,9 +891,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               subtitle: l10n.explorePublicTripsSubtitle,
             ),
             const SizedBox(height: 12),
-            _buildTripGrid(nonPromotedTrips, showRelationship: true),
+            TripGrid(
+              trips: nonPromotedTrips,
+              currentUserId: _userId,
+              friendIds: _friendIds,
+              followingIds: _followingIds,
+              showRelationship: true,
+              onTripTap: _navigateToTripDetail,
+              onDeleteTrip: _handleDeleteTrip,
+            ),
           ],
-          if (_hasMoreTrips) _buildLoadMoreTripsButton(),
+          if (_hasMoreTrips)
+            LoadMoreTripsButton(
+              isLoading: _isLoadingMoreTrips,
+              onLoadMore: _loadMoreTrips,
+            ),
         ],
       ),
     );
@@ -1084,7 +967,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             subtitle: l10n.highlightedAdventures,
           ),
           const SizedBox(height: 12),
-          _buildTripGrid(promotedTripsList, showRelationship: false),
+          TripGrid(
+            trips: promotedTripsList,
+            currentUserId: _userId,
+            friendIds: _friendIds,
+            followingIds: _followingIds,
+            showRelationship: false,
+            onTripTap: _navigateToTripDetail,
+            onDeleteTrip: _handleDeleteTrip,
+          ),
           const SizedBox(height: 24),
         ],
         if (nonPromotedTrips.isNotEmpty) ...[
@@ -1095,105 +986,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             subtitle: l10n.explorePublicTripsSubtitle,
           ),
           const SizedBox(height: 12),
-          _buildTripGrid(nonPromotedTrips, showRelationship: false),
+          TripGrid(
+            trips: nonPromotedTrips,
+            currentUserId: _userId,
+            friendIds: _friendIds,
+            followingIds: _followingIds,
+            showRelationship: false,
+            onTripTap: _navigateToTripDetail,
+            onDeleteTrip: _handleDeleteTrip,
+          ),
         ],
       ],
-    );
-  }
-
-  Widget _buildLoadMoreTripsButton() {
-    final l10n = context.l10n;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Center(
-        child: _isLoadingMoreTrips
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  color: WandererTheme.primaryOrange,
-                  strokeWidth: 2,
-                ),
-              )
-            : TextButton.icon(
-                onPressed: _loadMoreTrips,
-                icon: const Icon(
-                  Icons.expand_more,
-                  color: WandererTheme.primaryOrange,
-                ),
-                label: Text(
-                  l10n.loadMoreTrips,
-                  style: const TextStyle(color: WandererTheme.primaryOrange),
-                ),
-              ),
-      ),
-    );
-  }
-
-  Widget _buildTripGrid(
-    List<Trip> trips, {
-    bool showDelete = false,
-    bool showRelationship = false,
-    RelationshipType? defaultRelationship,
-  }) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        int crossAxisCount = 1;
-        if (constraints.maxWidth > 1200) {
-          crossAxisCount = 4;
-        } else if (constraints.maxWidth > 800) {
-          crossAxisCount = 3;
-        } else if (constraints.maxWidth > 600) {
-          crossAxisCount = 2;
-        }
-
-        // Adjust aspect ratio based on column count for better responsiveness
-        final double childAspectRatio;
-        if (crossAxisCount == 1) {
-          childAspectRatio = 1.3; // Wider cards on mobile to avoid stretching
-        } else if (crossAxisCount == 2) {
-          childAspectRatio = 1.2;
-        } else {
-          childAspectRatio = 1.15;
-        }
-
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            childAspectRatio: childAspectRatio,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          itemCount: trips.length,
-          itemBuilder: (context, index) {
-            final trip = trips[index];
-            RelationshipType? relationship;
-
-            if (showRelationship && trip.userId != _userId) {
-              if (_friendIds.contains(trip.userId)) {
-                relationship = RelationshipType.friend;
-              } else if (_followingIds.contains(trip.userId)) {
-                relationship = RelationshipType.following;
-              } else if (defaultRelationship != null) {
-                relationship = defaultRelationship;
-              }
-            }
-
-            return EnhancedTripCard(
-              key: ValueKey(trip.id), // Prevents unnecessary rebuilds
-              trip: trip,
-              onTap: () => _navigateToTripDetail(trip),
-              onDelete: showDelete && trip.userId == _userId
-                  ? () => _handleDeleteTrip(trip)
-                  : null,
-              relationship: relationship,
-              showAllBadges: true,
-            );
-          },
-        );
-      },
     );
   }
 
@@ -1403,13 +1206,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               Positioned(
                                 top: 8,
                                 left: 8,
-                                child: _buildHeroLangToggle(),
+                                child: const HeroLangToggle(),
                               ),
                               // Dark/light mode toggle — top-right corner
                               Positioned(
                                 top: 8,
                                 right: 8,
-                                child: _buildHeroThemeToggle(l10n),
+                                child: HeroThemeToggle(l10n: l10n),
                               ),
                             ],
                           ),
@@ -1478,7 +1281,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ),
                     )
                   : _myTrips.isEmpty
-                      ? _buildZeroTripsTakeover(l10n)
+                      ? ZeroTripsTakeover(
+                          l10n: l10n,
+                          onCreateTrip: _navigateToCreateTrip,
+                        )
                       : Stack(
                           children: [
                             Column(
