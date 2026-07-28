@@ -19,6 +19,8 @@ import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/helpers/avatar_helper.dart';
+import 'package:wanderer_frontend/presentation/state/profile/profile_notifier.dart';
+import 'package:wanderer_frontend/presentation/state/profile/profile_state.dart';
 import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_notifier.dart';
 import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_state.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
@@ -102,11 +104,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   late final UserService _userService;
   late final WebSocketService _webSocketService;
   StreamSubscription? _userEventSubscription;
-  UserProfile? _profile;
   List<Trip> _userTrips = [];
-  bool _isLoadingProfile = false;
   bool _isLoadingTrips = false;
-  String? _error;
   bool _hasSentFriendRequest =
       false; // Track if friend request was sent locally
   bool _isAlreadyFriends = false; // Track if already friends with user
@@ -134,9 +133,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String? get _currentDisplayName => _chrome.displayName;
   String? get _currentAvatarUrl => _chrome.avatarUrl;
 
+  ProfileState get _profileState =>
+      ref.watch(profileNotifierProvider(widget.userId));
+  UserProfile? get _profile => _profileState.profile;
+  bool get _isLoadingProfile => _profileState.isLoadingProfile;
+  String? get _error => _profileState.error;
+
   @override
   void initState() {
     super.initState();
+    ref
+        .read(profileNotifierProvider(widget.userId).notifier)
+        .seedTargetUserId(widget.userId);
     _repository = ref.read(profileRepositoryProvider);
     _userService = ref.read(userServiceProvider);
     _webSocketService = ref.read(websocketServiceProvider);
@@ -223,10 +231,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ref
             .read(userChromeNotifierProvider.notifier)
             .updateDisplayName(currentUser.displayName);
+        // If viewing own profile, also update the profile data
+        if (_isViewingOwnProfile) {
+          ref
+              .read(profileNotifierProvider(widget.userId).notifier)
+              .setProfile(currentUser);
+        }
         setState(() {
-          // If viewing own profile, also update the profile data
           if (_isViewingOwnProfile) {
-            _profile = currentUser;
             _optimisticAvatarBytes = null;
           }
         });
@@ -246,9 +258,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (!_isViewingOwnProfile && widget.userId != null) {
         final viewedProfile = await _repository.getUserProfile(widget.userId!);
         if (mounted) {
-          setState(() {
-            _profile = viewedProfile;
-          });
+          ref
+              .read(profileNotifierProvider(widget.userId).notifier)
+              .setProfile(viewedProfile);
         }
       }
     } catch (e) {
@@ -308,19 +320,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _loadProfile() async {
-    setState(() {
-      _isLoadingProfile = true;
-      _error = null;
-    });
+    final profileNotifier =
+        ref.read(profileNotifierProvider(widget.userId).notifier);
 
     try {
       final isLoggedIn = await _repository.isLoggedIn();
 
       // If viewing another user's profile and not logged in, redirect to auth
       if (widget.userId != null && !isLoggedIn) {
-        setState(() {
-          _isLoadingProfile = false;
-        });
         // Navigate to auth screen - use push so user can go back
         if (mounted) {
           Navigator.push(
@@ -347,12 +354,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
       // If viewing another user's profile
       if (widget.userId != null) {
-        final profile = await _repository.getUserProfile(widget.userId!);
+        await profileNotifier.loadProfile();
+        final profile = _profile;
+        if (profile == null) return;
+
         setState(() {
-          _profile = profile;
           _followersCount = profile.followersCount;
           _followingCount = profile.followingCount;
-          _isLoadingProfile = false;
         });
 
         // Load user's trips
@@ -370,36 +378,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         return;
       }
 
-      // Viewing own profile
+      // Viewing own profile: if not logged in, don't even try the fetch -
+      // ProfileNotifier isn't invoked here (avoids a doomed API call).
+      // `_buildBody()`'s `!_isLoggedIn` check independently shows the
+      // "please log in" prompt, so no ProfileState.error is needed for it.
       if (!isLoggedIn) {
-        setState(() {
-          _isLoadingProfile = false;
-          _error = 'You must be logged in to view your profile';
-        });
         return;
       }
 
-      final profile = await _repository.getMyProfile();
-      setState(() {
-        _profile = profile;
-        _isLoadingProfile = false;
-      });
+      await profileNotifier.loadProfile();
+      final profile = _profile;
+      if (profile == null) return;
 
       // Load user's trips and social counts
       _loadUserTrips(profile.id);
       await _loadSocialCounts();
     } on AuthenticationRedirectException {
-      // User is being redirected to login - don't show error
-      if (mounted) {
-        setState(() {
-          _isLoadingProfile = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoadingProfile = false;
-      });
+      // User is being redirected to login - don't show error.
+    } catch (_) {
+      // ProfileNotifier.loadProfile() already records fetch errors in
+      // ProfileState; errors from the surrounding calls above (trips,
+      // social counts, friendship status) are handled by those methods
+      // themselves. Nothing further to do here.
     }
   }
 
@@ -780,31 +780,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ref
             .read(userChromeNotifierProvider.notifier)
             .updateAvatarUrl(refreshedProfile.avatarUrl);
-        setState(() {
-          _profile = refreshedProfile;
-        });
+        ref
+            .read(profileNotifierProvider(widget.userId).notifier)
+            .setProfile(refreshedProfile);
       } catch (_) {
         // If re-fetch fails, optimistically update local state
         // with the values the user just submitted
-        if (_profile != null) {
+        final currentProfile = _profile;
+        if (currentProfile != null) {
           ref
               .read(userChromeNotifierProvider.notifier)
               .updateDisplayName(displayName.isEmpty ? null : displayName);
-          setState(() {
-            _profile = UserProfile(
-              id: _profile!.id,
-              username: _profile!.username,
-              email: _profile!.email,
-              displayName: displayName.isEmpty ? null : displayName,
-              bio: bio.isEmpty ? null : bio,
-              followersCount: _profile!.followersCount,
-              followingCount: _profile!.followingCount,
-              friendsCount: _profile!.friendsCount,
-              tripsCount: _profile!.tripsCount,
-              isFollowing: _profile!.isFollowing,
-              createdAt: _profile!.createdAt,
-            );
-          });
+          ref
+              .read(profileNotifierProvider(widget.userId).notifier)
+              .setProfile(UserProfile(
+                id: currentProfile.id,
+                username: currentProfile.username,
+                email: currentProfile.email,
+                displayName: displayName.isEmpty ? null : displayName,
+                bio: bio.isEmpty ? null : bio,
+                followersCount: currentProfile.followersCount,
+                followingCount: currentProfile.followingCount,
+                friendsCount: currentProfile.friendsCount,
+                tripsCount: currentProfile.tripsCount,
+                isFollowing: currentProfile.isFollowing,
+                createdAt: currentProfile.createdAt,
+              ));
         }
       }
 
@@ -1027,7 +1028,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_error != null) {
+    // `!_isLoggedIn` is included (not just `_error != null`) because the
+    // "viewing own profile while logged out" path deliberately never calls
+    // ProfileNotifier.loadProfile() (avoiding a doomed API call), so no
+    // ProfileState.error gets set for it - this check is what still shows
+    // the "please log in" prompt below in that case.
+    if (_error != null || !_isLoggedIn) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1966,7 +1972,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ],
     );
   }
-
 
   Widget _buildTripCard(Trip trip) {
     return ProfileTripCard(
