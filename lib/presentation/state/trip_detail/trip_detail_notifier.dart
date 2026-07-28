@@ -8,12 +8,12 @@ import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
 import 'package:wanderer_frontend/data/models/domain/location_update_result.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
-import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
+import 'package:wanderer_frontend/presentation/state/social/social_graph_actions.dart';
 import 'package:wanderer_frontend/presentation/state/trip_detail/trip_detail_state.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_planned_info_window.dart';
 
@@ -42,6 +42,7 @@ class TripDetailNotifier
   late PromotionQueryClient _promotionQueryClient;
   late AchievementService _achievementService;
   late UserService _userService;
+  late SocialGraphActions _socialGraphActions;
   Timer? _achievementRefreshTimer;
 
   @override
@@ -50,6 +51,7 @@ class TripDetailNotifier
     _promotionQueryClient = ref.watch(promotionQueryClientProvider);
     _achievementService = ref.watch(achievementServiceProvider);
     _userService = ref.watch(userServiceProvider);
+    _socialGraphActions = SocialGraphActions(_userService);
     ref.onDispose(() {
       _achievementRefreshTimer?.cancel();
     });
@@ -156,30 +158,13 @@ class TripDetailNotifier
   /// Load the current user's social relationship with the trip owner.
   Future<void> loadSocialStatus() async {
     try {
-      final followingPage = await _userService.getFollowing(page: 0, size: 100);
-      final isFollowing =
-          followingPage.content.any((f) => f.followedId == state.trip.userId);
-
-      final sentRequests = await _userService.getSentFriendRequests();
-      final pendingRequest = sentRequests.cast<FriendRequest?>().firstWhere(
-            (r) =>
-                r!.receiverId == state.trip.userId &&
-                r.status == FriendRequestStatus.pending,
-            orElse: () => null,
-          );
-      final hasSentRequest = pendingRequest != null;
-      final requestId = pendingRequest?.id;
-
-      final friendsPage = await _userService.getFriends(page: 0, size: 100);
-      final isAlreadyFriends =
-          friendsPage.content.any((f) => f.friendId == state.trip.userId);
-
+      final status = await _socialGraphActions.loadStatus(state.trip.userId);
       state = state.copyWith(
         social: TripDetailSocialState(
-          isFollowingTripOwner: isFollowing,
-          hasSentFriendRequest: hasSentRequest,
-          sentFriendRequestId: requestId,
-          isAlreadyFriends: isAlreadyFriends,
+          isFollowingTripOwner: status.isFollowing,
+          hasSentFriendRequest: status.hasSentFriendRequest,
+          sentFriendRequestId: status.sentFriendRequestId,
+          isAlreadyFriends: status.isAlreadyFriends,
         ),
       );
     } catch (e) {
@@ -188,42 +173,28 @@ class TripDetailNotifier
   }
 
   Future<void> followTripOwner() async {
-    if (state.social.isFollowingTripOwner) {
-      await _userService.unfollowUser(state.trip.userId);
-      state = state.copyWith(
-        social: state.social.copyWith(isFollowingTripOwner: false),
-      );
-    } else {
-      await _userService.followUser(state.trip.userId);
-      state = state.copyWith(
-        social: state.social.copyWith(isFollowingTripOwner: true),
-      );
-    }
+    final nowFollowing = await _socialGraphActions.toggleFollow(
+      state.trip.userId,
+      currentlyFollowing: state.social.isFollowingTripOwner,
+    );
+    state = state.copyWith(
+      social: state.social.copyWith(isFollowingTripOwner: nowFollowing),
+    );
   }
 
   Future<void> sendFriendRequestToTripOwner() async {
-    if (state.social.isAlreadyFriends) {
-      await _userService.removeFriend(state.trip.userId);
-      state = state.copyWith(social: state.social.copyWith(isAlreadyFriends: false));
-      return;
-    }
-
-    if (state.social.hasSentFriendRequest && state.social.sentFriendRequestId != null) {
-      await _userService.deleteFriendRequest(state.social.sentFriendRequestId!);
-      state = state.copyWith(
-        social: state.social.copyWith(
-          hasSentFriendRequest: false,
-          clearSentFriendRequestId: true,
-        ),
-      );
-      return;
-    }
-
-    final requestId = await _userService.sendFriendRequest(state.trip.userId);
+    final result = await _socialGraphActions.toggleFriendRequest(
+      state.trip.userId,
+      isAlreadyFriends: state.social.isAlreadyFriends,
+      hasSentFriendRequest: state.social.hasSentFriendRequest,
+      sentFriendRequestId: state.social.sentFriendRequestId,
+    );
     state = state.copyWith(
       social: state.social.copyWith(
-        hasSentFriendRequest: true,
-        sentFriendRequestId: requestId,
+        isAlreadyFriends: result.isAlreadyFriends,
+        hasSentFriendRequest: result.hasSentFriendRequest,
+        sentFriendRequestId: result.sentFriendRequestId,
+        clearSentFriendRequestId: result.sentFriendRequestId == null,
       ),
     );
   }
