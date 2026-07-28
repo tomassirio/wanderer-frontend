@@ -115,6 +115,58 @@ void main() {
   });
 
   test(
+      'updateAvatarUrl(null) actually clears avatarUrl (userAvatarDeleted '
+      'path), instead of silently keeping the stale url', () {
+    final container = buildContainer();
+    final notifier = container.read(userChromeNotifierProvider.notifier);
+    notifier.updateAvatarUrl('https://example.com/old.png');
+    expect(
+      container.read(userChromeNotifierProvider).avatarUrl,
+      'https://example.com/old.png',
+    );
+
+    notifier.updateAvatarUrl(null);
+
+    expect(container.read(userChromeNotifierProvider).avatarUrl, isNull);
+  });
+
+  test(
+      'loadUserInfo clears previously-populated fields when the repository '
+      'returns nulls (stale-session-then-recheck scenario)', () async {
+    when(mockRepository.getCurrentUsername()).thenAnswer((_) async => 'alice');
+    when(mockRepository.getCurrentUserId()).thenAnswer((_) async => 'user-1');
+    when(mockRepository.isLoggedIn()).thenAnswer((_) async => true);
+    when(mockRepository.isAdmin()).thenAnswer((_) async => false);
+    when(mockRepository.refreshUserDetails()).thenAnswer((_) async => true);
+    when(mockRepository.getCurrentDisplayName())
+        .thenAnswer((_) async => 'Alice Doe');
+    when(mockRepository.getCurrentAvatarUrl())
+        .thenAnswer((_) async => 'https://example.com/a.png');
+
+    final container = buildContainer();
+    final notifier = container.read(userChromeNotifierProvider.notifier);
+    await notifier.loadUserInfo();
+    expect(container.read(userChromeNotifierProvider).username, 'alice');
+
+    // Session expired; a later re-check finds no session at all.
+    when(mockRepository.getCurrentUsername()).thenAnswer((_) async => null);
+    when(mockRepository.getCurrentUserId()).thenAnswer((_) async => null);
+    when(mockRepository.isLoggedIn()).thenAnswer((_) async => false);
+    when(mockRepository.getCurrentDisplayName()).thenAnswer((_) async => null);
+    when(mockRepository.getCurrentAvatarUrl()).thenAnswer((_) async => null);
+
+    await notifier.loadUserInfo();
+
+    final state = container.read(userChromeNotifierProvider);
+    expect(state.username, isNull,
+        reason: 'stale username from the previous session must not survive');
+    expect(state.userId, isNull);
+    expect(state.displayName, isNull);
+    expect(state.avatarUrl, isNull);
+    expect(state.isLoggedIn, isFalse);
+  });
+
+  test(
       'setLoggedOut flips isLoggedIn to false but leaves other identity '
       'fields stale (deliberately, not cleared)', () async {
     when(mockRepository.getCurrentUsername()).thenAnswer((_) async => 'alice');

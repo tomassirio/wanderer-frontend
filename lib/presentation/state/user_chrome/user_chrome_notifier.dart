@@ -31,7 +31,12 @@ class UserChromeNotifier extends Notifier<UserChromeState> {
     final displayName = await _repository.getCurrentDisplayName();
     final avatarUrl = await _repository.getCurrentAvatarUrl();
 
-    state = state.copyWith(
+    // Assigned as a fresh state (not via copyWith) since all six fields are
+    // always freshly fetched together here — copyWith's null-coalescing
+    // would otherwise let a legitimately-null fetch (e.g. a stale session
+    // that later re-checks and finds nothing) keep the previous session's
+    // stale values instead of clearing them.
+    state = UserChromeState(
       username: username,
       userId: userId,
       displayName: displayName,
@@ -43,11 +48,15 @@ class UserChromeNotifier extends Notifier<UserChromeState> {
 
   /// Partial update for the one field a WebSocket-triggered profile refresh
   /// needs to change — narrower than [loadUserInfo], which re-fetches
-  /// everything. Safe under [UserChromeState.copyWith]'s null-coalescing
-  /// semantics since this only ever sets a real (non-null) value, never
-  /// clears one.
+  /// everything. Passes `clearAvatarUrl` explicitly when [avatarUrl] is
+  /// null so a genuine clear (e.g. `userAvatarDeleted`) actually clears the
+  /// field, rather than being silently absorbed by
+  /// [UserChromeState.copyWith]'s null-coalescing.
   void updateAvatarUrl(String? avatarUrl) {
-    state = state.copyWith(avatarUrl: avatarUrl);
+    state = state.copyWith(
+      avatarUrl: avatarUrl,
+      clearAvatarUrl: avatarUrl == null,
+    );
   }
 
   /// Narrow update for an expired/invalid session detected mid-request
