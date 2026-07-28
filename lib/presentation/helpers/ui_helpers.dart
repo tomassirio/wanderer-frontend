@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/floating_notification.dart';
 
@@ -37,15 +38,31 @@ class UiHelpers {
     }
   }
 
-  /// Gets the appropriate icon for trip visibility
+  /// Gets the appropriate icon for trip visibility. `protected` returns
+  /// `Icons.lock_outline` - this was previously `Icons.group`, disagreeing
+  /// with both home_screen.dart's own visibility icon lookup and
+  /// VisibilityBadge, which both already rendered lock_outline on screen.
+  /// Fixed to match what users actually see today, not the outlier value.
   static IconData getVisibilityIcon(Visibility visibility) {
     switch (visibility) {
       case Visibility.private:
         return Icons.lock;
       case Visibility.protected:
-        return Icons.group;
+        return Icons.lock_outline;
       case Visibility.public:
         return Icons.public;
+    }
+  }
+
+  /// Gets the localized label for trip visibility.
+  static String getVisibilityLabel(Visibility visibility, AppLocalizations l10n) {
+    switch (visibility) {
+      case Visibility.public:
+        return l10n.publicVisibility;
+      case Visibility.protected:
+        return l10n.protectedVisibility;
+      case Visibility.private:
+        return l10n.privateVisibility;
     }
   }
 

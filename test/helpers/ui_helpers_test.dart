@@ -42,4 +42,20 @@ void main() {
           Icons.nightlight_round);
     });
   });
+
+  group('UiHelpers.getVisibilityIcon', () {
+    test('protected returns lock_outline (matching what the app already '
+        'renders in home_screen.dart and VisibilityBadge, not the old '
+        'disagreeing Icons.group)', () {
+      expect(
+        UiHelpers.getVisibilityIcon(Visibility.protected),
+        Icons.lock_outline,
+      );
+    });
+
+    test('public returns public, private returns lock', () {
+      expect(UiHelpers.getVisibilityIcon(Visibility.public), Icons.public);
+      expect(UiHelpers.getVisibilityIcon(Visibility.private), Icons.lock);
+    });
+  });
 }

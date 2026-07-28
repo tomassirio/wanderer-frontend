@@ -665,17 +665,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   IconData _getVisibilityIcon(Visibility? visibility) {
-    if (visibility == null) return Icons.all_inclusive;
-    switch (visibility) {
-      case Visibility.public:
-        return Icons.public;
-      case Visibility.protected:
-        return Icons.lock_outline;
-      case Visibility.private:
-        return Icons.lock;
-    }
+    return visibility == null
+        ? Icons.all_inclusive
+        : UiHelpers.getVisibilityIcon(visibility);
   }
 
+  // _getVisibilityColor stays local: this screen's filter chip uses flat
+  // Colors.green/.orange/.red, a different (simpler) visual treatment than
+  // VisibilityBadge's shade700+border scheme - not a literal duplicate, see
+  // plan Global Constraints for why color isn't unified across both.
   Color _getVisibilityColor(Visibility? visibility) {
     if (visibility == null) return Colors.grey;
     switch (visibility) {
@@ -689,14 +687,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   String _getVisibilityLabel(Visibility visibility, AppLocalizations l10n) {
-    switch (visibility) {
-      case Visibility.public:
-        return l10n.publicVisibility;
-      case Visibility.protected:
-        return l10n.protectedVisibility;
-      case Visibility.private:
-        return l10n.privateVisibility;
-    }
+    return UiHelpers.getVisibilityLabel(visibility, l10n);
   }
 
   /// Full-screen CTA replacing the tabbed feed for a logged-in user with no

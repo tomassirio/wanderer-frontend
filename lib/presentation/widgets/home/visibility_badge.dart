@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:wanderer_frontend/core/constants/enums.dart' show Visibility;
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 
 /// Badge widget that displays trip visibility status
 class VisibilityBadge extends StatelessWidget {
@@ -43,7 +44,7 @@ class VisibilityBadge extends StatelessWidget {
           if (!compact) ...[
             const SizedBox(width: 6),
             Text(
-              _getLabel(l10n),
+              UiHelpers.getVisibilityLabel(visibility, l10n),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
@@ -64,17 +65,6 @@ class VisibilityBadge extends StatelessWidget {
         return Icons.lock_outline;
       case Visibility.private:
         return Icons.lock;
-    }
-  }
-
-  String _getLabel(AppLocalizations l10n) {
-    switch (visibility) {
-      case Visibility.public:
-        return l10n.publicVisibility;
-      case Visibility.protected:
-        return l10n.protectedVisibility;
-      case Visibility.private:
-        return l10n.privateVisibility;
     }
   }
 
