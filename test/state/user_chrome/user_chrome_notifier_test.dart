@@ -166,6 +166,28 @@ void main() {
     expect(state.isLoggedIn, isFalse);
   });
 
+  test('updateDisplayName sets a non-null display name', () {
+    final container = buildContainer();
+    final notifier = container.read(userChromeNotifierProvider.notifier);
+
+    notifier.updateDisplayName('New Name');
+
+    expect(container.read(userChromeNotifierProvider).displayName, 'New Name');
+  });
+
+  test('updateDisplayName(null) genuinely clears a previously-set display name',
+      () {
+    final container = buildContainer();
+    final notifier = container.read(userChromeNotifierProvider.notifier);
+
+    notifier.updateDisplayName('Old Name');
+    expect(container.read(userChromeNotifierProvider).displayName, 'Old Name');
+
+    notifier.updateDisplayName(null);
+
+    expect(container.read(userChromeNotifierProvider).displayName, isNull);
+  });
+
   test(
       'setLoggedOut flips isLoggedIn to false but leaves other identity '
       'fields stale (deliberately, not cleared)', () async {

@@ -23,6 +23,7 @@ class UserChromeState {
     String? username,
     String? userId,
     String? displayName,
+    bool clearDisplayName = false,
     String? avatarUrl,
     bool clearAvatarUrl = false,
     bool? isLoggedIn,
@@ -31,7 +32,7 @@ class UserChromeState {
     return UserChromeState(
       username: username ?? this.username,
       userId: userId ?? this.userId,
-      displayName: displayName ?? this.displayName,
+      displayName: clearDisplayName ? null : (displayName ?? this.displayName),
       avatarUrl: clearAvatarUrl ? null : (avatarUrl ?? this.avatarUrl),
       isLoggedIn: isLoggedIn ?? this.isLoggedIn,
       isAdmin: isAdmin ?? this.isAdmin,

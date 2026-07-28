@@ -19,6 +19,8 @@ import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/helpers/avatar_helper.dart';
+import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_notifier.dart';
+import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_state.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
@@ -105,17 +107,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _isLoadingProfile = false;
   bool _isLoadingTrips = false;
   String? _error;
-  bool _isLoggedIn = false;
-  bool _isAdmin = false;
   bool _hasSentFriendRequest =
       false; // Track if friend request was sent locally
   bool _isAlreadyFriends = false; // Track if already friends with user
   bool _isFollowingUser = false; // Track if following this user
   String? _sentFriendRequestId; // Store the request ID for cancellation
-  String? _currentUserId; // Track the logged-in user's ID
-  String? _currentUsername; // Track the logged-in user's username
-  String? _currentDisplayName; // Track the logged-in user's display name
-  String? _currentAvatarUrl; // Track the logged-in user's avatar URL
   Uint8List?
       _optimisticAvatarBytes; // Optimistic avatar while backend processes
   final int _selectedSidebarIndex = 4; // Profile is index 4
@@ -129,6 +125,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   TripSortOption _tripSortOption = TripSortOption.statusPriority;
   final Set<TripStatus> _selectedStatusFilters = {}; // empty = show all
   bool _showFilterPanel = false;
+
+  UserChromeState get _chrome => ref.watch(userChromeNotifierProvider);
+  bool get _isLoggedIn => _chrome.isLoggedIn;
+  bool get _isAdmin => _chrome.isAdmin;
+  String? get _currentUserId => _chrome.userId;
+  String? get _currentUsername => _chrome.username;
+  String? get _currentDisplayName => _chrome.displayName;
+  String? get _currentAvatarUrl => _chrome.avatarUrl;
 
   @override
   void initState() {
@@ -211,14 +215,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       await _repository.refreshUserDetails();
 
       if (mounted) {
+        ref.read(userChromeNotifierProvider.notifier).updateAvatarUrl(
+              currentUser.avatarUrl.isNotEmpty
+                  ? '${currentUser.avatarUrl}?t=${DateTime.now().millisecondsSinceEpoch}'
+                  : null,
+            );
+        ref
+            .read(userChromeNotifierProvider.notifier)
+            .updateDisplayName(currentUser.displayName);
         setState(() {
-          _currentUserId = currentUser.id;
-          _currentUsername = currentUser.username;
-          _currentDisplayName = currentUser.displayName;
-          _currentAvatarUrl = currentUser.avatarUrl.isNotEmpty
-              ? '${currentUser.avatarUrl}?t=${DateTime.now().millisecondsSinceEpoch}'
-              : '';
-
           // If viewing own profile, also update the profile data
           if (_isViewingOwnProfile) {
             _profile = currentUser;
@@ -310,11 +315,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     try {
       final isLoggedIn = await _repository.isLoggedIn();
-      final isAdmin = await _repository.isAdmin();
-      setState(() {
-        _isLoggedIn = isLoggedIn;
-        _isAdmin = isAdmin;
-      });
 
       // If viewing another user's profile and not logged in, redirect to auth
       if (widget.userId != null && !isLoggedIn) {
@@ -339,13 +339,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       // Load current user ID and username if logged in (needed to determine if viewing own profile and for AppBar/Sidebar)
       if (isLoggedIn) {
         try {
-          final currentUser = await _repository.getMyProfile();
-          setState(() {
-            _currentUserId = currentUser.id;
-            _currentUsername = currentUser.username;
-            _currentDisplayName = currentUser.displayName;
-            _currentAvatarUrl = currentUser.avatarUrl;
-          });
+          await ref.read(userChromeNotifierProvider.notifier).loadUserInfo();
         } catch (e) {
           // Ignore error loading current user
         }
@@ -542,7 +536,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final confirm = await DialogHelper.showLogoutConfirmation(context);
 
     if (confirm) {
-      await _repository.logout();
+      await ref.read(userChromeNotifierProvider.notifier).logout();
       if (mounted) {
         // Navigate to home screen and clear navigation stack
         Navigator.of(context).pushAndRemoveUntil(
@@ -780,15 +774,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         final refreshedProfile = await _repository.getMyProfile();
         // Save updated details to local storage for sidebar/appbar
         await _repository.refreshUserDetails();
+        ref
+            .read(userChromeNotifierProvider.notifier)
+            .updateDisplayName(refreshedProfile.displayName);
+        ref
+            .read(userChromeNotifierProvider.notifier)
+            .updateAvatarUrl(refreshedProfile.avatarUrl);
         setState(() {
           _profile = refreshedProfile;
-          _currentDisplayName = refreshedProfile.displayName;
-          _currentAvatarUrl = refreshedProfile.avatarUrl;
         });
       } catch (_) {
         // If re-fetch fails, optimistically update local state
         // with the values the user just submitted
         if (_profile != null) {
+          ref
+              .read(userChromeNotifierProvider.notifier)
+              .updateDisplayName(displayName.isEmpty ? null : displayName);
           setState(() {
             _profile = UserProfile(
               id: _profile!.id,
@@ -803,7 +804,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               isFollowing: _profile!.isFollowing,
               createdAt: _profile!.createdAt,
             );
-            _currentDisplayName = displayName.isEmpty ? null : displayName;
           });
         }
       }
@@ -968,9 +968,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     try {
       // Optimistic UI update - clear avatar immediately
       if (mounted) {
+        ref.read(userChromeNotifierProvider.notifier).updateAvatarUrl(null);
         setState(() {
           _optimisticAvatarBytes = null;
-          _currentAvatarUrl = '';
         });
       }
 
@@ -985,9 +985,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     } catch (e) {
       // Restore avatar on error
       if (mounted) {
-        setState(() {
-          _currentAvatarUrl = _profile?.avatarUrl;
-        });
+        ref
+            .read(userChromeNotifierProvider.notifier)
+            .updateAvatarUrl(_profile?.avatarUrl);
         UiHelpers.showErrorMessage(context, 'Failed to delete avatar: $e');
       }
     }

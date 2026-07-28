@@ -59,6 +59,18 @@ class UserChromeNotifier extends Notifier<UserChromeState> {
     );
   }
 
+  /// Partial update for the display-name half of the "edit my profile" flow
+  /// (`profile_screen.dart`'s `_updateProfile`). Mirrors [updateAvatarUrl]'s
+  /// `clearX`-flag pattern so a genuine clear (empty display name submitted)
+  /// actually clears the field, rather than being silently absorbed by
+  /// [UserChromeState.copyWith]'s null-coalescing.
+  void updateDisplayName(String? displayName) {
+    state = state.copyWith(
+      displayName: displayName,
+      clearDisplayName: displayName == null,
+    );
+  }
+
   /// Narrow update for an expired/invalid session detected mid-request
   /// (e.g. `AuthenticationRedirectException` while loading trips): flips
   /// only [UserChromeState.isLoggedIn] to false. Deliberately does NOT
