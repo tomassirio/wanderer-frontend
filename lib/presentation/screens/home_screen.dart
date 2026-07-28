@@ -55,9 +55,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   late TabController _tabController;
 
-  List<Trip> _feedTrips = [];
-  List<Trip> _discoverTrips = [];
-
   final int _selectedSidebarIndex = 0;
 
   String? get _username => ref.watch(userChromeNotifierProvider).username;
@@ -69,6 +66,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   List<Trip> get _allTrips => ref.watch(homeFeedNotifierProvider).allTrips;
   List<Trip> get _myTrips => ref.watch(homeFeedNotifierProvider).myTrips;
+  List<Trip> get _feedTrips => ref.watch(homeFeedNotifierProvider).feedTrips;
+  List<Trip> get _discoverTrips =>
+      ref.watch(homeFeedNotifierProvider).discoverTrips;
   Set<String> get _friendIds => ref.watch(homeFeedNotifierProvider).friendIds;
   Set<String> get _followingIds =>
       ref.watch(homeFeedNotifierProvider).followingIds;
@@ -79,8 +79,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   String? get _error => ref.watch(homeFeedNotifierProvider).error;
 
   // Filter states
-  TripStatus? _statusFilter;
-  Visibility? _visibilityFilter;
+  TripStatus? get _statusFilter =>
+      ref.watch(homeFeedNotifierProvider).statusFilter;
+  Visibility? get _visibilityFilter =>
+      ref.watch(homeFeedNotifierProvider).visibilityFilter;
 
   // First-time home screen tutorial (coach marks)
   final GlobalKey _tutorialMenuKey = GlobalKey();
@@ -133,23 +135,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _onTabChanged() {
-    // Rebuild to update the filter chips visibility based on selected tab
     if (mounted) {
-      setState(() {
-        // Reset visibility filter when switching away from My Trips tab
-        // since visibility filter only applies to My Trips
-        if (_tabController.index != 2) {
-          _visibilityFilter = null;
-          // Reset status filter if current filter is not valid for Feed/Discover
-          // (only inProgress, resting, and paused are shown in those tabs)
-          if (_statusFilter != null &&
-              _statusFilter != TripStatus.inProgress &&
-              _statusFilter != TripStatus.resting &&
-              _statusFilter != TripStatus.paused) {
-            _statusFilter = null;
-          }
-        }
-      });
+      ref
+          .read(homeFeedNotifierProvider.notifier)
+          .resetFiltersForTab(_tabController.index == 2);
     }
   }
 
@@ -262,7 +251,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           );
         }
 
-        _categorizeTrips();
+        ref.read(homeFeedNotifierProvider.notifier).categorizeTrips();
       });
 
       // For multi-day trips, re-fetch full data to ensure currentDay is
@@ -289,7 +278,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         if (myIndex != -1) {
           _myTrips[myIndex] = updatedTrip;
         }
-        _categorizeTrips();
+        ref.read(homeFeedNotifierProvider.notifier).categorizeTrips();
       });
     } catch (e) {
       debugPrint('Failed to refresh trip $tripId: $e');
@@ -318,7 +307,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       }
 
       if (allIndex != -1 || myIndex != -1) {
-        _categorizeTrips();
+        ref.read(homeFeedNotifierProvider.notifier).categorizeTrips();
       }
     });
   }
@@ -411,12 +400,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     await ref.read(homeFeedNotifierProvider.notifier).loadTrips();
 
     if (mounted) {
-      // _categorizeTrips() (Task 3's scope) still populates the widget-local
-      // _feedTrips/_discoverTrips fields imperatively - it isn't reactive to
-      // ref.watch, so it must still be re-run (via setState) whenever the
-      // notifier's trip data settles, exactly as the pre-migration code did
-      // inline inside its own setState blocks.
-      setState(_categorizeTrips);
+      // Categorization (feedTrips/discoverTrips) already happened inside
+      // the notifier's loadTrips() itself, and _feedTrips/_discoverTrips
+      // are ref.watch getters, so no local setState is needed here.
       _webSocketService.unsubscribeFromAllTrips();
       _webSocketService.subscribeToTrips(_allTrips.map((t) => t.id).toList());
     }
@@ -433,9 +419,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final beforeIds = _allTrips.map((t) => t.id).toSet();
     try {
       await ref.read(homeFeedNotifierProvider.notifier).loadMoreTrips();
-      if (mounted) {
-        setState(_categorizeTrips);
-      }
       final newIds =
           _allTrips.map((t) => t.id).where((id) => !beforeIds.contains(id));
       _webSocketService.subscribeToTrips(newIds.toList());
@@ -449,143 +432,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// Removed _loadPromotedTrips() and _fetchMissingPromotedTrips()
   /// Backend now includes isPromoted/promotedAt in Trip data
   /// Note: Admin promotion screen still uses separate endpoint for full PromotedTrip details
-
-  void _categorizeTrips() {
-    // Build the discover list with the same criteria for both guest and
-    // logged-in users so "Explore Public Trips" and the Discover tab show
-    // identical content.
-    //
-    // Criteria for a trip to appear in Discover / Explore Public Trips:
-    //   1. Public AND active (in_progress, resting, paused)  → Discover section
-    //   2. Promoted AND active                               → Featured section
-    //   3. Promoted AND completed (finished)                  → Featured section
-    //   4. Promoted AND created + pre-announced               → Featured (pre-announced)
-    //
-    // Anything else (draft non-promoted, completed non-promoted, private, etc.)
-    // is excluded.
-
-    final discoverTrips = <Trip>[];
-
-    for (final trip in _allTrips) {
-      final isPublic = trip.visibility == Visibility.public;
-      final isActive = trip.status == TripStatus.inProgress ||
-          trip.status == TripStatus.resting ||
-          trip.status == TripStatus.paused;
-      final isPromoted = trip.isPromoted;
-
-      // Rule 1 & 2: Public + active trips (promoted or not)
-      if (isPublic && isActive) {
-        discoverTrips.add(trip);
-        continue;
-      }
-
-      // Rule 3: Promoted + completed
-      if (isPromoted && trip.status == TripStatus.finished) {
-        discoverTrips.add(trip);
-        continue;
-      }
-
-      // Rule 4: Promoted + created (pre-announced trips are always promoted)
-      if (isPromoted && trip.status == TripStatus.created) {
-        discoverTrips.add(trip);
-        continue;
-      }
-    }
-
-    // Sort discover by date
-    discoverTrips.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-    if (!_isLoggedIn) {
-      setState(() {
-        _discoverTrips = discoverTrips;
-        _feedTrips = [];
-      });
-      _applyFilters();
-      return;
-    }
-
-    // Categorize trips for feed (logged-in only)
-    final feedTrips = <Trip>[];
-
-    for (final trip in _allTrips) {
-      final isActive = trip.status == TripStatus.inProgress ||
-          trip.status == TripStatus.resting ||
-          trip.status == TripStatus.paused;
-      if (!isActive) continue;
-
-      final isOwnTrip = trip.userId == _userId;
-      final isPublic = trip.visibility == Visibility.public;
-
-      // Skip user's own trips from feed
-      if (!isOwnTrip) {
-        final isFriend = _friendIds.contains(trip.userId);
-        final isFollowing = _followingIds.contains(trip.userId);
-
-        // Add to feed if from friend or following
-        if (isFriend || isFollowing) {
-          // Friends can see PUBLIC and PROTECTED
-          if (isFriend &&
-              (isPublic || trip.visibility == Visibility.protected)) {
-            feedTrips.add(trip);
-          }
-          // Following can only see PUBLIC
-          else if (isFollowing && !isFriend && isPublic) {
-            feedTrips.add(trip);
-          }
-        }
-      }
-    }
-
-    // Sort feed by priority
-    feedTrips.sort(_compareTripsByPriority);
-
-    setState(() {
-      _feedTrips = feedTrips;
-      _discoverTrips = discoverTrips;
-    });
-
-    _applyFilters();
-  }
-
-  /// Compare trips by priority for feed sorting
-  int _compareTripsByPriority(Trip a, Trip b) {
-    // Priority 1: Live and resting trips (IN_PROGRESS, RESTING)
-    final aIsLive =
-        a.status == TripStatus.inProgress || a.status == TripStatus.resting;
-    final bIsLive =
-        b.status == TripStatus.inProgress || b.status == TripStatus.resting;
-    if (aIsLive != bIsLive) return aIsLive ? -1 : 1;
-
-    // Priority 2: Friends over following
-    final aIsFriend = _friendIds.contains(a.userId);
-    final bIsFriend = _friendIds.contains(b.userId);
-    if (aIsFriend != bIsFriend) return aIsFriend ? -1 : 1;
-
-    // Priority 3: Most recent
-    return b.createdAt.compareTo(a.createdAt);
-  }
-
-  void _applyFilters() {
-    setState(() {
-      // Filters are applied during rendering in _buildTripList
-    });
-  }
-
-  List<Trip> _getFilteredTrips(List<Trip> trips) {
-    return trips.where((trip) {
-      // Apply status filter
-      if (_statusFilter != null && trip.status != _statusFilter) {
-        return false;
-      }
-
-      // Apply visibility filter
-      if (_visibilityFilter != null && trip.visibility != _visibilityFilter) {
-        return false;
-      }
-
-      return true;
-    }).toList();
-  }
 
   Future<void> _logout() async {
     final confirm = await DialogHelper.showLogoutConfirmation(context);
@@ -862,14 +708,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 : UiHelpers.getStatusColor(_statusFilter!),
             isActive: _statusFilter != null,
             onSelected: (value) {
-              setState(() => _statusFilter = value);
+              ref.read(homeFeedNotifierProvider.notifier).setStatusFilter(value);
             },
             items: [
               PopupMenuItem<TripStatus?>(
                 value: null,
                 onTap: () {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
-                    setState(() => _statusFilter = null);
+                    ref
+                        .read(homeFeedNotifierProvider.notifier)
+                        .setStatusFilter(null);
                   });
                 },
                 child: Row(
@@ -940,14 +788,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               iconColor: _getVisibilityColor(_visibilityFilter),
               isActive: _visibilityFilter != null,
               onSelected: (value) {
-                setState(() => _visibilityFilter = value);
+                ref
+                    .read(homeFeedNotifierProvider.notifier)
+                    .setVisibilityFilter(value);
               },
               items: [
                 PopupMenuItem<Visibility?>(
                   value: null,
                   onTap: () {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
-                      setState(() => _visibilityFilter = null);
+                      ref
+                          .read(homeFeedNotifierProvider.notifier)
+                          .setVisibilityFilter(null);
                     });
                   },
                   child: Row(
@@ -1092,7 +944,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildMyTripsTab() {
-    final filteredTrips = _getFilteredTrips(_myTrips);
+    final filteredTrips = ref.watch(homeFeedNotifierProvider).filtered(_myTrips);
     final l10n = context.l10n;
 
     // Group trips by status
@@ -1201,7 +1053,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildFeedTab() {
-    final filteredTrips = _getFilteredTrips(_feedTrips);
+    final filteredTrips = ref.watch(homeFeedNotifierProvider).filtered(_feedTrips);
     final l10n = context.l10n;
 
     // Group by live (including resting) and other
@@ -1320,7 +1172,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Widget _buildDiscoverTab() {
     final l10n = context.l10n;
-    final filteredTrips = _getFilteredTrips(_discoverTrips);
+    final filteredTrips = ref.watch(homeFeedNotifierProvider).filtered(_discoverTrips);
 
     // Separate promoted trips (featured) from regular public trips.
     // Backend now includes isPromoted field in Trip model
@@ -1401,7 +1253,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   // Build discover section for guest users without ListView wrapper
   Widget _buildGuestDiscoverSection() {
     final l10n = context.l10n;
-    final filteredTrips = _getFilteredTrips(_discoverTrips);
+    final filteredTrips = ref.watch(homeFeedNotifierProvider).filtered(_discoverTrips);
 
     // Separate promoted trips (featured) from regular public trips.
     // Backend now includes isPromoted field in Trip model

@@ -78,7 +78,7 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
           followingIds: results[3] as Set<String>,
           isLoading: false,
         );
-        _categorizeTrips();
+        categorizeTrips();
       } else {
         // Not logged in, only show public trips.
         final tripsPage =
@@ -111,7 +111,7 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
           followingIds: const {},
           isLoading: false,
         );
-        _categorizeTrips();
+        categorizeTrips();
       }
     } on AuthenticationRedirectException {
       // Token expired or user not authenticated - treat as guest. Only
@@ -169,7 +169,7 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
           hasMoreTrips: !availablePage.last || !publicPage.last,
           isLoadingMoreTrips: false,
         );
-        _categorizeTrips();
+        categorizeTrips();
       } else {
         final tripsPage = await _repository.loadTrips(
           page: nextPage,
@@ -182,7 +182,7 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
           hasMoreTrips: !tripsPage.last,
           isLoadingMoreTrips: false,
         );
-        _categorizeTrips();
+        categorizeTrips();
       }
     } catch (e) {
       state = state.copyWith(isLoadingMoreTrips: false);
@@ -190,11 +190,113 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
     }
   }
 
-  /// Placeholder for Task 3, which fills this in with the real
-  /// categorization logic (feedTrips/discoverTrips). Left as a no-op here
-  /// so Task 2's tests (which don't exercise feed/discover categorization)
-  /// stay green; Task 3 replaces this body entirely.
-  void _categorizeTrips() {}
+  /// Public so the widget's WebSocket handlers (which still mutate
+  /// allTrips/myTrips in place - a known anti-pattern Task 4 fixes) can
+  /// trigger recategorization after they mutate state directly.
+  void categorizeTrips() {
+    final currentUserId = _identity.userId;
+    final discoverTrips = <Trip>[];
+
+    for (final trip in state.allTrips) {
+      final isPublic = trip.visibility == Visibility.public;
+      final isActive = trip.status == TripStatus.inProgress ||
+          trip.status == TripStatus.resting ||
+          trip.status == TripStatus.paused;
+      final isPromoted = trip.isPromoted;
+
+      if (isPublic && isActive) {
+        discoverTrips.add(trip);
+        continue;
+      }
+      if (isPromoted && trip.status == TripStatus.finished) {
+        discoverTrips.add(trip);
+        continue;
+      }
+      if (isPromoted && trip.status == TripStatus.created) {
+        discoverTrips.add(trip);
+        continue;
+      }
+    }
+
+    discoverTrips.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    if (!_identity.isLoggedIn) {
+      state = state.copyWith(discoverTrips: discoverTrips, feedTrips: const []);
+      return;
+    }
+
+    final feedTrips = <Trip>[];
+    for (final trip in state.allTrips) {
+      final isActive = trip.status == TripStatus.inProgress ||
+          trip.status == TripStatus.resting ||
+          trip.status == TripStatus.paused;
+      if (!isActive) continue;
+
+      final isOwnTrip = trip.userId == currentUserId;
+      final isPublic = trip.visibility == Visibility.public;
+
+      if (!isOwnTrip) {
+        final isFriend = state.friendIds.contains(trip.userId);
+        final isFollowing = state.followingIds.contains(trip.userId);
+
+        if (isFriend || isFollowing) {
+          if (isFriend &&
+              (isPublic || trip.visibility == Visibility.protected)) {
+            feedTrips.add(trip);
+          } else if (isFollowing && !isFriend && isPublic) {
+            feedTrips.add(trip);
+          }
+        }
+      }
+    }
+
+    feedTrips.sort(_compareTripsByPriority);
+
+    state = state.copyWith(feedTrips: feedTrips, discoverTrips: discoverTrips);
+  }
+
+  int _compareTripsByPriority(Trip a, Trip b) {
+    final aIsLive =
+        a.status == TripStatus.inProgress || a.status == TripStatus.resting;
+    final bIsLive =
+        b.status == TripStatus.inProgress || b.status == TripStatus.resting;
+    if (aIsLive != bIsLive) return aIsLive ? -1 : 1;
+
+    final aIsFriend = state.friendIds.contains(a.userId);
+    final bIsFriend = state.friendIds.contains(b.userId);
+    if (aIsFriend != bIsFriend) return aIsFriend ? -1 : 1;
+
+    return b.createdAt.compareTo(a.createdAt);
+  }
+
+  void setStatusFilter(TripStatus? status) {
+    state = status == null
+        ? state.copyWith(clearStatusFilter: true)
+        : state.copyWith(statusFilter: status);
+  }
+
+  void setVisibilityFilter(Visibility? visibility) {
+    state = visibility == null
+        ? state.copyWith(clearVisibilityFilter: true)
+        : state.copyWith(visibilityFilter: visibility);
+  }
+
+  /// Reset filters when leaving the My Trips tab, matching the
+  /// pre-migration `_onTabChanged` exactly: visibility filter always
+  /// resets (it only applies to My Trips); status filter resets only if
+  /// its current value isn't valid on Feed/Discover.
+  void resetFiltersForTab(bool isMyTripsTab) {
+    if (isMyTripsTab) return;
+    var next = state.copyWith(clearVisibilityFilter: true);
+    final status = next.statusFilter;
+    if (status != null &&
+        status != TripStatus.inProgress &&
+        status != TripStatus.resting &&
+        status != TripStatus.paused) {
+      next = next.copyWith(clearStatusFilter: true);
+    }
+    state = next;
+  }
 }
 
 final homeFeedNotifierProvider =

@@ -157,4 +157,90 @@ void main() {
     verifyNever(mockRepository.loadTrips(
         page: anyNamed('page'), size: anyNamed('size')));
   });
+
+  test('setStatusFilter/setVisibilityFilter set and clear filters', () {
+    final container = buildContainer();
+    final notifier = container.read(homeFeedNotifierProvider.notifier);
+
+    notifier.setStatusFilter(TripStatus.paused);
+    expect(container.read(homeFeedNotifierProvider).statusFilter,
+        TripStatus.paused);
+
+    notifier.setStatusFilter(null);
+    expect(container.read(homeFeedNotifierProvider).statusFilter, isNull);
+
+    notifier.setVisibilityFilter(Visibility.private);
+    expect(container.read(homeFeedNotifierProvider).visibilityFilter,
+        Visibility.private);
+  });
+
+  test('resetFiltersForTab clears visibility always, status only if invalid '
+      'outside My Trips', () {
+    final container = buildContainer();
+    final notifier = container.read(homeFeedNotifierProvider.notifier);
+
+    notifier.setStatusFilter(TripStatus.inProgress);
+    notifier.setVisibilityFilter(Visibility.private);
+    notifier.resetFiltersForTab(false);
+
+    var state = container.read(homeFeedNotifierProvider);
+    expect(state.visibilityFilter, isNull);
+    expect(state.statusFilter, TripStatus.inProgress,
+        reason: 'inProgress is valid on Feed/Discover, must survive');
+
+    notifier.setStatusFilter(TripStatus.finished);
+    notifier.resetFiltersForTab(false);
+    state = container.read(homeFeedNotifierProvider);
+    expect(state.statusFilter, isNull,
+        reason: 'finished is only valid on My Trips, must clear');
+  });
+
+  test('loadTrips (logged in) categorizes into feed excluding own trips',
+      () async {
+    when(mockRepository.loadTrips(page: 0, size: 20)).thenAnswer(
+      (_) async => PageResponse(
+        content: [makeTrip('friend-trip', status: TripStatus.inProgress)],
+        first: true,
+        last: true,
+        totalElements: 1,
+        totalPages: 1,
+        number: 0,
+        size: 20,
+      ),
+    );
+    when(mockRepository.getMyTrips(page: 0, size: 20)).thenAnswer(
+      (_) async => PageResponse(
+        content: const [],
+        first: true,
+        last: true,
+        totalElements: 0,
+        totalPages: 1,
+        number: 0,
+        size: 20,
+      ),
+    );
+    when(mockRepository.getFriendsIds())
+        .thenAnswer((_) async => {'owner-friend-trip'});
+    when(mockRepository.getFollowingIds()).thenAnswer((_) async => <String>{});
+    when(mockRepository.getPublicTrips(page: 0, size: 20)).thenAnswer(
+      (_) async => PageResponse(
+        content: const [],
+        first: true,
+        last: true,
+        totalElements: 0,
+        totalPages: 1,
+        number: 0,
+        size: 20,
+      ),
+    );
+
+    final container = buildContainer();
+    container
+        .read(userChromeNotifierProvider.notifier)
+        .debugSeedForTest(isLoggedIn: true, userId: 'me');
+    await container.read(homeFeedNotifierProvider.notifier).loadTrips();
+
+    final state = container.read(homeFeedNotifierProvider);
+    expect(state.feedTrips.map((t) => t.id), contains('friend-trip'));
+  });
 }
