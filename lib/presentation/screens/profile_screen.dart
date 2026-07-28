@@ -33,22 +33,6 @@ import 'trip_detail_screen.dart';
 import 'friends_followers_screen.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
-/// Returns a localized label for a [TripStatus] using the current locale.
-String _localizedTripStatus(TripStatus status, AppLocalizations l10n) {
-  switch (status) {
-    case TripStatus.created:
-      return l10n.draft;
-    case TripStatus.inProgress:
-      return l10n.live;
-    case TripStatus.paused:
-      return l10n.paused;
-    case TripStatus.finished:
-      return l10n.completed;
-    case TripStatus.resting:
-      return l10n.resting;
-  }
-}
-
 /// Presentation for [TripSortOption] (localized labels, icons) - the enum
 /// itself lives in `profile_state.dart` alongside `ProfileState`, which owns
 /// it as business state; this screen-only extension keeps `AppLocalizations`
@@ -1707,7 +1691,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      _localizedTripStatus(status, l10n),
+                      UiHelpers.getStatusLabel(status, l10n),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -1806,7 +1790,7 @@ class _ProfileTripCardState extends State<ProfileTripCard> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        _localizedTripStatus(widget.trip.status, l10n),
+                        UiHelpers.getStatusLabel(widget.trip.status, l10n),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,
@@ -1829,15 +1813,14 @@ class _ProfileTripCardState extends State<ProfileTripCard> {
                         ),
                         const SizedBox(width: 12),
                         Icon(
-                          widget.trip.visibility.toJson() == 'PUBLIC'
-                              ? Icons.public
-                              : Icons.lock,
+                          UiHelpers.getVisibilityIcon(widget.trip.visibility),
                           size: 14,
                           color: Colors.grey[600],
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          widget.trip.visibility.toJson(),
+                          UiHelpers.getVisibilityLabel(
+                              widget.trip.visibility, l10n),
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],
