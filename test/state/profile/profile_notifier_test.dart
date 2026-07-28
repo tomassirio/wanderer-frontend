@@ -517,4 +517,21 @@ void main() {
 
     expect(container.read(userChromeNotifierProvider).avatarUrl, isNull);
   });
+
+  test(
+      'deleteAvatar restores the previous chrome avatar url when the '
+      'repository call fails', () async {
+    when(mockRepository.deleteAvatar()).thenThrow(Exception('fail'));
+    final container = buildContainer();
+    container
+        .read(userChromeNotifierProvider.notifier)
+        .updateAvatarUrl('https://example.com/original-avatar.png');
+
+    await expectLater(
+        container.read(profileNotifierProvider(null).notifier).deleteAvatar(),
+        throwsException);
+
+    expect(container.read(userChromeNotifierProvider).avatarUrl,
+        'https://example.com/original-avatar.png');
+  });
 }
