@@ -113,4 +113,31 @@ void main() {
     final state = container.read(userChromeNotifierProvider);
     expect(state.avatarUrl, 'https://example.com/new.png');
   });
+
+  test(
+      'setLoggedOut flips isLoggedIn to false but leaves other identity '
+      'fields stale (deliberately, not cleared)', () async {
+    when(mockRepository.getCurrentUsername()).thenAnswer((_) async => 'alice');
+    when(mockRepository.getCurrentUserId()).thenAnswer((_) async => 'user-1');
+    when(mockRepository.isLoggedIn()).thenAnswer((_) async => true);
+    when(mockRepository.isAdmin()).thenAnswer((_) async => false);
+    when(mockRepository.refreshUserDetails()).thenAnswer((_) async => true);
+    when(mockRepository.getCurrentDisplayName())
+        .thenAnswer((_) async => 'Alice Doe');
+    when(mockRepository.getCurrentAvatarUrl())
+        .thenAnswer((_) async => 'https://example.com/a.png');
+
+    final container = buildContainer();
+    final notifier = container.read(userChromeNotifierProvider.notifier);
+    await notifier.loadUserInfo();
+
+    notifier.setLoggedOut();
+
+    final state = container.read(userChromeNotifierProvider);
+    expect(state.isLoggedIn, isFalse);
+    expect(state.username, 'alice');
+    expect(state.userId, 'user-1');
+    expect(state.displayName, 'Alice Doe');
+    expect(state.avatarUrl, 'https://example.com/a.png');
+  });
 }
