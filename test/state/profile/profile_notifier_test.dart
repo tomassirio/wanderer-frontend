@@ -447,6 +447,26 @@ void main() {
     expect(container.read(profileNotifierProvider('other-1')).isFollowingUser, isTrue);
   });
 
+  test('updateProfile refetches and updates the profile', () async {
+    when(mockRepository.updateProfile(any)).thenAnswer((_) async => 'ok');
+    when(mockRepository.getMyProfile()).thenAnswer(
+      (_) async => UserProfile(
+        id: 'me-1', username: 'me', email: 'me@example.com',
+        displayName: 'New Name', followersCount: 0, followingCount: 0,
+        friendsCount: 0, tripsCount: 0, isFollowing: false,
+        createdAt: DateTime(2026, 1, 1),
+      ),
+    );
+    when(mockRepository.refreshUserDetails()).thenAnswer((_) async => true);
+
+    final container = buildContainer();
+    await container
+        .read(profileNotifierProvider(null).notifier)
+        .updateProfile('New Name', 'New bio');
+
+    expect(container.read(profileNotifierProvider(null)).profile?.displayName, 'New Name');
+  });
+
   test('toggleFriendRequest sends a new request when not yet friends/pending',
       () async {
     when(mockUserService.sendFriendRequest('other-1')).thenAnswer((_) async => 'req-1');

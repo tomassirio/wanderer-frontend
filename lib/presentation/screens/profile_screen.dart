@@ -587,54 +587,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     String bio,
   ) async {
     try {
-      final request = UpdateProfileRequest(
-        displayName: displayName.isEmpty ? null : displayName,
-        bio: bio.isEmpty ? null : bio,
-      );
-
-      // PATCH returns 202 Accepted with just a UUID
-      await _repository.updateProfile(request);
-
-      // Re-fetch profile to get the updated data
-      try {
-        final refreshedProfile = await _repository.getMyProfile();
-        // Save updated details to local storage for sidebar/appbar
-        await _repository.refreshUserDetails();
-        ref
-            .read(userChromeNotifierProvider.notifier)
-            .updateDisplayName(refreshedProfile.displayName);
-        ref
-            .read(userChromeNotifierProvider.notifier)
-            .updateAvatarUrl(refreshedProfile.avatarUrl);
-        ref
-            .read(profileNotifierProvider(widget.userId).notifier)
-            .setProfile(refreshedProfile);
-      } catch (_) {
-        // If re-fetch fails, optimistically update local state
-        // with the values the user just submitted
-        final currentProfile = _profile;
-        if (currentProfile != null) {
-          ref
-              .read(userChromeNotifierProvider.notifier)
-              .updateDisplayName(displayName.isEmpty ? null : displayName);
-          ref
-              .read(profileNotifierProvider(widget.userId).notifier)
-              .setProfile(UserProfile(
-                id: currentProfile.id,
-                username: currentProfile.username,
-                email: currentProfile.email,
-                displayName: displayName.isEmpty ? null : displayName,
-                bio: bio.isEmpty ? null : bio,
-                followersCount: currentProfile.followersCount,
-                followingCount: currentProfile.followingCount,
-                friendsCount: currentProfile.friendsCount,
-                tripsCount: currentProfile.tripsCount,
-                isFollowing: currentProfile.isFollowing,
-                createdAt: currentProfile.createdAt,
-              ));
-        }
-      }
-
+      await ref
+          .read(profileNotifierProvider(widget.userId).notifier)
+          .updateProfile(displayName, bio);
       if (mounted) {
         UiHelpers.showSuccessMessage(
             context, context.l10n.profileUpdatedSuccessfully);

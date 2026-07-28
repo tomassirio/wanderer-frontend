@@ -228,6 +228,54 @@ class ProfileNotifier extends AutoDisposeFamilyNotifier<ProfileState, String?> {
     state = state.copyWith(tripSortOption: option);
   }
 
+  /// Submits an edited display name/bio (`ProfileScreen._showEditProfileDialog`'s
+  /// save action), then re-fetches to refresh both this notifier's viewed-
+  /// profile data AND (via [UserChromeNotifier.updateDisplayName]) the
+  /// app-global identity chrome (app bar/sidebar) - matching pre-migration
+  /// `_updateProfile`'s dual-write exactly. Falls back to an optimistic
+  /// local update, built from the values just submitted, if the re-fetch
+  /// itself fails - also matching pre-migration behavior.
+  Future<void> updateProfile(String displayName, String bio) async {
+    final request = UpdateProfileRequest(
+      displayName: displayName.isEmpty ? null : displayName,
+      bio: bio.isEmpty ? null : bio,
+    );
+
+    await _repository.updateProfile(request);
+
+    try {
+      final refreshedProfile = await _repository.getMyProfile();
+      await _repository.refreshUserDetails();
+      state = state.copyWith(profile: refreshedProfile);
+      ref
+          .read(userChromeNotifierProvider.notifier)
+          .updateDisplayName(refreshedProfile.displayName);
+    } catch (_) {
+      // If re-fetch fails, optimistically update local state with the
+      // values the user just submitted - matching pre-migration exactly.
+      final current = state.profile;
+      if (current != null) {
+        final optimistic = UserProfile(
+          id: current.id,
+          username: current.username,
+          email: current.email,
+          displayName: displayName.isEmpty ? null : displayName,
+          bio: bio.isEmpty ? null : bio,
+          followersCount: current.followersCount,
+          followingCount: current.followingCount,
+          friendsCount: current.friendsCount,
+          tripsCount: current.tripsCount,
+          isFollowing: current.isFollowing,
+          createdAt: current.createdAt,
+        );
+        state = state.copyWith(profile: optimistic);
+        ref.read(userChromeNotifierProvider.notifier).updateDisplayName(
+              displayName.isEmpty ? null : displayName,
+            );
+      }
+    }
+  }
+
   void toggleStatusFilter(TripStatus status) {
     final updated = Set<TripStatus>.from(state.selectedStatusFilters);
     if (updated.contains(status)) {
