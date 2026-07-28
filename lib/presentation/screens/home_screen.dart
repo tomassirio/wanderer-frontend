@@ -9,7 +9,6 @@ import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
-import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/tutorial_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
@@ -40,7 +39,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with SingleTickerProviderStateMixin, RouteAware {
-  late final HomeRepository _repository;
   late final TripService _tripService;
   final PushNotificationManager _pushNotificationManager =
       PushNotificationManager();
@@ -86,7 +84,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   void initState() {
     super.initState();
-    _repository = ref.read(homeRepositoryProvider);
     _tripService = ref.read(tripServiceProvider);
 
     _tabController = TabController(length: 3, vsync: this);
@@ -238,7 +235,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final confirm = await DialogHelper.showLogoutConfirmation(context);
 
     if (confirm) {
-      await _repository.logout();
+      await ref.read(userChromeNotifierProvider.notifier).logout();
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           PageTransitions.fade(const HomeScreen()),
