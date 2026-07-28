@@ -9,8 +9,6 @@ import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
-import 'package:wanderer_frontend/data/client/api_client.dart';
-import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
@@ -21,6 +19,7 @@ import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
+import 'package:wanderer_frontend/presentation/state/home_feed/home_feed_notifier.dart';
 import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_notifier.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
@@ -56,19 +55,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   late TabController _tabController;
 
-  List<Trip> _allTrips = [];
-  List<Trip> _myTrips = [];
   List<Trip> _feedTrips = [];
   List<Trip> _discoverTrips = [];
-  Set<String> _friendIds = {};
-  Set<String> _followingIds = {};
 
-  bool _isLoading = false;
-  bool _isLoadingMoreTrips = false;
-  bool _hasMoreTrips = false;
-  int _currentTripsPage = 0;
-  static const int _tripsPageSize = 20;
-  String? _error;
   final int _selectedSidebarIndex = 0;
 
   String? get _username => ref.watch(userChromeNotifierProvider).username;
@@ -77,6 +66,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   String? get _avatarUrl => ref.watch(userChromeNotifierProvider).avatarUrl;
   bool get _isLoggedIn => ref.watch(userChromeNotifierProvider).isLoggedIn;
   bool get _isAdmin => ref.watch(userChromeNotifierProvider).isAdmin;
+
+  List<Trip> get _allTrips => ref.watch(homeFeedNotifierProvider).allTrips;
+  List<Trip> get _myTrips => ref.watch(homeFeedNotifierProvider).myTrips;
+  Set<String> get _friendIds => ref.watch(homeFeedNotifierProvider).friendIds;
+  Set<String> get _followingIds =>
+      ref.watch(homeFeedNotifierProvider).followingIds;
+  bool get _isLoading => ref.watch(homeFeedNotifierProvider).isLoading;
+  bool get _isLoadingMoreTrips =>
+      ref.watch(homeFeedNotifierProvider).isLoadingMoreTrips;
+  bool get _hasMoreTrips => ref.watch(homeFeedNotifierProvider).hasMoreTrips;
+  String? get _error => ref.watch(homeFeedNotifierProvider).error;
 
   // Filter states
   TripStatus? _statusFilter;
@@ -408,104 +408,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Future<void> _loadTrips() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-      _currentTripsPage = 0;
-    });
+    await ref.read(homeFeedNotifierProvider.notifier).loadTrips();
 
-    try {
-      if (_isLoggedIn) {
-        // Load user-specific data AND public trips so the Discover tab
-        // includes all public trips, not just those from the user's network.
-        final results = await Future.wait([
-          _repository.loadTrips(
-              page: 0,
-              size: _tripsPageSize), // Available trips (relationship-based)
-          _repository.getMyTrips(
-              page: 0, size: _tripsPageSize), // User's own trips
-          _repository.getFriendsIds(),
-          _repository.getFollowingIds(),
-          _repository.getPublicTrips(
-              page: 0, size: _tripsPageSize), // All public trips for Discover
-        ]);
-
-        final availablePage = results[0] as PageResponse<Trip>;
-        final myTripsPage = results[1] as PageResponse<Trip>;
-        final publicPage = results[4] as PageResponse<Trip>;
-
-        // Merge available trips with public trips (deduplicate by ID).
-        // Available trips take priority since they may contain richer data
-        // (e.g. protected trips from friends).
-        final merged = <String, Trip>{};
-        for (final t in availablePage.content) {
-          merged[t.id] = t;
-        }
-        for (final t in publicPage.content) {
-          merged.putIfAbsent(t.id, () => t);
-        }
-
-        setState(() {
-          _allTrips = merged.values.toList();
-          _hasMoreTrips = !availablePage.last || !publicPage.last;
-          _myTrips = myTripsPage.content;
-          _friendIds = results[2] as Set<String>;
-          _followingIds = results[3] as Set<String>;
-          _categorizeTrips();
-          _isLoading = false;
-        });
-      } else {
-        // Not logged in, only show public trips
-        final tripsPage =
-            await _repository.getPublicTrips(page: 0, size: _tripsPageSize);
-        final trips = tripsPage.content;
-
-        // Merge with previously known active trips that the backend may not
-        // return (e.g. RESTING trips are active but the /trips/public endpoint
-        // might exclude them).  We keep any trip from the old list whose
-        // status is still "active" (in_progress, resting, paused) and public,
-        // as long as it is not already present in the fresh response.
-        final freshIds = trips.map((t) => t.id).toSet();
-        final preservedTrips = _allTrips.where((t) {
-          if (freshIds.contains(t.id)) return false;
-          final isActive = t.status == TripStatus.inProgress ||
-              t.status == TripStatus.resting ||
-              t.status == TripStatus.paused;
-          final isPublic = t.visibility == Visibility.public;
-          return isActive && isPublic;
-        }).toList();
-
-        setState(() {
-          _allTrips = [...trips, ...preservedTrips];
-          _hasMoreTrips = !tripsPage.last;
-          _myTrips = [];
-          _friendIds = {};
-          _followingIds = {};
-          _categorizeTrips();
-          _isLoading = false;
-        });
-      }
-
-      // Subscribe to WebSocket updates
+    if (mounted) {
+      // _categorizeTrips() (Task 3's scope) still populates the widget-local
+      // _feedTrips/_discoverTrips fields imperatively - it isn't reactive to
+      // ref.watch, so it must still be re-run (via setState) whenever the
+      // notifier's trip data settles, exactly as the pre-migration code did
+      // inline inside its own setState blocks.
+      setState(_categorizeTrips);
       _webSocketService.unsubscribeFromAllTrips();
       _webSocketService.subscribeToTrips(_allTrips.map((t) => t.id).toList());
-    } on AuthenticationRedirectException {
-      // Token expired or user not authenticated - treat as guest.
-      // Note: only isLoggedIn flips here (via setLoggedOut()) - the other
-      // identity fields (username/userId/displayName/avatarUrl) are left
-      // stale, matching this pre-existing behavior.
-      if (mounted) {
-        ref.read(userChromeNotifierProvider.notifier).setLoggedOut();
-        setState(() {
-          _isLoading = false;
-        });
-        _loadTrips(); // Reload as guest
-      }
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
     }
 
     // Trigger after loading settles (not from _loadUserInfo) so the coach
@@ -517,64 +430,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Future<void> _loadMoreTrips() async {
-    if (_isLoadingMoreTrips || !_hasMoreTrips) return;
-
-    setState(() => _isLoadingMoreTrips = true);
-
+    final beforeIds = _allTrips.map((t) => t.id).toSet();
     try {
-      final nextPage = _currentTripsPage + 1;
-
-      if (_isLoggedIn) {
-        // Fetch both available and public trips to keep Discover populated
-        final results = await Future.wait([
-          _repository.loadTrips(page: nextPage, size: _tripsPageSize),
-          _repository.getPublicTrips(page: nextPage, size: _tripsPageSize),
-        ]);
-
-        final availablePage = results[0];
-        final publicPage = results[1];
-
-        // Merge new pages (deduplicate against existing + each other)
-        final existingIds = _allTrips.map((t) => t.id).toSet();
-        final newTrips = <String, Trip>{};
-        for (final t in availablePage.content) {
-          if (!existingIds.contains(t.id)) newTrips[t.id] = t;
-        }
-        for (final t in publicPage.content) {
-          if (!existingIds.contains(t.id)) {
-            newTrips.putIfAbsent(t.id, () => t);
-          }
-        }
-
-        setState(() {
-          _allTrips = [..._allTrips, ...newTrips.values];
-          _currentTripsPage = nextPage;
-          _hasMoreTrips = !availablePage.last || !publicPage.last;
-          _isLoadingMoreTrips = false;
-          _categorizeTrips();
-        });
-
-        _webSocketService
-            .subscribeToTrips(newTrips.values.map((t) => t.id).toList());
-      } else {
-        final tripsPage = await _repository.loadTrips(
-          page: nextPage,
-          size: _tripsPageSize,
-        );
-
-        setState(() {
-          _allTrips = [..._allTrips, ...tripsPage.content];
-          _currentTripsPage = nextPage;
-          _hasMoreTrips = !tripsPage.last;
-          _isLoadingMoreTrips = false;
-          _categorizeTrips();
-        });
-
-        _webSocketService
-            .subscribeToTrips(tripsPage.content.map((t) => t.id).toList());
+      await ref.read(homeFeedNotifierProvider.notifier).loadMoreTrips();
+      if (mounted) {
+        setState(_categorizeTrips);
       }
+      final newIds =
+          _allTrips.map((t) => t.id).where((id) => !beforeIds.contains(id));
+      _webSocketService.subscribeToTrips(newIds.toList());
     } catch (e) {
-      setState(() => _isLoadingMoreTrips = false);
       if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error loading more trips: $e');
       }
