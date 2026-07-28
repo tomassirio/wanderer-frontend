@@ -392,4 +392,72 @@ void main() {
     notifier.toggleFilterPanel();
     expect(container.read(profileNotifierProvider(null)).showFilterPanel, isFalse);
   });
+
+  test('loadFriendshipStatus populates all 4 social fields from SocialGraphActions',
+      () async {
+    when(mockUserService.getFollowing(page: 0, size: 100)).thenAnswer(
+      (_) async => PageResponse(
+        content: [
+          UserFollow(
+            id: 'follow-1',
+            followerId: 'me-1',
+            followedId: 'other-1',
+            createdAt: DateTime(2026, 1, 1),
+          ),
+        ],
+        totalElements: 1,
+        totalPages: 1,
+        number: 0,
+        size: 100,
+        last: true,
+        first: true,
+      ),
+    );
+    when(mockUserService.getFriends(page: 0, size: 100)).thenAnswer(
+      (_) async => PageResponse(
+        content: [],
+        totalElements: 0,
+        totalPages: 0,
+        number: 0,
+        size: 100,
+        last: true,
+        first: true,
+      ),
+    );
+    when(mockUserService.getSentFriendRequests()).thenAnswer((_) async => []);
+
+    final container = buildContainer();
+    await container
+        .read(profileNotifierProvider('other-1').notifier)
+        .loadFriendshipStatus();
+
+    final state = container.read(profileNotifierProvider('other-1'));
+    expect(state.isFollowingUser, isTrue);
+    expect(state.isAlreadyFriends, isFalse);
+  });
+
+  test('toggleFollow flips isFollowingUser', () async {
+    when(mockUserService.followUser('other-1')).thenAnswer((_) async => 'ok');
+
+    final container = buildContainer();
+    await container
+        .read(profileNotifierProvider('other-1').notifier)
+        .toggleFollow();
+
+    expect(container.read(profileNotifierProvider('other-1')).isFollowingUser, isTrue);
+  });
+
+  test('toggleFriendRequest sends a new request when not yet friends/pending',
+      () async {
+    when(mockUserService.sendFriendRequest('other-1')).thenAnswer((_) async => 'req-1');
+
+    final container = buildContainer();
+    await container
+        .read(profileNotifierProvider('other-1').notifier)
+        .toggleFriendRequest();
+
+    final state = container.read(profileNotifierProvider('other-1'));
+    expect(state.hasSentFriendRequest, isTrue);
+    expect(state.sentFriendRequestId, 'req-1');
+  });
 }

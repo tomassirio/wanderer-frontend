@@ -6,6 +6,7 @@ import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/repositories/profile_repository.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/presentation/state/profile/profile_state.dart';
+import 'package:wanderer_frontend/presentation/state/social/social_graph_actions.dart';
 import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_notifier.dart';
 
 /// Owns [ProfileState] for one viewed profile (family-keyed by the viewed
@@ -22,11 +23,13 @@ import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_not
 class ProfileNotifier extends AutoDisposeFamilyNotifier<ProfileState, String?> {
   late ProfileRepository _repository;
   late UserService _userService;
+  late SocialGraphActions _socialGraphActions;
 
   @override
   ProfileState build(String? arg) {
     _repository = ref.watch(profileRepositoryProvider);
     _userService = ref.watch(userServiceProvider);
+    _socialGraphActions = SocialGraphActions(_userService);
     return ProfileState(targetUserId: arg);
   }
 
@@ -164,6 +167,61 @@ class ProfileNotifier extends AutoDisposeFamilyNotifier<ProfileState, String?> {
       state = state.copyWith(isLoadingTrips: false);
       rethrow;
     }
+  }
+
+  /// Loads the viewer's follow/friend relationship with the profile's
+  /// target user, via the shared [SocialGraphActions] (also used by
+  /// `TripDetailNotifier`, relative to a trip's owner instead). No-op when
+  /// [ProfileState.targetUserId] is `null` (own profile) - callers only
+  /// invoke this when viewing someone else's profile, matching the
+  /// pre-migration `_loadFriendshipStatus`'s single call site.
+  Future<void> loadFriendshipStatus() async {
+    if (state.targetUserId == null) return;
+    try {
+      final status = await _socialGraphActions.loadStatus(state.targetUserId!);
+      state = state.copyWith(
+        isFollowingUser: status.isFollowing,
+        isAlreadyFriends: status.isAlreadyFriends,
+        hasSentFriendRequest: status.hasSentFriendRequest,
+        sentFriendRequestId: status.sentFriendRequestId,
+      );
+    } catch (e) {
+      // Silently fail - social features are optional, matching pre-migration.
+    }
+  }
+
+  /// Follows/unfollows the profile's target user. Deliberately has NO
+  /// internal try/catch, matching `TripDetailNotifier.followTripOwner`'s
+  /// confirmed convention - `ProfileScreen._handleFollowUser` keeps its own
+  /// try/catch + success/error toast messaging.
+  Future<void> toggleFollow() async {
+    if (state.targetUserId == null) return;
+    final nowFollowing = await _socialGraphActions.toggleFollow(
+      state.targetUserId!,
+      currentlyFollowing: state.isFollowingUser,
+    );
+    state = state.copyWith(isFollowingUser: nowFollowing);
+  }
+
+  /// Sends/cancels a friend request to, or unfriends, the profile's target
+  /// user. Deliberately has NO internal try/catch, matching
+  /// `TripDetailNotifier.sendFriendRequestToTripOwner`'s confirmed
+  /// convention - `ProfileScreen._handleSendFriendRequest` keeps its own
+  /// try/catch + success/error toast messaging.
+  Future<void> toggleFriendRequest() async {
+    if (state.targetUserId == null) return;
+    final result = await _socialGraphActions.toggleFriendRequest(
+      state.targetUserId!,
+      isAlreadyFriends: state.isAlreadyFriends,
+      hasSentFriendRequest: state.hasSentFriendRequest,
+      sentFriendRequestId: state.sentFriendRequestId,
+    );
+    state = state.copyWith(
+      isAlreadyFriends: result.isAlreadyFriends,
+      hasSentFriendRequest: result.hasSentFriendRequest,
+      sentFriendRequestId: result.sentFriendRequestId,
+      clearSentFriendRequestId: result.sentFriendRequestId == null,
+    );
   }
 
   void setSortOption(TripSortOption option) {

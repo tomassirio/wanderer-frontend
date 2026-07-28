@@ -34,6 +34,10 @@ class ProfileState {
   final TripSortOption tripSortOption;
   final Set<TripStatus> selectedStatusFilters;
   final bool showFilterPanel;
+  final bool isFollowingUser;
+  final bool isAlreadyFriends;
+  final bool hasSentFriendRequest;
+  final String? sentFriendRequestId;
 
   const ProfileState({
     this.targetUserId,
@@ -48,6 +52,10 @@ class ProfileState {
     this.tripSortOption = TripSortOption.statusPriority,
     this.selectedStatusFilters = const {},
     this.showFilterPanel = false,
+    this.isFollowingUser = false,
+    this.isAlreadyFriends = false,
+    this.hasSentFriendRequest = false,
+    this.sentFriendRequestId,
   });
 
   ProfileState copyWith({
@@ -64,6 +72,11 @@ class ProfileState {
     TripSortOption? tripSortOption,
     Set<TripStatus>? selectedStatusFilters,
     bool? showFilterPanel,
+    bool? isFollowingUser,
+    bool? isAlreadyFriends,
+    bool? hasSentFriendRequest,
+    String? sentFriendRequestId,
+    bool clearSentFriendRequestId = false,
   }) {
     return ProfileState(
       targetUserId: targetUserId ?? this.targetUserId,
@@ -78,6 +91,12 @@ class ProfileState {
       tripSortOption: tripSortOption ?? this.tripSortOption,
       selectedStatusFilters: selectedStatusFilters ?? this.selectedStatusFilters,
       showFilterPanel: showFilterPanel ?? this.showFilterPanel,
+      isFollowingUser: isFollowingUser ?? this.isFollowingUser,
+      isAlreadyFriends: isAlreadyFriends ?? this.isAlreadyFriends,
+      hasSentFriendRequest: hasSentFriendRequest ?? this.hasSentFriendRequest,
+      sentFriendRequestId: clearSentFriendRequestId
+          ? null
+          : (sentFriendRequestId ?? this.sentFriendRequestId),
     );
   }
 

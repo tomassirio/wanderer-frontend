@@ -13,7 +13,6 @@ import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/repositories/profile_repository.dart';
-import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
@@ -122,14 +121,8 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   late final ProfileRepository _repository;
-  late final UserService _userService;
   late final WebSocketService _webSocketService;
   StreamSubscription? _userEventSubscription;
-  bool _hasSentFriendRequest =
-      false; // Track if friend request was sent locally
-  bool _isAlreadyFriends = false; // Track if already friends with user
-  bool _isFollowingUser = false; // Track if following this user
-  String? _sentFriendRequestId; // Store the request ID for cancellation
   Uint8List?
       _optimisticAvatarBytes; // Optimistic avatar while backend processes
   final int _selectedSidebarIndex = 4; // Profile is index 4
@@ -156,6 +149,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Set<TripStatus> get _selectedStatusFilters => _profileState.selectedStatusFilters;
   bool get _showFilterPanel => _profileState.showFilterPanel;
   List<Trip> get _filteredAndSortedTrips => _profileState.filteredAndSortedTrips;
+  bool get _hasSentFriendRequest => _profileState.hasSentFriendRequest;
+  bool get _isAlreadyFriends => _profileState.isAlreadyFriends;
+  bool get _isFollowingUser => _profileState.isFollowingUser;
+  String? get _sentFriendRequestId => _profileState.sentFriendRequestId;
 
   @override
   void initState() {
@@ -164,7 +161,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         .read(profileNotifierProvider(widget.userId).notifier)
         .seedTargetUserId(widget.userId);
     _repository = ref.read(profileRepositoryProvider);
-    _userService = ref.read(userServiceProvider);
     _webSocketService = ref.read(websocketServiceProvider);
     _loadProfile();
     _setupUserWebSocket();
@@ -348,7 +344,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
         // Only load friendship status if viewing someone else's profile
         if (isLoggedIn && widget.userId != _currentUserId) {
-          await _loadFriendshipStatus(profile.id);
+          await ref
+              .read(profileNotifierProvider(widget.userId).notifier)
+              .loadFriendshipStatus();
         }
         return;
       }
@@ -396,44 +394,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         UiHelpers.showErrorMessage(context, 'Failed to load trips: $e');
       }
     });
-  }
-
-  /// Load friendship and follow status when viewing another user's profile
-  Future<void> _loadFriendshipStatus(String userId) async {
-    try {
-      // Check if already following this user
-      final followingPage = await _userService.getFollowing(page: 0, size: 100);
-      final isFollowing =
-          followingPage.content.any((f) => f.followedId == userId);
-
-      // Check if already friends
-      final friendsPage = await _userService.getFriends(page: 0, size: 100);
-      final isAlreadyFriends =
-          friendsPage.content.any((f) => f.friendId == userId);
-
-      // Check if already sent a friend request
-      final sentRequests = await _userService.getSentFriendRequests();
-      final pendingRequest = sentRequests.cast<FriendRequest?>().firstWhere(
-            (r) =>
-                r!.receiverId == userId &&
-                r.status == FriendRequestStatus.pending,
-            orElse: () => null,
-          );
-      final hasSentRequest = pendingRequest != null;
-      final requestId = pendingRequest?.id;
-
-      if (mounted) {
-        setState(() {
-          _isFollowingUser = isFollowing;
-          _isAlreadyFriends = isAlreadyFriends;
-          _hasSentFriendRequest = hasSentRequest;
-          _sentFriendRequestId = requestId;
-        });
-      }
-    } catch (e) {
-      // Silently fail - social features are optional
-      debugPrint('Failed to load friendship status: $e');
-    }
   }
 
   Future<void> _logout() async {
@@ -563,37 +523,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _handleFollowUser() async {
     if (_profile == null) return;
     final l10n = context.l10n;
+    final wasFollowing = _isFollowingUser;
 
-    // Toggle between follow and unfollow
-    if (_isFollowingUser) {
-      try {
-        await _userService.unfollowUser(_profile!.id);
-        setState(() {
-          _isFollowingUser = false;
-        });
-        if (mounted) {
-          UiHelpers.showSuccessMessage(
-              context, l10n.unfollowedUser(_profile!.username));
-        }
-      } catch (e) {
-        if (mounted) {
-          UiHelpers.showErrorMessage(context, 'Failed to unfollow user: $e');
-        }
+    try {
+      await ref.read(profileNotifierProvider(widget.userId).notifier).toggleFollow();
+      if (mounted) {
+        UiHelpers.showSuccessMessage(
+          context,
+          wasFollowing
+              ? l10n.unfollowedUser(_profile!.username)
+              : l10n.nowFollowingUser(_profile!.username),
+        );
       }
-    } else {
-      try {
-        await _userService.followUser(_profile!.id);
-        setState(() {
-          _isFollowingUser = true;
-        });
-        if (mounted) {
-          UiHelpers.showSuccessMessage(
-              context, l10n.nowFollowingUser(_profile!.username));
-        }
-      } catch (e) {
-        if (mounted) {
-          UiHelpers.showErrorMessage(context, 'Failed to follow user: $e');
-        }
+    } catch (e) {
+      if (mounted) {
+        UiHelpers.showErrorMessage(
+          context,
+          wasFollowing
+              ? 'Failed to unfollow user: $e'
+              : 'Failed to follow user: $e',
+        );
       }
     }
   }
@@ -602,58 +551,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (_profile == null) return;
     final l10n = context.l10n;
 
-    // If already friends, allow unfriending
-    if (_isAlreadyFriends) {
-      try {
-        await _userService.removeFriend(_profile!.id);
-        setState(() {
-          _isAlreadyFriends = false;
-        });
-        if (mounted) {
-          UiHelpers.showSuccessMessage(
-              context, l10n.noLongerFriendsWith(_profile!.username));
-        }
-      } catch (e) {
-        if (mounted) {
-          UiHelpers.showErrorMessage(context, 'Failed to remove friend: $e');
-        }
-      }
-      return;
-    }
+    final wasAlreadyFriends = _isAlreadyFriends;
+    final wasCancelling = _hasSentFriendRequest && _sentFriendRequestId != null;
 
-    // Cancel existing friend request
-    if (_hasSentFriendRequest && _sentFriendRequestId != null) {
-      try {
-        await _userService.deleteFriendRequest(_sentFriendRequestId!);
-        setState(() {
-          _hasSentFriendRequest = false;
-          _sentFriendRequestId = null;
-        });
-        if (mounted) {
-          UiHelpers.showSuccessMessage(context, l10n.friendRequestCancelled);
-        }
-      } catch (e) {
-        if (mounted) {
-          UiHelpers.showErrorMessage(
-              context, 'Failed to cancel friend request: $e');
-        }
-      }
-      return;
-    }
-
-    // Send new friend request
     try {
-      final requestId = await _userService.sendFriendRequest(_profile!.id);
-      setState(() {
-        _hasSentFriendRequest = true;
-        _sentFriendRequestId = requestId;
-      });
-      if (mounted) {
+      await ref
+          .read(profileNotifierProvider(widget.userId).notifier)
+          .toggleFriendRequest();
+      if (!mounted) return;
+      if (wasAlreadyFriends) {
+        UiHelpers.showSuccessMessage(
+            context, l10n.noLongerFriendsWith(_profile!.username));
+      } else if (wasCancelling) {
+        UiHelpers.showSuccessMessage(context, l10n.friendRequestCancelled);
+      } else {
         UiHelpers.showSuccessMessage(
             context, l10n.friendRequestSentTo(_profile!.username));
       }
     } catch (e) {
-      if (mounted) {
+      if (!mounted) return;
+      if (wasAlreadyFriends) {
+        UiHelpers.showErrorMessage(context, 'Failed to remove friend: $e');
+      } else if (wasCancelling) {
+        UiHelpers.showErrorMessage(
+            context, 'Failed to cancel friend request: $e');
+      } else {
         UiHelpers.showErrorMessage(
             context, 'Failed to send friend request: $e');
       }
