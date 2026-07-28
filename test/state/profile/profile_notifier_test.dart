@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
@@ -479,5 +481,40 @@ void main() {
     final state = container.read(profileNotifierProvider('other-1'));
     expect(state.hasSentFriendRequest, isTrue);
     expect(state.sentFriendRequestId, 'req-1');
+  });
+
+  test('uploadAvatar sets optimistic bytes then calls the repository', () async {
+    when(mockRepository.uploadAvatar(any, any)).thenAnswer((_) async => 'ok');
+    final container = buildContainer();
+    final notifier = container.read(profileNotifierProvider(null).notifier);
+
+    notifier.setOptimisticAvatarBytes(Uint8List.fromList([1, 2, 3]));
+    await notifier.uploadAvatar([1, 2, 3], 'avatar.png');
+
+    verify(mockRepository.uploadAvatar([1, 2, 3], 'avatar.png')).called(1);
+    expect(container.read(profileNotifierProvider(null)).optimisticAvatarBytes,
+        isNotNull);
+  });
+
+  test('uploadAvatar clears optimistic bytes on failure', () async {
+    when(mockRepository.uploadAvatar(any, any)).thenThrow(Exception('fail'));
+    final container = buildContainer();
+    final notifier = container.read(profileNotifierProvider(null).notifier);
+    notifier.setOptimisticAvatarBytes(Uint8List.fromList([1, 2, 3]));
+
+    await expectLater(
+        notifier.uploadAvatar([1, 2, 3], 'avatar.png'), throwsException);
+
+    expect(container.read(profileNotifierProvider(null)).optimisticAvatarBytes,
+        isNull);
+  });
+
+  test('deleteAvatar clears the chrome avatar via UserChromeNotifier', () async {
+    when(mockRepository.deleteAvatar()).thenAnswer((_) async => 'ok');
+    final container = buildContainer();
+
+    await container.read(profileNotifierProvider(null).notifier).deleteAvatar();
+
+    expect(container.read(userChromeNotifierProvider).avatarUrl, isNull);
   });
 }

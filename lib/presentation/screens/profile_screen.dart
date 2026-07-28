@@ -123,8 +123,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   late final ProfileRepository _repository;
   late final WebSocketService _webSocketService;
   StreamSubscription? _userEventSubscription;
-  Uint8List?
-      _optimisticAvatarBytes; // Optimistic avatar while backend processes
   final int _selectedSidebarIndex = 4; // Profile is index 4
 
   UserChromeState get _chrome => ref.watch(userChromeNotifierProvider);
@@ -137,6 +135,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   ProfileState get _profileState =>
       ref.watch(profileNotifierProvider(widget.userId));
+  Uint8List? get _optimisticAvatarBytes => _profileState.optimisticAvatarBytes;
   UserProfile? get _profile => _profileState.profile;
   bool get _isLoadingProfile => _profileState.isLoadingProfile;
   String? get _error => _profileState.error;
@@ -251,11 +250,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               .read(profileNotifierProvider(widget.userId).notifier)
               .setProfile(currentUser);
         }
-        setState(() {
-          if (_isViewingOwnProfile) {
-            _optimisticAvatarBytes = null;
-          }
-        });
+        if (_isViewingOwnProfile) {
+          ref
+              .read(profileNotifierProvider(widget.userId).notifier)
+              .setOptimisticAvatarBytes(null);
+        }
 
         // Force image cache eviction to show new avatar immediately
         if (currentUser.avatarUrl.isNotEmpty) {
@@ -687,9 +686,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
       // Optimistic UI update - show the image immediately
       if (mounted) {
-        setState(() {
-          _optimisticAvatarBytes = bytes;
-        });
+        ref
+            .read(profileNotifierProvider(widget.userId).notifier)
+            .setOptimisticAvatarBytes(bytes);
       }
 
       // On web, image_cropper returns a blob URL with a UUID filename
@@ -701,7 +700,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final uploadName =
           croppedName.contains('.') ? croppedName : '$croppedName$originalExt';
 
-      await _repository.uploadAvatar(bytes, uploadName);
+      await ref
+          .read(profileNotifierProvider(widget.userId).notifier)
+          .uploadAvatar(bytes, uploadName);
 
       if (mounted) {
         UiHelpers.showSuccessMessage(
@@ -710,11 +711,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         );
       }
     } catch (e) {
-      // Clear optimistic state on error
+      // ProfileNotifier.uploadAvatar already clears the optimistic bytes
+      // internally on failure - just show the error toast here.
       if (mounted) {
-        setState(() {
-          _optimisticAvatarBytes = null;
-        });
         UiHelpers.showErrorMessage(
             capturedContext, 'Failed to upload avatar: $e');
       }
@@ -748,15 +747,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (confirm != true) return;
 
     try {
-      // Optimistic UI update - clear avatar immediately
-      if (mounted) {
-        ref.read(userChromeNotifierProvider.notifier).updateAvatarUrl(null);
-        setState(() {
-          _optimisticAvatarBytes = null;
-        });
-      }
-
-      await _repository.deleteAvatar();
+      await ref
+          .read(profileNotifierProvider(widget.userId).notifier)
+          .deleteAvatar();
 
       if (mounted) {
         UiHelpers.showSuccessMessage(
@@ -765,11 +758,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         );
       }
     } catch (e) {
-      // Restore avatar on error
       if (mounted) {
-        ref
-            .read(userChromeNotifierProvider.notifier)
-            .updateAvatarUrl(_profile?.avatarUrl);
         UiHelpers.showErrorMessage(context, 'Failed to delete avatar: $e');
       }
     }

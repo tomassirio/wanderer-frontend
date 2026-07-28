@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
@@ -292,6 +294,58 @@ class ProfileNotifier extends AutoDisposeFamilyNotifier<ProfileState, String?> {
 
   void toggleFilterPanel() {
     state = state.copyWith(showFilterPanel: !state.showFilterPanel);
+  }
+
+  /// Sets (or clears, when `null`) the optimistic avatar preview shown while
+  /// an upload/delete is in flight and the backend hasn't caught up yet -
+  /// matches `ProfileScreen`'s pre-migration `_optimisticAvatarBytes` field
+  /// exactly, just moved into state.
+  void setOptimisticAvatarBytes(Uint8List? bytes) {
+    state = state.copyWith(
+      optimisticAvatarBytes: bytes,
+      clearOptimisticAvatarBytes: bytes == null,
+    );
+  }
+
+  /// Uploads a new avatar (`ProfileScreen._handleAvatarUpload`'s save
+  /// action). The optimistic preview is set by the caller via
+  /// [setOptimisticAvatarBytes] before this is called (so the image appears
+  /// immediately, before the network call even starts) - this method's own
+  /// job is just the repository call, clearing the optimistic bytes again
+  /// if it fails so the UI doesn't keep showing a preview for an upload that
+  /// never happened.
+  Future<void> uploadAvatar(List<int> bytes, String filename) async {
+    try {
+      await _repository.uploadAvatar(bytes, filename);
+    } catch (e) {
+      setOptimisticAvatarBytes(null);
+      rethrow;
+    }
+  }
+
+  /// Deletes the current user's avatar (`ProfileScreen._handleAvatarDelete`'s
+  /// confirmed action), optimistically clearing both the local avatar
+  /// preview and the app-global identity chrome
+  /// ([UserChromeNotifier.updateAvatarUrl]) before the network call, and
+  /// restoring the chrome's own pre-clear avatar URL if the call fails.
+  /// Deliberately captures [previousAvatarUrl] from `UserChromeNotifier`'s
+  /// OWN state (not [ProfileState.profile]'s always-non-empty computed
+  /// `avatarUrl` getter) - restoring from the latter would incorrectly
+  /// re-show a non-empty value even when the chrome's real avatar URL had
+  /// been null/absent.
+  Future<void> deleteAvatar() async {
+    final previousAvatarUrl = ref.read(userChromeNotifierProvider).avatarUrl;
+    setOptimisticAvatarBytes(null);
+    ref.read(userChromeNotifierProvider.notifier).updateAvatarUrl(null);
+
+    try {
+      await _repository.deleteAvatar();
+    } catch (e) {
+      ref
+          .read(userChromeNotifierProvider.notifier)
+          .updateAvatarUrl(previousAvatarUrl);
+      rethrow;
+    }
   }
 }
 

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/data/models/domain/trip.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
@@ -38,6 +40,7 @@ class ProfileState {
   final bool isAlreadyFriends;
   final bool hasSentFriendRequest;
   final String? sentFriendRequestId;
+  final Uint8List? optimisticAvatarBytes;
 
   const ProfileState({
     this.targetUserId,
@@ -56,6 +59,7 @@ class ProfileState {
     this.isAlreadyFriends = false,
     this.hasSentFriendRequest = false,
     this.sentFriendRequestId,
+    this.optimisticAvatarBytes,
   });
 
   ProfileState copyWith({
@@ -77,6 +81,8 @@ class ProfileState {
     bool? hasSentFriendRequest,
     String? sentFriendRequestId,
     bool clearSentFriendRequestId = false,
+    Uint8List? optimisticAvatarBytes,
+    bool clearOptimisticAvatarBytes = false,
   }) {
     return ProfileState(
       targetUserId: targetUserId ?? this.targetUserId,
@@ -97,6 +103,9 @@ class ProfileState {
       sentFriendRequestId: clearSentFriendRequestId
           ? null
           : (sentFriendRequestId ?? this.sentFriendRequestId),
+      optimisticAvatarBytes: clearOptimisticAvatarBytes
+          ? null
+          : (optimisticAvatarBytes ?? this.optimisticAvatarBytes),
     );
   }
 
