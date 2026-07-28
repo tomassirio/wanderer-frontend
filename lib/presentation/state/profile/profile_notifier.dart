@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/repositories/profile_repository.dart';
+import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/presentation/state/profile/profile_state.dart';
 
 /// Owns [ProfileState] for one viewed profile (family-keyed by the viewed
@@ -18,10 +20,12 @@ import 'package:wanderer_frontend/presentation/state/profile/profile_state.dart'
 /// `TripPlanDetailNotifier`.
 class ProfileNotifier extends AutoDisposeFamilyNotifier<ProfileState, String?> {
   late ProfileRepository _repository;
+  late UserService _userService;
 
   @override
   ProfileState build(String? arg) {
     _repository = ref.watch(profileRepositoryProvider);
+    _userService = ref.watch(userServiceProvider);
     return ProfileState(targetUserId: arg);
   }
 
@@ -62,6 +66,86 @@ class ProfileNotifier extends AutoDisposeFamilyNotifier<ProfileState, String?> {
   /// happens here.
   void setProfile(UserProfile profile) {
     state = state.copyWith(profile: profile);
+  }
+
+  /// Loads follower/following/friends counts, split by own-vs-viewed-profile
+  /// target (mirrored via [ProfileState.targetUserId]) rather than two
+  /// near-duplicate methods as in the pre-migration `_loadSocialCounts`/
+  /// `_loadUserSocialCounts`.
+  Future<void> loadSocialCounts() async {
+    try {
+      final results = state.targetUserId != null
+          ? await Future.wait([
+              _userService.getUserFollowers(state.targetUserId!, page: 0, size: 1),
+              _userService.getUserFollowing(state.targetUserId!, page: 0, size: 1),
+              _userService.getUserFriends(state.targetUserId!, page: 0, size: 1),
+            ])
+          : await Future.wait([
+              _userService.getFollowers(page: 0, size: 1),
+              _userService.getFollowing(page: 0, size: 1),
+              _userService.getFriends(page: 0, size: 1),
+            ]);
+
+      state = state.copyWith(
+        followersCount: results[0].totalElements,
+        followingCount: results[1].totalElements,
+        friendsCount: results[2].totalElements,
+      );
+    } catch (e) {
+      // Silently fail - use profile counts as fallback, matching the
+      // pre-migration behavior exactly for both the own-profile and
+      // viewed-profile branches (previously two near-identical methods).
+    }
+  }
+
+  /// Loads the trip list for the profile's target user (or the caller's own
+  /// trips, when [ProfileState.targetUserId] is `null`).
+  ///
+  /// Deliberately does NOT eagerly sort the fetched trips: the pre-migration
+  /// `_loadUserTrips` did, using a comparator verbatim-identical to
+  /// `_filteredAndSortedTrips`'s, but [ProfileState.filteredAndSortedTrips]
+  /// always re-sorts on every read regardless of the underlying list's
+  /// order, and nothing else reads [ProfileState.userTrips] in an
+  /// order-sensitive way. So the eager sort was dead work with no
+  /// observable effect - dropped here rather than ported, leaving exactly
+  /// one comparator/call site instead of two.
+  Future<void> loadUserTrips() async {
+    state = state.copyWith(isLoadingTrips: true);
+
+    try {
+      final tripsPage = state.targetUserId != null
+          ? await _repository.getUserTrips(state.targetUserId!, page: 0, size: 100)
+          : await _repository.getMyTrips(page: 0, size: 100);
+
+      state = state.copyWith(userTrips: tripsPage.content, isLoadingTrips: false);
+    } on AuthenticationRedirectException {
+      state = state.copyWith(isLoadingTrips: false);
+    } catch (e) {
+      state = state.copyWith(isLoadingTrips: false);
+      rethrow;
+    }
+  }
+
+  void setSortOption(TripSortOption option) {
+    state = state.copyWith(tripSortOption: option);
+  }
+
+  void toggleStatusFilter(TripStatus status) {
+    final updated = Set<TripStatus>.from(state.selectedStatusFilters);
+    if (updated.contains(status)) {
+      updated.remove(status);
+    } else {
+      updated.add(status);
+    }
+    state = state.copyWith(selectedStatusFilters: updated);
+  }
+
+  void clearStatusFilters() {
+    state = state.copyWith(selectedStatusFilters: {});
+  }
+
+  void toggleFilterPanel() {
+    state = state.copyWith(showFilterPanel: !state.showFilterPanel);
   }
 }
 

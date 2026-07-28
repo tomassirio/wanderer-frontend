@@ -50,14 +50,11 @@ String _localizedTripStatus(TripStatus status, AppLocalizations l10n) {
   }
 }
 
-/// Sort options for trips in the profile
-enum TripSortOption {
-  statusPriority,
-  nameAsc,
-  nameDesc,
-  newestFirst,
-  oldestFirst;
-
+/// Presentation for [TripSortOption] (localized labels, icons) - the enum
+/// itself lives in `profile_state.dart` alongside `ProfileState`, which owns
+/// it as business state; this screen-only extension keeps `AppLocalizations`
+/// and `IconData` out of the state layer.
+extension TripSortOptionUi on TripSortOption {
   String labelFor(AppLocalizations l10n) {
     switch (this) {
       case TripSortOption.statusPriority:
@@ -128,8 +125,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   late final UserService _userService;
   late final WebSocketService _webSocketService;
   StreamSubscription? _userEventSubscription;
-  List<Trip> _userTrips = [];
-  bool _isLoadingTrips = false;
   bool _hasSentFriendRequest =
       false; // Track if friend request was sent locally
   bool _isAlreadyFriends = false; // Track if already friends with user
@@ -138,16 +133,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Uint8List?
       _optimisticAvatarBytes; // Optimistic avatar while backend processes
   final int _selectedSidebarIndex = 4; // Profile is index 4
-
-  // Actual counts loaded from API (for own profile)
-  int _followersCount = 0;
-  int _followingCount = 0;
-  int _friendsCount = 0;
-
-  // Sorting and filtering
-  TripSortOption _tripSortOption = TripSortOption.statusPriority;
-  final Set<TripStatus> _selectedStatusFilters = {}; // empty = show all
-  bool _showFilterPanel = false;
 
   UserChromeState get _chrome => ref.watch(userChromeNotifierProvider);
   bool get _isLoggedIn => _chrome.isLoggedIn;
@@ -162,6 +147,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   UserProfile? get _profile => _profileState.profile;
   bool get _isLoadingProfile => _profileState.isLoadingProfile;
   String? get _error => _profileState.error;
+  List<Trip> get _userTrips => _profileState.userTrips;
+  bool get _isLoadingTrips => _profileState.isLoadingTrips;
+  int get _followersCount => _profileState.followersCount;
+  int get _followingCount => _profileState.followingCount;
+  int get _friendsCount => _profileState.friendsCount;
+  TripSortOption get _tripSortOption => _profileState.tripSortOption;
+  Set<TripStatus> get _selectedStatusFilters => _profileState.selectedStatusFilters;
+  bool get _showFilterPanel => _profileState.showFilterPanel;
+  List<Trip> get _filteredAndSortedTrips => _profileState.filteredAndSortedTrips;
 
   @override
   void initState() {
@@ -297,52 +291,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       widget.userId == null ||
       (widget.userId != null && widget.userId == _currentUserId);
 
-  /// Get the filtered and sorted list of user trips based on the current
-  /// sort option and upcoming trips filter.
-  List<Trip> get _filteredAndSortedTrips {
-    var trips = List<Trip>.from(_userTrips);
-
-    // Filter by selected statuses (empty = show all)
-    if (_selectedStatusFilters.isNotEmpty) {
-      trips = trips
-          .where((t) => _selectedStatusFilters.contains(t.status))
-          .toList();
-    }
-
-    // Sort the trips based on the selected sort option
-    switch (_tripSortOption) {
-      case TripSortOption.statusPriority:
-        trips.sort((a, b) {
-          const statusPriority = {
-            TripStatus.inProgress: 0,
-            TripStatus.paused: 1,
-            TripStatus.resting: 2,
-            TripStatus.created: 3,
-            TripStatus.finished: 4,
-          };
-          final priorityA = statusPriority[a.status] ?? 5;
-          final priorityB = statusPriority[b.status] ?? 5;
-          if (priorityA != priorityB) return priorityA.compareTo(priorityB);
-          return b.updatedAt.compareTo(a.updatedAt);
-        });
-        break;
-      case TripSortOption.nameAsc:
-        trips.sort((a, b) => a.name.compareTo(b.name));
-        break;
-      case TripSortOption.nameDesc:
-        trips.sort((a, b) => b.name.compareTo(a.name));
-        break;
-      case TripSortOption.newestFirst:
-        trips.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        break;
-      case TripSortOption.oldestFirst:
-        trips.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-        break;
-    }
-
-    return trips;
-  }
-
   Future<void> _loadProfile() async {
     final profileNotifier =
         ref.read(profileNotifierProvider(widget.userId).notifier);
@@ -382,17 +330,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         final profile = _profile;
         if (profile == null) return;
 
-        setState(() {
-          _followersCount = profile.followersCount;
-          _followingCount = profile.followingCount;
-        });
-
         // Load user's trips
-        _loadUserTrips(profile.id);
+        _loadUserTripsFireAndForget();
 
         // Load the viewed user's actual social counts
         if (isLoggedIn) {
-          await _loadUserSocialCounts(profile.id);
+          await ref
+              .read(profileNotifierProvider(widget.userId).notifier)
+              .loadSocialCounts();
         }
 
         // Only load friendship status if viewing someone else's profile
@@ -415,8 +360,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (profile == null) return;
 
       // Load user's trips and social counts
-      _loadUserTrips(profile.id);
-      await _loadSocialCounts();
+      _loadUserTripsFireAndForget();
+      await ref
+          .read(profileNotifierProvider(widget.userId).notifier)
+          .loadSocialCounts();
     } on AuthenticationRedirectException {
       // User is being redirected to login - don't show error.
     } catch (_) {
@@ -427,48 +374,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  /// Load follower, following, and friends counts from API (for own profile)
-  Future<void> _loadSocialCounts() async {
-    try {
-      final results = await Future.wait([
-        _userService.getFollowers(page: 0, size: 1),
-        _userService.getFollowing(page: 0, size: 1),
-        _userService.getFriends(page: 0, size: 1),
-      ]);
-
+  /// Fires `ProfileNotifier.loadUserTrips()` without awaiting it (matching
+  /// the pre-migration fire-and-forget `_loadUserTrips(...)` call sites),
+  /// but still catches a rejected Future so a trip-load failure surfaces as
+  /// the same error snackbar the pre-migration code showed, instead of
+  /// leaking as an unhandled async exception - see
+  /// `TripDetailNotifier`'s `sendLifecycleUpdate` fire-and-forget fix
+  /// (commit 96314e7) for why this guard matters.
+  void _loadUserTripsFireAndForget() {
+    ref
+        .read(profileNotifierProvider(widget.userId).notifier)
+        .loadUserTrips()
+        .catchError((e) {
       if (mounted) {
-        setState(() {
-          _followersCount = results[0].totalElements;
-          _followingCount = results[1].totalElements;
-          _friendsCount = results[2].totalElements;
-        });
+        UiHelpers.showErrorMessage(context, 'Failed to load trips: $e');
       }
-    } catch (e) {
-      // Silently fail - use profile counts as fallback
-      debugPrint('Failed to load social counts: $e');
-    }
-  }
-
-  /// Load follower, following, and friends counts for another user
-  Future<void> _loadUserSocialCounts(String userId) async {
-    try {
-      final results = await Future.wait([
-        _userService.getUserFollowers(userId, page: 0, size: 1),
-        _userService.getUserFollowing(userId, page: 0, size: 1),
-        _userService.getUserFriends(userId, page: 0, size: 1),
-      ]);
-
-      if (mounted) {
-        setState(() {
-          _followersCount = results[0].totalElements;
-          _followingCount = results[1].totalElements;
-          _friendsCount = results[2].totalElements;
-        });
-      }
-    } catch (e) {
-      // Silently fail - keep counts from profile response as fallback
-      debugPrint('Failed to load user social counts: $e');
-    }
+    });
   }
 
   /// Load friendship and follow status when viewing another user's profile
@@ -506,53 +427,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     } catch (e) {
       // Silently fail - social features are optional
       debugPrint('Failed to load friendship status: $e');
-    }
-  }
-
-  Future<void> _loadUserTrips(String userId) async {
-    setState(() {
-      _isLoadingTrips = true;
-    });
-
-    try {
-      final tripsPage = _isViewingOwnProfile
-          ? await _repository.getMyTrips(page: 0, size: 100)
-          : await _repository.getUserTrips(userId, page: 0, size: 100);
-
-      final trips = tripsPage.content;
-      // Sort: ongoing trips first (inProgress > paused > resting > created > finished)
-      trips.sort((a, b) {
-        const statusPriority = {
-          TripStatus.inProgress: 0,
-          TripStatus.paused: 1,
-          TripStatus.resting: 2,
-          TripStatus.created: 3,
-          TripStatus.finished: 4,
-        };
-        final priorityA = statusPriority[a.status] ?? 5;
-        final priorityB = statusPriority[b.status] ?? 5;
-        if (priorityA != priorityB) return priorityA.compareTo(priorityB);
-        // Within same status, sort by most recently updated
-        return b.updatedAt.compareTo(a.updatedAt);
-      });
-      setState(() {
-        _userTrips = trips;
-        _isLoadingTrips = false;
-      });
-    } on AuthenticationRedirectException {
-      // User is being redirected to login - don't show error
-      if (mounted) {
-        setState(() {
-          _isLoadingTrips = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _isLoadingTrips = false;
-      });
-      if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Failed to load trips: $e');
-      }
     }
   }
 
@@ -1606,8 +1480,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                   const SizedBox(height: 8),
                   TextButton(
-                    onPressed: () =>
-                        setState(() => _selectedStatusFilters.clear()),
+                    onPressed: () => ref
+                        .read(profileNotifierProvider(widget.userId).notifier)
+                        .clearStatusFilters(),
                     child: Text(l10n.clearFilters),
                   ),
                 ],
@@ -1795,7 +1670,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           color: WandererTheme.primaryOrange, size: 20)
                       : null,
                   onTap: () {
-                    setState(() => _tripSortOption = option);
+                    ref
+                        .read(profileNotifierProvider(widget.userId).notifier)
+                        .setSortOption(option);
                     Navigator.pop(context);
                   },
                   dense: true,
@@ -1818,7 +1695,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => setState(() => _showFilterPanel = !_showFilterPanel),
+        onTap: () => ref
+            .read(profileNotifierProvider(widget.userId).notifier)
+            .toggleFilterPanel(),
         borderRadius: BorderRadius.circular(10),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -1888,7 +1767,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: GestureDetector(
-              onTap: () => setState(() => _selectedStatusFilters.clear()),
+              onTap: () => ref
+                  .read(profileNotifierProvider(widget.userId).notifier)
+                  .clearStatusFilters(),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1918,15 +1799,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             final statusColor = UiHelpers.getStatusColor(status);
 
             return GestureDetector(
-              onTap: () {
-                setState(() {
-                  if (isSelected) {
-                    _selectedStatusFilters.remove(status);
-                  } else {
-                    _selectedStatusFilters.add(status);
-                  }
-                });
-              },
+              onTap: () => ref
+                  .read(profileNotifierProvider(widget.userId).notifier)
+                  .toggleStatusFilter(status),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding:
