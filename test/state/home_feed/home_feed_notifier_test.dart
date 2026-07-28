@@ -253,6 +253,69 @@ void main() {
     expect(state.feedTrips.map((t) => t.id), contains('friend-trip'));
   });
 
+  test(
+      'loadTrips resyncs WS trip subscriptions: unsubscribes all then '
+      'subscribes to the resulting allTrips ids', () async {
+    when(mockRepository.getPublicTrips(page: 0, size: 20)).thenAnswer(
+      (_) async => PageResponse(
+        content: [makeTrip('t1'), makeTrip('t2')],
+        first: true,
+        last: true,
+        totalElements: 2,
+        totalPages: 1,
+        number: 0,
+        size: 20,
+      ),
+    );
+
+    final container = buildContainer();
+    await container.read(homeFeedNotifierProvider.notifier).loadTrips();
+
+    verify(mockWebSocketService.unsubscribeFromAllTrips())
+        .called(greaterThanOrEqualTo(1));
+    final captured = verify(
+      mockWebSocketService.subscribeToTrips(captureAny),
+    ).captured;
+    expect(captured.last, unorderedEquals(['t1', 't2']));
+  });
+
+  test(
+      'loadMoreTrips subscribes only to newly-added trip ids, without '
+      'unsubscribing existing ones', () async {
+    when(mockRepository.getPublicTrips(page: 0, size: 20)).thenAnswer(
+      (_) async => PageResponse(
+        content: [makeTrip('t1')],
+        first: true,
+        last: false,
+        totalElements: 2,
+        totalPages: 2,
+        number: 0,
+        size: 20,
+      ),
+    );
+    final container = buildContainer();
+    final notifier = container.read(homeFeedNotifierProvider.notifier);
+    await notifier.loadTrips();
+    clearInteractions(mockWebSocketService);
+
+    when(mockRepository.loadTrips(page: 1, size: 20)).thenAnswer(
+      (_) async => PageResponse(
+        content: [makeTrip('t2')],
+        first: false,
+        last: true,
+        totalElements: 2,
+        totalPages: 2,
+        number: 1,
+        size: 20,
+      ),
+    );
+
+    await notifier.loadMoreTrips();
+
+    verifyNever(mockWebSocketService.unsubscribeFromAllTrips());
+    verify(mockWebSocketService.subscribeToTrips(['t2'])).called(1);
+  });
+
   test('handleWebSocketEvent(tripStatusChanged) updates the matching trip '
       'in place', () async {
     when(mockRepository.getPublicTrips(page: 0, size: 20)).thenAnswer(

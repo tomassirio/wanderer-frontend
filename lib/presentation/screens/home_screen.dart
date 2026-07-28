@@ -11,7 +11,6 @@ import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
-import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/tutorial_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
@@ -43,7 +42,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     with SingleTickerProviderStateMixin, RouteAware {
   late final HomeRepository _repository;
   late final TripService _tripService;
-  late final WebSocketService _webSocketService;
   final PushNotificationManager _pushNotificationManager =
       PushNotificationManager();
 
@@ -58,7 +56,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool get _isLoggedIn => ref.watch(userChromeNotifierProvider).isLoggedIn;
   bool get _isAdmin => ref.watch(userChromeNotifierProvider).isAdmin;
 
-  List<Trip> get _allTrips => ref.watch(homeFeedNotifierProvider).allTrips;
   List<Trip> get _myTrips => ref.watch(homeFeedNotifierProvider).myTrips;
   List<Trip> get _feedTrips => ref.watch(homeFeedNotifierProvider).feedTrips;
   List<Trip> get _discoverTrips =>
@@ -91,7 +88,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.initState();
     _repository = ref.read(homeRepositoryProvider);
     _tripService = ref.read(tripServiceProvider);
-    _webSocketService = ref.read(websocketServiceProvider);
 
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_onTabChanged);
@@ -206,15 +202,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Future<void> _loadTrips() async {
+    // WebSocket trip-topic resubscription now happens inside the notifier's
+    // loadTrips() itself (see HomeFeedNotifier._resyncTripSubscriptions),
+    // as does categorization (feedTrips/discoverTrips) - _feedTrips/
+    // _discoverTrips are ref.watch getters, so no local setState is needed
+    // here.
     await ref.read(homeFeedNotifierProvider.notifier).loadTrips();
-
-    if (mounted) {
-      // Categorization (feedTrips/discoverTrips) already happened inside
-      // the notifier's loadTrips() itself, and _feedTrips/_discoverTrips
-      // are ref.watch getters, so no local setState is needed here.
-      _webSocketService.unsubscribeFromAllTrips();
-      _webSocketService.subscribeToTrips(_allTrips.map((t) => t.id).toList());
-    }
 
     // Trigger after loading settles (not from _loadUserInfo) so the coach
     // marks' target widgets (FAB, bottom nav) are actually mounted — showing
@@ -225,12 +218,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Future<void> _loadMoreTrips() async {
-    final beforeIds = _allTrips.map((t) => t.id).toSet();
     try {
+      // WebSocket subscription for newly-loaded trips now happens inside
+      // the notifier's loadMoreTrips() itself (see
+      // HomeFeedNotifier._subscribeToNewTrips).
       await ref.read(homeFeedNotifierProvider.notifier).loadMoreTrips();
-      final newIds =
-          _allTrips.map((t) => t.id).where((id) => !beforeIds.contains(id));
-      _webSocketService.subscribeToTrips(newIds.toList());
     } catch (e) {
       if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error loading more trips: $e');

@@ -252,6 +252,7 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
           isLoading: false,
         );
         categorizeTrips();
+        _resyncTripSubscriptions();
       } else {
         // Not logged in, only show public trips.
         final tripsPage =
@@ -285,6 +286,7 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
           isLoading: false,
         );
         categorizeTrips();
+        _resyncTripSubscriptions();
       }
     } on AuthenticationRedirectException {
       // Token expired or user not authenticated - treat as guest. Only
@@ -306,6 +308,7 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
       return;
     }
 
+    final beforeIds = state.allTrips.map((t) => t.id).toSet();
     state = state.copyWith(isLoadingMoreTrips: true);
 
     try {
@@ -343,6 +346,7 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
           isLoadingMoreTrips: false,
         );
         categorizeTrips();
+        _subscribeToNewTrips(beforeIds);
       } else {
         final tripsPage = await _repository.loadTrips(
           page: nextPage,
@@ -356,11 +360,35 @@ class HomeFeedNotifier extends AutoDisposeNotifier<HomeFeedState> {
           isLoadingMoreTrips: false,
         );
         categorizeTrips();
+        _subscribeToNewTrips(beforeIds);
       }
     } catch (e) {
       state = state.copyWith(isLoadingMoreTrips: false);
       rethrow;
     }
+  }
+
+  /// Re-syncs WebSocket trip-topic subscriptions to exactly the current
+  /// `allTrips` list. Mirrors the pre-migration widget's `_loadTrips()`
+  /// wrapper (unsubscribe everything, then resubscribe the fresh full
+  /// list) - called from `loadTrips()` so every internal caller (manual
+  /// pull-to-refresh, the 5-minute poll timer, and the WS-event debounce)
+  /// gets the resync automatically, not just widget-driven reloads.
+  void _resyncTripSubscriptions() {
+    _webSocketService.unsubscribeFromAllTrips();
+    _webSocketService.subscribeToTrips(state.allTrips.map((t) => t.id).toList());
+  }
+
+  /// Subscribes only to trip topics newly added by a `loadMoreTrips()` page,
+  /// leaving existing subscriptions untouched. Mirrors the pre-migration
+  /// widget's `_loadMoreTrips()` wrapper, which diffed `allTrips` ids
+  /// before/after the fetch rather than unsubscribing everything.
+  void _subscribeToNewTrips(Set<String> beforeIds) {
+    final newIds = state.allTrips
+        .map((t) => t.id)
+        .where((id) => !beforeIds.contains(id))
+        .toList();
+    _webSocketService.subscribeToTrips(newIds);
   }
 
   /// Public: called both from within this class (loadTrips/loadMoreTrips
