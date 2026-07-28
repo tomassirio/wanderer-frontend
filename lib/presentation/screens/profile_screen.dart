@@ -4,10 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
-import 'package:wanderer_frontend/core/services/cache_service.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
@@ -24,6 +22,13 @@ import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_not
 import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_state.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
+import 'package:wanderer_frontend/presentation/widgets/profile/profile_avatar_image.dart';
+import 'package:wanderer_frontend/presentation/widgets/profile/profile_action_buttons.dart';
+import 'package:wanderer_frontend/presentation/widgets/profile/profile_stats_row.dart';
+import 'package:wanderer_frontend/presentation/widgets/profile/profile_sort_dropdown.dart';
+import 'package:wanderer_frontend/presentation/widgets/profile/profile_filter_toggle_button.dart';
+import 'package:wanderer_frontend/presentation/widgets/profile/profile_status_filter_pills.dart';
+import 'package:wanderer_frontend/presentation/widgets/profile/profile_trip_card.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import '../../core/constants/enums.dart';
 import 'auth_screen.dart';
@@ -136,6 +141,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool get _isAlreadyFriends => _profileState.isAlreadyFriends;
   bool get _isFollowingUser => _profileState.isFollowingUser;
   String? get _sentFriendRequestId => _profileState.sentFriendRequestId;
+
+  /// The avatar URL to render: for your own profile, prefer the live
+  /// `UserChromeState` value (kept fresh by avatar upload/delete) over the
+  /// possibly-stale `_profile!.avatarUrl`; for someone else's profile,
+  /// always use their fetched profile's avatar URL.
+  String? get _resolvedAvatarUrl => _isViewingOwnProfile
+      ? (_currentAvatarUrl ?? _profile!.avatarUrl)
+      : _profile!.avatarUrl;
+
+  String get _avatarInitials =>
+      AvatarHelper.getInitials(_profile!.displayName, _profile!.username);
 
   @override
   void initState() {
@@ -823,7 +839,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         children: [
           _buildProfileHeader(),
           const SizedBox(height: 24),
-          _buildStatsRow(),
+          ProfileStatsRow(
+            tripsCount: _userTrips.length,
+            followersCount: _followersCount,
+            followingCount: _followingCount,
+            friendsCount: _friendsCount,
+            isViewingOwnProfile: _isViewingOwnProfile,
+            onFollowersFollowingFriendsTap: _navigateToFriendsFollowers,
+          ),
           const SizedBox(height: 24),
           _buildTripsSection(),
         ],
@@ -841,6 +864,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final isWide = constraints.maxWidth > 500;
+            // Only one of the two slots below actually renders this at a
+            // time (isWide XOR !isWide), so a single shared instance is
+            // safe here.
+            final actionButtons = ProfileActionButtons(
+              isViewingOwnProfile: _isViewingOwnProfile,
+              isFollowingUser: _isFollowingUser,
+              isAlreadyFriends: _isAlreadyFriends,
+              hasSentFriendRequest: _hasSentFriendRequest,
+              onEdit: _showEditProfileDialog,
+              onFollow: _handleFollowUser,
+              onSendFriendRequest: _handleSendFriendRequest,
+            );
 
             final userInfoSection = Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -905,7 +940,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         Positioned(
                           top: 0,
                           right: 0,
-                          child: _buildActionButtons(),
+                          child: actionButtons,
                         ),
                     ],
                   ),
@@ -958,7 +993,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(width: 8),
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
-                    child: _buildActionButtons(),
+                    child: actionButtons,
                   ),
                 ],
               );
@@ -978,106 +1013,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  /// Builds a circular avatar image with proper aspect ratio handling
-  Widget _buildAvatarImage(double radius) {
-    // Show optimistic avatar if available (user just uploaded)
-    if (_optimisticAvatarBytes != null) {
-      return ClipOval(
-        child: Container(
-          width: radius * 2,
-          height: radius * 2,
-          decoration: BoxDecoration(
-            color: Colors.grey[300],
-          ),
-          child: Image.memory(
-            _optimisticAvatarBytes!,
-            fit: BoxFit.cover,
-            key: const ValueKey('optimistic-avatar'),
-          ),
-        ),
-      );
-    }
-
-    // Extract base URL without query parameters for cache key
-    final avatarUrl = _isViewingOwnProfile
-        ? (_currentAvatarUrl ?? _profile!.avatarUrl)
-        : _profile!.avatarUrl;
-
-    final initials =
-        AvatarHelper.getInitials(_profile!.displayName, _profile!.username);
-
-    // Build the initials fallback widget (used when no avatar or image fails)
-    Widget buildInitialsFallback() {
-      return Container(
-        width: radius * 2,
-        height: radius * 2,
-        decoration: const BoxDecoration(
-          color: WandererTheme.primaryOrange,
-          shape: BoxShape.circle,
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          initials,
-          style: TextStyle(
-            fontSize: radius * 0.8,
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
-    }
-
-    // No valid avatar URL - show initials
-    if (avatarUrl.isEmpty) {
-      return buildInitialsFallback();
-    }
-
-    // Has avatar - use ClipOval with CachedNetworkImage for proper aspect ratio
-    return ClipOval(
-      child: Container(
-        width: radius * 2,
-        height: radius * 2,
-        decoration: const BoxDecoration(
-          color: WandererTheme.primaryOrange,
-        ),
-        child: CachedNetworkImage(
-          imageUrl: ApiEndpoints.resolveThumbnailUrl(avatarUrl),
-          key: ValueKey(avatarUrl),
-          fit: BoxFit.cover,
-          cacheManager: CacheService.userAvatarCache,
-          placeholder: (context, url) => Container(
-            alignment: Alignment.center,
-            color: WandererTheme.primaryOrange,
-            child: Text(
-              initials,
-              style: TextStyle(
-                fontSize: radius * 0.8,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          errorWidget: (context, url, error) => Container(
-            alignment: Alignment.center,
-            color: WandererTheme.primaryOrange,
-            child: Text(
-              initials,
-              style: TextStyle(
-                fontSize: radius * 0.8,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildAvatarWidget() {
     if (!_isViewingOwnProfile) {
       // For other users, just show the avatar
-      return _buildAvatarImage(40);
+      return ProfileAvatarImage(
+        optimisticAvatarBytes: _optimisticAvatarBytes,
+        avatarUrl: _resolvedAvatarUrl,
+        initials: _avatarInitials,
+        radius: 40,
+      );
     }
 
     // For own profile, make it clickable with hover effect
@@ -1126,7 +1070,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             },
             child: Stack(
               children: [
-                _buildAvatarImage(40),
+                ProfileAvatarImage(
+                  optimisticAvatarBytes: _optimisticAvatarBytes,
+                  avatarUrl: _resolvedAvatarUrl,
+                  initials: _avatarInitials,
+                  radius: 40,
+                ),
                 // Hover overlay with camera icon
                 if (isHovering)
                   Positioned.fill(
@@ -1147,114 +1096,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildActionButtons() {
-    final l10n = context.l10n;
-    if (_isViewingOwnProfile) {
-      return IconButton(
-        icon: const Icon(Icons.edit),
-        onPressed: _showEditProfileDialog,
-        tooltip: l10n.editProfile,
-        iconSize: 20,
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(),
-      );
-    } else {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            icon: Icon(
-              _isFollowingUser ? Icons.person_remove : Icons.person_add,
-            ),
-            onPressed: _handleFollowUser,
-            tooltip: _isFollowingUser ? l10n.unfollow : l10n.follow,
-            color: _isFollowingUser ? Colors.blue : null,
-            iconSize: 20,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: Icon(
-              _isAlreadyFriends
-                  ? Icons.people
-                  : _hasSentFriendRequest
-                      ? Icons.person_add_disabled
-                      : Icons.person_add_alt,
-            ),
-            onPressed: _handleSendFriendRequest,
-            tooltip: _isAlreadyFriends
-                ? l10n.unfriend
-                : _hasSentFriendRequest
-                    ? l10n.cancelFriendRequest
-                    : l10n.sendFriendRequest,
-            color: _isAlreadyFriends
-                ? Colors.green
-                : _hasSentFriendRequest
-                    ? Colors.orange
-                    : null,
-            iconSize: 20,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-        ],
-      );
-    }
-  }
-
-  Widget _buildStatsRow() {
-    final l10n = context.l10n;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildStatCard(l10n.trips, _userTrips.length.toString(), null),
-        _buildStatCard(l10n.followers, _followersCount.toString(),
-            _isViewingOwnProfile ? _navigateToFriendsFollowers : null),
-        _buildStatCard(l10n.following, _followingCount.toString(),
-            _isViewingOwnProfile ? _navigateToFriendsFollowers : null),
-        _buildStatCard(l10n.friends, _friendsCount.toString(),
-            _isViewingOwnProfile ? _navigateToFriendsFollowers : null),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(String label, String value, VoidCallback? onTap) {
-    final card = Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                maxLines: 1,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    return Expanded(
-      child: onTap != null
-          ? InkWell(
-              onTap: onTap,
-              child: card,
-            )
-          : card,
     );
   }
 
@@ -1377,11 +1218,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             children: [
               // Sort dropdown button
               Expanded(
-                child: _buildSortDropdown(),
+                child: ProfileSortDropdown(
+                  currentOption: _tripSortOption,
+                  onSelect: (option) => ref
+                      .read(profileNotifierProvider(widget.userId).notifier)
+                      .setSortOption(option),
+                ),
               ),
               const SizedBox(width: 8),
               // Filter toggle button with badge
-              _buildFilterToggleButton(hasActiveFilters, activeFilterCount),
+              ProfileFilterToggleButton(
+                hasActive: hasActiveFilters,
+                count: activeFilterCount,
+                isPanelOpen: _showFilterPanel,
+                onTap: () => ref
+                    .read(profileNotifierProvider(widget.userId).notifier)
+                    .toggleFilterPanel(),
+              ),
             ],
           ),
           // Animated filter panel
@@ -1389,7 +1242,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             firstChild: const SizedBox.shrink(),
             secondChild: Padding(
               padding: const EdgeInsets.only(top: 12),
-              child: _buildStatusFilterPills(),
+              child: ProfileStatusFilterPills(
+                userTrips: _userTrips,
+                selectedStatusFilters: _selectedStatusFilters,
+                onToggleStatus: (status) => ref
+                    .read(profileNotifierProvider(widget.userId).notifier)
+                    .toggleStatusFilter(status),
+                onClearAll: () => ref
+                    .read(profileNotifierProvider(widget.userId).notifier)
+                    .clearStatusFilters(),
+              ),
             ),
             crossFadeState: _showFilterPanel
                 ? CrossFadeState.showSecond
@@ -1402,471 +1264,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  /// A sleek dropdown-style sort button.
-  Widget _buildSortDropdown() {
-    final l10n = context.l10n;
-    return InkWell(
-      onTap: () => _showSortBottomSheet(),
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: WandererTheme.primaryOrange.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: WandererTheme.primaryOrange.withOpacity(0.2),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              _tripSortOption.icon,
-              size: 16,
-              color: WandererTheme.primaryOrange,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                _tripSortOption.labelFor(l10n),
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Icon(
-              Icons.unfold_more_rounded,
-              size: 16,
-              color: WandererTheme.primaryOrange.withOpacity(0.7),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Shows a bottom sheet with sort options.
-  void _showSortBottomSheet() {
-    final l10n = context.l10n;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        final theme = Theme.of(context);
-        final isDark = theme.brightness == Brightness.dark;
-        final sheetBg =
-            isDark ? const Color(0xFF1E1E1E) : WandererTheme.backgroundCard;
-        final handleColor = isDark ? Colors.grey[600] : Colors.grey[300];
-        final titleColor = theme.colorScheme.onSurface;
-        final unselectedTextColor = theme.colorScheme.onSurface;
-        final unselectedIconColor =
-            isDark ? Colors.grey[400] : Colors.grey[500];
-
-        return Container(
-          decoration: BoxDecoration(
-            color: sheetBg,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle bar
-              Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: handleColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                child: Row(
-                  children: [
-                    Icon(Icons.sort_rounded,
-                        size: 20, color: WandererTheme.primaryOrange),
-                    const SizedBox(width: 8),
-                    Text(
-                      l10n.sortTripsBy,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: titleColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              ...TripSortOption.values.map((option) {
-                final isSelected = _tripSortOption == option;
-                return ListTile(
-                  leading: Icon(
-                    option.icon,
-                    color: isSelected
-                        ? WandererTheme.primaryOrange
-                        : unselectedIconColor,
-                    size: 20,
-                  ),
-                  title: Text(
-                    option.labelFor(l10n),
-                    style: TextStyle(
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.normal,
-                      color: isSelected
-                          ? WandererTheme.primaryOrange
-                          : unselectedTextColor,
-                    ),
-                  ),
-                  trailing: isSelected
-                      ? const Icon(Icons.check_circle_rounded,
-                          color: WandererTheme.primaryOrange, size: 20)
-                      : null,
-                  onTap: () {
-                    ref
-                        .read(profileNotifierProvider(widget.userId).notifier)
-                        .setSortOption(option);
-                    Navigator.pop(context);
-                  },
-                  dense: true,
-                  visualDensity: VisualDensity.compact,
-                );
-              }),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  /// A filter toggle button with an animated badge.
-  Widget _buildFilterToggleButton(bool hasActive, int count) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final inactiveIconColor = isDark ? Colors.grey[400] : Colors.grey[600];
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => ref
-            .read(profileNotifierProvider(widget.userId).notifier)
-            .toggleFilterPanel(),
-        borderRadius: BorderRadius.circular(10),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: hasActive
-                ? WandererTheme.primaryOrange.withOpacity(0.12)
-                : Colors.grey.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: hasActive
-                  ? WandererTheme.primaryOrange.withOpacity(0.3)
-                  : Colors.grey.withOpacity(0.2),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                _showFilterPanel
-                    ? Icons.filter_list_off_rounded
-                    : Icons.filter_list_rounded,
-                size: 16,
-                color:
-                    hasActive ? WandererTheme.primaryOrange : inactiveIconColor,
-              ),
-              if (hasActive) ...[
-                const SizedBox(width: 6),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: WandererTheme.primaryOrange,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '$count',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Builds pill-shaped status filter buttons.
-  Widget _buildStatusFilterPills() {
-    final l10n = context.l10n;
-    // Gather statuses that have trips
-    final statusCounts = <TripStatus, int>{};
-    for (final trip in _userTrips) {
-      statusCounts[trip.status] = (statusCounts[trip.status] ?? 0) + 1;
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Clear all button row
-        if (_selectedStatusFilters.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: GestureDetector(
-              onTap: () => ref
-                  .read(profileNotifierProvider(widget.userId).notifier)
-                  .clearStatusFilters(),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.close_rounded,
-                      size: 14, color: WandererTheme.primaryOrange),
-                  const SizedBox(width: 4),
-                  Text(
-                    l10n.clearAllFilters,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: WandererTheme.primaryOrange,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: TripStatus.values
-              .where((s) => (statusCounts[s] ?? 0) > 0)
-              .map((status) {
-            final isSelected = _selectedStatusFilters.contains(status);
-            final count = statusCounts[status]!;
-            final statusColor = UiHelpers.getStatusColor(status);
-
-            return GestureDetector(
-              onTap: () => ref
-                  .read(profileNotifierProvider(widget.userId).notifier)
-                  .toggleStatusFilter(status),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color:
-                      isSelected ? statusColor : statusColor.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color:
-                        isSelected ? statusColor : statusColor.withOpacity(0.3),
-                    width: 1.5,
-                  ),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: statusColor.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : [],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      UiHelpers.getStatusIcon(status),
-                      size: 14,
-                      color: isSelected ? Colors.white : statusColor,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      UiHelpers.getStatusLabel(status, l10n),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected
-                            ? Colors.white
-                            : statusColor.withOpacity(0.9),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 5, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? Colors.white.withOpacity(0.25)
-                            : statusColor.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '$count',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected ? Colors.white : statusColor,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
   Widget _buildTripCard(Trip trip) {
     return ProfileTripCard(
       trip: trip,
       onTap: () => _navigateToTripDetail(trip),
-    );
-  }
-}
-
-/// Trip card for profile screen with mini map
-class ProfileTripCard extends StatefulWidget {
-  final Trip trip;
-  final VoidCallback onTap;
-
-  const ProfileTripCard({super.key, required this.trip, required this.onTap});
-
-  @override
-  State<ProfileTripCard> createState() => _ProfileTripCardState();
-}
-
-class _ProfileTripCardState extends State<ProfileTripCard> {
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: widget.onTap,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Mini map preview (120x120)
-            SizedBox(width: 120, height: 120, child: _buildMiniMap()),
-            // Trip info
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Trip title
-                    Text(
-                      widget.trip.name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    // Status badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: UiHelpers.getStatusColor(widget.trip.status),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        UiHelpers.getStatusLabel(widget.trip.status, l10n),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    // Metadata
-                    Row(
-                      children: [
-                        Icon(Icons.comment, size: 14, color: Colors.grey[600]),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${widget.trip.commentsCount}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Icon(
-                          UiHelpers.getVisibilityIcon(widget.trip.visibility),
-                          size: 14,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          UiHelpers.getVisibilityLabel(
-                              widget.trip.visibility, l10n),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMiniMap() {
-    final thumbnailUrl =
-        ApiEndpoints.resolveThumbnailUrl(widget.trip.thumbnailUrl);
-
-    if (thumbnailUrl.isEmpty) {
-      return Container(
-        color: Colors.grey[300],
-        child: Center(
-          child: Icon(Icons.map_outlined, size: 32, color: Colors.grey[500]),
-        ),
-      );
-    }
-
-    return CachedNetworkImage(
-      imageUrl: thumbnailUrl,
-      fit: BoxFit.cover,
-      cacheManager: CacheService.tripThumbnailCache,
-      placeholder: (context, url) => Container(
-        color: Colors.grey[300],
-        child: const Center(
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      ),
-      errorWidget: (context, url, error) => Container(
-        color: Colors.grey[300],
-        child: Center(
-          child: Icon(Icons.map, size: 32, color: Colors.grey[500]),
-        ),
-      ),
     );
   }
 }
