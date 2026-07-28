@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 
@@ -40,6 +41,20 @@ void main() {
       expect(UiHelpers.getStatusIcon(TripStatus.finished), Icons.check);
       expect(UiHelpers.getStatusIcon(TripStatus.resting),
           Icons.nightlight_round);
+    });
+  });
+
+  group('UiHelpers.getStatusLabel', () {
+    final l10n = AppLocalizations('en');
+
+    test('returns the correct localized label per TripStatus', () {
+      expect(UiHelpers.getStatusLabel(TripStatus.inProgress, l10n), l10n.live);
+      expect(UiHelpers.getStatusLabel(TripStatus.paused, l10n), l10n.paused);
+      expect(
+          UiHelpers.getStatusLabel(TripStatus.finished, l10n), l10n.completed);
+      expect(UiHelpers.getStatusLabel(TripStatus.created, l10n), l10n.draft);
+      expect(
+          UiHelpers.getStatusLabel(TripStatus.resting, l10n), l10n.resting);
     });
   });
 

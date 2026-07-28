@@ -650,18 +650,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   String _getStatusLabel(TripStatus status, AppLocalizations l10n) {
-    switch (status) {
-      case TripStatus.inProgress:
-        return l10n.live;
-      case TripStatus.paused:
-        return l10n.paused;
-      case TripStatus.finished:
-        return l10n.completed;
-      case TripStatus.created:
-        return l10n.draft;
-      case TripStatus.resting:
-        return l10n.resting;
-    }
+    return UiHelpers.getStatusLabel(status, l10n);
   }
 
   IconData _getVisibilityIcon(Visibility? visibility) {

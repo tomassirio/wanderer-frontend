@@ -54,6 +54,22 @@ class UiHelpers {
     }
   }
 
+  /// Gets the localized label for a trip status.
+  static String getStatusLabel(TripStatus status, AppLocalizations l10n) {
+    switch (status) {
+      case TripStatus.inProgress:
+        return l10n.live;
+      case TripStatus.paused:
+        return l10n.paused;
+      case TripStatus.finished:
+        return l10n.completed;
+      case TripStatus.created:
+        return l10n.draft;
+      case TripStatus.resting:
+        return l10n.resting;
+    }
+  }
+
   /// Gets the localized label for trip visibility.
   static String getVisibilityLabel(Visibility visibility, AppLocalizations l10n) {
     switch (visibility) {
