@@ -100,6 +100,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       ref
           .read(homeFeedNotifierProvider.notifier)
           .resetFiltersForTab(_tabController.index == 2);
+      // Forces a rebuild of widget-local chrome that isn't driven by either
+      // notifier: the filter-chip visibility (HomeFilterChips(isMyTripsTab:
+      // ...)) and the bottom-nav highlight both read `_tabController.index`
+      // directly, so without this they'd go stale on tab changes that
+      // don't also produce a notifier state write (e.g. swiping INTO My
+      // Trips, which has nothing to clear).
+      setState(() {});
     }
   }
 
