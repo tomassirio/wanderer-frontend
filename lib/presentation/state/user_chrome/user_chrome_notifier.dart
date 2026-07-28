@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
@@ -37,6 +38,36 @@ class UserChromeNotifier extends Notifier<UserChromeState> {
       avatarUrl: avatarUrl,
       isLoggedIn: isLoggedIn,
       isAdmin: isAdmin,
+    );
+  }
+
+  /// Partial update for the one field a WebSocket-triggered profile refresh
+  /// needs to change — narrower than [loadUserInfo], which re-fetches
+  /// everything. Safe under [UserChromeState.copyWith]'s null-coalescing
+  /// semantics since this only ever sets a real (non-null) value, never
+  /// clears one.
+  void updateAvatarUrl(String? avatarUrl) {
+    state = state.copyWith(avatarUrl: avatarUrl);
+  }
+
+  /// Narrow update for an expired/invalid session detected mid-request
+  /// (e.g. `AuthenticationRedirectException` while loading trips): flips
+  /// only [UserChromeState.isLoggedIn] to false. Deliberately does NOT
+  /// clear username/userId/displayName/avatarUrl/isAdmin — this faithfully
+  /// reproduces a known, pre-existing identity-staleness quirk rather than
+  /// introducing a new "soft logout that clears everything" method. See
+  /// [logout] for the full-clear path used by an explicit user logout.
+  void setLoggedOut() {
+    state = state.copyWith(isLoggedIn: false);
+  }
+
+  /// Test-only seam for setting up identity preconditions directly,
+  /// without a real loadUserInfo()/repository round trip.
+  @visibleForTesting
+  void debugSeedForTest({bool? isLoggedIn, String? userId}) {
+    state = state.copyWith(
+      isLoggedIn: isLoggedIn ?? state.isLoggedIn,
+      userId: userId,
     );
   }
 

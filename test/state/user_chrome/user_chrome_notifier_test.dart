@@ -98,4 +98,19 @@ void main() {
     expect(state.username, isNull);
     expect(state.isLoggedIn, isFalse);
   });
+
+  test(
+      'updateAvatarUrl updates only avatarUrl, leaving other identity '
+      'fields untouched', () {
+    final container = buildContainer();
+    container.read(userChromeNotifierProvider.notifier).updateAvatarUrl(
+          'https://example.com/old.png',
+        );
+    container
+        .read(userChromeNotifierProvider.notifier)
+        .updateAvatarUrl('https://example.com/new.png');
+
+    final state = container.read(userChromeNotifierProvider);
+    expect(state.avatarUrl, 'https://example.com/new.png');
+  });
 }

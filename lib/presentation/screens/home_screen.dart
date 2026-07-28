@@ -21,6 +21,7 @@ import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
+import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_notifier.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
@@ -68,13 +69,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   int _currentTripsPage = 0;
   static const int _tripsPageSize = 20;
   String? _error;
-  String? _userId;
-  String? _username;
-  String? _displayName;
-  String? _avatarUrl;
-  bool _isLoggedIn = false;
-  bool _isAdmin = false;
   final int _selectedSidebarIndex = 0;
+
+  String? get _username => ref.watch(userChromeNotifierProvider).username;
+  String? get _userId => ref.watch(userChromeNotifierProvider).userId;
+  String? get _displayName => ref.watch(userChromeNotifierProvider).displayName;
+  String? get _avatarUrl => ref.watch(userChromeNotifierProvider).avatarUrl;
+  bool get _isLoggedIn => ref.watch(userChromeNotifierProvider).isLoggedIn;
+  bool get _isAdmin => ref.watch(userChromeNotifierProvider).isAdmin;
 
   // Filter states
   TripStatus? _statusFilter;
@@ -230,9 +232,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     try {
       final profile = await _repository.getMyProfile();
       if (mounted) {
-        setState(() {
-          _avatarUrl = profile.avatarUrl;
-        });
+        ref.read(userChromeNotifierProvider.notifier).updateAvatarUrl(
+              profile.avatarUrl,
+            );
       }
     } catch (e) {
       debugPrint('Failed to refresh user profile: $e');
@@ -335,37 +337,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Future<void> _loadUserInfo() async {
-    final username = await _repository.getCurrentUsername();
-    final userId = await _repository.getCurrentUserId();
-    final isLoggedIn = await _repository.isLoggedIn();
-    final isAdmin = await _repository.isAdmin();
+    await ref.read(userChromeNotifierProvider.notifier).loadUserInfo();
 
-    // Refresh displayName and avatarUrl from API (in case they changed)
-    if (isLoggedIn) {
-      await _repository.refreshUserDetails();
-    }
+    final identity = ref.read(userChromeNotifierProvider);
+    _ensurePushAndUserTopic(identity.isLoggedIn, identity.userId);
+  }
 
-    final displayName = await _repository.getCurrentDisplayName();
-    final avatarUrl = await _repository.getCurrentAvatarUrl();
-
-    // Start push notification listener when logged in with a valid userId
+  /// Screen-local extra behavior layered on top of the shared identity
+  /// notifier — push notifications and WebSocket user-topic subscription
+  /// are NOT generic identity concerns (other screens reusing
+  /// UserChromeNotifier won't necessarily want either), so they stay here
+  /// rather than inside UserChromeNotifier itself.
+  void _ensurePushAndUserTopic(bool isLoggedIn, String? userId) {
     if (isLoggedIn && userId != null) {
       _pushNotificationManager.start(userId);
-      // Subscribe to the user's WebSocket topic so user-scoped events
-      // (e.g. friend activity, notifications) arrive on the global stream.
       _ensureUserTopicSubscribed(userId);
     } else {
       _pushNotificationManager.stop();
     }
-
-    setState(() {
-      _username = username;
-      _userId = userId;
-      _displayName = displayName;
-      _avatarUrl = avatarUrl;
-      _isLoggedIn = isLoggedIn;
-      _isAdmin = isAdmin;
-    });
   }
 
   /// Shows the first-time home screen tutorial (coach marks) once per
@@ -501,10 +490,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _webSocketService.unsubscribeFromAllTrips();
       _webSocketService.subscribeToTrips(_allTrips.map((t) => t.id).toList());
     } on AuthenticationRedirectException {
-      // Token expired or user not authenticated - treat as guest
+      // Token expired or user not authenticated - treat as guest.
+      // Note: only isLoggedIn flips here (via setLoggedOut()) - the other
+      // identity fields (username/userId/displayName/avatarUrl) are left
+      // stale, matching this pre-existing behavior.
       if (mounted) {
+        ref.read(userChromeNotifierProvider.notifier).setLoggedOut();
         setState(() {
-          _isLoggedIn = false;
           _isLoading = false;
         });
         _loadTrips(); // Reload as guest
@@ -1138,7 +1130,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       ),
     );
   }
-
 
   String _getStatusLabel(TripStatus status, AppLocalizations l10n) {
     switch (status) {
