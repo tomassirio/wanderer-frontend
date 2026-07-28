@@ -89,6 +89,30 @@ enum TripSortOption {
   }
 }
 
+/// Whether `ProfileScreen._buildBody()` should show the "please log in" /
+/// fetch-error prompt instead of profile content.
+///
+/// `!isLoggedIn` alone isn't enough: the "viewing own profile while logged
+/// out" path deliberately never calls `ProfileNotifier.loadProfile()`
+/// (avoiding a doomed API call), so no `ProfileState.error` gets set for
+/// it - this is what still shows the "please log in" prompt in that case.
+/// The `isOwnProfile` restriction matters because viewing SOMEONE ELSE's
+/// profile while logged out must NOT trip this: that's handled by the
+/// redirect-to-`AuthScreen` in `_loadProfile()`, during whose fade-transition
+/// window this screen should keep rendering its plain "no profile data"
+/// fallback, not a login prompt. `isLoggedIn` (from `UserChromeState`) can
+/// also be transiently false on a deep link straight into this screen for
+/// another user's profile, before `UserChromeNotifier.loadUserInfo()`
+/// resolves, even when the viewer actually is logged in - `isOwnProfile`
+/// guards against misfiring on that race too.
+bool profileScreenShowsLoginOrErrorPrompt({
+  required bool hasError,
+  required bool isLoggedIn,
+  required bool isOwnProfile,
+}) {
+  return hasError || (!isLoggedIn && isOwnProfile);
+}
+
 /// User profile screen showing user information, statistics, and trips
 class ProfileScreen extends ConsumerStatefulWidget {
   final String? userId;
@@ -1028,12 +1052,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // `!_isLoggedIn` is included (not just `_error != null`) because the
-    // "viewing own profile while logged out" path deliberately never calls
-    // ProfileNotifier.loadProfile() (avoiding a doomed API call), so no
-    // ProfileState.error gets set for it - this check is what still shows
-    // the "please log in" prompt below in that case.
-    if (_error != null || !_isLoggedIn) {
+    // See profileScreenShowsLoginOrErrorPrompt's doc for why this isn't
+    // just `_error != null`.
+    if (profileScreenShowsLoginOrErrorPrompt(
+      hasError: _error != null,
+      isLoggedIn: _isLoggedIn,
+      isOwnProfile: widget.userId == null,
+    )) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
