@@ -6,6 +6,7 @@ import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/repositories/profile_repository.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/presentation/state/profile/profile_state.dart';
+import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_notifier.dart';
 
 /// Owns [ProfileState] for one viewed profile (family-keyed by the viewed
 /// user's id; `null` means "my own profile"). Replaces
@@ -68,6 +69,36 @@ class ProfileNotifier extends AutoDisposeFamilyNotifier<ProfileState, String?> {
     state = state.copyWith(profile: profile);
   }
 
+  /// Seeds follower/following counts synchronously from an already-fetched
+  /// [UserProfile], before the (slower) dedicated
+  /// [loadSocialCounts]/network round trip resolves - matching the
+  /// pre-migration `_loadProfile`'s synchronous `_followersCount`/
+  /// `_followingCount` seed (from the just-fetched profile response) in the
+  /// viewed-profile-loading path, so stat cards don't flash `0` while
+  /// waiting. No network call, mirroring [setProfile]'s shape.
+  void seedSocialCountsFromProfile(UserProfile profile) {
+    state = state.copyWith(
+      followersCount: profile.followersCount,
+      followingCount: profile.followingCount,
+    );
+  }
+
+  /// True when the profile currently displayed is the logged-in viewer's
+  /// own - either no id was passed (`targetUserId == null`), or an id was
+  /// passed but happens to match the viewer's own id (e.g. a self-search-
+  /// result tap, or a deep link to one's own profile - see
+  /// `search_screen.dart`/`user_deep_link_screen.dart`, which construct
+  /// `ProfileScreen(userId: ...)` with no guard against that). Mirrors
+  /// `ProfileScreen`'s pre-migration `_isViewingOwnProfile` getter exactly.
+  /// Reads `UserChromeNotifier` live via `ref.read` at call time rather than
+  /// a captured parameter, matching `HomeFeedNotifier`'s `_identity` getter
+  /// pattern.
+  bool get _isOwnProfile {
+    final targetUserId = state.targetUserId;
+    return targetUserId == null ||
+        targetUserId == ref.read(userChromeNotifierProvider).userId;
+  }
+
   /// Loads follower/following/friends counts, split by own-vs-viewed-profile
   /// target (mirrored via [ProfileState.targetUserId]) rather than two
   /// near-duplicate methods as in the pre-migration `_loadSocialCounts`/
@@ -99,7 +130,16 @@ class ProfileNotifier extends AutoDisposeFamilyNotifier<ProfileState, String?> {
   }
 
   /// Loads the trip list for the profile's target user (or the caller's own
-  /// trips, when [ProfileState.targetUserId] is `null`).
+  /// trips, when [_isOwnProfile] is `true` - either [ProfileState
+  /// .targetUserId] is `null`, or it happens to equal the viewer's own id).
+  ///
+  /// Deliberately branches on [_isOwnProfile], NOT merely on whether
+  /// [ProfileState.targetUserId] is non-null: `getUserTrips` is visibility-
+  /// filtered (hides private trips) while `getMyTrips` returns the full
+  /// list. If `targetUserId` is passed but happens to be the viewer's own
+  /// id (self-search-result tap, deep link to one's own profile), the
+  /// viewer's own private trips must still show via `getMyTrips` - matching
+  /// pre-migration `_loadUserTrips`'s `_isViewingOwnProfile` branch exactly.
   ///
   /// Deliberately does NOT eagerly sort the fetched trips: the pre-migration
   /// `_loadUserTrips` did, using a comparator verbatim-identical to
@@ -113,9 +153,9 @@ class ProfileNotifier extends AutoDisposeFamilyNotifier<ProfileState, String?> {
     state = state.copyWith(isLoadingTrips: true);
 
     try {
-      final tripsPage = state.targetUserId != null
-          ? await _repository.getUserTrips(state.targetUserId!, page: 0, size: 100)
-          : await _repository.getMyTrips(page: 0, size: 100);
+      final tripsPage = _isOwnProfile
+          ? await _repository.getMyTrips(page: 0, size: 100)
+          : await _repository.getUserTrips(state.targetUserId!, page: 0, size: 100);
 
       state = state.copyWith(userTrips: tripsPage.content, isLoadingTrips: false);
     } on AuthenticationRedirectException {

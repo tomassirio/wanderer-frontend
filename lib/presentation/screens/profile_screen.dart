@@ -330,6 +330,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         final profile = _profile;
         if (profile == null) return;
 
+        // Seed follower/following counts synchronously from the profile
+        // response already in hand, before the slower dedicated
+        // loadSocialCounts() round trip resolves - matches the
+        // pre-migration synchronous seed so stat cards don't flash 0.
+        profileNotifier.seedSocialCountsFromProfile(profile);
+
         // Load user's trips
         _loadUserTripsFireAndForget();
 

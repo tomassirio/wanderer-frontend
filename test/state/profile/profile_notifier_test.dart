@@ -11,6 +11,7 @@ import 'package:wanderer_frontend/data/repositories/profile_repository.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/presentation/state/profile/profile_notifier.dart';
 import 'package:wanderer_frontend/presentation/state/profile/profile_state.dart';
+import 'package:wanderer_frontend/presentation/state/user_chrome/user_chrome_notifier.dart';
 
 import 'profile_notifier_test.mocks.dart';
 
@@ -300,6 +301,65 @@ void main() {
 
     verify(mockRepository.getUserTrips('other-1', page: 0, size: 100)).called(1);
     verifyNever(mockRepository.getMyTrips(page: anyNamed('page'), size: anyNamed('size')));
+  });
+
+  test(
+      'loadUserTrips(targetUserId set but equal to the logged-in user\'s own '
+      'id) still calls getMyTrips, not getUserTrips - the self-view edge '
+      'case (e.g. a self-search-result tap or a deep link to one\'s own '
+      'profile) must not hide the viewer\'s own private trips behind the '
+      'visibility-filtered endpoint', () async {
+    when(mockRepository.getMyTrips(page: 0, size: 100)).thenAnswer(
+      (_) async => PageResponse(
+          content: [makeTrip(id: 't1', status: TripStatus.created, updatedAt: DateTime(2026, 1, 1))],
+          totalElements: 1,
+          totalPages: 1,
+          number: 0,
+          size: 100,
+          last: true,
+          first: true),
+    );
+
+    final container = buildContainer();
+    container
+        .read(userChromeNotifierProvider.notifier)
+        .debugSeedForTest(isLoggedIn: true, userId: 'me-1');
+
+    await container
+        .read(profileNotifierProvider('me-1').notifier)
+        .loadUserTrips();
+
+    final state = container.read(profileNotifierProvider('me-1'));
+    expect(state.userTrips.map((t) => t.id).toList(), ['t1']);
+    verify(mockRepository.getMyTrips(page: 0, size: 100)).called(1);
+    verifyNever(mockRepository.getUserTrips(any,
+        page: anyNamed('page'), size: anyNamed('size')));
+  });
+
+  test('seedSocialCountsFromProfile stores followers/following without a '
+      'network call', () async {
+    final container = buildContainer();
+    final profile = UserProfile(
+      id: 'other-1',
+      username: 'other',
+      email: 'other@example.com',
+      followersCount: 8,
+      followingCount: 5,
+      friendsCount: 0,
+      tripsCount: 0,
+      isFollowing: false,
+      createdAt: DateTime(2026, 1, 1),
+    );
+
+    container
+        .read(profileNotifierProvider('other-1').notifier)
+        .seedSocialCountsFromProfile(profile);
+
+    final state = container.read(profileNotifierProvider('other-1'));
+    expect(state.followersCount, 8);
+    expect(state.followingCount, 5);
+    verifyNever(mockUserService.getUserFollowers(any,
+        page: anyNamed('page'), size: anyNamed('size')));
   });
 
   test('setSortOption updates tripSortOption', () async {
