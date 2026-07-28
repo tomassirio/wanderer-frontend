@@ -136,6 +136,25 @@ class Trip {
     String? backendThumbnailUrl,
   }) : _backendThumbnailUrl = backendThumbnailUrl;
 
+  /// A minimal placeholder [Trip], used only where a non-nullable [Trip] is
+  /// required before real trip data has loaded (e.g. a notifier's initial
+  /// `build()` return value, immediately replaced by the real trip).
+  factory Trip.empty({required String id}) {
+    final epoch = DateTime.fromMillisecondsSinceEpoch(0);
+    return Trip(
+      id: id,
+      userId: '',
+      name: '',
+      username: '',
+      visibility: Visibility.private,
+      status: TripStatus.created,
+      tripModality: TripModality.simple,
+      automaticUpdates: false,
+      createdAt: epoch,
+      updatedAt: epoch,
+    );
+  }
+
   factory Trip.fromJson(Map<String, dynamic> json) {
     final tripSettings = json['tripSettings'] as Map<String, dynamic>?;
     final tripDetails = json['tripDetails'] as Map<String, dynamic>?;

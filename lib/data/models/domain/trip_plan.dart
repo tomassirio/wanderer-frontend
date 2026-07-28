@@ -51,6 +51,18 @@ class TripPlan {
     String? backendThumbnailUrl,
   }) : _backendThumbnailUrl = backendThumbnailUrl;
 
+  /// Minimal placeholder used only to satisfy TripPlanDetailNotifier's
+  /// non-nullable `build()` return before the real TripPlan is seeded.
+  factory TripPlan.empty({required String id}) {
+    return TripPlan(
+      id: id,
+      userId: '',
+      name: '',
+      planType: 'SIMPLE',
+      createdTimestamp: DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+
   factory TripPlan.fromJson(Map<String, dynamic> json) => TripPlan(
         id: json['id'] as String,
         userId: json['userId'] as String,

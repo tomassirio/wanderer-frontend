@@ -11,16 +11,11 @@ import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/errors/error_utils.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
-import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/data/models/achievement_models.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
-import 'package:wanderer_frontend/data/models/domain/location_update_result.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
-import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
-import 'package:wanderer_frontend/data/services/user_service.dart';
-import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/core/services/background_update_manager.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_map_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
@@ -34,11 +29,11 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_planned_info_window.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/reaction_picker.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_map_view.dart';
-import 'package:wanderer_frontend/presentation/widgets/trip_detail/comments_section.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_lifecycle_buttons.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/strategies/trip_detail_layout_strategy.dart';
+import 'package:wanderer_frontend/presentation/state/trip_detail/trip_detail_notifier.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'auth_screen.dart';
 import 'home_screen.dart';
@@ -56,61 +51,130 @@ class TripDetailScreen extends ConsumerStatefulWidget {
 
 class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   late final TripDetailRepository _repository;
-  late final UserService _userService;
-  late final PromotionQueryClient _promotionQueryClient;
-  late final AchievementService _achievementService;
   late final WebSocketService _webSocketService;
   GoogleMapController? _mapController;
   final Completer<GoogleMapController> _mapControllerCompleter = Completer();
   StreamSubscription<WebSocketEvent>? _wsSubscription;
   StreamSubscription<WebSocketEvent>? _globalWsSubscription;
-  late Trip _trip;
-  Set<Marker> _markers = {};
-  Set<Polyline> _polylines = {};
+  Trip get _trip => ref.watch(tripDetailNotifierProvider(widget.trip.id)).trip;
+  // Map/geolocation state below lives in TripDetailNotifier's `map` sub-state
+  // (Task 8); these getters keep the rest of the widget's code unchanged.
+  // `_mapController`/`_mapControllerCompleter` above stay as plain widget
+  // fields — they hold a platform GoogleMapController tied to the GoogleMap
+  // widget's lifecycle (received via its onMapCreated callback), which isn't
+  // meaningfully comparable/immutable data and so is not a good fit for
+  // Riverpod state.
+  Set<Marker> get _markers =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).map.markers;
+  Set<Polyline> get _polylines =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).map.polylines;
+  bool get _hasInitialMapPosition =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).map.hasInitialMapPosition;
+  bool get _isMapLoading =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).map.isMapLoading;
+  bool get _showPlannedWaypoints => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .map
+      .showPlannedWaypoints;
+  TripLocation? get _selectedMapLocation => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .map
+      .selectedMapLocation;
+  PlannedWaypointInfo? get _selectedPlannedWaypoint => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .map
+      .selectedPlannedWaypoint;
+  LatLng? get _userLocation =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).map.userLocation;
+  bool get _isWsCameraGuardActive => ref
+      .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+      .isWsCameraGuardActive;
 
-  List<Comment> _comments = [];
-  final Map<String, List<Comment>> _replies = {};
-  final Map<String, bool> _expandedComments = {};
+  List<Comment> get _comments =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).comments.comments;
+  Map<String, List<Comment>> get _replies =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).comments.replies;
+  Map<String, bool> get _expandedComments =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).comments.expandedComments;
+  bool get _hasMoreComments =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).comments.hasMoreComments;
+  bool get _isLoadingMoreComments => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .comments
+      .isLoadingMoreComments;
 
-  int _currentCommentPage = 0;
-  bool _hasMoreComments = false;
-  bool _isLoadingMoreComments = false;
-  static const int _commentPageSize = 20;
+  List<TripLocation> get _tripUpdates =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).timeline.tripUpdates;
+  bool get _isLoadingUpdates => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .timeline
+      .isLoadingUpdates;
+  bool get _hasMoreUpdates =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).timeline.hasMoreUpdates;
+  bool get _isLoadingMoreUpdates => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .timeline
+      .isLoadingMoreUpdates;
 
-  List<TripLocation> _tripUpdates = [];
-  bool _isLoadingUpdates = false;
-  int _currentUpdatesPage = 0;
-  bool _hasMoreUpdates = false;
-  bool _isLoadingMoreUpdates = false;
-  static const int _updatesPageSize = 50;
-
-  bool _isLoadingComments = false;
-  bool _isAddingComment = false;
-  bool _isLoggedIn = false;
-  bool _isAdmin = false;
-  bool _isChangingStatus = false;
-  bool _isChangingSettings = false;
-  String? _replyingToCommentId;
-  CommentSortOption _sortOption = CommentSortOption.latest;
+  bool get _isLoadingComments =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).comments.isLoadingComments;
+  bool get _isAddingComment =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).comments.isAddingComment;
+  bool get _isChangingStatus =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).lifecycle.isChangingStatus;
+  bool get _isChangingSettings => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .lifecycle
+      .isChangingSettings;
+  String? get _replyingToCommentId => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .comments
+      .replyingToCommentId;
+  CommentSortOption get _sortOption =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).comments.sortOption;
   final int _selectedSidebarIndex = -1; // Trip detail is not a main nav item
-  String? _username;
-  String? _userId;
-  String? _displayName;
-  String? _avatarUrl;
+  String? get _username =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).identity.username;
+  String? get _userId =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).identity.userId;
+  String? get _displayName => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .identity
+      .displayName;
+  String? get _avatarUrl =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).identity.avatarUrl;
+  bool get _isAdmin =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).identity.isAdmin;
+  bool get _isLoggedIn =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).identity.isLoggedIn;
 
   // Track social interactions
-  bool _isFollowingTripOwner = false;
-  bool _hasSentFriendRequest = false;
-  bool _isAlreadyFriends = false;
-  String? _sentFriendRequestId; // Store the request ID for cancellation
+  bool get _isFollowingTripOwner => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .social
+      .isFollowingTripOwner;
+  bool get _hasSentFriendRequest => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .social
+      .hasSentFriendRequest;
+  bool get _isAlreadyFriends =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).social.isAlreadyFriends;
+  String? get _sentFriendRequestId => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .social
+      .sentFriendRequestId;
 
   // Promotion state
-  bool _isPromoted = false;
-  String? _donationLink;
+  bool get _isPromoted =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).promotion.isPromoted;
+  String? get _donationLink => ref
+      .watch(tripDetailNotifierProvider(widget.trip.id))
+      .promotion
+      .donationLink;
 
   // Trip achievements
-  List<UserAchievement> _tripAchievements = [];
-  Timer? _achievementRefreshTimer;
+  List<UserAchievement> get _tripAchievements =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).tripAchievements;
 
   // Collapsible panel states
   // Collapsible panel states
@@ -119,13 +183,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   bool _isTripInfoCollapsed = false;
   bool _isTripUpdateCollapsed = true;
   bool _isTripSettingsCollapsed = true;
-  bool _isSendingUpdate = false;
+  bool get _isSendingUpdate =>
+      ref.watch(tripDetailNotifierProvider(widget.trip.id)).lifecycle.isSendingUpdate;
   bool _hasInitializedPanelStates = false;
-  bool _hasInitialMapPosition = false;
-  bool _isMapLoading = true;
-
-  // Planned waypoints overlay toggle (for trips created from a plan)
-  bool _showPlannedWaypoints = false;
 
   // Multi-day trip: current day derived from backend's currentDay field
   int get _currentDay => _trip.currentDay ?? 1;
@@ -133,25 +193,6 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   // Desktop web: track whether the mouse is hovering over a panel
   // so we can disable map gestures only when hovering.
   bool _isHoveringOverPanel = false;
-
-  // Custom info window: currently selected map marker location
-  TripLocation? _selectedMapLocation;
-
-  // Custom info window: currently selected planned waypoint
-  PlannedWaypointInfo? _selectedPlannedWaypoint;
-
-  // User's current device location (used as fallback for empty maps)
-  LatLng? _userLocation;
-
-  /// Timestamp of the last camera animation triggered by a WebSocket event.
-  /// Used to suppress competing animations from API refreshes that may carry
-  /// stale data due to CQRS eventual consistency.
-  DateTime? _lastWsCameraUpdate;
-
-  /// How long after a WebSocket-driven camera animation we should suppress
-  /// API-refresh-driven animations to avoid the map jumping back to a
-  /// stale position.
-  static const Duration _wsCameraGuardDuration = Duration(seconds: 10);
 
   // First-time trip detail tutorial (coach marks)
   final GlobalKey _tutorialUpdatePanelKey = GlobalKey();
@@ -192,14 +233,15 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
     // Initialize repository and services
     _repository = ref.read(tripDetailRepositoryProvider);
-    _userService = ref.read(userServiceProvider);
-    _promotionQueryClient = ref.read(promotionQueryClientProvider);
-    _achievementService = ref.read(achievementServiceProvider);
     _webSocketService = ref.read(websocketServiceProvider);
 
-    _trip = widget.trip;
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .seedInitialTrip(widget.trip);
     // Default to showing the planned route when the trip has one
-    _showPlannedWaypoints = _trip.hasPlannedRoute;
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .setShowPlannedWaypoints(widget.trip.hasPlannedRoute);
     // Don't call _updateMapData() here — it would use stale trip data.
     // Let _initializeMapPosition() handle everything after loading fresh data.
     _checkLoginStatus();
@@ -236,9 +278,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       );
 
       if (mounted) {
-        setState(() {
-          _userLocation = LatLng(position.latitude, position.longitude);
-        });
+        ref
+            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+            .setUserLocation(LatLng(position.latitude, position.longitude));
       }
     } catch (e) {
       debugPrint('TripDetailScreen: Could not get user location: $e');
@@ -267,17 +309,20 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     if (mounted) {
       _updateMapData();
       _animateMapToLatestLocation(animate: false);
-      setState(() {
-        _isMapLoading = false;
-      });
+      ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .setMapLoading(false);
+      ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .markInitialMapPositionSet();
     }
-    _hasInitialMapPosition = true;
   }
 
   Future<void> _initWebSocket() async {
     debugPrint('TripDetailScreen: Initializing WebSocket for trip ${_trip.id}');
     // Connect to WebSocket server first
     await _webSocketService.connect();
+    if (!mounted) return;
     // Subscribe to events for this specific trip
     final tripStream = _webSocketService.subscribeToTrip(_trip.id);
     _wsSubscription = tripStream.listen(_handleWebSocketEvent);
@@ -401,21 +446,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   void _handleTripStatusChanged(TripStatusChangedEvent event) {
-    setState(() {
-      _trip = _trip.copyWith(
-        status: event.newStatus,
-        // Use currentDay from the event if available; when a multi-day trip
-        // is first started and the backend hasn't set currentDay yet, default
-        // to 1 so the "Day 1" badge shows right away.
-        currentDay: event.currentDay ??
-            ((event.newStatus == TripStatus.inProgress &&
-                    event.previousStatus == TripStatus.created &&
-                    _trip.tripModality == TripModality.multiDay &&
-                    _trip.currentDay == null)
-                ? 1
-                : null),
-      );
-    });
+    final notifier = ref.read(tripDetailNotifierProvider(widget.trip.id).notifier);
+    notifier.applyTripStatusChanged(event);
+    setState(() {});
 
     // Reload timeline to pick up any lifecycle markers
     // (TRIP_STARTED, TRIP_ENDED, DAY_START, DAY_END)
@@ -428,56 +461,19 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     }
   }
 
-  /// Whether a WebSocket event recently animated the camera, meaning
-  /// API-refresh-driven animations should be suppressed to avoid the map
-  /// jumping back to a stale position (CQRS eventual consistency).
-  bool get _isWsCameraGuardActive {
-    if (_lastWsCameraUpdate == null) return false;
-    return DateTime.now().difference(_lastWsCameraUpdate!) <
-        _wsCameraGuardDuration;
-  }
-
-  /// Maximum number of automatic retries for [_refreshTripData] when the
-  /// backend returns an error (e.g. HTTP 500). Each retry waits a bit longer.
-  static const int _maxRefreshRetries = 3;
-
-  /// Refreshes full trip data from the backend.
+  /// Refreshes full trip data from the backend via [TripDetailNotifier].
   ///
-  /// When the API call fails (e.g. 500), the method retries up to
-  /// [_maxRefreshRetries] times with exponential back-off (2s, 4s, 8s).
-  /// Between retries the existing trip data is still rendered on the map
-  /// so the user sees whatever was available before the failure.
-  Future<void> _refreshTripData({int retryCount = 0}) async {
+  /// The notifier's `refreshTripData()` already handles retry-with-backoff
+  /// internally (see Task 8), so this widget wrapper no longer needs a
+  /// `retryCount` parameter — all call sites (`_handleTripStatusChanged` and
+  /// others) already invoke `_refreshTripData()` with no arguments, matching
+  /// how Task 5's `_loadTripUpdates` wrapper dropped its own `retryCount`.
+  Future<void> _refreshTripData() async {
     try {
-      final updatedTrip = await _repository.getTripById(_trip.id);
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .refreshTripData();
       if (mounted) {
-        // Merge locally-applied WebSocket locations that may not yet appear
-        // in the CQRS query model. This prevents the map from temporarily
-        // losing newly added markers when the backend is still propagating.
-        final apiLocationIds =
-            (updatedTrip.locations ?? []).map((l) => l.id).toSet();
-        final wsOnlyLocations = (_trip.locations ?? [])
-            .where(
-                (l) => l.id.startsWith('ws_') && !apiLocationIds.contains(l.id))
-            .toList();
-
-        final mergedLocations = <TripLocation>[
-          ...updatedTrip.locations ?? [],
-          ...wsOnlyLocations,
-        ];
-
-        setState(() {
-          // Preserve automaticUpdates / updateRefresh when the backend query
-          // model hasn't propagated them yet (CQRS eventual consistency).
-          // If the backend returns false/null but we already know the user
-          // enabled automatic updates, keep the local value.
-          _trip = updatedTrip.copyWith(
-            automaticUpdates:
-                updatedTrip.automaticUpdates || _trip.automaticUpdates,
-            updateRefresh: updatedTrip.updateRefresh ?? _trip.updateRefresh,
-            locations: mergedLocations,
-          );
-        });
         _updateMapData();
         // Only animate the camera on subsequent refreshes (e.g. after a
         // WebSocket status change). The very first positioning is handled by
@@ -490,160 +486,78 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         }
       }
     } catch (e) {
-      debugPrint(
-          'TripDetailScreen: Error refreshing trip data (attempt ${retryCount + 1}): $e');
-
-      // Render whatever data we already have so the map isn't blank
+      // Render whatever data we already have so the map isn't blank.
       if (mounted) {
         _updateMapData();
       }
-
-      // Retry with exponential back-off if we haven't exhausted retries
-      if (retryCount < _maxRefreshRetries && mounted) {
-        final delay = Duration(seconds: 2 << retryCount); // 2s, 4s, 8s
-        debugPrint(
-            'TripDetailScreen: Scheduling refresh retry in ${delay.inSeconds}s');
-        await Future.delayed(delay);
-        if (mounted) {
-          await _refreshTripData(retryCount: retryCount + 1);
-        }
-      }
+    } finally {
+      if (mounted) setState(() {});
     }
   }
 
   void _handleTripUpdatedEvent(TripUpdatedEvent event) {
-    // Parse the update type from the event
     final parsedUpdateType = event.updateType != null
         ? TripUpdateType.fromJson(event.updateType!)
         : TripUpdateType.regular;
-
-    // Lifecycle markers (DAY_START, DAY_END, TRIP_STARTED, TRIP_ENDED) may
-    // have location: null. Add them to the timeline but don't create map pins.
-    final hasLocation = event.latitude != null && event.longitude != null;
-
     final updateId = 'ws_${event.timestamp.millisecondsSinceEpoch}';
 
-    // Guard against duplicate processing (event can arrive from both the
-    // trip-specific and global streams).
-    if (_tripUpdates.any((u) => u.id == updateId)) {
-      debugPrint(
-          'TripDetailScreen: Skipping duplicate TRIP_UPDATED event with id $updateId');
-      return;
-    }
-
-    final newUpdate = TripLocation(
-      id: updateId,
-      latitude: event.latitude ?? 0.0,
-      longitude: event.longitude ?? 0.0,
+    final notifier = ref.read(tripDetailNotifierProvider(widget.trip.id).notifier);
+    final applied = notifier.applyTripUpdateEvent(
+      updateId: updateId,
+      latitude: event.latitude,
+      longitude: event.longitude,
       timestamp: event.timestamp,
-      battery: hasLocation ? event.batteryLevel : null,
+      batteryLevel: event.batteryLevel,
       message: event.message,
-      city: hasLocation ? event.city : null,
-      country: hasLocation ? event.country : null,
-      temperatureCelsius: hasLocation ? event.temperatureCelsius : null,
-      weatherCondition: hasLocation && event.weatherCondition != null
+      city: event.city,
+      country: event.country,
+      temperatureCelsius: event.temperatureCelsius,
+      weatherCondition: event.weatherCondition != null
           ? WeatherCondition.fromJson(event.weatherCondition!)
           : null,
       updateType: parsedUpdateType,
       distanceSoFarKm: event.distanceSoFarKm,
     );
+    setState(() {});
 
-    debugPrint(
-        'TripDetailScreen: Processing TRIP_UPDATED - hasLocation: $hasLocation, lat: ${event.latitude}, lng: ${event.longitude}');
-
-    setState(() {
-      _tripUpdates = [newUpdate, ..._tripUpdates];
-      // Update trip's accrued distance if provided
-      if (event.distanceSoFarKm != null) {
-        _trip = _trip.copyWith(
-          accruedDistanceKm: event.distanceSoFarKm,
-        );
-      }
-    });
-
-    // Only update the map for updates with real locations
-    if (hasLocation) {
-      // Add the new location to _trip.locations so the map helper
-      // rebuilds markers correctly (previous green → orange, new → green)
-      final updatedLocations = <TripLocation>[
-        ...(_trip.locations ?? []),
-        newUpdate,
-      ];
-      setState(() {
-        _trip = _trip.copyWith(locations: updatedLocations);
-      });
+    if (applied) {
       _updateMapData();
-      // Animate the camera to the new location
-      _lastWsCameraUpdate = DateTime.now();
+      notifier.markWsCameraUpdate();
       _animateMapToLocation(LatLng(event.latitude!, event.longitude!));
-      debugPrint('TripDetailScreen: Map updated and animated to new location');
     }
   }
 
   void _handleTripUpdateCreatedEvent(TripUpdateCreatedEvent event) {
-    // Parse the update type from the event payload (if available)
     final parsedUpdateType = event.updateType != null
         ? TripUpdateType.fromJson(event.updateType!)
         : TripUpdateType.regular;
-
-    final hasLocation = event.latitude != null && event.longitude != null;
-
     final updateId = event.tripUpdateId.isNotEmpty
         ? event.tripUpdateId
         : 'ws_${event.timestamp.millisecondsSinceEpoch}';
 
-    // Guard against duplicate processing (event can arrive from both the
-    // trip-specific and global streams).
-    if (_tripUpdates.any((u) => u.id == updateId)) {
-      debugPrint(
-          'TripDetailScreen: Skipping duplicate TRIP_UPDATE_CREATED event with id $updateId');
-      return;
-    }
-
-    final newUpdate = TripLocation(
-      id: updateId,
-      latitude: event.latitude ?? 0.0,
-      longitude: event.longitude ?? 0.0,
+    final notifier = ref.read(tripDetailNotifierProvider(widget.trip.id).notifier);
+    final applied = notifier.applyTripUpdateEvent(
+      updateId: updateId,
+      latitude: event.latitude,
+      longitude: event.longitude,
       timestamp: event.timestamp,
-      battery: hasLocation ? event.batteryLevel : null,
+      batteryLevel: event.batteryLevel,
       message: event.message,
-      city: hasLocation ? event.city : null,
-      country: hasLocation ? event.country : null,
-      temperatureCelsius: hasLocation ? event.temperatureCelsius : null,
-      weatherCondition: hasLocation && event.weatherCondition != null
+      city: event.city,
+      country: event.country,
+      temperatureCelsius: event.temperatureCelsius,
+      weatherCondition: event.weatherCondition != null
           ? WeatherCondition.fromJson(event.weatherCondition!)
           : null,
       updateType: parsedUpdateType,
       distanceSoFarKm: event.distanceSoFarKm,
     );
+    setState(() {});
 
-    debugPrint(
-        'TripDetailScreen: Processing TRIP_UPDATE_CREATED - hasLocation: $hasLocation, lat: ${event.latitude}, lng: ${event.longitude}');
-
-    setState(() {
-      _tripUpdates = [newUpdate, ..._tripUpdates];
-      // Update trip's accrued distance if provided
-      if (event.distanceSoFarKm != null) {
-        _trip = _trip.copyWith(
-          accruedDistanceKm: event.distanceSoFarKm,
-        );
-      }
-    });
-
-    // Only update the map for updates with real locations
-    if (hasLocation) {
-      final updatedLocations = <TripLocation>[
-        ...(_trip.locations ?? []),
-        newUpdate,
-      ];
-      setState(() {
-        _trip = _trip.copyWith(locations: updatedLocations);
-      });
+    if (applied) {
       _updateMapData();
-      // Animate the camera to the new location
-      _lastWsCameraUpdate = DateTime.now();
+      notifier.markWsCameraUpdate();
       _animateMapToLocation(LatLng(event.latitude!, event.longitude!));
-      debugPrint('TripDetailScreen: Map updated and animated to new location');
     }
   }
 
@@ -672,9 +586,10 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         'TripDetailScreen: Processing POLYLINE_UPDATED - updating encoded polyline');
 
     // Update the trip's encoded polyline and refresh the map
-    setState(() {
-      _trip = _trip.copyWith(encodedPolyline: event.encodedPolyline);
-    });
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .applyPolylineUpdated(event);
+    setState(() {});
 
     // Redraw the polyline on the map
     _updateMapData();
@@ -757,9 +672,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       final target = LatLng(position.latitude, position.longitude);
 
       if (mounted) {
-        setState(() {
-          _userLocation = target;
-        });
+        ref
+            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+            .setUserLocation(target);
         await _animateMapToLocation(target);
       }
     } catch (e) {
@@ -773,328 +688,48 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     // Only update UI state from the server confirmation.
     // Background update management is already handled optimistically
     // in _handleSettingsChange to avoid duplicate stop/start cycles.
-    setState(() {
-      _trip = _trip.copyWith(
-        automaticUpdates: event.automaticUpdates ?? _trip.automaticUpdates,
-        updateRefresh: event.updateRefresh ?? _trip.updateRefresh,
-      );
-    });
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .applyTripSettingsUpdated(event);
+    setState(() {});
   }
 
   void _handleCommentAdded(CommentAddedEvent event) {
-    // Create a new comment from the event
-    final newComment = Comment(
-      id: event.commentId,
-      tripId: _trip.id,
-      userId: event.userId,
-      username: event.username,
-      message: event.message,
-      parentCommentId: event.parentCommentId,
-      individualReactions: const [],
-      createdAt: event.timestamp,
-      updatedAt: event.timestamp,
-    );
-
-    setState(() {
-      if (event.parentCommentId != null) {
-        // It's a reply
-        final parentId = event.parentCommentId!;
-        bool isNewReply = false;
-
-        if (_replies.containsKey(parentId)) {
-          // Check if reply already exists (avoid duplicates from optimistic updates)
-          final existingIndex =
-              _replies[parentId]!.indexWhere((c) => c.id == event.commentId);
-          if (existingIndex != -1) {
-            // Replace optimistic reply with server version (has correct timestamp, etc.)
-            _replies[parentId]![existingIndex] = newComment;
-          } else {
-            // New reply from another user or WebSocket arrived before optimistic update
-            _replies[parentId] = [..._replies[parentId]!, newComment];
-            isNewReply = true;
-          }
-        } else {
-          // First reply to this comment
-          _replies[parentId] = [newComment];
-          isNewReply = true;
-        }
-
-        // Update the parent comment's responsesCount if this is a new reply
-        // (not an optimistic update replacement)
-        if (isNewReply) {
-          final parentIndex = _comments.indexWhere((c) => c.id == parentId);
-          if (parentIndex != -1) {
-            final parentComment = _comments[parentIndex];
-            _comments[parentIndex] = Comment(
-              id: parentComment.id,
-              tripId: parentComment.tripId,
-              userId: parentComment.userId,
-              username: parentComment.username,
-              userAvatarUrl: parentComment.userAvatarUrl,
-              message: parentComment.message,
-              parentCommentId: parentComment.parentCommentId,
-              reactions: parentComment.reactions,
-              individualReactions: parentComment.individualReactions,
-              replies: parentComment.replies,
-              reactionsCount: parentComment.reactionsCount,
-              responsesCount: parentComment.responsesCount + 1,
-              createdAt: parentComment.createdAt,
-              updatedAt: parentComment.updatedAt,
-            );
-          }
-        }
-      } else {
-        // It's a top-level comment
-        // Check if comment already exists (avoid duplicates from optimistic updates)
-        final existingIndex =
-            _comments.indexWhere((c) => c.id == event.commentId);
-        if (existingIndex != -1) {
-          // Replace optimistic comment with server version (has correct timestamp, etc.)
-          _comments[existingIndex] = newComment;
-          _sortComments();
-        } else {
-          // New comment from another user or WebSocket arrived before optimistic update
-          _comments.insert(0, newComment);
-          _sortComments();
-        }
-      }
-    });
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .applyCommentAdded(event);
+    setState(() {});
   }
 
   void _handleCommentReaction(CommentReactionEvent event) {
-    debugPrint(
-        'TripDetailScreen: Handling comment reaction event for comment ${event.commentId}');
-    debugPrint(
-        'TripDetailScreen: Event type=${event.type}, reactionType=${event.reactionType}, userId=${event.userId}, isRemoval=${event.isRemoval}');
-
-    // Normalize reaction type strings to ensure consistent map keys
-    // Backend might send "SMILEY" or "smiley", but we need consistency with ReactionType.toJson()
-    final normalizedReactionType =
-        ReactionType.fromJson(event.reactionType).toJson();
+    final normalizedReactionType = ReactionType.fromJson(event.reactionType);
     final normalizedPreviousReactionType = event.previousReactionType != null
-        ? ReactionType.fromJson(event.previousReactionType!).toJson()
+        ? ReactionType.fromJson(event.previousReactionType!)
         : null;
 
-    // Update local state directly from WebSocket event instead of making a GET request
-    setState(() {
-      // Find and update the comment in top-level comments
-      final commentIndex = _comments.indexWhere((c) => c.id == event.commentId);
-      if (commentIndex != -1) {
-        final comment = _comments[commentIndex];
-        final updatedReactions = Map<String, int>.from(comment.reactions ?? {});
-        final updatedIndividualReactions =
-            List<Reaction>.from(comment.individualReactions ?? []);
+    final ReactionType? oldReaction;
+    final ReactionType? newReaction;
+    if (normalizedPreviousReactionType != null) {
+      // REPLACED: remove the old reaction, add the new one.
+      oldReaction = normalizedPreviousReactionType;
+      newReaction = normalizedReactionType;
+    } else if (event.isRemoval) {
+      // REMOVED: only the old reaction goes away.
+      oldReaction = normalizedReactionType;
+      newReaction = null;
+    } else {
+      // ADDED: only the new reaction appears.
+      oldReaction = null;
+      newReaction = normalizedReactionType;
+    }
 
-        if (normalizedPreviousReactionType != null) {
-          // REPLACED event: remove old reaction and add new reaction
-          // Check if user already has the new reaction (duplicate event detection)
-          final hasNewReaction = updatedIndividualReactions.any((r) =>
-              r.userId == event.userId &&
-              r.reactionType.toJson() == normalizedReactionType);
-          if (hasNewReaction) {
-            debugPrint(
-                'TripDetailScreen: Ignoring duplicate REPLACED event for comment ${event.commentId}');
-            return; // Skip duplicate event
-          }
-
-          // Remove user's old reaction from individualReactions
-          updatedIndividualReactions
-              .removeWhere((r) => r.userId == event.userId);
-          // Decrement old reaction count
-          final oldCount =
-              updatedReactions[normalizedPreviousReactionType] ?? 0;
-          if (oldCount > 1) {
-            updatedReactions[normalizedPreviousReactionType] = oldCount - 1;
-          } else {
-            updatedReactions.remove(normalizedPreviousReactionType);
-          }
-          // Add new reaction to individualReactions
-          updatedIndividualReactions.add(Reaction(
-            userId: event.userId,
-            username: '', // Will be populated from full data refresh if needed
-            reactionType: ReactionType.fromJson(event.reactionType),
-            timestamp: DateTime.now(),
-          ));
-          // Increment new reaction count
-          updatedReactions[normalizedReactionType] =
-              (updatedReactions[normalizedReactionType] ?? 0) + 1;
-        } else if (event.isRemoval) {
-          // REMOVED event: remove the individual reaction
-          // Check if user actually has this reaction to remove (duplicate event detection)
-          final hasReaction = updatedIndividualReactions.any((r) =>
-              r.userId == event.userId &&
-              r.reactionType.toJson() == normalizedReactionType);
-          if (!hasReaction) {
-            debugPrint(
-                'TripDetailScreen: Ignoring duplicate REMOVED event for comment ${event.commentId}');
-            return; // Skip duplicate event
-          }
-
-          updatedIndividualReactions.removeWhere((r) =>
-              r.userId == event.userId &&
-              r.reactionType.toJson() == normalizedReactionType);
-          // Decrement reaction count
-          final currentCount = updatedReactions[normalizedReactionType] ?? 0;
-          if (currentCount > 1) {
-            updatedReactions[normalizedReactionType] = currentCount - 1;
-          } else {
-            updatedReactions.remove(normalizedReactionType);
-          }
-        } else {
-          // ADDED event: add the individual reaction
-          // Check if user already has this reaction (duplicate event detection)
-          final hasReaction = updatedIndividualReactions.any((r) =>
-              r.userId == event.userId &&
-              r.reactionType.toJson() == normalizedReactionType);
-          if (hasReaction) {
-            debugPrint(
-                'TripDetailScreen: Ignoring duplicate ADDED event for comment ${event.commentId}');
-            return; // Skip duplicate event
-          }
-
-          updatedIndividualReactions.add(Reaction(
-            userId: event.userId,
-            username: '', // Will be populated from full data refresh if needed
-            reactionType: ReactionType.fromJson(event.reactionType),
-            timestamp: DateTime.now(),
-          ));
-          // Increment reaction count
-          updatedReactions[normalizedReactionType] =
-              (updatedReactions[normalizedReactionType] ?? 0) + 1;
-        }
-
-        // Calculate new total reactions count
-        final newReactionsCount =
-            updatedReactions.values.fold(0, (sum, count) => sum + count);
-
-        _comments[commentIndex] = Comment(
-          id: comment.id,
-          tripId: comment.tripId,
-          userId: comment.userId,
-          username: comment.username,
-          userAvatarUrl: comment.userAvatarUrl,
-          message: comment.message,
-          parentCommentId: comment.parentCommentId,
-          reactions: updatedReactions.isEmpty ? null : updatedReactions,
-          individualReactions: updatedIndividualReactions.isEmpty
-              ? null
-              : updatedIndividualReactions,
-          replies: comment.replies,
-          reactionsCount: newReactionsCount,
-          responsesCount: comment.responsesCount,
-          createdAt: comment.createdAt,
-          updatedAt: comment.updatedAt,
+    ref.read(tripDetailNotifierProvider(widget.trip.id).notifier).applyCommentReaction(
+          event.commentId,
+          currentUserId: event.userId,
+          oldReaction: oldReaction,
+          newReaction: newReaction,
         );
-        return;
-      }
-
-      // Check in replies
-      for (final parentId in _replies.keys) {
-        final replies = _replies[parentId]!;
-        final replyIndex = replies.indexWhere((c) => c.id == event.commentId);
-        if (replyIndex != -1) {
-          final reply = replies[replyIndex];
-          final updatedReactions = Map<String, int>.from(reply.reactions ?? {});
-          final updatedIndividualReactions =
-              List<Reaction>.from(reply.individualReactions ?? []);
-
-          if (normalizedPreviousReactionType != null) {
-            // REPLACED event: remove old reaction and add new reaction
-            // Check if user already has the new reaction (duplicate event detection)
-            final hasNewReaction = updatedIndividualReactions.any((r) =>
-                r.userId == event.userId &&
-                r.reactionType.toJson() == normalizedReactionType);
-            if (hasNewReaction) {
-              debugPrint(
-                  'TripDetailScreen: Ignoring duplicate REPLACED event for reply ${event.commentId}');
-              return; // Skip duplicate event
-            }
-
-            updatedIndividualReactions
-                .removeWhere((r) => r.userId == event.userId);
-            final oldCount =
-                updatedReactions[normalizedPreviousReactionType] ?? 0;
-            if (oldCount > 1) {
-              updatedReactions[normalizedPreviousReactionType] = oldCount - 1;
-            } else {
-              updatedReactions.remove(normalizedPreviousReactionType);
-            }
-            updatedIndividualReactions.add(Reaction(
-              userId: event.userId,
-              username: '',
-              reactionType: ReactionType.fromJson(event.reactionType),
-              timestamp: DateTime.now(),
-            ));
-            updatedReactions[normalizedReactionType] =
-                (updatedReactions[normalizedReactionType] ?? 0) + 1;
-          } else if (event.isRemoval) {
-            // REMOVED event
-            // Check if user actually has this reaction to remove (duplicate event detection)
-            final hasReaction = updatedIndividualReactions.any((r) =>
-                r.userId == event.userId &&
-                r.reactionType.toJson() == normalizedReactionType);
-            if (!hasReaction) {
-              debugPrint(
-                  'TripDetailScreen: Ignoring duplicate REMOVED event for reply ${event.commentId}');
-              return; // Skip duplicate event
-            }
-
-            updatedIndividualReactions.removeWhere((r) =>
-                r.userId == event.userId &&
-                r.reactionType.toJson() == normalizedReactionType);
-            final currentCount = updatedReactions[normalizedReactionType] ?? 0;
-            if (currentCount > 1) {
-              updatedReactions[normalizedReactionType] = currentCount - 1;
-            } else {
-              updatedReactions.remove(normalizedReactionType);
-            }
-          } else {
-            // ADDED event
-            // Check if user already has this reaction (duplicate event detection)
-            final hasReaction = updatedIndividualReactions.any((r) =>
-                r.userId == event.userId &&
-                r.reactionType.toJson() == normalizedReactionType);
-            if (hasReaction) {
-              debugPrint(
-                  'TripDetailScreen: Ignoring duplicate ADDED event for reply ${event.commentId}');
-              return; // Skip duplicate event
-            }
-
-            updatedIndividualReactions.add(Reaction(
-              userId: event.userId,
-              username: '',
-              reactionType: ReactionType.fromJson(event.reactionType),
-              timestamp: DateTime.now(),
-            ));
-            updatedReactions[normalizedReactionType] =
-                (updatedReactions[normalizedReactionType] ?? 0) + 1;
-          }
-
-          final newReactionsCount =
-              updatedReactions.values.fold(0, (sum, count) => sum + count);
-
-          _replies[parentId]![replyIndex] = Comment(
-            id: reply.id,
-            tripId: reply.tripId,
-            userId: reply.userId,
-            username: reply.username,
-            userAvatarUrl: reply.userAvatarUrl,
-            message: reply.message,
-            parentCommentId: reply.parentCommentId,
-            reactions: updatedReactions.isEmpty ? null : updatedReactions,
-            individualReactions: updatedIndividualReactions.isEmpty
-                ? null
-                : updatedIndividualReactions,
-            replies: reply.replies,
-            reactionsCount: newReactionsCount,
-            responsesCount: reply.responsesCount,
-            createdAt: reply.createdAt,
-            updatedAt: reply.updatedAt,
-          );
-          return;
-        }
-      }
-    });
+    setState(() {});
   }
 
   @override
@@ -1120,12 +755,19 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
   @override
   void dispose() {
-    debugPrint('TripDetailScreen: Disposing for trip ${_trip.id}');
+    // `ref` is not safely usable this late in teardown, so use
+    // widget.trip.id — identical to _trip.id for the lifetime of this
+    // screen instance, since no call site ever changes a Trip's id.
+    // (tripDetailNotifierProvider is autoDispose — Riverpod tears down
+    // this trip id's notifier on its own once nothing watches it anymore;
+    // seedInitialTrip's unconditional overwrite means a reused, not-yet-
+    // disposed instance is harmless too, so no explicit invalidate is
+    // needed here.)
+    debugPrint('TripDetailScreen: Disposing for trip ${widget.trip.id}');
     _wsSubscription?.cancel();
     _globalWsSubscription?.cancel();
-    _achievementRefreshTimer?.cancel();
     debugPrint('TripDetailScreen: Cancelled WebSocket subscriptions');
-    _webSocketService.unsubscribeFromTrip(_trip.id);
+    _webSocketService.unsubscribeFromTrip(widget.trip.id);
     debugPrint('TripDetailScreen: Unsubscribed from trip');
     _commentController.dispose();
     _scrollController.dispose();
@@ -1134,24 +776,10 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   Future<void> _loadUserInfo() async {
-    final username = await _repository.getCurrentUsername();
-    final userId = await _repository.getCurrentUserId();
-    final isAdmin = await _repository.isAdmin();
-
-    if (userId != null) {
-      await _repository.refreshUserDetails();
-    }
-
-    final displayName = await _repository.getCurrentDisplayName();
-    final avatarUrl = await _repository.getCurrentAvatarUrl();
-
-    setState(() {
-      _username = username;
-      _userId = userId;
-      _displayName = displayName;
-      _avatarUrl = avatarUrl;
-      _isAdmin = isAdmin;
-    });
+    await ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .loadUserInfo();
+    if (!mounted) return;
 
     _maybeShowTripDetailTutorial();
 
@@ -1160,6 +788,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     _subscribeUserTopic();
 
     // If logged in and viewing another user's trip, check social status
+    final userId = _userId;
     if (userId != null && _trip.userId != userId) {
       await _loadSocialStatus();
     }
@@ -1255,183 +884,73 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
   /// Load the current user's social relationship with the trip owner
   Future<void> _loadSocialStatus() async {
-    try {
-      // Check if following the trip owner by looking at our following list
-      final followingPage = await _userService.getFollowing(page: 0, size: 100);
-      final isFollowing =
-          followingPage.content.any((f) => f.followedId == _trip.userId);
-
-      // Check if already sent a friend request to the trip owner
-      final sentRequests = await _userService.getSentFriendRequests();
-      final pendingRequest = sentRequests.cast<FriendRequest?>().firstWhere(
-            (r) =>
-                r!.receiverId == _trip.userId &&
-                r.status == FriendRequestStatus.pending,
-            orElse: () => null,
-          );
-      final hasSentRequest = pendingRequest != null;
-      final requestId = pendingRequest?.id;
-
-      // Check if already friends with the trip owner
-      final friendsPage = await _userService.getFriends(page: 0, size: 100);
-      final isAlreadyFriends =
-          friendsPage.content.any((f) => f.friendId == _trip.userId);
-
-      if (mounted) {
-        setState(() {
-          _isFollowingTripOwner = isFollowing;
-          _hasSentFriendRequest = hasSentRequest;
-          _sentFriendRequestId = requestId;
-          _isAlreadyFriends = isAlreadyFriends;
-        });
-      }
-    } catch (e) {
-      // Silently fail - social features are optional
-      debugPrint('Failed to load social status: $e');
-    }
+    await ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .loadSocialStatus();
+    if (mounted) setState(() {});
   }
 
   Future<void> _checkLoginStatus() async {
-    final isLoggedIn = await _repository.isLoggedIn();
-    setState(() {
-      _isLoggedIn = isLoggedIn;
-    });
+    await ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .checkLoginStatus();
+    if (mounted) setState(() {});
   }
 
-  Future<void> _loadTripUpdates({int retryCount = 0}) async {
-    setState(() {
-      _isLoadingUpdates = true;
-      _currentUpdatesPage = 0;
-    });
-
+  Future<void> _loadTripUpdates() async {
     try {
-      final pageResponse = await _repository.loadTripUpdates(
-        _trip.id,
-        page: 0,
-        size: _updatesPageSize,
-      );
-      setState(() {
-        // Preserve WebSocket-added entries that the CQRS query model may
-        // not have propagated yet, so the timeline doesn't temporarily lose
-        // the most recent updates.
-        final apiIds = pageResponse.content.map((l) => l.id).toSet();
-        final wsOnlyUpdates = _tripUpdates
-            .where((u) => u.id.startsWith('ws_') && !apiIds.contains(u.id))
-            .toList();
-        _tripUpdates = [...wsOnlyUpdates, ...pageResponse.content];
-        _hasMoreUpdates = !pageResponse.last;
-        _isLoadingUpdates = false;
-      });
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .loadTripUpdates();
     } catch (e) {
-      setState(() => _isLoadingUpdates = false);
-      debugPrint(
-          'TripDetailScreen: Error loading trip updates (attempt ${retryCount + 1}): $e');
-
-      // Retry with exponential back-off if we haven't exhausted retries
-      if (retryCount < _maxRefreshRetries && mounted) {
-        final delay = Duration(seconds: 2 << retryCount); // 2s, 4s, 8s
-        debugPrint(
-            'TripDetailScreen: Scheduling updates retry in ${delay.inSeconds}s');
-        await Future.delayed(delay);
-        if (mounted) {
-          await _loadTripUpdates(retryCount: retryCount + 1);
-        }
-      } else if (mounted) {
+      if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error loading updates: $e');
       }
+    } finally {
+      if (mounted) setState(() {});
     }
   }
 
   Future<void> _loadMoreTripUpdates() async {
-    if (_isLoadingMoreUpdates || !_hasMoreUpdates) return;
-
-    setState(() => _isLoadingMoreUpdates = true);
-
     try {
-      final nextPage = _currentUpdatesPage + 1;
-      final pageResponse = await _repository.loadTripUpdates(
-        _trip.id,
-        page: nextPage,
-        size: _updatesPageSize,
-      );
-      setState(() {
-        _tripUpdates = [..._tripUpdates, ...pageResponse.content];
-        _currentUpdatesPage = nextPage;
-        _hasMoreUpdates = !pageResponse.last;
-        _isLoadingMoreUpdates = false;
-      });
-
-      // Update the map with the newly loaded older locations so
-      // the polyline extends further back in time.
-      final updatedLocations = <TripLocation>[
-        ...(_trip.locations ?? []),
-        ...pageResponse.content,
-      ];
-      // Deduplicate by ID
-      final seen = <String>{};
-      final deduped = updatedLocations.where((l) => seen.add(l.id)).toList();
-      setState(() {
-        _trip = _trip.copyWith(locations: deduped);
-      });
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .loadMoreTripUpdates();
       _updateMapData();
     } catch (e) {
-      setState(() => _isLoadingMoreUpdates = false);
       if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error loading more updates: $e');
       }
+    } finally {
+      if (mounted) setState(() {});
     }
   }
 
   Future<void> _loadPromotionInfo() async {
-    try {
-      final promotion = await _promotionQueryClient.getTripPromotion(_trip.id);
-      if (mounted) {
-        setState(() {
-          _isPromoted = true;
-          _donationLink = promotion.donationLink;
-        });
-      }
-    } catch (e) {
-      // Trip is not promoted — this is expected for most trips
-      if (mounted) {
-        setState(() {
-          _isPromoted = false;
-          _donationLink = null;
-        });
-      }
-    }
+    await ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .loadPromotionInfo();
+    if (mounted) setState(() {});
   }
 
-  /// Debounce achievement refresh so rapid-fire trip updates don't
-  /// hammer the API. Waits 3 seconds after the last trigger.
   void _debouncedAchievementRefresh() {
-    _achievementRefreshTimer?.cancel();
-    _achievementRefreshTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted) {
-        debugPrint(
-            'TripDetailScreen: Debounced achievement refresh for trip ${_trip.id}');
-        _loadTripAchievements();
-      }
-    });
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .debouncedAchievementRefresh();
   }
 
   Future<void> _loadTripAchievements() async {
-    try {
-      final achievements =
-          await _achievementService.getTripAchievements(_trip.id);
-      if (mounted) {
-        setState(() {
-          _tripAchievements = achievements;
-        });
-      }
-    } catch (e) {
-      // Silently fail — achievements are optional
-    }
+    await ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .loadTripAchievements();
+    if (mounted) setState(() {});
   }
 
   void _updateMapData() {
     debugPrint(
         'TripDetailScreen: Updating map data - locations: ${_trip.locations?.length}, encodedPolyline length: ${_trip.encodedPolyline?.length}');
+    final notifier =
+        ref.read(tripDetailNotifierProvider(widget.trip.id).notifier);
     try {
       final mapData = TripMapHelper.createMapDataWithDirections(
         _trip,
@@ -1439,12 +958,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         onPlannedMarkerTap: _onPlannedMarkerTapped,
         showPlannedWaypoints: _showPlannedWaypoints,
       );
-      setState(() {
-        _markers = mapData.markers;
-        _polylines = mapData.polylines;
-      });
-      debugPrint(
-          'TripDetailScreen: Map updated - markers: ${_markers.length}, polylines: ${_polylines.length}');
+      notifier.setMapMarkersAndPolylines(mapData.markers, mapData.polylines);
     } catch (e) {
       debugPrint(
           'TripDetailScreen: Error in createMapDataWithDirections, falling back to straight lines: $e');
@@ -1455,508 +969,124 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         onPlannedMarkerTap: _onPlannedMarkerTapped,
         showPlannedWaypoints: _showPlannedWaypoints,
       );
-      setState(() {
-        _markers = mapData.markers;
-        _polylines = mapData.polylines;
-      });
-      debugPrint(
-          'TripDetailScreen: Fallback map updated - markers: ${_markers.length}, polylines: ${_polylines.length}');
+      notifier.setMapMarkersAndPolylines(mapData.markers, mapData.polylines);
     }
   }
 
   void _onMapMarkerTapped(TripLocation location) {
-    setState(() {
-      _selectedMapLocation = location;
-      _selectedPlannedWaypoint = null; // clear other selection
-    });
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .selectMapLocation(location);
   }
 
   void _onPlannedMarkerTapped(PlannedWaypointInfo waypoint) {
-    setState(() {
-      _selectedPlannedWaypoint = waypoint;
-      _selectedMapLocation = null; // clear other selection
-    });
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .selectPlannedWaypoint(waypoint);
   }
 
   void _onInfoWindowClosed() {
-    setState(() {
-      _selectedMapLocation = null;
-      _selectedPlannedWaypoint = null;
-    });
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .clearMapSelection();
   }
 
   Future<void> _loadComments() async {
-    setState(() {
-      _isLoadingComments = true;
-      _currentCommentPage = 0;
-    });
-
     try {
-      final pageResponse = await _repository.loadComments(
-        _trip.id,
-        page: 0,
-        size: _commentPageSize,
-      );
-      setState(() {
-        _comments = pageResponse.content;
-        _hasMoreComments = !pageResponse.last;
-        _sortComments();
-        _isLoadingComments = false;
-      });
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .loadComments();
     } catch (e) {
-      setState(() => _isLoadingComments = false);
       if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error loading comments: $e');
       }
+    } finally {
+      if (mounted) setState(() {});
     }
   }
 
   Future<void> _loadMoreComments() async {
-    if (_isLoadingMoreComments || !_hasMoreComments) return;
-
-    setState(() => _isLoadingMoreComments = true);
-
     try {
-      final nextPage = _currentCommentPage + 1;
-      final pageResponse = await _repository.loadComments(
-        _trip.id,
-        page: nextPage,
-        size: _commentPageSize,
-      );
-      setState(() {
-        _comments = [..._comments, ...pageResponse.content];
-        _currentCommentPage = nextPage;
-        _hasMoreComments = !pageResponse.last;
-        _isLoadingMoreComments = false;
-      });
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .loadMoreComments();
     } catch (e) {
-      setState(() => _isLoadingMoreComments = false);
       if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error loading more comments: $e');
       }
-    }
-  }
-
-  void _sortComments() {
-    switch (_sortOption) {
-      case CommentSortOption.latest:
-        _comments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        break;
-      case CommentSortOption.oldest:
-        _comments.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-        break;
-      case CommentSortOption.mostReplies:
-        _comments.sort((a, b) => b.responsesCount.compareTo(a.responsesCount));
-        break;
-      case CommentSortOption.mostReactions:
-        _comments.sort((a, b) => b.reactionsCount.compareTo(a.reactionsCount));
-        break;
+    } finally {
+      if (mounted) setState(() {});
     }
   }
 
   void _changeSortOption(CommentSortOption option) {
-    setState(() {
-      _sortOption = option;
-      _sortComments();
-    });
-  }
-
-  Future<void> _loadReplies(String commentId) async {
-    try {
-      // First try to get replies from the already-loaded comment
-      final comment = _comments.firstWhere((c) => c.id == commentId);
-      if (comment.replies != null) {
-        // Use cached replies from the comment object (even if empty)
-        setState(() {
-          _replies[commentId] = comment.replies!;
-          _expandedComments[commentId] = true;
-        });
-        return;
-      }
-
-      // Fallback: fetch from API if replies are not cached
-      final replies = await _repository.loadReplies(commentId);
-      setState(() {
-        _replies[commentId] = replies;
-        _expandedComments[commentId] = true;
-      });
-    } catch (e) {
-      if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Error loading replies: $e');
-      }
-    }
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .changeSortOption(option);
   }
 
   Future<void> _addComment() async {
     final message = _commentController.text.trim();
     if (message.isEmpty) return;
 
-    setState(() => _isAddingComment = true);
-
     try {
-      String commentId;
-      if (_replyingToCommentId != null) {
-        // Add reply via API
-        commentId = await _repository.addReply(
-          _trip.id,
-          _replyingToCommentId!,
-          message,
-        );
-
-        // Optimistically add the reply to the UI immediately
-        final optimisticReply = Comment(
-          id: commentId,
-          tripId: _trip.id,
-          userId: _userId ?? '',
-          username: _username ?? 'You',
-          userAvatarUrl: _avatarUrl,
-          message: message,
-          parentCommentId: _replyingToCommentId,
-          individualReactions: const [],
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
-
-        setState(() {
-          final parentId = _replyingToCommentId!;
-          if (!_replies.containsKey(parentId)) {
-            _replies[parentId] = [];
-          }
-          // Check if comment already exists (shouldn't happen, but be safe)
-          if (!_replies[parentId]!.any((c) => c.id == commentId)) {
-            _replies[parentId] = [..._replies[parentId]!, optimisticReply];
-
-            // Update the parent comment's responsesCount only when actually adding a new reply
-            final parentIndex = _comments.indexWhere((c) => c.id == parentId);
-            if (parentIndex != -1) {
-              final parentComment = _comments[parentIndex];
-              _comments[parentIndex] = Comment(
-                id: parentComment.id,
-                tripId: parentComment.tripId,
-                userId: parentComment.userId,
-                username: parentComment.username,
-                userAvatarUrl: parentComment.userAvatarUrl,
-                message: parentComment.message,
-                parentCommentId: parentComment.parentCommentId,
-                reactions: parentComment.reactions,
-                individualReactions: parentComment.individualReactions,
-                replies: parentComment.replies,
-                reactionsCount: parentComment.reactionsCount,
-                responsesCount: parentComment.responsesCount + 1,
-                createdAt: parentComment.createdAt,
-                updatedAt: parentComment.updatedAt,
-              );
-            }
-          }
-
-          // Ensure the replies section is expanded so the new reply is visible
-          _expandedComments[parentId] = true;
-          _commentController.clear();
-          _replyingToCommentId = null;
-        });
-      } else {
-        // Add top-level comment via API
-        commentId = await _repository.addComment(_trip.id, message);
-
-        // Optimistically add the comment to the UI immediately
-        final optimisticComment = Comment(
-          id: commentId,
-          tripId: _trip.id,
-          userId: _userId ?? '',
-          username: _username ?? 'You',
-          userAvatarUrl: _avatarUrl,
-          message: message,
-          parentCommentId: null,
-          individualReactions: const [],
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
-
-        setState(() {
-          // Check if comment already exists (shouldn't happen, but be safe)
-          if (!_comments.any((c) => c.id == commentId)) {
-            _comments.insert(0, optimisticComment);
-            _sortComments();
-          }
-          _commentController.clear();
-        });
-      }
-
+      await ref.read(tripDetailNotifierProvider(widget.trip.id).notifier).addComment(
+            message,
+            currentUserId: _userId,
+            currentUsername: _username,
+            currentAvatarUrl: _avatarUrl,
+          );
+      _commentController.clear();
       if (mounted) {
+        setState(() {});
         UiHelpers.showSuccessMessage(context, 'Comment added!');
       }
     } catch (e) {
       if (mounted) {
         UiHelpers.showErrorMessage(context, 'Error adding comment: $e');
       }
-    } finally {
-      setState(() => _isAddingComment = false);
     }
-  }
-
-  /// Get the current user's reaction on a comment (if any)
-  ReactionType? _getUserReaction(String commentId) {
-    // Check top-level comments
-    final comment = _comments.firstWhere(
-      (c) => c.id == commentId,
-      orElse: () {
-        // Check in replies
-        for (final replies in _replies.values) {
-          final found = replies.firstWhere(
-            (r) => r.id == commentId,
-            orElse: () => Comment(
-              id: '',
-              tripId: '',
-              userId: '',
-              username: '',
-              message: '',
-              createdAt: DateTime.now(),
-              updatedAt: DateTime.now(),
-            ),
-          );
-          if (found.id.isNotEmpty) return found;
-        }
-        return Comment(
-          id: '',
-          tripId: '',
-          userId: '',
-          username: '',
-          message: '',
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
-      },
-    );
-
-    if (comment.id.isEmpty || comment.individualReactions == null) {
-      return null;
-    }
-
-    final userReaction = comment.individualReactions!.firstWhere(
-      (r) => r.userId == _userId,
-      orElse: () => Reaction(
-        userId: '',
-        username: '',
-        reactionType: ReactionType.heart,
-        timestamp: DateTime.now(),
-      ),
-    );
-
-    return userReaction.userId.isNotEmpty ? userReaction.reactionType : null;
   }
 
   Future<void> _handleReactionClick(String commentId, ReactionType type) async {
-    final currentReaction = _getUserReaction(commentId);
-
-    // Determine the target reaction state for optimistic update
-    // If clicking existing reaction → remove it (newReaction = null)
-    // If clicking different reaction → replace it (newReaction = type)
-    // If no current reaction → add it (newReaction = type)
-    final newReaction = currentReaction == type ? null : type;
-
-    // Optimistically update the UI first for immediate feedback
-    _applyOptimisticReactionUpdate(commentId, currentReaction, newReaction);
+    final currentReaction = ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .getUserReaction(commentId, _userId);
+    final isRemoving = currentReaction == type;
+    final isReplacing = !isRemoving && currentReaction != null;
 
     try {
-      if (currentReaction == type) {
-        // User clicked their existing reaction → remove it
-        debugPrint(
-            'Removing reaction: commentId=$commentId, type=${type.toJson()}');
-        await _repository.removeReaction(commentId, type);
-        if (mounted) {
-          UiHelpers.showSuccessMessage(context, 'Reaction removed!');
-        }
-      } else if (currentReaction != null) {
-        // User clicked a different reaction → backend will auto-replace
-        debugPrint(
-            'Replacing reaction: commentId=$commentId, from=${currentReaction.toJson()} to=${type.toJson()}');
-        await _repository.addReaction(commentId, type);
-        if (mounted) {
-          UiHelpers.showSuccessMessage(context, 'Reaction changed!');
-        }
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .handleReactionClick(
+            commentId,
+            type,
+            currentUserId: _userId,
+            currentUsername: _username,
+          );
+      if (!mounted) return;
+      setState(() {});
+      if (isRemoving) {
+        UiHelpers.showSuccessMessage(context, 'Reaction removed!');
+      } else if (isReplacing) {
+        UiHelpers.showSuccessMessage(context, 'Reaction changed!');
       } else {
-        // User has no reaction → add new one
-        debugPrint(
-            'Adding new reaction: commentId=$commentId, type=${type.toJson()}');
-        await _repository.addReaction(commentId, type);
-        if (mounted) {
-          UiHelpers.showSuccessMessage(context, 'Reaction added!');
-        }
+        UiHelpers.showSuccessMessage(context, 'Reaction added!');
       }
     } catch (e) {
-      // Enhanced error logging for debugging backend issues
-      debugPrint('Reaction error: $e');
-      debugPrint(
-          'Context: commentId=$commentId, targetType=${type.toJson()}, currentReaction=${currentReaction?.toJson()}');
-
-      // Revert the optimistic update on error
-      _revertOptimisticReactionUpdate(commentId, currentReaction, newReaction);
-
-      // Handle 409 Conflict (shouldn't happen with proper UI logic, but be safe)
+      if (!mounted) return;
+      setState(() {});
       final errorMessage = e.toString();
       if (errorMessage.contains('409') || errorMessage.contains('Conflict')) {
-        if (mounted) {
-          UiHelpers.showInfoMessage(
-              context, 'You already have this reaction on the comment');
-        }
+        UiHelpers.showInfoMessage(
+            context, 'You already have this reaction on the comment');
       } else if (errorMessage.contains('500')) {
-        // Backend error during reaction replacement
-        if (mounted) {
-          UiHelpers.showErrorMessage(context,
-              'Server error while changing reaction. This may be a backend issue.');
-        }
+        UiHelpers.showErrorMessage(context,
+            'Server error while changing reaction. This may be a backend issue.');
       } else {
-        if (mounted) {
-          UiHelpers.showErrorMessage(context, 'Error with reaction: $e');
-        }
+        UiHelpers.showErrorMessage(context, 'Error with reaction: $e');
       }
     }
-  }
-
-  void _applyOptimisticReactionUpdate(
-      String commentId, ReactionType? currentReaction, ReactionType? newType) {
-    setState(() {
-      _updateReactionInComments(commentId, currentReaction, newType,
-          isOptimistic: true);
-    });
-  }
-
-  void _revertOptimisticReactionUpdate(String commentId,
-      ReactionType? previousReaction, ReactionType? attemptedType) {
-    setState(() {
-      // Revert by applying the reverse operation
-      _updateReactionInComments(commentId, attemptedType, previousReaction,
-          isOptimistic: true);
-    });
-  }
-
-  void _updateReactionInComments(
-      String commentId, ReactionType? oldReaction, ReactionType? newReaction,
-      {bool isOptimistic = false}) {
-    // Find and update the comment in top-level comments
-    final commentIndex = _comments.indexWhere((c) => c.id == commentId);
-    if (commentIndex != -1) {
-      _updateCommentReaction(
-          _comments, commentIndex, oldReaction, newReaction, isOptimistic);
-      return;
-    }
-
-    // Check in replies
-    for (final parentId in _replies.keys) {
-      final replies = _replies[parentId]!;
-      final replyIndex = replies.indexWhere((c) => c.id == commentId);
-      if (replyIndex != -1) {
-        _updateReplyReaction(
-            parentId, replyIndex, oldReaction, newReaction, isOptimistic);
-        return;
-      }
-    }
-  }
-
-  void _updateCommentReaction(List<Comment> comments, int commentIndex,
-      ReactionType? oldReaction, ReactionType? newReaction, bool isOptimistic) {
-    final comment = comments[commentIndex];
-    final updatedReactions = Map<String, int>.from(comment.reactions ?? {});
-    final updatedIndividualReactions =
-        List<Reaction>.from(comment.individualReactions ?? []);
-
-    // Remove old reaction if exists
-    if (oldReaction != null) {
-      updatedIndividualReactions.removeWhere((r) => r.userId == _userId);
-      final oldCount = updatedReactions[oldReaction.toJson()] ?? 0;
-      if (oldCount > 1) {
-        updatedReactions[oldReaction.toJson()] = oldCount - 1;
-      } else {
-        updatedReactions.remove(oldReaction.toJson());
-      }
-    }
-
-    // Add new reaction if specified
-    if (newReaction != null) {
-      updatedIndividualReactions.add(Reaction(
-        userId: _userId ?? '',
-        username: _username ?? '',
-        reactionType: newReaction,
-        timestamp: DateTime.now(),
-      ));
-      updatedReactions[newReaction.toJson()] =
-          (updatedReactions[newReaction.toJson()] ?? 0) + 1;
-    }
-
-    final newReactionsCount =
-        updatedReactions.values.fold(0, (sum, count) => sum + count);
-
-    comments[commentIndex] = Comment(
-      id: comment.id,
-      tripId: comment.tripId,
-      userId: comment.userId,
-      username: comment.username,
-      userAvatarUrl: comment.userAvatarUrl,
-      message: comment.message,
-      parentCommentId: comment.parentCommentId,
-      reactions: updatedReactions.isEmpty ? null : updatedReactions,
-      individualReactions: updatedIndividualReactions.isEmpty
-          ? null
-          : updatedIndividualReactions,
-      replies: comment.replies,
-      reactionsCount: newReactionsCount,
-      responsesCount: comment.responsesCount,
-      createdAt: comment.createdAt,
-      updatedAt: comment.updatedAt,
-    );
-  }
-
-  void _updateReplyReaction(String parentId, int replyIndex,
-      ReactionType? oldReaction, ReactionType? newReaction, bool isOptimistic) {
-    final reply = _replies[parentId]![replyIndex];
-    final updatedReactions = Map<String, int>.from(reply.reactions ?? {});
-    final updatedIndividualReactions =
-        List<Reaction>.from(reply.individualReactions ?? []);
-
-    // Remove old reaction if exists
-    if (oldReaction != null) {
-      updatedIndividualReactions.removeWhere((r) => r.userId == _userId);
-      final oldCount = updatedReactions[oldReaction.toJson()] ?? 0;
-      if (oldCount > 1) {
-        updatedReactions[oldReaction.toJson()] = oldCount - 1;
-      } else {
-        updatedReactions.remove(oldReaction.toJson());
-      }
-    }
-
-    // Add new reaction if specified
-    if (newReaction != null) {
-      updatedIndividualReactions.add(Reaction(
-        userId: _userId ?? '',
-        username: _username ?? '',
-        reactionType: newReaction,
-        timestamp: DateTime.now(),
-      ));
-      updatedReactions[newReaction.toJson()] =
-          (updatedReactions[newReaction.toJson()] ?? 0) + 1;
-    }
-
-    final newReactionsCount =
-        updatedReactions.values.fold(0, (sum, count) => sum + count);
-
-    _replies[parentId]![replyIndex] = Comment(
-      id: reply.id,
-      tripId: reply.tripId,
-      userId: reply.userId,
-      username: reply.username,
-      userAvatarUrl: reply.userAvatarUrl,
-      message: reply.message,
-      parentCommentId: reply.parentCommentId,
-      reactions: updatedReactions.isEmpty ? null : updatedReactions,
-      individualReactions: updatedIndividualReactions.isEmpty
-          ? null
-          : updatedIndividualReactions,
-      replies: reply.replies,
-      reactionsCount: newReactionsCount,
-      responsesCount: reply.responsesCount,
-      createdAt: reply.createdAt,
-      updatedAt: reply.updatedAt,
-    );
   }
 
   Future<void> _addReaction(String commentId, ReactionType type) async {
@@ -1965,7 +1095,6 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   Future<void> _changeTripStatus(TripStatus newStatus) async {
-    // Validate that user is the trip owner
     if (_userId == null || _trip.userId != _userId) {
       if (mounted) {
         UiHelpers.showErrorMessage(
@@ -1974,96 +1103,39 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       return;
     }
 
-    setState(() => _isChangingStatus = true);
-
-    // Capture previous status before async gap — WebSocket may update _trip
-    // before the optimistic setState below runs.
-    final previousStatus = _trip.status;
-    final isMultiDay = _trip.tripModality == TripModality.multiDay;
+    if (newStatus == TripStatus.inProgress &&
+        _trip.automaticUpdates &&
+        _isAndroid) {
+      final hasPermission =
+          await _ensureLocationPermission(requireBackground: true);
+      if (!hasPermission) return;
+    }
 
     try {
-      // If starting/resuming with automatic updates, ensure background location
-      // permission is granted (shows prominent disclosure on Android).
-      if (newStatus == TripStatus.inProgress &&
-          _trip.automaticUpdates &&
-          _isAndroid) {
-        final hasPermission =
-            await _ensureLocationPermission(requireBackground: true);
-        if (!hasPermission) {
-          setState(() => _isChangingStatus = false);
-          return;
-        }
-      }
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .changeTripStatus(newStatus, isMultiDay: _trip.tripModality == TripModality.multiDay);
+      if (!mounted) return;
 
-      await _repository.changeTripStatus(_trip.id, newStatus);
-
-      // Send lifecycle trip update with GPS location (fire-and-forget)
-      // Backend no longer auto-creates these, so frontend sends them with location data
-      if (newStatus == TripStatus.inProgress &&
-          previousStatus == TripStatus.created) {
-        _repository
-            .sendLifecycleUpdate(
-          _trip.id,
-          updateType: TripUpdateType.tripStarted,
-          message: 'Trip Started!',
-        )
-            .catchError((e) {
-          debugPrint('Failed to send TRIP_STARTED update: $e');
-          return LocationUpdateResult.failure(
-              LocationFailureReason.unknownError);
-        });
-      } else if (newStatus == TripStatus.finished) {
-        _repository
-            .sendLifecycleUpdate(
-          _trip.id,
-          updateType: TripUpdateType.tripEnded,
-          message: 'Trip finished.',
-        )
-            .catchError((e) {
-          debugPrint('Failed to send TRIP_ENDED update: $e');
-          return LocationUpdateResult.failure(
-              LocationFailureReason.unknownError);
-        });
-      }
-
-      // Update local state optimistically - WebSocket will confirm the change
-      setState(() {
-        _trip = _trip.copyWith(
-          status: newStatus,
-          // When starting a multi-day trip, set currentDay to 1 immediately
-          // so the "Day 1" badge shows right away in the trip info card.
-          currentDay: (newStatus == TripStatus.inProgress &&
-                  previousStatus == TripStatus.created &&
-                  isMultiDay &&
-                  _trip.currentDay == null)
-              ? 1
-              : null,
-        );
-        _isChangingStatus = false;
-      });
-
-      // Manage background updates based on new status (Android only)
       if (_isAndroid) {
         final backgroundManager = BackgroundUpdateManager();
         if (newStatus == TripStatus.inProgress && _trip.automaticUpdates) {
-          // Start automatic updates when trip starts/resumes AND automatic updates is enabled
           await backgroundManager.startAutoUpdates(
             _trip.id,
             _trip.name,
             _trip.effectiveUpdateRefresh,
           );
         } else {
-          // Stop automatic updates when trip is paused/finished or automatic updates is disabled
           await backgroundManager.stopAutoUpdates(_trip.id);
         }
       }
 
-      // When starting a trip, center the map on the user's current location
       if (newStatus == TripStatus.inProgress) {
         await _centerMapOnCurrentLocation();
       }
 
       if (mounted) {
+        setState(() {});
         String message;
         switch (newStatus) {
           case TripStatus.inProgress:
@@ -2085,15 +1157,14 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         UiHelpers.showSuccessMessage(context, message);
       }
     } catch (e) {
-      setState(() => _isChangingStatus = false);
       if (mounted) {
+        setState(() {});
         UiHelpers.showErrorMessage(context, friendlyMessage(e));
       }
     }
   }
 
   Future<void> _changeTripVisibility(Visibility newVisibility) async {
-    // Validate that user is the trip owner
     if (_userId == null || _trip.userId != _userId) {
       if (mounted) {
         UiHelpers.showErrorMessage(
@@ -2103,14 +1174,11 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     }
 
     try {
-      await _repository.changeTripVisibility(_trip.id, newVisibility);
-
-      // Update local state optimistically - WebSocket will confirm the change
-      setState(() {
-        _trip = _trip.copyWith(visibility: newVisibility);
-      });
-
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .changeTripVisibility(newVisibility);
       if (mounted) {
+        setState(() {});
         UiHelpers.showSuccessMessage(
           context,
           'Visibility changed to ${newVisibility.toJson()}',
@@ -2155,7 +1223,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     if (confirm != true || !mounted) return;
 
     try {
-      await _repository.deleteTrip(_trip.id);
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .deleteTrip();
       if (mounted) {
         UiHelpers.showSuccessMessage(context, 'Trip deleted');
         Navigator.of(context).pushAndRemoveUntil(
@@ -2206,82 +1276,41 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
       if (confirmed != true || !mounted) return false;
 
-      setState(() => _isChangingStatus = true);
-
       try {
-        await _repository.toggleDay(_trip.id);
+        await ref
+            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+            .toggleDay(isFinishingDay: true);
+        if (!mounted) return false;
 
-        // Send DAY_END lifecycle update with GPS location (fire-and-forget)
-        _repository
-            .sendLifecycleUpdate(
-          _trip.id,
-          updateType: TripUpdateType.dayEnd,
-          message: 'Day $_currentDay finished',
-        )
-            .catchError((e) {
-          debugPrint('Failed to send DAY_END update: $e');
-          return LocationUpdateResult.failure(
-              LocationFailureReason.unknownError);
-        });
-
-        // Update local state optimistically — WebSocket will confirm
-        setState(() {
-          _trip = _trip.copyWith(status: TripStatus.resting);
-          _isChangingStatus = false;
-        });
-
-        // Stop background updates while resting (Android only)
         if (_isAndroid) {
           final backgroundManager = BackgroundUpdateManager();
           await backgroundManager.stopAutoUpdates(_trip.id);
         }
 
-        // Refresh timeline to show the day-end marker
         if (mounted) {
+          setState(() {});
           UiHelpers.showSuccessMessage(context, 'Resting for the night');
           await _loadTripUpdates();
         }
         return true;
       } catch (e) {
-        setState(() => _isChangingStatus = false);
         if (mounted) {
+          setState(() {});
           UiHelpers.showErrorMessage(context, 'Error ending day: $e');
         }
         return false;
       }
     } else if (_trip.status == TripStatus.resting) {
-      // --- Begin Day: no confirmation needed → toggle day ---
-      setState(() => _isChangingStatus = true);
-
       try {
-        await _repository.toggleDay(_trip.id);
+        await ref
+            .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+            .toggleDay(isFinishingDay: false);
+        if (!mounted) return false;
 
-        // Send DAY_START lifecycle update with GPS location (fire-and-forget)
-        _repository
-            .sendLifecycleUpdate(
-          _trip.id,
-          updateType: TripUpdateType.dayStart,
-          message: 'Day ${_currentDay + 1} started!',
-        )
-            .catchError((e) {
-          debugPrint('Failed to send DAY_START update: $e');
-          return LocationUpdateResult.failure(
-              LocationFailureReason.unknownError);
-        });
-
-        // Update local state optimistically — WebSocket will confirm
-        setState(() {
-          _trip = _trip.copyWith(
-            status: TripStatus.inProgress,
-            currentDay: _currentDay + 1,
-          );
-          _isChangingStatus = false;
-        });
-
-        // Resume background updates if enabled (Android only)
         if (_isAndroid && _trip.automaticUpdates) {
           final hasPermission =
               await _ensureLocationPermission(requireBackground: true);
+          if (!mounted) return false;
           if (hasPermission) {
             final backgroundManager = BackgroundUpdateManager();
             await backgroundManager.startAutoUpdates(
@@ -2292,15 +1321,15 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           }
         }
 
-        // Refresh timeline to show the day-start marker
         if (mounted) {
+          setState(() {});
           UiHelpers.showSuccessMessage(context, 'Day $_currentDay started!');
           await _loadTripUpdates();
         }
         return true;
       } catch (e) {
-        setState(() => _isChangingStatus = false);
         if (mounted) {
+          setState(() {});
           UiHelpers.showErrorMessage(context, 'Error starting day: $e');
         }
         return false;
@@ -2311,7 +1340,6 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
   Future<void> _handleSettingsChange(bool automaticUpdates, int? updateRefresh,
       TripModality? tripModality) async {
-    // Only trip owner can change settings
     if (_userId == null || _trip.userId != _userId) {
       if (mounted) {
         UiHelpers.showErrorMessage(
@@ -2320,57 +1348,36 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       return;
     }
 
-    setState(() => _isChangingSettings = true);
+    if (automaticUpdates && _isAndroid) {
+      final hasPermission =
+          await _ensureLocationPermission(requireBackground: true);
+      if (!hasPermission) return;
+    }
 
     try {
-      // If enabling automatic updates on Android, ensure background location
-      // permission is granted (shows prominent disclosure).
-      if (automaticUpdates && _isAndroid) {
-        final hasPermission =
-            await _ensureLocationPermission(requireBackground: true);
-        if (!hasPermission) {
-          setState(() => _isChangingSettings = false);
-          return;
-        }
-      }
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .changeTripSettings(automaticUpdates, updateRefresh, tripModality);
+      if (!mounted) return;
 
-      await _repository.changeTripSettings(
-        _trip.id,
-        automaticUpdates,
-        updateRefresh,
-        tripModality: tripModality,
-      );
-
-      // Update local state optimistically - WebSocket will confirm the change
-      setState(() {
-        _trip = _trip.copyWith(
-          automaticUpdates: automaticUpdates,
-          updateRefresh: updateRefresh,
-          tripModality: tripModality ?? _trip.tripModality,
-        );
-        _isChangingSettings = false;
-      });
-
-      // Manage background updates based on new settings (Android only)
       if (_isAndroid && _trip.status == TripStatus.inProgress) {
         final backgroundManager = BackgroundUpdateManager();
         if (automaticUpdates && updateRefresh != null) {
-          // Start/restart automatic updates with new interval
           await backgroundManager.startAutoUpdates(
               _trip.id, _trip.name, updateRefresh);
         } else {
-          // Stop automatic updates when disabled
           await backgroundManager.stopAutoUpdates(_trip.id);
         }
       }
 
       if (mounted) {
+        setState(() {});
         UiHelpers.showSuccessMessage(
             context, 'Trip settings updated successfully');
       }
     } catch (e) {
-      setState(() => _isChangingSettings = false);
       if (mounted) {
+        setState(() {});
         UiHelpers.showErrorMessage(context, 'Error updating settings: $e');
       }
     }
@@ -2398,15 +1405,23 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   void _handleReply(String commentId) {
-    setState(() => _replyingToCommentId = commentId);
+    ref
+        .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+        .setReplyingTo(commentId);
     FocusScope.of(context).requestFocus(FocusNode());
   }
 
-  void _handleToggleReplies(String commentId, bool isExpanded) {
-    if (isExpanded) {
-      setState(() => _expandedComments[commentId] = false);
-    } else {
-      _loadReplies(commentId);
+  Future<void> _handleToggleReplies(String commentId, bool isExpanded) async {
+    try {
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .toggleRepliesExpanded(commentId, isExpanded);
+    } catch (e) {
+      if (mounted) {
+        UiHelpers.showErrorMessage(context, 'Error loading replies: $e');
+      }
+    } finally {
+      if (mounted) setState(() {});
     }
   }
 
@@ -2431,31 +1446,22 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   Future<void> _sendManualUpdate(String? message) async {
-    setState(() => _isSendingUpdate = true);
-
     try {
-      // Ensure location permissions are granted before calling the service.
-      // The service intentionally does NOT request permissions (it's a UI concern).
       final permissionReady = await _ensureLocationPermission();
-      if (!permissionReady) {
-        return;
-      }
+      if (!permissionReady) return;
 
-      final result =
-          await _repository.sendTripUpdate(_trip.id, message: message);
+      final result = await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .sendManualUpdate(message);
 
       if (mounted) {
+        setState(() {});
         if (result.isSuccess) {
           UiHelpers.showSuccessMessage(context, 'Update sent successfully!');
-          // Delay the timeline refresh so the CQRS query model has time to
-          // propagate the new update. The WebSocket event handles the
-          // immediate map / marker update; this is only for timeline
-          // consistency.
           Future.delayed(const Duration(seconds: 2), () {
             if (mounted) _loadTripUpdates();
           });
 
-          // Reschedule automatic updates after manual update (Android only)
           if (_isAndroid &&
               _trip.status == TripStatus.inProgress &&
               _trip.automaticUpdates) {
@@ -2475,9 +1481,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         UiHelpers.showErrorMessage(context, 'Error sending update: $e');
       }
     } finally {
-      if (mounted) {
-        setState(() => _isSendingUpdate = false);
-      }
+      if (mounted) setState(() {});
     }
   }
 
@@ -2634,36 +1638,28 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   Future<void> _handleFollowTripOwner() async {
     if (!_isLoggedIn || _trip.userId == _userId) return;
 
-    // Toggle between follow and unfollow
-    if (_isFollowingTripOwner) {
-      try {
-        await _userService.unfollowUser(_trip.userId);
-        setState(() {
-          _isFollowingTripOwner = false;
-        });
-        if (mounted) {
-          UiHelpers.showSuccessMessage(
-              context, 'Unfollowed @${_trip.username}');
-        }
-      } catch (e) {
-        if (mounted) {
-          UiHelpers.showErrorMessage(context, 'Failed to unfollow user: $e');
-        }
+    final wasFollowing = _isFollowingTripOwner;
+    try {
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .followTripOwner();
+      if (mounted) {
+        setState(() {});
+        UiHelpers.showSuccessMessage(
+          context,
+          wasFollowing
+              ? 'Unfollowed @${_trip.username}'
+              : 'You are now following @${_trip.username}',
+        );
       }
-    } else {
-      try {
-        await _userService.followUser(_trip.userId);
-        setState(() {
-          _isFollowingTripOwner = true;
-        });
-        if (mounted) {
-          UiHelpers.showSuccessMessage(
-              context, 'You are now following @${_trip.username}');
-        }
-      } catch (e) {
-        if (mounted) {
-          UiHelpers.showErrorMessage(context, 'Failed to follow user: $e');
-        }
+    } catch (e) {
+      if (mounted) {
+        UiHelpers.showErrorMessage(
+          context,
+          wasFollowing
+              ? 'Failed to unfollow user: $e'
+              : 'Failed to follow user: $e',
+        );
       }
     }
   }
@@ -2671,58 +1667,32 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   Future<void> _handleSendFriendRequestToTripOwner() async {
     if (!_isLoggedIn || _trip.userId == _userId) return;
 
-    // If already friends, allow unfriending
-    if (_isAlreadyFriends) {
-      try {
-        await _userService.removeFriend(_trip.userId);
-        setState(() {
-          _isAlreadyFriends = false;
-        });
-        if (mounted) {
-          UiHelpers.showSuccessMessage(
-              context, 'You are no longer friends with @${_trip.username}');
-        }
-      } catch (e) {
-        if (mounted) {
-          UiHelpers.showErrorMessage(context, 'Failed to remove friend: $e');
-        }
-      }
-      return;
-    }
+    final wasAlreadyFriends = _isAlreadyFriends;
+    final wasCancelling = _hasSentFriendRequest && _sentFriendRequestId != null;
 
-    // Cancel existing friend request
-    if (_hasSentFriendRequest && _sentFriendRequestId != null) {
-      try {
-        await _userService.deleteFriendRequest(_sentFriendRequestId!);
-        setState(() {
-          _hasSentFriendRequest = false;
-          _sentFriendRequestId = null;
-        });
-        if (mounted) {
-          UiHelpers.showSuccessMessage(context, 'Friend request cancelled');
-        }
-      } catch (e) {
-        if (mounted) {
-          UiHelpers.showErrorMessage(
-              context, 'Failed to cancel friend request: $e');
-        }
-      }
-      return;
-    }
-
-    // Send new friend request
     try {
-      final requestId = await _userService.sendFriendRequest(_trip.userId);
-      setState(() {
-        _hasSentFriendRequest = true;
-        _sentFriendRequestId = requestId;
-      });
-      if (mounted) {
+      await ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .sendFriendRequestToTripOwner();
+      if (!mounted) return;
+      setState(() {});
+      if (wasAlreadyFriends) {
+        UiHelpers.showSuccessMessage(
+            context, 'You are no longer friends with @${_trip.username}');
+      } else if (wasCancelling) {
+        UiHelpers.showSuccessMessage(context, 'Friend request cancelled');
+      } else {
         UiHelpers.showSuccessMessage(
             context, 'Friend request sent to @${_trip.username}');
       }
     } catch (e) {
-      if (mounted) {
+      if (!mounted) return;
+      if (wasAlreadyFriends) {
+        UiHelpers.showErrorMessage(context, 'Failed to remove friend: $e');
+      } else if (wasCancelling) {
+        UiHelpers.showErrorMessage(
+            context, 'Failed to cancel friend request: $e');
+      } else {
         UiHelpers.showErrorMessage(
             context, 'Failed to send friend request: $e');
       }
@@ -3047,7 +2017,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       onReply: _handleReply,
       onToggleReplies: _handleToggleReplies,
       onSendComment: _addComment,
-      onCancelReply: () => setState(() => _replyingToCommentId = null),
+      onCancelReply: () => ref
+          .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+          .setReplyingTo(null),
       onLoadMoreComments: _hasMoreComments ? _loadMoreComments : null,
       onStatusChange: _changeTripStatus,
       onSettingsChange: _handleSettingsChange,
@@ -3066,9 +2038,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           _isLoggedIn && _trip.userId == _userId ? _handleDeleteTrip : null,
       onTogglePlannedWaypoints: _trip.hasPlannedRoute
           ? () {
-              setState(() {
-                _showPlannedWaypoints = !_showPlannedWaypoints;
-              });
+              ref
+                  .read(tripDetailNotifierProvider(widget.trip.id).notifier)
+                  .setShowPlannedWaypoints(!_showPlannedWaypoints);
               _updateMapData();
             }
           : null,

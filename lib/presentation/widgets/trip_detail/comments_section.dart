@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/comment_card.dart';
@@ -6,8 +7,6 @@ import 'package:wanderer_frontend/presentation/widgets/trip_detail/comment_input
 import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/base_panel.dart';
-
-enum CommentSortOption { latest, oldest, mostReplies, mostReactions }
 
 /// Widget displaying the full comments section with glassmorphism design
 /// Supports collapsible bubble state
