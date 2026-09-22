@@ -7,12 +7,16 @@ import 'package:wanderer_frontend/data/repositories/auth_repository.dart';
 
 /// Screen that handles the email verification flow.
 ///
-/// On web: automatically extracts the `token` query parameter from the URL
-/// and calls the verify-email endpoint.
-///
-/// On mobile: displays a text field so the user can paste the token manually.
+/// If constructed with a non-empty [initialToken] (typically supplied by the
+/// router, e.g. from a `/verify-email?token=...` route), it auto-verifies
+/// immediately on any platform. Otherwise, on web it falls back to reading
+/// the `token` query parameter from the URL. If no token is available from
+/// either source, it shows a manual entry form where the user can paste the
+/// token themselves.
 class VerifyEmailScreen extends ConsumerStatefulWidget {
-  const VerifyEmailScreen({super.key});
+  final String? initialToken;
+
+  const VerifyEmailScreen({super.key, this.initialToken});
 
   @override
   ConsumerState<VerifyEmailScreen> createState() => _VerifyEmailScreenState();
@@ -30,8 +34,18 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
   void initState() {
     super.initState();
     _repository = ref.read(authRepositoryProvider);
-    // On web, read the token from the URL query string automatically
-    if (kIsWeb) {
+
+    final initialToken = widget.initialToken;
+    if (initialToken != null && initialToken.isNotEmpty) {
+      // A token was already extracted by the router (e.g. from a
+      // /verify-email?token=... route) — verify immediately on any
+      // platform instead of only on web.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _verifyToken(initialToken);
+      });
+    } else if (kIsWeb) {
+      // Fallback: read the token from the browser URL directly (covers
+      // navigation that bypassed the router's own query-param parsing).
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _tryVerifyFromUrl();
       });

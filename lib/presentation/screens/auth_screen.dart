@@ -6,6 +6,7 @@ import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/data/repositories/auth_repository.dart';
+import 'package:wanderer_frontend/presentation/screens/verify_email_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/auth_form.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/forgot_password_form.dart';
 
@@ -172,6 +173,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     });
   }
 
+  void _navigateToManualVerification() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const VerifyEmailScreen()),
+    );
+  }
+
   void _toggleMode() {
     setState(() {
       _isLogin = !_isLogin;
@@ -239,6 +246,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             onSubmit: _submit,
                             onToggleMode: _toggleMode,
                             onForgotPassword: _forgotPassword,
+                            onNeedVerificationToken:
+                                _navigateToManualVerification,
                           ),
               ),
             ),
@@ -337,7 +346,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             const SizedBox(height: 16),
             Text(
               'We sent a verification link to ${_emailController.text.trim()}. '
-              'Click the link in the email to complete your registration.',
+              'Click the link in the email to complete your registration. '
+              "It also includes a verification token you can enter manually if the link doesn't work.",
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 15),
             ),
@@ -352,6 +362,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 });
               },
               child: Text(l10n.backToLogin),
+            ),
+            TextButton(
+              onPressed: _navigateToManualVerification,
+              child: const Text('Enter verification token manually'),
             ),
           ],
         ),
