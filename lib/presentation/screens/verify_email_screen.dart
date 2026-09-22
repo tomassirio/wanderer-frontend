@@ -12,7 +12,9 @@ import 'package:wanderer_frontend/data/repositories/auth_repository.dart';
 ///
 /// On mobile: displays a text field so the user can paste the token manually.
 class VerifyEmailScreen extends ConsumerStatefulWidget {
-  const VerifyEmailScreen({super.key});
+  final String? initialToken;
+
+  const VerifyEmailScreen({super.key, this.initialToken});
 
   @override
   ConsumerState<VerifyEmailScreen> createState() => _VerifyEmailScreenState();
@@ -30,8 +32,18 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
   void initState() {
     super.initState();
     _repository = ref.read(authRepositoryProvider);
-    // On web, read the token from the URL query string automatically
-    if (kIsWeb) {
+
+    final initialToken = widget.initialToken;
+    if (initialToken != null && initialToken.isNotEmpty) {
+      // A token was already extracted by the router (e.g. from a
+      // /verify-email?token=... route) — verify immediately on any
+      // platform instead of only on web.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _verifyToken(initialToken);
+      });
+    } else if (kIsWeb) {
+      // Fallback: read the token from the browser URL directly (covers
+      // navigation that bypassed the router's own query-param parsing).
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _tryVerifyFromUrl();
       });
