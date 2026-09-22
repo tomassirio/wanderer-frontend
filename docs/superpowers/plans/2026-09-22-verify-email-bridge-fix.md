@@ -551,6 +551,143 @@ git commit -m "fix: stop auto-redirecting verified users into the web login; poi
 
 ---
 
+---
+
+### Task 5: Manual verification entry point also reachable from the login screen
+
+**Added after the final whole-branch review:** Task 3's button only lives inside `_registrationPending` state in `AuthScreen`, reachable only in the same app session immediately after submitting the signup form. A user who closes the app and comes back later to check their email has no way back to `VerifyEmailScreen` at all. This task adds the same entry point to the ordinary login view, which is what a returning user actually lands on.
+
+**Files:**
+- Modify: `wanderer-frontend/lib/presentation/widgets/auth/auth_form.dart`
+- Modify: `wanderer-frontend/lib/presentation/screens/auth_screen.dart`
+- Test: `wanderer-frontend/test/widgets/auth_form_verification_link_test.dart` (new)
+
+**Interfaces:**
+- Consumes: `VerifyEmailScreen({String? initialToken})` from Task 1; `AuthScreen._navigateToManualVerification()` from Task 3 (already exists, currently only wired to the pending-registration button).
+- Produces: `AuthForm` gains a new required `VoidCallback onNeedVerificationToken` parameter.
+
+- [ ] **Step 1: Write the failing test**
+
+```dart
+// wanderer-frontend/test/widgets/auth_form_verification_link_test.dart
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wanderer_frontend/presentation/widgets/auth/auth_form.dart';
+
+void main() {
+  Widget buildForm({required bool isLogin, required VoidCallback onNeedCode}) {
+    return MaterialApp(
+      home: Scaffold(
+        body: AuthForm(
+          formKey: GlobalKey<FormState>(),
+          isLogin: isLogin,
+          isLoading: false,
+          usernameController: TextEditingController(),
+          emailController: TextEditingController(),
+          passwordController: TextEditingController(),
+          confirmPasswordController: TextEditingController(),
+          onSubmit: () {},
+          onToggleMode: () {},
+          onForgotPassword: () {},
+          onNeedVerificationToken: onNeedCode,
+        ),
+      ),
+    );
+  }
+
+  testWidgets('shows "Have a verification token?" in login mode and taps through',
+      (tester) async {
+    var tapped = false;
+
+    await tester.pumpWidget(
+      buildForm(isLogin: true, onNeedCode: () => tapped = true),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Have a verification token?'), findsOneWidget);
+
+    await tester.tap(find.text('Have a verification token?'));
+    await tester.pump();
+
+    expect(tapped, isTrue);
+  });
+
+  testWidgets('does not show the link in signup mode', (tester) async {
+    await tester.pumpWidget(
+      buildForm(isLogin: false, onNeedCode: () {}),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Have a verification token?'), findsNothing);
+  });
+}
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `flutter test test/widgets/auth_form_verification_link_test.dart`
+Expected: FAIL — `AuthForm` has no `onNeedVerificationToken` parameter (compile error).
+
+- [ ] **Step 3: Add the parameter and button to `AuthForm`**
+
+In `lib/presentation/widgets/auth/auth_form.dart`, add the field and constructor parameter alongside the existing callbacks:
+
+```dart
+  final VoidCallback onForgotPassword;
+  final VoidCallback onNeedVerificationToken;
+```
+
+```dart
+    required this.onForgotPassword,
+    required this.onNeedVerificationToken,
+```
+
+Then, in `build()`, extend the existing `if (widget.isLogin)` block that currently renders only the "Forgot Password?" button (the block right after the confirm-password section) so it renders both buttons in a row:
+
+```dart
+                // Forgot password / need verification token (only for login)
+                if (widget.isLogin)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        onPressed: widget.isLoading
+                            ? null
+                            : widget.onNeedVerificationToken,
+                        child: const Text('Have a verification token?'),
+                      ),
+                      TextButton(
+                        onPressed:
+                            widget.isLoading ? null : widget.onForgotPassword,
+                        child: Text(l10n.forgotPassword),
+                      ),
+                    ],
+                  ),
+```
+
+Replace the old standalone `Align(... TextButton(forgotPassword) ...)` block with this `Row`.
+
+- [ ] **Step 4: Wire it in `AuthScreen`**
+
+In `lib/presentation/screens/auth_screen.dart`, add `onNeedVerificationToken: _navigateToManualVerification,` to the `AuthForm(...)` constructor call (the `_navigateToManualVerification` method already exists from Task 3 — reuse it, do not duplicate it).
+
+- [ ] **Step 5: Run test to verify it passes**
+
+Run: `flutter test test/widgets/auth_form_verification_link_test.dart`
+Expected: PASS
+
+- [ ] **Step 6: Run the full test suite to confirm no regressions in AuthForm/AuthScreen consumers**
+
+Run: `flutter test test/widgets/auth_screen_registration_pending_test.dart test/`
+Expected: all tests still pass (any existing test that constructs `AuthForm` directly will need `onNeedVerificationToken` added — search for other call sites with `grep -rn "AuthForm(" test/ lib/` and update any found).
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add lib/presentation/widgets/auth/auth_form.dart lib/presentation/screens/auth_screen.dart test/widgets/auth_form_verification_link_test.dart
+git commit -m "feat: surface the manual email-verification entry point from the login screen too"
+```
+
 ## Self-Review Notes
 
 - **Spec coverage:** Task 1+2 fix the two concrete bugs found in root-cause investigation (dropped token, `kIsWeb` gate). Task 3 is the load-bearing fix — a discoverable in-app path that doesn't depend on any deep-link plumbing (none exists, and building it was explicitly out of scope). Task 4 stops the backend from actively working against Task 3 by yanking mobile users into a web login. All four together close the "verify → stranded outside the app" gap without adding deep-link infrastructure.
