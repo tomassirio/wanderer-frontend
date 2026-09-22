@@ -10,8 +10,9 @@ class VerifyEmailRouteStrategy implements RouteStrategy {
 
   @override
   PageRoute build(Uri uri, RouteSettings settings) {
+    final token = uri.queryParameters['token'];
     return PageTransitions.fade(
-      const VerifyEmailScreen(),
+      VerifyEmailScreen(initialToken: token),
     );
   }
 }
