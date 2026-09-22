@@ -33,7 +33,8 @@ void main() {
     'shows a manual verification entry point after registering, '
     'which navigates to VerifyEmailScreen',
     (tester) async {
-      when(mockRepository.register('newuser', 'newuser@example.com', 'Password1!'))
+      when(mockRepository.register(
+              'newuser', 'newuser@example.com', 'Password1!'))
           .thenAnswer((_) async => RegisterPendingResponse(
                 message: 'Registration pending.',
               ));
@@ -57,9 +58,9 @@ void main() {
 
       await fillAndSubmitRegistrationForm(tester);
 
-      expect(find.text('Enter verification code manually'), findsOneWidget);
+      expect(find.text('Enter verification token manually'), findsOneWidget);
 
-      await tester.tap(find.text('Enter verification code manually'));
+      await tester.tap(find.text('Enter verification token manually'));
       await tester.pumpAndSettle();
 
       expect(find.byType(VerifyEmailScreen), findsOneWidget);

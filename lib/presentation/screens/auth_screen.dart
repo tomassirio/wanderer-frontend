@@ -344,7 +344,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             const SizedBox(height: 16),
             Text(
               'We sent a verification link to ${_emailController.text.trim()}. '
-              'Click the link in the email to complete your registration.',
+              'Click the link in the email to complete your registration. '
+              "It also includes a verification token you can enter below if the link doesn't work.",
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 15),
             ),
@@ -362,7 +363,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             ),
             TextButton(
               onPressed: _navigateToManualVerification,
-              child: const Text('Enter verification code manually'),
+              child: const Text('Enter verification token manually'),
             ),
           ],
         ),

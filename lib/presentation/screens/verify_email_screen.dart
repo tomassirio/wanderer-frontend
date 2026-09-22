@@ -7,10 +7,12 @@ import 'package:wanderer_frontend/data/repositories/auth_repository.dart';
 
 /// Screen that handles the email verification flow.
 ///
-/// On web: automatically extracts the `token` query parameter from the URL
-/// and calls the verify-email endpoint.
-///
-/// On mobile: displays a text field so the user can paste the token manually.
+/// If constructed with a non-empty [initialToken] (typically supplied by the
+/// router, e.g. from a `/verify-email?token=...` route), it auto-verifies
+/// immediately on any platform. Otherwise, on web it falls back to reading
+/// the `token` query parameter from the URL. If no token is available from
+/// either source, it shows a manual entry form where the user can paste the
+/// token themselves.
 class VerifyEmailScreen extends ConsumerStatefulWidget {
   final String? initialToken;
 

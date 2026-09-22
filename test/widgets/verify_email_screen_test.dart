@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
-import 'package:wanderer_frontend/data/models/auth_models.dart';
 import 'package:wanderer_frontend/data/repositories/auth_repository.dart';
 import 'package:wanderer_frontend/presentation/screens/verify_email_screen.dart';
 

@@ -1,16 +1,25 @@
-// wanderer-frontend/test/core/verify_email_route_strategy_test.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
+import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/routing/strategies/verify_email_route_strategy.dart';
+import 'package:wanderer_frontend/data/repositories/auth_repository.dart';
 import 'package:wanderer_frontend/presentation/screens/verify_email_screen.dart';
 
+import 'verify_email_route_strategy_test.mocks.dart';
+
+@GenerateMocks([AuthRepository])
 void main() {
   group('VerifyEmailRouteStrategy', () {
     late VerifyEmailRouteStrategy strategy;
+    late MockAuthRepository mockRepository;
 
     setUp(() {
       strategy = VerifyEmailRouteStrategy();
+      mockRepository = MockAuthRepository();
+      when(mockRepository.verifyEmail(any)).thenAnswer((_) async {});
     });
 
     group('matches', () {
@@ -40,6 +49,9 @@ void main() {
 
         await tester.pumpWidget(
           ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWithValue(mockRepository),
+            ],
             child: MaterialApp(onGenerateRoute: (_) => route),
           ),
         );
@@ -49,6 +61,11 @@ void main() {
           find.byType(VerifyEmailScreen),
         );
         expect(screen.initialToken, 'abc123');
+
+        // Drain the 2s post-verification navigation timer VerifyEmailScreen
+        // schedules on successful verification, so the pending-timer check
+        // in tearDown doesn't fail.
+        await tester.pump(const Duration(seconds: 3));
       });
 
       testWidgets('builds VerifyEmailScreen without token when absent',
@@ -59,6 +76,9 @@ void main() {
 
         await tester.pumpWidget(
           ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWithValue(mockRepository),
+            ],
             child: MaterialApp(onGenerateRoute: (_) => route),
           ),
         );
