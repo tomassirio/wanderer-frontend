@@ -21,6 +21,7 @@ class AuthForm extends StatefulWidget {
   final VoidCallback onSubmit;
   final VoidCallback onToggleMode;
   final VoidCallback onForgotPassword;
+  final VoidCallback onNeedVerificationToken;
 
   const AuthForm({
     super.key,
@@ -35,6 +36,7 @@ class AuthForm extends StatefulWidget {
     required this.onSubmit,
     required this.onToggleMode,
     required this.onForgotPassword,
+    required this.onNeedVerificationToken,
   });
 
   @override
@@ -138,15 +140,24 @@ class _AuthFormState extends State<AuthForm> {
                   const SizedBox(height: 12),
                 ],
 
-                // Forgot password button (only for login)
+                // Forgot password / need verification token (only for login)
                 if (widget.isLogin)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed:
-                          widget.isLoading ? null : widget.onForgotPassword,
-                      child: Text(l10n.forgotPassword),
-                    ),
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      TextButton(
+                        onPressed: widget.isLoading
+                            ? null
+                            : widget.onNeedVerificationToken,
+                        child: const Text('Have a verification token?'),
+                      ),
+                      TextButton(
+                        onPressed:
+                            widget.isLoading ? null : widget.onForgotPassword,
+                        child: Text(l10n.forgotPassword),
+                      ),
+                    ],
                   ),
 
                 // Error message

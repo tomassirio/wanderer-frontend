@@ -246,6 +246,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             onSubmit: _submit,
                             onToggleMode: _toggleMode,
                             onForgotPassword: _forgotPassword,
+                            onNeedVerificationToken:
+                                _navigateToManualVerification,
                           ),
               ),
             ),
