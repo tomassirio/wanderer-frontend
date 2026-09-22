@@ -6,6 +6,7 @@ import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/data/repositories/auth_repository.dart';
+import 'package:wanderer_frontend/presentation/screens/verify_email_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/auth_form.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/forgot_password_form.dart';
 
@@ -170,6 +171,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       _errorMessage = null;
       _emailController.clear();
     });
+  }
+
+  void _navigateToManualVerification() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const VerifyEmailScreen()),
+    );
   }
 
   void _toggleMode() {
@@ -352,6 +359,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 });
               },
               child: Text(l10n.backToLogin),
+            ),
+            TextButton(
+              onPressed: _navigateToManualVerification,
+              child: const Text('Enter verification code manually'),
             ),
           ],
         ),
