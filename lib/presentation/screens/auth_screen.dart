@@ -347,7 +347,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             Text(
               'We sent a verification link to ${_emailController.text.trim()}. '
               'Click the link in the email to complete your registration. '
-              "It also includes a verification token you can enter below if the link doesn't work.",
+              "It also includes a verification token you can enter manually if the link doesn't work.",
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 15),
             ),

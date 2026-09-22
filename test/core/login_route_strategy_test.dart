@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wanderer_frontend/core/routing/strategies/login_route_strategy.dart';
 import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/verify_email_screen.dart';
 
 void main() {
   group('LoginRouteStrategy', () {
@@ -157,6 +158,29 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Welcome Back!'), findsOneWidget);
+    });
+
+    testWidgets(
+        'navigates to VerifyEmailScreen when "Have a verification token?" is tapped',
+        (tester) async {
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: AuthScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Have a verification token?'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(VerifyEmailScreen), findsOneWidget);
     });
   });
 }
