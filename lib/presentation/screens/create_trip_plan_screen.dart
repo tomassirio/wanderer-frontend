@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -15,6 +16,14 @@ import 'package:wanderer_frontend/presentation/helpers/location_permission_discl
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/web_marker_generator.dart';
 import 'package:wanderer_frontend/presentation/helpers/map_style_helper.dart';
+import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
+import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_plans/web_plan_editor_layout.dart';
 
 /// Screen for creating a new trip plan with map integration
 class CreateTripPlanScreen extends ConsumerStatefulWidget {
@@ -79,6 +88,17 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
   /// tapping a date inside the dialog does not also drop a waypoint.
   bool _isPickerOpen = false;
 
+  /// Web: set by the map's own Listener so the page-level Listener can tell
+  /// a click on the map from a click on an overlay above it.
+  bool _pointerOnMap = false;
+
+  // Web sidebar user info
+  String? _userId;
+  String? _username;
+  String? _displayName;
+  String? _avatarUrl;
+  bool _isAdmin = false;
+
   /// Computed number of days between start and end dates
   int? get _daysBetween {
     if (_startDate == null || _endDate == null) return null;
@@ -91,6 +111,43 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
     _tripPlanService = ref.read(tripPlanServiceProvider);
     _directionsClient = ref.read(googleDirectionsApiClientProvider);
     _getCurrentLocation();
+    if (kIsWeb) _loadUserInfo();
+  }
+
+  Future<void> _loadUserInfo() async {
+    final home = ref.read(homeRepositoryProvider);
+    final username = await home.getCurrentUsername();
+    final userId = await home.getCurrentUserId();
+    final isAdmin = await home.isAdmin();
+    final displayName = await home.getCurrentDisplayName();
+    final avatarUrl = await home.getCurrentAvatarUrl();
+    if (!mounted) return;
+    setState(() {
+      _username = username;
+      _userId = userId;
+      _displayName = displayName;
+      _avatarUrl = avatarUrl;
+      _isAdmin = isAdmin;
+    });
+  }
+
+  Future<void> _logout() async {
+    final confirm = await DialogHelper.showLogoutConfirmation(context);
+    if (!confirm) return;
+    await ref.read(homeRepositoryProvider).logout();
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        PageTransitions.fade(const InitialScreen()),
+        (route) => false,
+      );
+    }
+  }
+
+  void _handleSettings() {
+    Navigator.push(
+      context,
+      PageTransitions.slideFromBottom(const SettingsScreen()),
+    );
   }
 
   Future<void> _getCurrentLocation() async {
@@ -346,6 +403,10 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
   /// Shows a bottom sheet when a marker is tapped, allowing the user to
   /// delete the point or re-place it.
   void _onMarkerTapped(String markerId, String title) {
+    if (kIsWeb) {
+      _showWebMarkerDialog(markerId);
+      return;
+    }
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -422,6 +483,59 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _showWebMarkerDialog(String markerId) async {
+    final l10n = context.l10n;
+    final title = markerId == 'start'
+        ? l10n.planEditorStart
+        : markerId == 'end'
+            ? l10n.planEditorFinish
+            : '${l10n.planEditorStop} ${markerId.split('_').last}';
+    setState(() => _isPickerOpen = true);
+    final String? action;
+    try {
+      action = await WandererDialog.show<String>(
+        context,
+        width: WandererDialog.infoWidth,
+        builder: (context) => WandererFormDialog(
+          title: title,
+          body: Text(l10n.tapMapToSetPosition),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, 'remove'),
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+              child: Text(l10n.remove),
+            ),
+            OutlinedButton(
+              onPressed: () => Navigator.pop(context, 'replace'),
+              child: Text(l10n.rePlaceOnMap),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPickerOpen = false;
+          _ignoreNextMapTap = true;
+        });
+      }
+    }
+    if (!mounted) return;
+    if (action == 'remove') {
+      _deleteMarker(markerId);
+    } else if (action == 'replace') {
+      setState(() {
+        _placementMode = markerId == 'start'
+            ? _PlacementMode.start
+            : markerId == 'end'
+                ? _PlacementMode.end
+                : _PlacementMode.waypoint;
+      });
+    }
   }
 
   void _deleteMarker(String markerId) {
@@ -575,19 +689,38 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
+  String? _validateName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return context.l10n.createPlanNameRequired;
+    }
+    if (value.trim().length < 3) {
+      return context.l10n.createPlanNameMinLength;
+    }
+    return null;
+  }
+
   Future<void> _createTripPlan() async {
-    if (!_formKey.currentState!.validate()) return;
+    // The web editor has no Form; validate the name directly there.
+    if (kIsWeb) {
+      final nameError = _validateName(_nameController.text);
+      if (nameError != null) {
+        UiHelpers.showErrorMessage(context, nameError);
+        return;
+      }
+    } else if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     if (_startLocation == null || _endLocation == null) {
       UiHelpers.showErrorMessage(
         context,
-        'Please select start and end locations on the map',
+        context.l10n.createPlanSelectLocations,
       );
       return;
     }
 
     if (_startDate == null || _endDate == null) {
-      UiHelpers.showErrorMessage(context, 'Please select start and end dates');
+      UiHelpers.showErrorMessage(context, context.l10n.createPlanSelectDates);
       return;
     }
 
@@ -624,13 +757,13 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
       if (mounted) {
         UiHelpers.showSuccessMessage(
           context,
-          'Trip plan created successfully!',
+          context.l10n.createPlanCreated,
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Error creating trip plan: $e');
+        UiHelpers.showErrorMessage(context, context.l10n.createPlanError(e));
       }
     } finally {
       if (mounted) {
@@ -641,6 +774,7 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) return _buildWeb();
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= 600;
@@ -651,6 +785,103 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
       },
     );
   }
+
+  static String _coords(LatLng p) =>
+      '${p.latitude.toStringAsFixed(4)}, ${p.longitude.toStringAsFixed(4)}';
+
+  /// Web: sidebar + [WebPlanEditorLayout] (canvas "New trip plan").
+  Widget _buildWeb() {
+    final l10n = context.l10n;
+    return WandererScaffold(
+      hideAppBarWithSidebar: true,
+      appBar: AppBar(title: Text(l10n.tripPlansNewPlan)),
+      drawer: AppSidebar(
+        username: _username,
+        userId: _userId,
+        displayName: _displayName,
+        avatarUrl: _avatarUrl,
+        selectedIndex: 1,
+        onLogout: _logout,
+        onSettings: _handleSettings,
+        isAdmin: _isAdmin,
+      ),
+      body: Listener(
+        // Flutter Web: clicks on overlays above the map (placement picker,
+        // zoom/undo) also reach the map platform view — swallow that tap.
+        onPointerDown: (_) {
+          if (!_pointerOnMap) {
+            _ignoreNextMapTap = true;
+            // ponytail: time-boxed so a click elsewhere on the page can't
+            // swallow a later real map click.
+            Future.delayed(
+              const Duration(milliseconds: 300),
+              () => _ignoreNextMapTap = false,
+            );
+          }
+          _pointerOnMap = false;
+        },
+        child: WebPlanEditorLayout(
+          breadcrumbCurrent: l10n.tripPlansNewPlan,
+          onBreadcrumbTap: () => Navigator.maybePop(context),
+          title: l10n.tripPlansPlanNewTrip,
+          saveLabel: l10n.createPlanSave,
+          onCancel: () => Navigator.maybePop(context),
+          onSave: _createTripPlan,
+          isSaving: _isLoading,
+          nameController: _nameController,
+          descriptionController: _descriptionController,
+          multiDay: _planType == 'MULTI_DAY',
+          onMultiDayChanged: (multi) =>
+              setState(() => _planType = multi ? 'MULTI_DAY' : 'SIMPLE'),
+          startDate: _startDate,
+          endDate: _endDate,
+          onPickStartDate: _selectDateRange,
+          onPickEndDate: _selectDateRange,
+          startLabel: _startLocation == null ? null : _coords(_startLocation!),
+          finishLabel: _endLocation == null ? null : _coords(_endLocation!),
+          stopCount: _waypoints.length,
+          routeMeta: _isComputingRoute ? l10n.computingRoute : null,
+          placementMode: switch (_placementMode) {
+            _PlacementMode.start => PlanPlacementMode.start,
+            _PlacementMode.end => PlanPlacementMode.finish,
+            _PlacementMode.waypoint => PlanPlacementMode.stop,
+          },
+          onPlacementModeChanged: (mode) => setState(() {
+            _placementMode = switch (mode) {
+              PlanPlacementMode.start => _PlacementMode.start,
+              PlanPlacementMode.finish => _PlacementMode.end,
+              PlanPlacementMode.stop => _PlacementMode.waypoint,
+            };
+          }),
+          onZoomIn: () => _mapController?.animateCamera(CameraUpdate.zoomIn()),
+          onZoomOut: () =>
+              _mapController?.animateCamera(CameraUpdate.zoomOut()),
+          onUndo: _markers.isEmpty ? null : _removeLastWaypoint,
+          showStartHint: _startLocation == null,
+          map: Listener(
+            onPointerDown: (_) => _pointerOnMap = true,
+            child: _buildWebMap(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWebMap() => GoogleMap(
+        style: MapStyleHelper.of(context),
+        initialCameraPosition: CameraPosition(
+          target: _initialCameraLocation,
+          zoom: 12,
+        ),
+        markers: _markers,
+        polylines: _polylines,
+        onMapCreated: _onMapCreated,
+        onTap: _onMapTapped,
+        myLocationButtonEnabled: false,
+        myLocationEnabled: true,
+        zoomControlsEnabled: false,
+        mapToolbarEnabled: false,
+      );
 
   /// Desktop/Web layout with floating glass side panel on the left
   Widget _buildDesktopLayout() {
@@ -1010,15 +1241,7 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
                               ),
                               textCapitalization: TextCapitalization.words,
                               textInputAction: TextInputAction.next,
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter a plan name';
-                                }
-                                if (value.trim().length < 3) {
-                                  return 'Plan name must be at least 3 characters';
-                                }
-                                return null;
-                              },
+                              validator: _validateName,
                             ),
                             const SizedBox(height: 16),
                             // Description
@@ -1653,15 +1876,7 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
                                 setState(() => _formExpanded = true);
                               }
                             },
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter a plan name';
-                              }
-                              if (value.trim().length < 3) {
-                                return 'Plan name must be at least 3 characters';
-                              }
-                              return null;
-                            },
+                            validator: _validateName,
                           ),
                           const SizedBox(height: 16),
                           // Description

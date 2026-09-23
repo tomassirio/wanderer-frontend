@@ -284,7 +284,7 @@ class _PlanCard extends StatelessWidget {
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 14),
                             ),
-                            child: Text(l10n.edit),
+                            child: Text(l10n.tripPlansOpen),
                           ),
                           const SizedBox(width: 8),
                           IconButton.outlined(

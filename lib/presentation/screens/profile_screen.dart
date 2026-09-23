@@ -21,6 +21,7 @@ import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/helpers/avatar_helper.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import '../../core/constants/enums.dart';
@@ -613,50 +614,68 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
     final bioController = TextEditingController(text: _profile!.bio);
 
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.editProfile),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: displayNameController,
-                decoration: InputDecoration(
-                  labelText: l10n.displayName,
-                  hintText: l10n.yourDisplayName,
-                ),
-                textCapitalization: TextCapitalization.words,
-                textInputAction: TextInputAction.next,
+    Widget fields(BuildContext context) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: displayNameController,
+              decoration: InputDecoration(
+                labelText: l10n.displayName,
+                hintText: l10n.yourDisplayName,
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: bioController,
-                decoration: InputDecoration(
-                  labelText: l10n.bio,
-                  hintText: l10n.tellUsAboutYourself,
-                ),
-                maxLines: 3,
-                textCapitalization: TextCapitalization.sentences,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => Navigator.pop(context, true),
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: bioController,
+              decoration: InputDecoration(
+                labelText: l10n.bio,
+                hintText: l10n.tellUsAboutYourself,
               ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.save),
-          ),
-        ],
-      ),
-    );
+              maxLines: 3,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => Navigator.pop(context, true),
+            ),
+          ],
+        );
+    final result = kIsWeb
+        ? await WandererDialog.show<bool>(
+            context,
+            width: WandererDialog.formWidth,
+            builder: (context) => WandererFormDialog(
+              title: l10n.editProfile,
+              body: fields(context),
+              actions: [
+                OutlinedButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(l10n.save),
+                ),
+              ],
+            ),
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.editProfile),
+              content: SingleChildScrollView(child: fields(context)),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(l10n.save),
+                ),
+              ],
+            ),
+          );
 
     if (result == true) {
       await _updateProfile(
@@ -947,28 +966,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _handleAvatarDelete() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Avatar'),
-        content:
-            const Text('Are you sure you want to delete your profile picture?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+    final l10n = context.l10n;
+    final confirm = kIsWeb
+        ? await WandererDialog.confirm(
+            context,
+            title: l10n.dialogsAvatarDeleteTitle,
+            message: l10n.dialogsAvatarDeleteMessage,
+            confirmLabel: l10n.dialogsAvatarDeleteAction,
+            icon: Icons.no_photography_outlined,
+            destructive: true,
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Delete Avatar'),
+              content: const Text(
+                  'Are you sure you want to delete your profile picture?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Delete'),
+                ),
+              ],
             ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
+          );
 
     if (confirm != true) return;
 
@@ -1366,7 +1395,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   void _onOwnAvatarTap(BuildContext context) {
-    if (_profile!.avatarUrl.isNotEmpty) {
+    if (_profile!.avatarUrl.isNotEmpty && kIsWeb) {
+      final l10n = context.l10n;
+      DialogHelper.showWebOptions<bool>(
+        context,
+        title: l10n.dialogsAvatarTitle,
+        options: [
+          DialogOption(
+              icon: Icons.photo_camera_outlined,
+              label: l10n.profileChangeAvatar,
+              value: false),
+          DialogOption(
+              icon: Icons.delete_outline,
+              label: l10n.dialogsAvatarDeleteAction,
+              value: true,
+              color: Theme.of(context).colorScheme.error),
+        ],
+      ).then((delete) {
+        if (delete == null) return;
+        delete ? _handleAvatarDelete() : _handleAvatarUpload();
+      });
+    } else if (_profile!.avatarUrl.isNotEmpty) {
       // Show options: change or delete
       showModalBottomSheet(
         context: context,
@@ -1700,6 +1749,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   /// Shows a bottom sheet with sort options.
   void _showSortBottomSheet() {
     final l10n = context.l10n;
+    if (kIsWeb) {
+      DialogHelper.showWebOptions<TripSortOption>(
+        context,
+        title: l10n.sortTripsBy,
+        selected: _tripSortOption,
+        options: [
+          for (final option in TripSortOption.values)
+            DialogOption(
+                icon: option.icon, label: option.labelFor(l10n), value: option),
+        ],
+      ).then((option) {
+        if (option != null && mounted) {
+          setState(() => _tripSortOption = option);
+        }
+      });
+      return;
+    }
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,

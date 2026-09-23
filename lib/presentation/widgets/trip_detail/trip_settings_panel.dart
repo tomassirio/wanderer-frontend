@@ -5,6 +5,7 @@ import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/base_panel.dart';
 
 /// Minimum allowed update interval in minutes (Android WorkManager limitation)
@@ -52,6 +53,9 @@ class TripSettingsPanel extends StatefulWidget {
   /// Callback to delete the trip (owner only)
   final VoidCallback? onDeleteTrip;
 
+  /// Renders only the settings (no card or header), e.g. inside a web popup.
+  final bool embedded;
+
   const TripSettingsPanel({
     super.key,
     required this.isCollapsed,
@@ -70,6 +74,7 @@ class TripSettingsPanel extends StatefulWidget {
     this.onTestBackgroundUpdate,
     this.isWeb,
     this.onDeleteTrip,
+    this.embedded = false,
   });
 
   @override
@@ -190,27 +195,36 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
   /// Prompts the user to confirm switching to multi-day, then auto-saves.
   Future<void> _confirmAndSwitchToMultiDay() async {
     final l10n = context.l10n;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.switchToMultiDay),
-        content: Text(l10n.multiDayConvertConfirm),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: WandererTheme.primaryOrange,
-              foregroundColor: Colors.white,
+    final confirmed = kIsWeb
+        ? await WandererDialog.confirm(
+            context,
+            title: l10n.switchToMultiDay,
+            message: l10n.multiDayConvertConfirm,
+            confirmLabel: l10n.dialogsMultiDayAction,
+            icon: Icons.calendar_month_outlined,
+            destructive: true,
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.switchToMultiDay),
+              content: Text(l10n.multiDayConvertConfirm),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: WandererTheme.primaryOrange,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(l10n.confirm),
+                ),
+              ],
             ),
-            child: Text(l10n.confirm),
-          ),
-        ],
-      ),
-    );
+          );
 
     if (confirmed == true && mounted) {
       setState(() {
@@ -226,6 +240,7 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
     if (!_hasContent) return const SizedBox.shrink();
 
     final effectiveIsWeb = widget.isWeb ?? kIsWeb;
+    if (widget.embedded) return _buildContent(context, effectiveIsWeb);
 
     return BasePanel(
       isCollapsed: widget.isCollapsed,
@@ -247,12 +262,14 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        PanelHeader(
-          icon: Icons.settings,
-          title: l10n.tripSettings,
-          onMinimize: widget.onToggleCollapse,
-        ),
-        const SizedBox(height: 12),
+        if (!widget.embedded) ...[
+          PanelHeader(
+            icon: Icons.settings,
+            title: l10n.tripSettings,
+            onMinimize: widget.onToggleCollapse,
+          ),
+          const SizedBox(height: 12),
+        ],
 
         // Show Planned Route toggle — available to ALL users on ALL platforms
         // when the trip was created from a plan.

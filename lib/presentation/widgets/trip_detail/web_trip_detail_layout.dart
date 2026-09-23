@@ -9,6 +9,8 @@ import 'package:wanderer_frontend/presentation/strategies/desktop_layout_strateg
 import 'package:wanderer_frontend/presentation/strategies/trip_detail_layout_strategy.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_settings_panel.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_share_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_timeline.dart';
 
@@ -52,19 +54,40 @@ class _WebTripDetailLayoutState extends State<WebTripDetailLayout> {
               _trip.status == TripStatus.inProgress));
 
   void _openSettings() {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        child: SizedBox(
-          width: 340,
-          child: _strategy.createTripSettingsPanel(
-            _d,
-            onClose: () => Navigator.of(dialogContext).pop(),
+    WandererDialog.show<void>(
+      context,
+      builder: (dialogContext) {
+        void close() => Navigator.of(dialogContext).pop();
+        // Same wiring as the strategy's panel, rendered without its card.
+        final p = _strategy.createTripSettingsPanel(_d, onClose: close);
+        return WandererFormDialog(
+          title: context.l10n.tripSettings,
+          body: TripSettingsPanel(
+            isCollapsed: false,
+            onToggleCollapse: close,
+            isOwner: p.isOwner,
+            tripHasPlannedRoute: p.tripHasPlannedRoute,
+            showPlannedWaypoints: p.showPlannedWaypoints,
+            onTogglePlannedWaypoints: p.onTogglePlannedWaypoints,
+            automaticUpdates: p.automaticUpdates,
+            updateRefresh: p.updateRefresh,
+            tripModality: p.tripModality,
+            isLoading: p.isLoading,
+            onSettingsChange: p.onSettingsChange,
+            tripStatus: p.tripStatus,
+            tripId: p.tripId,
+            onTestBackgroundUpdate: p.onTestBackgroundUpdate,
+            onDeleteTrip: p.onDeleteTrip,
+            embedded: true,
           ),
-        ),
-      ),
+          actions: [
+            ElevatedButton(
+              onPressed: close,
+              child: Text(context.l10n.done),
+            ),
+          ],
+        );
+      },
     );
   }
 

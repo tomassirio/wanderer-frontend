@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
@@ -12,6 +13,7 @@ import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
@@ -203,183 +205,213 @@ class _TripPromotionScreenState extends ConsumerState<TripPromotionScreen> {
     bool isPreAnnounced = false;
     DateTime? countdownStartDate;
 
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final isMobile = MediaQuery.of(context).size.width < 600;
+    Widget dialogBuilder(BuildContext context) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          final isMobile = MediaQuery.of(context).size.width < 600;
+          final c = WandererTheme.of(context);
+          // Web uses theme tokens (dark mode); mobile keeps its colours.
+          final primaryText = kIsWeb ? c.text : WandererTheme.textPrimary;
+          final secondaryText =
+              kIsWeb ? c.textMuted : WandererTheme.textSecondary;
 
-            return AlertDialog(
-              title: Text(l10n.promoteTripTitle),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Trip: ${trip.name}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'By: ${trip.username}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: donationLinkController,
-                      decoration: InputDecoration(
-                        labelText: l10n.donationLink,
-                        hintText: 'https://...',
-                        border: const OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      maxLength: 500,
-                      maxLines: isMobile ? 2 : 1,
-                      keyboardType: TextInputType.url,
-                      textCapitalization: TextCapitalization.none,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
+          final body = Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                kIsWeb ? trip.name : 'Trip: ${trip.name}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                kIsWeb
+                    ? l10n.dialogsPromotionByUser(trip.username)
+                    : 'By: ${trip.username}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: donationLinkController,
+                decoration: InputDecoration(
+                  labelText: l10n.donationLink,
+                  hintText: 'https://...',
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+                maxLength: 500,
+                maxLines: isMobile ? 2 : 1,
+                keyboardType: TextInputType.url,
+                textCapitalization: TextCapitalization.none,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(
+                    Icons.campaign,
+                    size: 16,
+                    color: secondaryText,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(
-                          Icons.campaign,
-                          size: 16,
-                          color: WandererTheme.textSecondary,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                l10n.preAnnounce,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: WandererTheme.textPrimary,
-                                ),
-                              ),
-                              Text(
-                                l10n.showCountdown,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: WandererTheme.textSecondary,
-                                ),
-                              ),
-                            ],
+                        Text(
+                          l10n.preAnnounce,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: primaryText,
                           ),
                         ),
-                        Switch(
-                          value: isPreAnnounced,
-                          onChanged: (value) {
-                            setDialogState(() {
-                              isPreAnnounced = value;
-                              if (!isPreAnnounced) countdownStartDate = null;
-                            });
-                          },
-                          activeColor: WandererTheme.primaryOrange,
+                        Text(
+                          l10n.showCountdown,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: secondaryText,
+                          ),
                         ),
                       ],
                     ),
-                    if (isPreAnnounced) ...[
-                      const SizedBox(height: 8),
-                      OutlinedButton.icon(
-                        onPressed: () async {
-                          // Pick date first
-                          final pickedDate = await showDatePicker(
-                            context: context,
-                            initialDate: countdownStartDate ??
-                                DateTime.now().add(
-                                  const Duration(days: 1),
-                                ),
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(
-                              const Duration(days: 365 * 5),
-                            ),
-                            helpText: 'Select Countdown Start Date',
-                          );
-
-                          if (pickedDate != null) {
-                            // Pick time
-                            final pickedTime = await showTimePicker(
-                              context: context,
-                              initialTime: countdownStartDate != null
-                                  ? TimeOfDay.fromDateTime(countdownStartDate!)
-                                  : const TimeOfDay(hour: 0, minute: 0),
-                              helpText: 'Select Start Time (UTC)',
-                            );
-
-                            if (pickedTime != null) {
-                              // Combine date and time in UTC
-                              final combined = DateTime.utc(
-                                pickedDate.year,
-                                pickedDate.month,
-                                pickedDate.day,
-                                pickedTime.hour,
-                                pickedTime.minute,
-                              );
-                              setDialogState(
-                                  () => countdownStartDate = combined);
-                            }
-                          }
-                        },
-                        icon: const Icon(Icons.calendar_today, size: 16),
-                        label: Text(
-                          countdownStartDate == null
-                              ? 'Pick Start Date & Time *'
-                              : _formatDateTimeWithTimezone(
-                                  countdownStartDate!),
-                        ),
-                      ),
-                      if (countdownStartDate != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            'Local: ${_formatLocalTime(countdownStartDate!)}',
-                            style: const TextStyle(
-                              color: WandererTheme.textSecondary,
-                              fontSize: 11,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ),
-                      if (countdownStartDate == null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            l10n.startDateRequired,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ],
-                ),
+                  ),
+                  Switch(
+                    value: isPreAnnounced,
+                    onChanged: (value) {
+                      setDialogState(() {
+                        isPreAnnounced = value;
+                        if (!isPreAnnounced) countdownStartDate = null;
+                      });
+                    },
+                    activeColor: WandererTheme.primaryOrange,
+                  ),
+                ],
               ),
+              if (isPreAnnounced) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    // Pick date first
+                    final pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: countdownStartDate ??
+                          DateTime.now().add(
+                            const Duration(days: 1),
+                          ),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(
+                        const Duration(days: 365 * 5),
+                      ),
+                      helpText: kIsWeb
+                          ? l10n.dialogsPromotionSelectDate
+                          : 'Select Countdown Start Date',
+                    );
+
+                    if (pickedDate != null) {
+                      // Pick time
+                      final pickedTime = await showTimePicker(
+                        context: context,
+                        initialTime: countdownStartDate != null
+                            ? TimeOfDay.fromDateTime(countdownStartDate!)
+                            : const TimeOfDay(hour: 0, minute: 0),
+                        helpText: kIsWeb
+                            ? l10n.dialogsPromotionSelectTime
+                            : 'Select Start Time (UTC)',
+                      );
+
+                      if (pickedTime != null) {
+                        // Combine date and time in UTC
+                        final combined = DateTime.utc(
+                          pickedDate.year,
+                          pickedDate.month,
+                          pickedDate.day,
+                          pickedTime.hour,
+                          pickedTime.minute,
+                        );
+                        setDialogState(() => countdownStartDate = combined);
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.calendar_today, size: 16),
+                  label: Text(
+                    countdownStartDate == null
+                        ? (kIsWeb
+                            ? l10n.dialogsPromotionPickStart
+                            : 'Pick Start Date & Time *')
+                        : _formatDateTimeWithTimezone(countdownStartDate!),
+                  ),
+                ),
+                if (countdownStartDate != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      kIsWeb
+                          ? l10n.dialogsPromotionLocalTime(
+                              _formatLocalTime(countdownStartDate!))
+                          : 'Local: ${_formatLocalTime(countdownStartDate!)}',
+                      style: TextStyle(
+                        color: secondaryText,
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                if (countdownStartDate == null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      l10n.startDateRequired,
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+              ],
+            ],
+          );
+          final promoteButton = ElevatedButton(
+            onPressed: isPreAnnounced && countdownStartDate == null
+                ? null
+                : () => Navigator.pop(context, true),
+            child: Text(l10n.promote),
+          );
+          if (kIsWeb) {
+            return WandererFormDialog(
+              title: l10n.promoteTripTitle,
+              body: body,
               actions: [
-                TextButton(
+                OutlinedButton(
                   onPressed: () => Navigator.pop(context, false),
                   child: Text(l10n.cancel),
                 ),
-                ElevatedButton(
-                  onPressed: isPreAnnounced && countdownStartDate == null
-                      ? null
-                      : () => Navigator.pop(context, true),
-                  child: Text(l10n.promote),
-                ),
+                promoteButton,
               ],
             );
-          },
-        );
-      },
-    );
+          }
+
+          return AlertDialog(
+            title: Text(l10n.promoteTripTitle),
+            content: SingleChildScrollView(child: body),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l10n.cancel),
+              ),
+              promoteButton,
+            ],
+          );
+        },
+      );
+    }
+
+    final result = kIsWeb
+        ? await WandererDialog.show<bool>(context,
+            width: WandererDialog.formWidth, builder: dialogBuilder)
+        : await showDialog<bool>(context: context, builder: dialogBuilder);
 
     if (result == true && mounted) {
       try {
@@ -405,26 +437,35 @@ class _TripPromotionScreenState extends ConsumerState<TripPromotionScreen> {
 
   Future<void> _unpromoteTrip(String tripId) async {
     final l10n = context.l10n;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.unpromoteTripTitle),
-        content: Text(l10n.unpromoteConfirm),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+    final confirmed = kIsWeb
+        ? await WandererDialog.confirm(
+            context,
+            title: l10n.dialogsPromotionRemoveTitle,
+            message: l10n.unpromoteConfirm,
+            confirmLabel: l10n.dialogsPromotionRemoveAction,
+            icon: Icons.campaign_outlined,
+            destructive: true,
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.unpromoteTripTitle),
+              content: Text(l10n.unpromoteConfirm),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                  ),
+                  child: Text(l10n.unpromote),
+                ),
+              ],
             ),
-            child: Text(l10n.unpromote),
-          ),
-        ],
-      ),
-    );
+          );
 
     if (confirmed == true && mounted) {
       try {

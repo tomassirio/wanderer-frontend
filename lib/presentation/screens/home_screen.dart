@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart'
@@ -798,29 +799,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Future<void> _handleDeleteTrip(Trip trip) async {
     final l10n = context.l10n;
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.deleteTrip),
-        content: Text(
-          '${l10n.deleteTripConfirm} "${trip.name}"? ${l10n.deleteTripWarning}',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+    final confirm = kIsWeb
+        ? await WandererDialog.confirm(
+            context,
+            title: l10n.tripDetailDeleteTitle,
+            message: l10n.tripDetailDeleteMessage(trip.name),
+            confirmLabel: l10n.tripDetailDeleteAction,
+            cancelLabel: l10n.tripDetailKeepTrip,
+            icon: Icons.delete_outline,
+            destructive: true,
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.deleteTrip),
+              content: Text(
+                '${l10n.deleteTripConfirm} "${trip.name}"? ${l10n.deleteTripWarning}',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(l10n.delete),
+                ),
+              ],
             ),
-            child: Text(l10n.delete),
-          ),
-        ],
-      ),
-    );
+          );
 
     if (confirm != true || !mounted) return;
 

@@ -2402,12 +2402,22 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   void _showReactionPicker(String commentId) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => ReactionPicker(
-        onReactionSelected: (type) => _addReaction(commentId, type),
-      ),
-    );
+    Widget picker(BuildContext context) => ReactionPicker(
+          onReactionSelected: (type) => _addReaction(commentId, type),
+        );
+    if (kIsWeb) {
+      WandererDialog.show<void>(
+        context,
+        builder: (context) => Stack(
+          children: [
+            picker(context),
+            const Positioned(top: 12, right: 12, child: DialogCloseButton()),
+          ],
+        ),
+      );
+      return;
+    }
+    showModalBottomSheet(context: context, builder: picker);
   }
 
   void _handleReply(String commentId) {

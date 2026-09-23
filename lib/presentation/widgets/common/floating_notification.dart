@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 
 /// Type of notification to display
 enum NotificationType {
@@ -47,6 +49,19 @@ class FloatingNotification {
     NotificationType type, {
     Duration duration = const Duration(seconds: 3),
   }) {
+    // Web: the canvas "Live notifications" toast stack replaces the pill.
+    if (kIsWeb) {
+      Toasts.show(ToastData(
+        kind: switch (type) {
+          NotificationType.success => ToastKind.success,
+          NotificationType.error => ToastKind.error,
+          NotificationType.info => ToastKind.info,
+          NotificationType.warning => ToastKind.error,
+        },
+        title: message,
+      ));
+      return;
+    }
     final overlay = Overlay.of(context);
     late OverlayEntry overlayEntry;
 

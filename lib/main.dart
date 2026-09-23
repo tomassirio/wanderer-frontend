@@ -15,6 +15,7 @@ import 'package:wanderer_frontend/core/services/background_update_manager.dart';
 import 'package:wanderer_frontend/core/services/navigation_service.dart';
 import 'package:wanderer_frontend/core/services/notification_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/web_marker_generator.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 import 'package:wanderer_frontend/presentation/widgets/search/search_overlay.dart';
 
 /// Global route observer for detecting when screens become visible again
@@ -97,7 +98,7 @@ class MyApp extends StatelessWidget {
               // automatically rebuilds via context.l10n when locale changes.
               builder: (context, child) => L10nScope(
                 notifier: LocaleController().locale,
-                child: child!,
+                child: kIsWeb ? ToastHost(child: child!) : child!,
               ),
               navigatorKey: NavigationService().navigatorKey,
               navigatorObservers: [routeObserver],
