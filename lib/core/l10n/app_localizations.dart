@@ -609,7 +609,8 @@ class AppLocalizations {
   String get categoryGettingStarted => _tr('categoryGettingStarted');
 
   // Achievement units
-  String achievementKm(double v) => '${v.toStringAsFixed(1)} km';
+  String achievementKm(double v) =>
+      '${v.toStringAsFixed(v == v.roundToDouble() ? 0 : 1)} km';
   String achievementDays(int v) =>
       TranslationTemplate.format(_tr('achievementDays'), {'v': v});
 
@@ -895,8 +896,8 @@ class AppLocalizations {
   String get searchOverlayPrompt => _tr('searchOverlayPrompt');
   String get profileUserIdCopied => _tr('profileUserIdCopied');
   String get achievementDialogLocked => _tr('achievementDialogLocked');
-  String achievementDialogUnlocked(Object date) =>
-      TranslationTemplate.format(_tr('achievementDialogUnlocked'), {'date': date});
+  String achievementDialogUnlocked(Object date) => TranslationTemplate.format(
+      _tr('achievementDialogUnlocked'), {'date': date});
   String get achievementDialogProgress => _tr('achievementDialogProgress');
   String get achievementDialogShare => _tr('achievementDialogShare');
   String get achievementDialogLinkCopied => _tr('achievementDialogLinkCopied');
@@ -909,8 +910,8 @@ class AppLocalizations {
   String get tripPlansDeleteAction => _tr('tripPlansDeleteAction');
   String get tripPlansKeepPlan => _tr('tripPlansKeepPlan');
   String get tripDetailDeleteTitle => _tr('tripDetailDeleteTitle');
-  String tripDetailDeleteMessage(Object name) =>
-      TranslationTemplate.format(_tr('tripDetailDeleteMessage'), {'name': name});
+  String tripDetailDeleteMessage(Object name) => TranslationTemplate.format(
+      _tr('tripDetailDeleteMessage'), {'name': name});
   String get tripDetailDeleteAction => _tr('tripDetailDeleteAction');
   String get tripDetailKeepTrip => _tr('tripDetailKeepTrip');
   String get settingsSubtitle => _tr('settingsSubtitle');
@@ -924,9 +925,11 @@ class AppLocalizations {
   String get settingsLanguageCaption => _tr('settingsLanguageCaption');
   String get settingsPassword => _tr('settingsPassword');
   String get settingsPasswordCaption => _tr('settingsPasswordCaption');
-  String get settingsChangePasswordButton => _tr('settingsChangePasswordButton');
+  String get settingsChangePasswordButton =>
+      _tr('settingsChangePasswordButton');
   String get settingsForgotPassword => _tr('settingsForgotPassword');
-  String get settingsForgotPasswordCaption => _tr('settingsForgotPasswordCaption');
+  String get settingsForgotPasswordCaption =>
+      _tr('settingsForgotPasswordCaption');
   String get settingsSendResetLinkButton => _tr('settingsSendResetLinkButton');
   String get settingsAccountId => _tr('settingsAccountId');
   String get settingsCopy => _tr('settingsCopy');
@@ -977,4 +980,22 @@ class AppLocalizations {
       TranslationTemplate.format(_tr('newTripEvery'), {'interval': interval});
   String get newTripOff => _tr('newTripOff');
   String get newTripCreate => _tr('newTripCreate');
+  String get msgTripCreated => _tr('msgTripCreated');
+  String msgTripCreateError(Object error) =>
+      TranslationTemplate.format(_tr('msgTripCreateError'), {'error': error});
+  String get msgAllFieldsRequired => _tr('msgAllFieldsRequired');
+  String get msgPasswordsDontMatch => _tr('msgPasswordsDontMatch');
+  String get msgPasswordChanged => _tr('msgPasswordChanged');
+  String msgPasswordChangeFailed(Object error) => TranslationTemplate.format(
+      _tr('msgPasswordChangeFailed'), {'error': error});
+  String get msgEnterEmail => _tr('msgEnterEmail');
+  String msgResetLinkFailed(Object error) =>
+      TranslationTemplate.format(_tr('msgResetLinkFailed'), {'error': error});
+  String get msgEmailClientUnavailable => _tr('msgEmailClientUnavailable');
+  String msgEmailClientError(Object error) =>
+      TranslationTemplate.format(_tr('msgEmailClientError'), {'error': error});
+  String get msgTypeDeleteToConfirm => _tr('msgTypeDeleteToConfirm');
+  String get msgAccountDeleted => _tr('msgAccountDeleted');
+  String msgAccountDeleteFailed(Object error) => TranslationTemplate.format(
+      _tr('msgAccountDeleteFailed'), {'error': error});
 }

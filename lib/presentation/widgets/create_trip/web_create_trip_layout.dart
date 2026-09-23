@@ -61,7 +61,9 @@ class WebCreateTripLayout extends StatelessWidget {
   static const intervals = [15, 30, 60, 120];
 
   static String intervalLabel(AppLocalizations l10n, int minutes) =>
-      minutes < 60 ? l10n.newTripMinutes(minutes) : l10n.newTripHours(minutes ~/ 60);
+      minutes < 60
+          ? l10n.newTripMinutes(minutes)
+          : l10n.newTripHours(minutes ~/ 60);
 
   @override
   Widget build(BuildContext context) {
@@ -158,8 +160,8 @@ class WebCreateTripLayout extends StatelessWidget {
   Widget _sections(BuildContext context) {
     final c = WandererTheme.of(context);
     final l10n = context.l10n;
-    final label = TextStyle(
-        fontSize: 14, fontWeight: FontWeight.w700, color: c.text);
+    final label =
+        TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: c.text);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -276,8 +278,7 @@ class WebCreateTripLayout extends StatelessWidget {
                                 color: c.text)),
                         const SizedBox(height: 2),
                         Text(l10n.newTripAutoUpdatesCaption,
-                            style:
-                                TextStyle(fontSize: 13, color: c.textMuted)),
+                            style: TextStyle(fontSize: 13, color: c.textMuted)),
                       ],
                     ),
                   ),
@@ -432,8 +433,8 @@ class WebCreateTripLayout extends StatelessWidget {
                 row(
                     l10n.newTripAutoUpdatesShort,
                     automaticUpdates
-                        ? l10n.newTripEvery(
-                            intervalLabel(l10n, intervalMinutes))
+                        ? l10n
+                            .newTripEvery(intervalLabel(l10n, intervalMinutes))
                         : l10n.newTripOff),
                 const SizedBox(height: 20),
                 SizedBox(
@@ -648,6 +649,14 @@ class _Segmented extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = WandererTheme.of(context);
+    // Scrolls sideways instead of overflowing on narrow screens.
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: _track(c),
+    );
+  }
+
+  Widget _track(WandererColors c) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -670,7 +679,8 @@ class _Segmented extends StatelessWidget {
                   borderRadius: BorderRadius.circular(compact ? 8 : 9),
                   child: Container(
                     height: compact ? 34 : 40,
-                    padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 16),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: compact ? 12 : 16),
                     alignment: Alignment.center,
                     child: Text(
                       labels[i],

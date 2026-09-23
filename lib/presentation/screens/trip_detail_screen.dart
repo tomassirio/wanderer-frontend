@@ -6,6 +6,7 @@ import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/errors/error_utils.dart';
@@ -2129,30 +2130,40 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   /// On success, navigates to the home screen and clears the navigation stack.
   Future<void> _handleDeleteTrip() async {
     final l10n = context.l10n;
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.deleteTrip),
-        content: Text(
-          'Are you sure you want to delete "${_trip.name}"? '
-          'This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+    final confirm = kIsWeb
+        ? await WandererDialog.confirm(
+            context,
+            title: l10n.tripDetailDeleteTitle,
+            message: l10n.tripDetailDeleteMessage(_trip.name),
+            confirmLabel: l10n.tripDetailDeleteAction,
+            cancelLabel: l10n.tripDetailKeepTrip,
+            icon: Icons.delete_outline,
+            destructive: true,
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.deleteTrip),
+              content: Text(
+                'Are you sure you want to delete "${_trip.name}"? '
+                'This action cannot be undone.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(l10n.delete),
+                ),
+              ],
             ),
-            child: Text(l10n.delete),
-          ),
-        ],
-      ),
-    );
+          );
 
     if (confirm != true || !mounted) return;
 

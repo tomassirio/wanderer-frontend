@@ -20,6 +20,7 @@ import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/profile_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/achievements/achievement_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/cached_trip_thumbnail.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
@@ -784,38 +785,46 @@ class _AchievementsCard extends StatelessWidget {
                 for (var i = 0; i < recent.length; i++) ...[
                   if (i > 0) const SizedBox(width: 10),
                   Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: c.goldBg,
-                        borderRadius:
-                            BorderRadius.circular(WandererTheme.radiusCard),
-                        border: Border.all(color: c.line),
-                      ),
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFF5B83D),
-                              shape: BoxShape.circle,
+                    child: InkWell(
+                      borderRadius:
+                          BorderRadius.circular(WandererTheme.radiusCard),
+                      onTap: () => showAchievementDialog(
+                          context, recent[i].achievement,
+                          unlocked: recent[i],
+                          shareUsername: data.profile.username),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: c.goldBg,
+                          borderRadius:
+                              BorderRadius.circular(WandererTheme.radiusCard),
+                          border: Border.all(color: c.line),
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFF5B83D),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.emoji_events_outlined,
+                                  size: 20, color: Color(0xFF5B3A00)),
                             ),
-                            child: const Icon(Icons.emoji_events_outlined,
-                                size: 20, color: Color(0xFF5B3A00)),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.achievementNameFor(
-                                recent[i].achievement.type.toJson()),
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w700),
-                          ),
-                        ],
+                            const SizedBox(height: 8),
+                            Text(
+                              l10n.achievementNameFor(
+                                  recent[i].achievement.type.toJson()),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

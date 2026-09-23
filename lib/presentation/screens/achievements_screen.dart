@@ -10,6 +10,7 @@ import 'package:wanderer_frontend/data/services/auth_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
+import 'package:wanderer_frontend/presentation/widgets/achievements/achievement_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/achievements/web_achievements_layout.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/web_page_header.dart';
@@ -702,6 +703,11 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
     Achievement achievement,
     UserAchievement? userAchievement,
   ) {
+    if (kIsWeb) {
+      showAchievementDialog(context, achievement,
+          unlocked: userAchievement, shareUsername: _username);
+      return;
+    }
     final unlocked = userAchievement != null;
     final categoryColor = _getCategoryColor(achievement.type.category);
 

@@ -105,7 +105,7 @@ class _AchievementDialog extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               CustomPaint(
-                painter: DashedCircle(c.line, strokeWidth: 2),
+                painter: DashedCircle(c.label, strokeWidth: 2),
                 child: Container(
                   width: 88,
                   height: 88,
@@ -169,7 +169,8 @@ class _AchievementDialog extends StatelessWidget {
           Clipboard.setData(ClipboardData(
               text: '${ApiEndpoints.appBaseUrl}/user/'
                   '${Uri.encodeComponent(shareUsername!)}'));
-          UiHelpers.showSuccessMessage(context, l10n.achievementDialogLinkCopied);
+          UiHelpers.showSuccessMessage(
+              context, l10n.achievementDialogLinkCopied);
         },
         child: Text(l10n.achievementDialogShare),
       );
@@ -253,11 +254,11 @@ class _AchievementDialog extends StatelessWidget {
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
                                   color: c.text)),
-                          const Spacer(),
-                          Flexible(
+                          const SizedBox(width: 12),
+                          Expanded(
                             child: Text(
-                              l10n.goalValue(
-                                  achievementThresholdLabel(context, achievement)),
+                              l10n.goalValue(achievementThresholdLabel(
+                                  context, achievement)),
                               textAlign: TextAlign.end,
                               style:
                                   TextStyle(fontSize: 13, color: c.textMuted),
