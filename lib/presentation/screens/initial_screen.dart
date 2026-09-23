@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/storage/token_refresh_manager.dart';
-import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/screens/dashboard_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
@@ -61,7 +60,6 @@ class _InitialScreenState extends ConsumerState<InitialScreen> {
   Widget build(BuildContext context) {
     if (_isChecking && kIsWeb) {
       return const Scaffold(
-        backgroundColor: WandererTheme.sand,
         body: Center(child: WandererLogo(size: 64)),
       );
     }

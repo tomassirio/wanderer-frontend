@@ -962,7 +962,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       child: ValueListenableBuilder<ThemeMode>(
         valueListenable: ThemeController().themeMode,
         builder: (context, mode, _) {
-          final isDark = mode == ThemeMode.dark;
+          final isDark = Theme.of(context).brightness == Brightness.dark;
           return IconButton(
             icon: Icon(
               isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,

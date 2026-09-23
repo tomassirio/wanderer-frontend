@@ -181,6 +181,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return RefreshIndicator(
       onRefresh: _load,
       child: LayoutBuilder(builder: (context, constraints) {
+        final c = WandererTheme.of(context);
         final wide = constraints.maxWidth >= 1000;
         final gutter = constraints.maxWidth >= 720 ? 40.0 : 16.0;
         final sideColumn = [
@@ -201,7 +202,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Text(l10n.noTripsDashboard,
-                      style: const TextStyle(color: WandererTheme.stone)),
+                      style: TextStyle(color: c.textMuted)),
                 ),
               )
             : _LatestTripCard(
@@ -294,6 +295,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final name = (data.profile.displayName?.isNotEmpty ?? false)
         ? data.profile.displayName!.split(' ').first
@@ -326,9 +328,7 @@ class _Header extends StatelessWidget {
               child: Text(greeting, style: WandererTheme.display(32)),
             ),
             const SizedBox(height: 6),
-            Text(subtitle,
-                style:
-                    const TextStyle(fontSize: 15, color: WandererTheme.stone)),
+            Text(subtitle, style: TextStyle(fontSize: 15, color: c.textMuted)),
           ],
         ),
         ElevatedButton.icon(
@@ -349,33 +349,34 @@ class _StatStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final stats = [
       (
         Icons.map_outlined,
-        WandererTheme.trailSoft,
-        WandererTheme.trail,
+        c.trailSoftBg,
+        c.trailSoftFg,
         '${data.trips.length}',
         l10n.trips
       ),
       (
         Icons.emoji_events_outlined,
-        WandererTheme.goldSoft,
-        WandererTheme.goldIcon,
+        c.goldBg,
+        c.goldFg,
         '${data.achievements.length}',
         l10n.achievements
       ),
       (
         Icons.people_outline,
-        WandererTheme.forestSoft,
-        WandererTheme.forest,
+        c.forestBg,
+        c.forestFg,
         '${data.profile.friendsCount}',
         l10n.friends
       ),
       (
         Icons.place_outlined,
-        WandererTheme.skySoft,
-        WandererTheme.sky,
+        c.skyBg,
+        c.skyFg,
         _km(context, data.longestTripKm),
         l10n.longestTrip
       ),
@@ -406,8 +407,7 @@ class _StatStrip extends StatelessWidget {
                         style: WandererTheme.display(26)),
                     const SizedBox(height: 4),
                     Text(label,
-                        style: const TextStyle(
-                            fontSize: 13, color: WandererTheme.stoneLight)),
+                        style: TextStyle(fontSize: 13, color: c.caption)),
                   ],
                 ),
               ),
@@ -430,9 +430,7 @@ class _StatStrip extends StatelessWidget {
               child: Row(
                 children: [
                   for (var i = 0; i < tiles.length; i++) ...[
-                    if (i > 0)
-                      const VerticalDivider(
-                          width: 1, color: WandererTheme.lineSoft),
+                    if (i > 0) VerticalDivider(width: 1, color: c.lineSoft),
                     Expanded(child: tiles[i]),
                   ],
                 ],
@@ -515,6 +513,7 @@ class _LatestTripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final days = _tripDays(trip);
     final visibility = switch (trip.visibility) {
@@ -545,11 +544,10 @@ class _LatestTripCard extends StatelessWidget {
               children: [
                 CachedTripThumbnail(
                   thumbnailUrl: trip.thumbnailUrl,
-                  placeholder: Container(color: WandererTheme.mapGround),
+                  placeholder: Container(color: c.mapGround),
                   errorWidget: Container(
-                    color: WandererTheme.mapGround,
-                    child: const Icon(Icons.route,
-                        size: 48, color: WandererTheme.stoneLabel),
+                    color: c.mapGround,
+                    child: Icon(Icons.route, size: 48, color: c.label),
                   ),
                 ),
                 Positioned(
@@ -560,7 +558,7 @@ class _LatestTripCard extends StatelessWidget {
                     if (trip.isPromoted)
                       Pill(l10n.promoted,
                           tone: PillTone.onImage,
-                          foreground: WandererTheme.trailDeep),
+                          foregroundTone: PillTone.promoted),
                   ]),
                 ),
                 Positioned(
@@ -570,7 +568,7 @@ class _LatestTripCard extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: WandererTheme.ink.withOpacity(0.78),
+                      color: const Color(0xC71B1A17),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(l10n.latestTrip,
@@ -598,13 +596,11 @@ class _LatestTripCard extends StatelessWidget {
                           Text(trip.name, style: WandererTheme.display(24)),
                           const SizedBox(height: 6),
                           Row(children: [
-                            Icon(visibility.$1,
-                                size: 14, color: WandererTheme.stoneLight),
+                            Icon(visibility.$1, size: 14, color: c.caption),
                             const SizedBox(width: 4),
                             Text(visibility.$2,
-                                style: const TextStyle(
-                                    fontSize: 13,
-                                    color: WandererTheme.stoneLight)),
+                                style:
+                                    TextStyle(fontSize: 13, color: c.caption)),
                           ]),
                         ],
                       ),
@@ -619,9 +615,9 @@ class _LatestTripCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 18),
-                LayoutBuilder(builder: (context, c) {
-                  final perRow = c.maxWidth >= 520 ? 4 : 2;
-                  final w = (c.maxWidth - 12 * (perRow - 1)) / perRow;
+                LayoutBuilder(builder: (context, box) {
+                  final perRow = box.maxWidth >= 520 ? 4 : 2;
+                  final w = (box.maxWidth - 12 * (perRow - 1)) / perRow;
                   return Wrap(
                     spacing: 12,
                     runSpacing: 12,
@@ -632,16 +628,15 @@ class _LatestTripCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
-                            color: WandererTheme.paperMuted,
+                            color: c.raised,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(label,
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      color: WandererTheme.stoneLight)),
+                                  style: TextStyle(
+                                      fontSize: 12, color: c.caption)),
                               const SizedBox(height: 2),
                               Text(value,
                                   style: const TextStyle(
@@ -703,6 +698,7 @@ class _FriendRequestsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
     return _Panel(
       title: l10n.friendRequestsTitle,
@@ -714,7 +710,7 @@ class _FriendRequestsCard extends StatelessWidget {
           ? Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(l10n.noFriendRequests,
-                  style: const TextStyle(color: WandererTheme.stone)),
+                  style: TextStyle(color: c.textMuted)),
             )
           : Column(
               children: [
@@ -726,8 +722,8 @@ class _FriendRequestsCard extends StatelessWidget {
                         _Initials(
                           AvatarHelper.getInitials(
                               r.sender.displayName, r.sender.username),
-                          background: const Color(0xFFF3EDE3),
-                          foreground: WandererTheme.trailDeep,
+                          background: c.trailSoftBg,
+                          foreground: c.accentText,
                           imageUrl: r.sender.avatarUrl,
                         ),
                         const SizedBox(width: 12),
@@ -744,7 +740,8 @@ class _FriendRequestsCard extends StatelessWidget {
                               ? null
                               : () => onAnswer(r, true),
                           style: FilledButton.styleFrom(
-                            backgroundColor: WandererTheme.ink,
+                            backgroundColor: c.neutralButtonBg,
+                            foregroundColor: c.neutralButtonFg,
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             textStyle: const TextStyle(
                                 fontSize: 13, fontWeight: FontWeight.w700),
@@ -758,12 +755,11 @@ class _FriendRequestsCard extends StatelessWidget {
                               ? null
                               : () => onAnswer(r, false),
                           style: IconButton.styleFrom(
-                            side: const BorderSide(color: WandererTheme.line),
+                            side: BorderSide(color: c.line),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10)),
                           ),
-                          icon: const Icon(Icons.close,
-                              size: 16, color: WandererTheme.stone),
+                          icon: Icon(Icons.close, size: 16, color: c.textMuted),
                         ),
                       ],
                     ),
@@ -782,6 +778,7 @@ class _AchievementsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final recent = data.recentAchievements.take(3).toList();
     return _Panel(
@@ -794,7 +791,7 @@ class _AchievementsCard extends StatelessWidget {
           ? Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(l10n.noAchievementsDashboard,
-                  style: const TextStyle(color: WandererTheme.stone)),
+                  style: TextStyle(color: c.textMuted)),
             )
           : Row(
               children: [
@@ -805,10 +802,10 @@ class _AchievementsCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFF8EC),
+                        color: c.goldBg,
                         borderRadius:
                             BorderRadius.circular(WandererTheme.radiusCard),
-                        border: Border.all(color: const Color(0xFFF3E3C3)),
+                        border: Border.all(color: c.line),
                       ),
                       child: Column(
                         children: [
@@ -851,6 +848,7 @@ class _ActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final tripNames = {for (final t in data.trips) t.id: t.name};
     final dateFormat =
@@ -859,13 +857,12 @@ class _ActivityCard extends StatelessWidget {
       title: l10n.recentActivity,
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
       trailing: Text(l10n.onYourTrips,
-          style:
-              const TextStyle(fontSize: 13, color: WandererTheme.stoneLight)),
+          style: TextStyle(fontSize: 13, color: c.caption)),
       child: comments.isEmpty
           ? Padding(
               padding: const EdgeInsets.only(top: 8, bottom: 16),
               child: Text(l10n.noRecentActivity,
-                  style: const TextStyle(color: WandererTheme.stone)),
+                  style: TextStyle(color: c.textMuted)),
             )
           : Column(
               children: [
@@ -875,16 +872,15 @@ class _ActivityCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       border: i == comments.length - 1
                           ? null
-                          : const Border(
-                              bottom: BorderSide(color: Color(0xFFF1ECE3))),
+                          : Border(bottom: BorderSide(color: c.lineSoft)),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _Initials(
                           AvatarHelper.getInitials(null, comments[i].username),
-                          background: WandererTheme.skySoft,
-                          foreground: WandererTheme.sky,
+                          background: c.skyBg,
+                          foreground: c.skyFg,
                           imageUrl: comments[i].userAvatarUrl,
                         ),
                         const SizedBox(width: 12),
@@ -901,8 +897,7 @@ class _ActivityCard extends StatelessWidget {
                                   TextSpan(
                                     text: l10n.commentedOn(
                                         tripNames[comments[i].tripId] ?? ''),
-                                    style: const TextStyle(
-                                        color: WandererTheme.stone),
+                                    style: TextStyle(color: c.textMuted),
                                   ),
                                 ]),
                                 style: const TextStyle(fontSize: 14),
@@ -913,7 +908,7 @@ class _ActivityCard extends StatelessWidget {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: WandererTheme.paperMuted,
+                                  color: c.raised,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text(comments[i].message,
@@ -921,9 +916,8 @@ class _ActivityCard extends StatelessWidget {
                               ),
                               const SizedBox(height: 6),
                               Text(dateFormat.format(comments[i].createdAt),
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      color: WandererTheme.stoneLabel)),
+                                  style:
+                                      TextStyle(fontSize: 12, color: c.label)),
                             ],
                           ),
                         ),
@@ -949,6 +943,7 @@ class _TripsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
     return _Panel(
       title: l10n.yourTrips,
@@ -959,8 +954,8 @@ class _TripsCard extends StatelessWidget {
       child: data.trips.isEmpty
           ? Padding(
               padding: const EdgeInsets.only(top: 8, bottom: 12),
-              child: Text(l10n.noTripsYet,
-                  style: const TextStyle(color: WandererTheme.stone)),
+              child:
+                  Text(l10n.noTripsYet, style: TextStyle(color: c.textMuted)),
             )
           : Column(
               children: [
@@ -979,13 +974,9 @@ class _TripsCard extends StatelessWidget {
                               width: 64,
                               height: 48,
                               placeholder: Container(
-                                  width: 64,
-                                  height: 48,
-                                  color: WandererTheme.mapGround),
+                                  width: 64, height: 48, color: c.mapGround),
                               errorWidget: Container(
-                                  width: 64,
-                                  height: 48,
-                                  color: WandererTheme.mapGround),
+                                  width: 64, height: 48, color: c.mapGround),
                             ),
                           ),
                           const SizedBox(width: 14),
@@ -1014,17 +1005,15 @@ class _TripsCard extends StatelessWidget {
                                         Visibility.private =>
                                           l10n.privateVisibility,
                                       }} · ${l10n.commentsCount(trip.commentsCount)}',
-                                      style: const TextStyle(
-                                          fontSize: 12,
-                                          color: WandererTheme.stoneLight),
+                                      style: TextStyle(
+                                          fontSize: 12, color: c.caption),
                                     ),
                                   ],
                                 ),
                               ],
                             ),
                           ),
-                          const Icon(Icons.chevron_right,
-                              size: 18, color: Color(0xFFA8A29E)),
+                          Icon(Icons.chevron_right, size: 18, color: c.label),
                         ],
                       ),
                     ),

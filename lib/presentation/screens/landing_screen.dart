@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
+import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
@@ -90,8 +91,9 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
     return Scaffold(
-      backgroundColor: WandererTheme.sand,
+      backgroundColor: c.ground,
       body: LayoutBuilder(builder: (context, constraints) {
         final w = constraints.maxWidth;
         final gutter = w >= 1200 ? 120.0 : (w >= 720 ? 40.0 : 16.0);
@@ -113,9 +115,10 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
   }
 
   Widget _buildHeader(BuildContext context, double gutter, bool wide) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
-    const link = TextStyle(
-        fontSize: 15, fontWeight: FontWeight.w500, color: WandererTheme.ink);
+    final link =
+        TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: c.text);
     return Container(
       height: 76,
       padding: EdgeInsets.symmetric(horizontal: gutter),
@@ -139,6 +142,17 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                 child: Text(l10n.landingNavAbout, style: link)),
             const Spacer(),
           ],
+          IconButton(
+            tooltip: Theme.of(context).brightness == Brightness.dark
+                ? l10n.switchToLightMode
+                : l10n.switchToDarkMode,
+            icon: Icon(Theme.of(context).brightness == Brightness.dark
+                ? Icons.light_mode_outlined
+                : Icons.dark_mode_outlined),
+            onPressed: () => ThemeController()
+                .setDarkMode(Theme.of(context).brightness != Brightness.dark),
+          ),
+          const SizedBox(width: 4),
           const _LanguageMenu(),
           const SizedBox(width: 8),
           TextButton(
@@ -159,6 +173,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
   }
 
   Widget _buildHero(BuildContext context, double gutter, bool wide) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final headlineSize = wide ? 68.0 : 40.0;
     final copy = Column(
@@ -173,7 +188,10 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
               TextSpan(text: l10n.landingHeroBefore),
               TextSpan(
                   text: l10n.landingHeroAccent,
-                  style: const TextStyle(color: WandererTheme.trail)),
+                  style: TextStyle(
+                      color: identical(c, WandererColors.dark)
+                          ? c.accentText
+                          : WandererTheme.trail)),
               TextSpan(text: l10n.landingHeroAfter),
             ]),
             style: WandererTheme.display(headlineSize).copyWith(height: 1.04),
@@ -183,8 +201,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 540),
           child: Text(l10n.landingHeroSub,
-              style: const TextStyle(
-                  fontSize: 19, height: 1.6, color: WandererTheme.stone)),
+              style: TextStyle(fontSize: 19, height: 1.6, color: c.textMuted)),
         ),
         const SizedBox(height: 28),
         Wrap(spacing: 12, runSpacing: 12, children: [
@@ -221,13 +238,13 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
             l10n.landingCheckPrivacy,
           ])
             Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.check, size: 18, color: WandererTheme.forest),
+              Icon(Icons.check, size: 18, color: c.forestFg),
               const SizedBox(width: 8),
               Text(label,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: WandererTheme.neutralText)),
+                      color: c.neutralFg)),
             ]),
         ]),
       ],
@@ -250,26 +267,27 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
   }
 
   Widget _buildFeatures(BuildContext context, double gutter, bool wide) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final features = [
       (
         Icons.place_outlined,
-        WandererTheme.trailSoft,
-        WandererTheme.trail,
+        c.trailSoftBg,
+        c.trailSoftFg,
         l10n.landingFeatureTrackingTitle,
         l10n.landingFeatureTrackingLong
       ),
       (
         Icons.chat_bubble_outline,
-        WandererTheme.forestSoft,
-        WandererTheme.forest,
+        c.forestBg,
+        c.forestFg,
         l10n.landingFeatureSocialTitle,
         l10n.landingFeatureSocialLong
       ),
       (
         Icons.emoji_events_outlined,
-        WandererTheme.goldSoft,
-        WandererTheme.goldIcon,
+        c.goldBg,
+        c.goldFg,
         l10n.landingFeatureAchievementsTitle,
         l10n.landingFeatureAchievementsLong
       ),
@@ -279,9 +297,9 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
         Container(
           padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
-            color: WandererTheme.paperMuted,
+            color: c.raised,
             borderRadius: BorderRadius.circular(WandererTheme.radiusPanel),
-            border: Border.all(color: WandererTheme.lineSoft),
+            border: Border.all(color: c.lineSoft),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -301,8 +319,8 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                       fontSize: 20, fontWeight: FontWeight.w700)),
               const SizedBox(height: 14),
               Text(body,
-                  style: const TextStyle(
-                      fontSize: 15, height: 1.6, color: WandererTheme.stone)),
+                  style:
+                      TextStyle(fontSize: 15, height: 1.6, color: c.textMuted)),
             ],
           ),
         ),
@@ -310,10 +328,9 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
 
     return Container(
       key: _featuresKey,
-      decoration: const BoxDecoration(
-        color: WandererTheme.paper,
-        border:
-            Border.symmetric(horizontal: BorderSide(color: WandererTheme.line)),
+      decoration: BoxDecoration(
+        color: c.surface,
+        border: Border.symmetric(horizontal: BorderSide(color: c.line)),
       ),
       padding: EdgeInsets.symmetric(horizontal: gutter, vertical: 80),
       child: Column(
@@ -330,12 +347,13 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
   }
 
   Widget _buildFeatured(BuildContext context, double gutter, bool wide) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final cta = Container(
       constraints: const BoxConstraints(minHeight: 300),
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: WandererTheme.ink,
+        color: identical(c, WandererColors.dark) ? c.raised : WandererTheme.ink,
         borderRadius: BorderRadius.circular(WandererTheme.radiusPanel),
       ),
       child: Column(
@@ -398,13 +416,13 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
   }
 
   Widget _buildFooter(BuildContext context, double gutter) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
-    const muted = TextStyle(fontSize: 14, color: WandererTheme.stone);
+    final muted = TextStyle(fontSize: 14, color: c.textMuted);
     return Container(
       key: _aboutKey,
       padding: EdgeInsets.symmetric(horizontal: gutter, vertical: 32),
-      decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: WandererTheme.line))),
+      decoration: BoxDecoration(border: Border(top: BorderSide(color: c.line))),
       child: Wrap(
         alignment: WrapAlignment.spaceBetween,
         crossAxisAlignment: WrapCrossAlignment.center,
@@ -412,11 +430,9 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
         runSpacing: 16,
         children: [
           Wrap(spacing: 10, children: [
-            const Text('Wanderer',
+            Text('Wanderer',
                 style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: WandererTheme.ink)),
+                    fontSize: 14, fontWeight: FontWeight.w700, color: c.text)),
             Text(l10n.landingFooterTagline, style: muted),
           ]),
           Wrap(
@@ -463,6 +479,7 @@ class _SectionHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 640),
       child: Column(
@@ -470,11 +487,11 @@ class _SectionHeading extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(eyebrow.toUpperCase(),
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1,
-                  color: WandererTheme.trailDeep)),
+                  color: c.accentText)),
           const SizedBox(height: 10),
           Semantics(
             header: true,
@@ -531,6 +548,7 @@ class _FeaturedTripCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final km = trip.accruedDistanceKm;
     final meta = [
@@ -539,11 +557,11 @@ class _FeaturedTripCard extends StatelessWidget {
       l10n.commentsCount(trip.commentsCount),
     ].join(' · ');
     return Material(
-      color: WandererTheme.paper,
+      color: c.surface,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(WandererTheme.radiusPanel),
-        side: const BorderSide(color: WandererTheme.line),
+        side: BorderSide(color: c.line),
       ),
       child: InkWell(
         onTap: onTap,
@@ -555,8 +573,8 @@ class _FeaturedTripCard extends StatelessWidget {
               child: Stack(fit: StackFit.expand, children: [
                 CachedTripThumbnail(
                   thumbnailUrl: trip.thumbnailUrl,
-                  placeholder: Container(color: WandererTheme.mapGround),
-                  errorWidget: Container(color: WandererTheme.mapGround),
+                  placeholder: Container(color: c.mapGround),
+                  errorWidget: Container(color: c.mapGround),
                 ),
                 Positioned(
                     top: 14,
@@ -574,9 +592,7 @@ class _FeaturedTripCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: WandererTheme.display(20)),
                   const SizedBox(height: 6),
-                  Text(meta,
-                      style: const TextStyle(
-                          fontSize: 13, color: WandererTheme.stoneLight)),
+                  Text(meta, style: TextStyle(fontSize: 13, color: c.caption)),
                 ],
               ),
             ),
@@ -595,20 +611,21 @@ class _ProductPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     return AspectRatio(
       aspectRatio: 1.25,
-      child: LayoutBuilder(builder: (context, c) {
-        final phoneW = c.maxWidth * 0.36;
+      child: LayoutBuilder(builder: (context, box) {
+        final c = WandererTheme.of(context);
+        final phoneW = box.maxWidth * 0.36;
         return Stack(children: [
           Positioned(
             left: 0,
-            top: c.maxHeight * 0.06,
-            width: c.maxWidth * 0.84,
-            height: c.maxHeight * 0.84,
+            top: box.maxHeight * 0.06,
+            width: box.maxWidth * 0.84,
+            height: box.maxHeight * 0.84,
             child: Container(
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                color: WandererTheme.paper,
+                color: c.surface,
                 borderRadius: BorderRadius.circular(WandererTheme.radiusPanel),
-                border: Border.all(color: WandererTheme.line),
+                border: Border.all(color: c.line),
                 boxShadow: const [
                   BoxShadow(
                       color: Color(0x1F3C2814),
@@ -622,11 +639,10 @@ class _ProductPreview extends StatelessWidget {
                   Container(
                     height: 40,
                     padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: const BoxDecoration(
-                        border: Border(
-                            bottom: BorderSide(color: WandererTheme.lineSoft))),
+                    decoration: BoxDecoration(
+                        border: Border(bottom: BorderSide(color: c.lineSoft))),
                     child: Row(children: [
-                      for (final c in const [
+                      for (final dot in const [
                         Color(0xFFE9A5A0),
                         Color(0xFFEFD28F),
                         Color(0xFFA9CDB3),
@@ -635,7 +651,7 @@ class _ProductPreview extends StatelessWidget {
                             width: 10,
                             height: 10,
                             decoration: BoxDecoration(
-                                color: c, shape: BoxShape.circle)),
+                                color: dot, shape: BoxShape.circle)),
                         const SizedBox(width: 8),
                       ],
                     ]),
@@ -660,7 +676,7 @@ class _ProductPreview extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: WandererTheme.ink,
+                color: c.text,
                 borderRadius: BorderRadius.circular(phoneW * 0.15),
                 boxShadow: const [
                   BoxShadow(
@@ -690,6 +706,7 @@ class _LanguageMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
     final controller = LocaleController();
     final current = controller.languageCode;
     return PopupMenuButton<String>(
@@ -707,15 +724,13 @@ class _LanguageMenu extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: WandererTheme.paper,
+          color: c.surface,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: WandererTheme.line),
+          border: Border.all(color: c.line),
         ),
         child: Text(LocaleController.localeLabels[current] ?? 'EN',
-            style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: WandererTheme.neutralText)),
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w600, color: c.neutralFg)),
       ),
     );
   }

@@ -14,6 +14,7 @@ import 'package:wanderer_frontend/presentation/helpers/dashed_polyline_helper.da
 import 'package:wanderer_frontend/presentation/helpers/location_permission_disclosure.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/web_marker_generator.dart';
+import 'package:wanderer_frontend/presentation/helpers/map_style_helper.dart';
 
 /// Screen for creating a new trip plan with map integration
 class CreateTripPlanScreen extends ConsumerStatefulWidget {
@@ -682,6 +683,7 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
           // Full-screen map
           Positioned.fill(
             child: GoogleMap(
+              style: MapStyleHelper.of(context),
               initialCameraPosition: CameraPosition(
                 target: _initialCameraLocation,
                 zoom: 12,
@@ -1150,6 +1152,7 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
             child: AbsorbPointer(
               absorbing: _formExpanded,
               child: GoogleMap(
+                style: MapStyleHelper.of(context),
                 initialCameraPosition: CameraPosition(
                   target: _initialCameraLocation,
                   zoom: 12,

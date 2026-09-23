@@ -346,12 +346,12 @@ class _WandererAppBarState extends ConsumerState<WandererAppBar>
               ],
             ),
       actions: [
-        // Dark mode toggle — only for logged in users
-        if (widget.isLoggedIn)
+        // Dark mode toggle — logged-in users, and everyone on web
+        if (widget.isLoggedIn || kIsWeb)
           ValueListenableBuilder<ThemeMode>(
             valueListenable: ThemeController().themeMode,
             builder: (context, mode, _) {
-              final isDark = mode == ThemeMode.dark;
+              final isDark = Theme.of(context).brightness == Brightness.dark;
               return IconButton(
                 icon: Icon(
                   isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,

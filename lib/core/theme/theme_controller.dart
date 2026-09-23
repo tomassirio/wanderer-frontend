@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -18,16 +19,26 @@ class ThemeController {
   final ValueNotifier<ThemeMode> themeMode =
       ValueNotifier<ThemeMode>(ThemeMode.light);
 
-  /// Whether dark mode is currently active.
-  bool get isDarkMode => themeMode.value == ThemeMode.dark;
+  /// Whether dark mode is currently active (resolving "follow the device").
+  bool get isDarkMode => switch (themeMode.value) {
+        ThemeMode.dark => true,
+        ThemeMode.light => false,
+        ThemeMode.system =>
+          WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+              Brightness.dark,
+      };
 
   /// Load the persisted preference from [SharedPreferences].
   ///
   /// Call once during app startup (before [runApp]).
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
-    final isDark = prefs.getBool(_darkModeKey) ?? false;
-    themeMode.value = isDark ? ThemeMode.dark : ThemeMode.light;
+    final isDark = prefs.getBool(_darkModeKey);
+    // Until the user picks a side, web follows the device setting (dark
+    // style guide); mobile keeps its light default.
+    themeMode.value = isDark == null
+        ? (kIsWeb ? ThemeMode.system : ThemeMode.light)
+        : (isDark ? ThemeMode.dark : ThemeMode.light);
   }
 
   /// Toggle or set dark mode and persist the preference.

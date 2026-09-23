@@ -4,19 +4,25 @@ import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 
 /// Colour pairs for [Pill]: status is always a pill (style guide rule 3).
+/// Resolved per theme via [WandererColors].
 enum PillTone {
-  completed(WandererTheme.forestSoft, WandererTheme.forest),
-  progress(WandererTheme.skySoft, WandererTheme.sky),
-  promoted(WandererTheme.trailSoft, WandererTheme.trailDeep),
-  gold(WandererTheme.goldSoft, WandererTheme.gold),
-  neutral(WandererTheme.neutralSoft, WandererTheme.neutralText),
+  completed,
+  progress,
+  promoted,
+  gold,
+  neutral,
 
-  /// White pill for overlays on maps and images.
-  onImage(Colors.white, WandererTheme.ink);
+  /// Pill over maps and images (white in light mode, Night in dark).
+  onImage;
 
-  final Color background;
-  final Color foreground;
-  const PillTone(this.background, this.foreground);
+  (Color, Color) colors(WandererColors c) => switch (this) {
+        PillTone.completed => (c.forestBg, c.forestFg),
+        PillTone.progress => (c.skyBg, c.skyFg),
+        PillTone.promoted => (c.trailSoftBg, c.trailSoftFg),
+        PillTone.gold => (c.goldBg, c.goldFg),
+        PillTone.neutral => (c.neutralBg, c.neutralFg),
+        PillTone.onImage => (c.overlayPillBg, c.text),
+      };
 }
 
 /// Rounded status/label badge from the web style guide.
@@ -24,10 +30,15 @@ class Pill extends StatelessWidget {
   final String label;
   final PillTone tone;
   final IconData? icon;
-  final Color? foreground;
+
+  /// Text colour taken from another tone (e.g. green text on an image pill).
+  final PillTone? foregroundTone;
 
   const Pill(this.label,
-      {super.key, this.tone = PillTone.neutral, this.icon, this.foreground});
+      {super.key,
+      this.tone = PillTone.neutral,
+      this.icon,
+      this.foregroundTone});
 
   /// Pill for a trip's status (green completed, blue in progress, …).
   factory Pill.status(BuildContext context, TripStatus status,
@@ -47,18 +58,20 @@ class Pill extends StatelessWidget {
     return Pill(
       label,
       tone: onImage ? PillTone.onImage : tone,
-      foreground: onImage ? tone.foreground : null,
+      foregroundTone: onImage ? tone : null,
       icon: icon,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final fg = foreground ?? tone.foreground;
+    final c = WandererTheme.of(context);
+    final (bg, toneFg) = tone.colors(c);
+    final fg = foregroundTone?.colors(c).$2 ?? toneFg;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
-        color: tone.background,
+        color: bg,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(

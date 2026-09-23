@@ -55,14 +55,21 @@ class WandererTheme {
         color: color,
       );
 
-  /// White card on sand with a 1px line border and no heavy shadow.
+  /// Web design tokens for the current brightness (light or dark guide).
+  static WandererColors of(BuildContext context) =>
+      Theme.of(context).extension<WandererColors>() ??
+      (Theme.of(context).brightness == Brightness.dark
+          ? WandererColors.dark
+          : WandererColors.light);
+
+  /// Card on the page ground with a 1px line border and no heavy shadow.
   static BoxDecoration cardDecoration(BuildContext context,
       {double radius = radiusPanel}) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    final c = of(context);
     return BoxDecoration(
-      color: Theme.of(context).colorScheme.surface,
+      color: c.surface,
       borderRadius: BorderRadius.circular(radius),
-      border: Border.all(color: dark ? const Color(0xFF3A3632) : line),
+      border: Border.all(color: c.line),
     );
   }
 
@@ -384,11 +391,12 @@ class WandererTheme {
   /// Layers the web redesign (fonts, sand surfaces, 12px controls, thin
   /// borders) over the base theme.
   static ThemeData _webTheme(ThemeData base, {required bool dark}) {
-    final ground = dark ? const Color(0xFF171513) : sand;
-    final surface = dark ? const Color(0xFF211F1C) : paper;
-    final border = dark ? const Color(0xFF3A3632) : line;
-    final text = dark ? const Color(0xFFF1EDE6) : ink;
-    final muted = dark ? const Color(0xFFB5AEA4) : stone;
+    final c = dark ? WandererColors.dark : WandererColors.light;
+    final ground = c.ground;
+    final surface = c.surface;
+    final border = c.line;
+    final text = c.text;
+    final muted = c.textMuted;
     final controlShape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(radiusControl),
     );
@@ -409,6 +417,7 @@ class WandererTheme {
         );
 
     return base.copyWith(
+      extensions: [c],
       scaffoldBackgroundColor: ground,
       canvasColor: ground,
       colorScheme: base.colorScheme.copyWith(
@@ -423,7 +432,7 @@ class WandererTheme {
         surfaceContainerLow: surface,
         surfaceContainer: surface,
         surfaceContainerHigh: surface,
-        surfaceContainerHighest: dark ? const Color(0xFF2A2724) : paperMuted,
+        surfaceContainerHighest: c.raised,
       ),
       textTheme: textTheme,
       primaryTextTheme: base.primaryTextTheme.apply(fontFamily: bodyFont),
@@ -476,7 +485,7 @@ class WandererTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: dark ? const Color(0xFFF0A36F) : trailDeep,
+          foregroundColor: c.accentText,
           minimumSize: const Size(44, 44),
           shape: controlShape,
           textStyle: buttonText,
@@ -498,7 +507,7 @@ class WandererTheme {
         ),
       ),
       chipTheme: base.chipTheme.copyWith(
-        backgroundColor: dark ? const Color(0xFF2A2724) : neutralSoft,
+        backgroundColor: c.neutralBg,
         selectedColor: trailSoft,
         side: BorderSide.none,
         labelStyle: const TextStyle(
@@ -526,10 +535,10 @@ class WandererTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: ink,
-        contentTextStyle: const TextStyle(
+        backgroundColor: dark ? c.raised : ink,
+        contentTextStyle: TextStyle(
           fontFamily: bodyFont,
-          color: Colors.white,
+          color: dark ? c.text : Colors.white,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusControl),
@@ -699,4 +708,128 @@ class WandererTheme {
         return textSecondary;
     }
   }
+}
+
+/// Web design tokens, one set per theme (style guide + dark style guide).
+/// Read with `WandererTheme.of(context)`; never hardcode the light hexes in
+/// widgets that must also work in dark mode.
+@immutable
+class WandererColors extends ThemeExtension<WandererColors> {
+  final Color ground; // page background
+  final Color sidebar;
+  final Color surface; // cards, panels
+  final Color raised; // inputs, hover, stat tiles
+  final Color line; // borders
+  final Color lineSoft; // inner dividers
+  final Color text;
+  final Color textMuted; // secondary text
+  final Color caption;
+  final Color label; // caps labels
+  final Color accentText; // orange text and links
+  final Color trailSoftBg; // active nav, promoted
+  final Color trailSoftFg;
+  final Color forestBg; // completed
+  final Color forestFg;
+  final Color skyBg; // in progress
+  final Color skyFg;
+  final Color goldBg; // achievements, distance
+  final Color goldFg;
+  final Color neutralBg; // private, chips
+  final Color neutralFg;
+  final Color neutralButtonBg; // dark "neutral" button in light mode
+  final Color neutralButtonFg;
+  final Color mapGround;
+  final Color overlayPillBg; // pills over maps and images
+
+  const WandererColors({
+    required this.ground,
+    required this.sidebar,
+    required this.surface,
+    required this.raised,
+    required this.line,
+    required this.lineSoft,
+    required this.text,
+    required this.textMuted,
+    required this.caption,
+    required this.label,
+    required this.accentText,
+    required this.trailSoftBg,
+    required this.trailSoftFg,
+    required this.forestBg,
+    required this.forestFg,
+    required this.skyBg,
+    required this.skyFg,
+    required this.goldBg,
+    required this.goldFg,
+    required this.neutralBg,
+    required this.neutralFg,
+    required this.neutralButtonBg,
+    required this.neutralButtonFg,
+    required this.mapGround,
+    required this.overlayPillBg,
+  });
+
+  static const light = WandererColors(
+    ground: WandererTheme.sand,
+    sidebar: WandererTheme.sandSidebar,
+    surface: WandererTheme.paper,
+    raised: WandererTheme.paperMuted,
+    line: WandererTheme.line,
+    lineSoft: WandererTheme.lineSoft,
+    text: WandererTheme.ink,
+    textMuted: WandererTheme.stone,
+    caption: WandererTheme.stoneLight,
+    label: WandererTheme.stoneLabel,
+    accentText: WandererTheme.trailDeep,
+    trailSoftBg: WandererTheme.trailSoft,
+    trailSoftFg: WandererTheme.trailDeep,
+    forestBg: WandererTheme.forestSoft,
+    forestFg: WandererTheme.forest,
+    skyBg: WandererTheme.skySoft,
+    skyFg: WandererTheme.sky,
+    goldBg: WandererTheme.goldSoft,
+    goldFg: WandererTheme.gold,
+    neutralBg: WandererTheme.neutralSoft,
+    neutralFg: WandererTheme.neutralText,
+    neutralButtonBg: WandererTheme.ink,
+    neutralButtonFg: Colors.white,
+    mapGround: WandererTheme.mapGround,
+    overlayPillBg: Colors.white,
+  );
+
+  /// Dark style guide: Night → Surface → Raised, Chalk text, Ash secondary.
+  static const dark = WandererColors(
+    ground: Color(0xFF151311), // Night
+    sidebar: Color(0xFF1F1C19),
+    surface: Color(0xFF1F1C19), // Surface
+    raised: Color(0xFF2A2622), // Raised
+    line: Color(0xFF36312B),
+    lineSoft: Color(0xFF2E2A25),
+    text: Color(0xFFF3EFE8), // Chalk
+    textMuted: Color(0xFFB5AEA6), // Ash
+    caption: Color(0xFFB5AEA6),
+    label: Color(0xFF8A837B),
+    accentText: Color(0xFFF59E5B),
+    trailSoftBg: Color(0xFF3A2418),
+    trailSoftFg: Color(0xFFF8B283),
+    forestBg: Color(0xFF1E3329),
+    forestFg: Color(0xFF7BCBA3),
+    skyBg: Color(0xFF1D2A38),
+    skyFg: Color(0xFF93BEEB),
+    goldBg: Color(0xFF3A2E14),
+    goldFg: Color(0xFFF2C265),
+    neutralBg: Color(0xFF2A2622),
+    neutralFg: Color(0xFFCFC8BF),
+    neutralButtonBg: Color(0xFFF3EFE8),
+    neutralButtonFg: Color(0xFF151311),
+    mapGround: Color(0xFF24211D),
+    overlayPillBg: Color(0xFF151311),
+  );
+
+  @override
+  WandererColors copyWith() => this;
+
+  @override
+  WandererColors lerp(WandererColors? other, double t) =>
+      other == null || t < 0.5 ? this : other;
 }

@@ -113,6 +113,7 @@ class _WebTripDetailLayoutState extends State<WebTripDetailLayout> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final locale = Localizations.localeOf(context).toString();
     final dateFormat = DateFormat.yMd(locale);
@@ -121,7 +122,7 @@ class _WebTripDetailLayoutState extends State<WebTripDetailLayout> {
         : _trip.startDate != null
             ? l10n.startedOn(dateFormat.format(_trip.startDate!))
             : null;
-    const meta = TextStyle(fontSize: 14, color: WandererTheme.stone);
+    final meta = TextStyle(fontSize: 14, color: c.textMuted);
 
     final actions = <Widget>[
       if (!_isOwner && _d.onFollowTripOwner != null)
@@ -208,8 +209,8 @@ class _WebTripDetailLayoutState extends State<WebTripDetailLayout> {
                             : null,
                         username: _trip.username,
                         radius: 12,
-                        backgroundColor: WandererTheme.forestSoft,
-                        textColor: WandererTheme.forest,
+                        backgroundColor: c.forestBg,
+                        textColor: c.forestFg,
                       ),
                       const SizedBox(width: 8),
                       Text('@${_trip.username}',
@@ -219,10 +220,10 @@ class _WebTripDetailLayoutState extends State<WebTripDetailLayout> {
                     ]),
                   ),
                   if (date != null) ...[
-                    const Text('·', style: meta),
+                    Text('·', style: meta),
                     Text(date, style: meta),
                   ],
-                  const Text('·', style: meta),
+                  Text('·', style: meta),
                   _buildVisibility(context, meta),
                 ],
               ),
@@ -285,6 +286,7 @@ class _WebTripDetailLayoutState extends State<WebTripDetailLayout> {
   }
 
   Widget _buildMapCard(BuildContext context) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final latest = _d.tripUpdates.isEmpty
         ? null
@@ -298,7 +300,7 @@ class _WebTripDetailLayoutState extends State<WebTripDetailLayout> {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: WandererTheme.cardDecoration(context).copyWith(
-        color: WandererTheme.mapGround,
+        color: c.mapGround,
       ),
       child: Stack(
         fit: StackFit.expand,
@@ -325,14 +327,13 @@ class _WebTripDetailLayoutState extends State<WebTripDetailLayout> {
                         _trip.status == TripStatus.finished
                             ? l10n.mapFinish
                             : l10n.mapLatestUpdate,
-                        style: const TextStyle(
-                            fontSize: 12, color: WandererTheme.stoneLight),
+                        style: TextStyle(fontSize: 12, color: c.caption),
                       ),
                       Text(place,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
-                              color: WandererTheme.ink)),
+                              color: c.text)),
                     ],
                   ),
                 ]),
@@ -341,9 +342,9 @@ class _WebTripDetailLayoutState extends State<WebTripDetailLayout> {
           if (widget.donationButton != null)
             Positioned(left: 16, bottom: 16, child: widget.donationButton!),
           if (widget.isMapLoading)
-            const ColoredBox(
-              color: Color(0x33F5F2EC),
-              child: Center(child: CircularProgressIndicator()),
+            ColoredBox(
+              color: c.ground.withOpacity(0.2),
+              child: const Center(child: CircularProgressIndicator()),
             ),
         ],
       ),
@@ -351,6 +352,7 @@ class _WebTripDetailLayoutState extends State<WebTripDetailLayout> {
   }
 
   Widget _buildStats(BuildContext context) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final locale = Localizations.localeOf(context).toString();
     final km =
@@ -380,8 +382,7 @@ class _WebTripDetailLayoutState extends State<WebTripDetailLayout> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(stats[i].$1,
-                      style: const TextStyle(
-                          fontSize: 12, color: WandererTheme.stoneLight)),
+                      style: TextStyle(fontSize: 12, color: c.caption)),
                   const SizedBox(height: 2),
                   Text(stats[i].$2,
                       maxLines: 1,
@@ -432,6 +433,7 @@ class _WebTripDetailLayoutState extends State<WebTripDetailLayout> {
   }
 
   Widget _buildSidePanel(BuildContext context) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final tabs = [
       l10n.timeline,
@@ -481,7 +483,7 @@ class _WebTripDetailLayoutState extends State<WebTripDetailLayout> {
                                       : FontWeight.w600,
                                   color: _tab == i
                                       ? Theme.of(context).colorScheme.onSurface
-                                      : WandererTheme.stone,
+                                      : c.textMuted,
                                 ),
                               ),
                             ),
@@ -530,7 +532,7 @@ class _FloatingCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: WandererTheme.of(context).surface,
         borderRadius: BorderRadius.circular(WandererTheme.radiusCard),
         boxShadow: const [
           BoxShadow(

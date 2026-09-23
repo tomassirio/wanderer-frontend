@@ -108,9 +108,9 @@ class _WebSidebarState extends ConsumerState<WebSidebar> {
 
   @override
   Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final bg = dark ? const Color(0xFF1C1A18) : WandererTheme.sandSidebar;
+    final bg = c.sidebar;
     final border = Theme.of(context).colorScheme.outline;
     final rail = widget.collapsed;
 
@@ -215,18 +215,19 @@ class _WebSidebarState extends ConsumerState<WebSidebar> {
   }
 
   Widget _avatar(double size) {
+    final c = WandererTheme.of(context);
     final url = _c.avatarUrl;
     final hasUrl = url != null && url.isNotEmpty;
     return CircleAvatar(
       radius: size / 2,
-      backgroundColor: WandererTheme.forestSoft,
+      backgroundColor: c.forestBg,
       foregroundImage:
           hasUrl ? NetworkImage(ApiEndpoints.resolveThumbnailUrl(url)) : null,
       onForegroundImageError: hasUrl ? (_, __) {} : null,
       child: Text(
         AvatarHelper.getInitials(_c.displayName, _c.username ?? '?'),
         style: TextStyle(
-          color: WandererTheme.forest,
+          color: c.forestFg,
           fontWeight: FontWeight.w700,
           fontSize: size * 0.35,
         ),
@@ -291,9 +292,10 @@ class _WebSidebarState extends ConsumerState<WebSidebar> {
   }
 
   List<Widget> _buildGroup(BuildContext context, _NavGroup group, bool rail) {
+    final c = WandererTheme.of(context);
     final items =
         group.items.where((i) => _isLoggedIn || !i.requiresLogin).toList();
-    if (items.isEmpty) return const [];
+    if (items.isEmpty) return [];
     return [
       if (rail)
         Center(
@@ -309,11 +311,11 @@ class _WebSidebarState extends ConsumerState<WebSidebar> {
           padding: const EdgeInsets.fromLTRB(12, 14, 12, 6),
           child: Text(
             group.label.toUpperCase(),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.9,
-              color: WandererTheme.stoneLabel,
+              color: c.label,
             ),
           ),
         ),
@@ -322,14 +324,12 @@ class _WebSidebarState extends ConsumerState<WebSidebar> {
   }
 
   Widget _buildItem(BuildContext context, _NavItem item, bool rail) {
+    final c = WandererTheme.of(context);
     final selected = item.index == _c.selectedIndex;
-    final dark = Theme.of(context).brightness == Brightness.dark;
     final fg = selected
-        ? (dark ? const Color(0xFFF0A36F) : WandererTheme.trailDeep)
+        ? c.trailSoftFg
         : Theme.of(context).colorScheme.onSurfaceVariant;
-    final bg = selected
-        ? (dark ? const Color(0xFF3A2618) : WandererTheme.trailSoft)
-        : Colors.transparent;
+    final bg = selected ? c.trailSoftBg : Colors.transparent;
 
     final badge = item.badge > 0
         ? Container(
@@ -427,13 +427,14 @@ class _WebSidebarState extends ConsumerState<WebSidebar> {
       ];
     }
 
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final c = WandererTheme.of(context);
+    final muted = c.textMuted;
     return [
       Material(
-        color: const Color(0xFFFFF7E6),
+        color: c.goldBg,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(WandererTheme.radiusControl),
-          side: const BorderSide(color: Color(0xFFF3DFB5)),
+          side: BorderSide(color: c.goldBg),
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(WandererTheme.radiusControl),
@@ -442,14 +443,13 @@ class _WebSidebarState extends ConsumerState<WebSidebar> {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                const Icon(Icons.coffee_outlined,
-                    size: 18, color: WandererTheme.gold),
+                Icon(Icons.coffee_outlined, size: 18, color: c.goldFg),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     l10n.navSupport,
-                    style: const TextStyle(
-                      color: WandererTheme.gold,
+                    style: TextStyle(
+                      color: c.goldFg,
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),

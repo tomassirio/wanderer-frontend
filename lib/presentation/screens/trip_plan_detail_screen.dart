@@ -26,6 +26,7 @@ import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
+import 'package:wanderer_frontend/presentation/helpers/map_style_helper.dart';
 
 /// The type of point the user wants to place next on the map in edit mode
 enum _EditPlacementMode { start, end, waypoint }
@@ -643,6 +644,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
               Positioned.fill(
                 child: hasMapData
                     ? GoogleMap(
+                        style: MapStyleHelper.of(context),
                         initialCameraPosition: CameraPosition(
                           target:
                               TripPlanMapHelper.getInitialLocation(_tripPlan),
@@ -833,6 +835,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
           // Full-screen map
           Positioned.fill(
             child: GoogleMap(
+              style: MapStyleHelper.of(context),
               initialCameraPosition: CameraPosition(
                 target: _editStartLocation ?? const LatLng(40.7128, -74.0060),
                 zoom: 10,
@@ -1285,6 +1288,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
             child: AbsorbPointer(
               absorbing: _editFormExpanded,
               child: GoogleMap(
+                style: MapStyleHelper.of(context),
                 initialCameraPosition: CameraPosition(
                   target: _editStartLocation ?? const LatLng(40.7128, -74.0060),
                   zoom: 10,
