@@ -7,11 +7,15 @@ class EmailField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onFieldSubmitted;
 
+  /// Web redesign: label rendered above by the caller, no floating label.
+  final InputDecoration? decoration;
+
   const EmailField({
     super.key,
     required this.controller,
     this.textInputAction,
     this.onFieldSubmitted,
+    this.decoration,
   });
 
   @override
@@ -19,11 +23,12 @@ class EmailField extends StatelessWidget {
     final l10n = context.l10n;
     return TextFormField(
       controller: controller,
-      decoration: InputDecoration(
-        labelText: l10n.emailLabel,
-        prefixIcon: const Icon(Icons.email),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+      decoration: decoration ??
+          InputDecoration(
+            labelText: l10n.emailLabel,
+            prefixIcon: const Icon(Icons.email),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
       keyboardType: TextInputType.emailAddress,
       textCapitalization: TextCapitalization.none,
       textInputAction: textInputAction ?? TextInputAction.next,

@@ -209,31 +209,8 @@ class _AuthFormState extends State<AuthForm> {
             ),
           ),
           const SizedBox(height: 4),
-          _buildRequirement(
-            l10n.passwordRequirement8Chars,
-            _password.length >= 8,
-            hintColor,
-          ),
-          _buildRequirement(
-            l10n.passwordRequirementUppercase,
-            RegExp(r'[A-Z]').hasMatch(_password),
-            hintColor,
-          ),
-          _buildRequirement(
-            l10n.passwordRequirementLowercase,
-            RegExp(r'[a-z]').hasMatch(_password),
-            hintColor,
-          ),
-          _buildRequirement(
-            l10n.passwordRequirementNumber,
-            RegExp(r'\d').hasMatch(_password),
-            hintColor,
-          ),
-          _buildRequirement(
-            l10n.passwordRequirementSpecial,
-            RegExp(r'[@$!%*?&#]').hasMatch(_password),
-            hintColor,
-          ),
+          for (final (text, isMet) in passwordRules(l10n, _password))
+            _buildRequirement(text, isMet, hintColor),
         ],
       ),
     );

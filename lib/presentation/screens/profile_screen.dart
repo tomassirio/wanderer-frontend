@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,6 +31,9 @@ import 'friends_followers_screen.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/create_trip_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/web_page_header.dart';
+import 'package:wanderer_frontend/presentation/widgets/profile/web_profile_widgets.dart';
 
 /// Returns a localized label for a [TripStatus] using the current locale.
 String _localizedTripStatus(TripStatus status, AppLocalizations l10n) {
@@ -997,6 +1001,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return WandererScaffold(
+      hideAppBarWithSidebar: true,
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
@@ -1055,6 +1060,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (_profile == null) {
       return Center(child: Text(l10n.noProfileData));
     }
+
+    if (WandererScaffold.hasPersistentSidebar(context)) return _buildWebBody();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -1125,7 +1132,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               Clipboard.setData(
                                   ClipboardData(text: _profile!.id));
                               UiHelpers.showInfoMessage(
-                                  context, 'User ID copied to clipboard');
+                                  context, context.l10n.profileUserIdCopied);
                             },
                             child: Text(
                               _profile!.id,
@@ -1314,10 +1321,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildAvatarWidget() {
+  Widget _buildAvatarWidget({double radius = 40}) {
     if (!_isViewingOwnProfile) {
       // For other users, just show the avatar
-      return _buildAvatarImage(40);
+      return _buildAvatarImage(radius);
     }
 
     // For own profile, make it clickable with hover effect
@@ -1329,44 +1336,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           onEnter: (_) => setState(() => isHovering = true),
           onExit: (_) => setState(() => isHovering = false),
           child: GestureDetector(
-            onTap: () {
-              if (_profile!.avatarUrl.isNotEmpty) {
-                // Show options: change or delete
-                showModalBottomSheet(
-                  context: context,
-                  builder: (context) => SafeArea(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          leading: const Icon(Icons.photo_camera),
-                          title: const Text('Change Avatar'),
-                          onTap: () {
-                            Navigator.pop(context);
-                            _handleAvatarUpload();
-                          },
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.delete, color: Colors.red),
-                          title: const Text('Delete Avatar',
-                              style: TextStyle(color: Colors.red)),
-                          onTap: () {
-                            Navigator.pop(context);
-                            _handleAvatarDelete();
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              } else {
-                // No avatar, just upload
-                _handleAvatarUpload();
-              }
-            },
+            onTap: () => _onOwnAvatarTap(context),
             child: Stack(
               children: [
-                _buildAvatarImage(40),
+                _buildAvatarImage(radius),
                 // Hover overlay with camera icon
                 if (isHovering)
                   Positioned.fill(
@@ -1388,6 +1361,42 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         );
       },
     );
+  }
+
+  void _onOwnAvatarTap(BuildContext context) {
+    if (_profile!.avatarUrl.isNotEmpty) {
+      // Show options: change or delete
+      showModalBottomSheet(
+        context: context,
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Change Avatar'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _handleAvatarUpload();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('Delete Avatar',
+                    style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _handleAvatarDelete();
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      // No avatar, just upload
+      _handleAvatarUpload();
+    }
   }
 
   Widget _buildActionButtons() {
@@ -1965,6 +1974,330 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           }).toList(),
         ),
       ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Web layout (sidebar beside the page)
+  // ---------------------------------------------------------------------------
+
+  static const _liveStatuses = {
+    TripStatus.inProgress,
+    TripStatus.paused,
+    TripStatus.resting,
+  };
+  static const _filterSegments = [
+    <TripStatus>{},
+    _liveStatuses,
+    {TripStatus.created},
+    {TripStatus.finished},
+  ];
+
+  Widget _buildWebBody() {
+    final l10n = context.l10n;
+    final c = WandererTheme.of(context);
+    final gutter = MediaQuery.sizeOf(context).width >= 720 ? 40.0 : 16.0;
+    final filtered = _filteredAndSortedTrips;
+
+    return ListView(
+      padding: EdgeInsets.fromLTRB(gutter, 28, gutter, 40),
+      children: [
+        WebPageHeader(
+          title: _isViewingOwnProfile
+              ? l10n.myTrips
+              : (_profile!.displayName ?? _profile!.username),
+          userId: _currentUserId,
+          isLoggedIn: _isLoggedIn,
+          primaryAction: _isViewingOwnProfile
+              ? ElevatedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    PageTransitions.slideFromRight(const CreateTripScreen()),
+                  ),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(l10n.newTrip),
+                )
+              : null,
+        ),
+        const SizedBox(height: 24),
+        _buildWebProfileCard(),
+        const SizedBox(height: 24),
+        if (_userTrips.isNotEmpty) ...[
+          Wrap(
+            spacing: 16,
+            runSpacing: 12,
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _buildWebFilter(),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(l10n.profileSort,
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: c.textMuted)),
+                  const SizedBox(width: 8),
+                  Container(
+                    height: 40,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: c.surface,
+                      border: Border.all(color: c.line),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<TripSortOption>(
+                        value: _tripSortOption,
+                        style: TextStyle(fontSize: 13, color: c.text),
+                        dropdownColor: c.surface,
+                        borderRadius: BorderRadius.circular(10),
+                        items: [
+                          for (final o in TripSortOption.values)
+                            DropdownMenuItem(
+                                value: o, child: Text(o.labelFor(l10n))),
+                        ],
+                        onChanged: (o) {
+                          if (o != null) setState(() => _tripSortOption = o);
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+        ],
+        if (_isLoadingTrips)
+          const Center(child: CircularProgressIndicator())
+        else if (_userTrips.isEmpty || filtered.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              children: [
+                Text(
+                  _userTrips.isEmpty
+                      ? l10n.noTripsYet
+                      : l10n.noTripsMatchFilters,
+                  style: TextStyle(color: c.textMuted),
+                ),
+                if (_userTrips.isNotEmpty)
+                  TextButton(
+                    onPressed: () =>
+                        setState(() => _selectedStatusFilters.clear()),
+                    child: Text(l10n.clearFilters),
+                  ),
+              ],
+            ),
+          )
+        else
+          LayoutBuilder(builder: (context, constraints) {
+            final twoCols = constraints.maxWidth >= 900;
+            final w = twoCols
+                ? (constraints.maxWidth - 20) / 2
+                : constraints.maxWidth;
+            return Wrap(
+              spacing: 20,
+              runSpacing: 20,
+              children: [
+                for (final trip in filtered)
+                  SizedBox(
+                    width: w,
+                    child: WebProfileTripCard(
+                      trip: trip,
+                      onTap: () => _navigateToTripDetail(trip),
+                    ),
+                  ),
+              ],
+            );
+          }),
+      ],
+    );
+  }
+
+  Widget _buildWebFilter() {
+    final l10n = context.l10n;
+    int count(Set<TripStatus> s) =>
+        _userTrips.where((t) => s.isEmpty || s.contains(t.status)).length;
+    final names = [
+      l10n.profileFilterAll,
+      l10n.live,
+      l10n.profileFilterDrafts,
+      l10n.completed,
+    ];
+    return ProfileSegmentedFilter(
+      labels: [
+        for (var i = 0; i < names.length; i++)
+          '${names[i]} · ${count(_filterSegments[i])}',
+      ],
+      selected: _filterSegments
+          .indexWhere((s) => setEquals(s, _selectedStatusFilters)),
+      onSelected: (i) => setState(() => _selectedStatusFilters
+        ..clear()
+        ..addAll(_filterSegments[i])),
+    );
+  }
+
+  Widget _buildWebProfileCard() {
+    final l10n = context.l10n;
+    final c = WandererTheme.of(context);
+    final bio = _profile!.bio ?? '';
+    final own = _isViewingOwnProfile;
+    final social = own ? _navigateToFriendsFollowers : null;
+
+    final identity = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _profile!.displayName ?? _profile!.username,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: WandererTheme.display(24, color: c.text),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text('@${_profile!.username}',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 14, color: c.textMuted)),
+            ),
+            IconButton(
+              tooltip: l10n.profileCopyUserId,
+              visualDensity: VisualDensity.compact,
+              iconSize: 14,
+              color: c.caption,
+              icon: const Icon(Icons.copy_rounded),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: _profile!.id));
+                UiHelpers.showInfoMessage(
+                    context, context.l10n.profileUserIdCopied);
+              },
+            ),
+          ],
+        ),
+        if (bio.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(bio, style: TextStyle(fontSize: 14, color: c.text, height: 1.4)),
+        ] else if (own) ...[
+          const SizedBox(height: 4),
+          TextButton.icon(
+            onPressed: _showEditProfileDialog,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(0, 36),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              backgroundColor: c.raised,
+              foregroundColor: c.textMuted,
+              textStyle:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(color: c.line),
+              ),
+            ),
+            icon: const Icon(Icons.add, size: 14),
+            label: Text(l10n.profileAddShortBio),
+          ),
+        ],
+      ],
+    );
+
+    final stats = ProfileStatBox(stats: [
+      ProfileStat(l10n.trips, _userTrips.length),
+      ProfileStat(l10n.followers, _followersCount, social),
+      ProfileStat(l10n.following, _followingCount, social),
+      ProfileStat(l10n.friends, _friendsCount, social),
+    ]);
+
+    final actions = own
+        ? [
+            OutlinedButton.icon(
+              onPressed: _showEditProfileDialog,
+              icon: const Icon(Icons.edit_outlined, size: 16),
+              label: Text(l10n.editProfile),
+            ),
+          ]
+        : [
+            OutlinedButton.icon(
+              onPressed: _handleFollowUser,
+              icon: Icon(
+                  _isFollowingUser ? Icons.person_remove : Icons.person_add,
+                  size: 16),
+              label: Text(_isFollowingUser ? l10n.unfollow : l10n.follow),
+            ),
+            OutlinedButton.icon(
+              onPressed: _handleSendFriendRequest,
+              icon: Icon(
+                  _isAlreadyFriends
+                      ? Icons.people
+                      : _hasSentFriendRequest
+                          ? Icons.person_add_disabled
+                          : Icons.person_add_alt,
+                  size: 16),
+              label: Text(_isAlreadyFriends
+                  ? l10n.unfriend
+                  : _hasSentFriendRequest
+                      ? l10n.cancelFriendRequest
+                      : l10n.sendFriendRequest),
+            ),
+          ];
+
+    final avatar = own
+        ? Tooltip(
+            message: l10n.profileChangeAvatar,
+            child: _buildAvatarWidget(radius: 44),
+          )
+        : _buildAvatarWidget(radius: 44);
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: WandererTheme.cardDecoration(context),
+      child: LayoutBuilder(builder: (context, constraints) {
+        final head = Row(
+          children: [
+            avatar,
+            const SizedBox(width: 24),
+            Expanded(child: identity),
+          ],
+        );
+        final tail = Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [stats, ...actions],
+        );
+        if (constraints.maxWidth >= 1000) {
+          return Row(
+            children: [
+              Expanded(child: head),
+              const SizedBox(width: 24),
+              stats,
+              const SizedBox(width: 24),
+              // IntrinsicWidth: a stretched Column in a Row has unbounded
+              // width and throws; this sizes buttons to the widest one.
+              IntrinsicWidth(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var i = 0; i < actions.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 8),
+                      actions[i],
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [head, const SizedBox(height: 20), tail],
+        );
+      }),
     );
   }
 

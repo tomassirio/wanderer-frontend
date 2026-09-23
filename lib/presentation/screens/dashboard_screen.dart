@@ -25,6 +25,7 @@ import 'package:wanderer_frontend/presentation/widgets/common/cached_trip_thumbn
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/web_page_header.dart';
 
 /// Web home after login: greeting, stats, latest trip, friend requests,
 /// achievements, recent comments and the user's trips.
@@ -135,6 +136,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return WandererScaffold(
+      hideAppBarWithSidebar: true,
       appBar: WandererAppBar(
         isLoggedIn: true,
         username: _username,
@@ -219,7 +221,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
 
         return ListView(
-          padding: EdgeInsets.fromLTRB(gutter, 12, gutter, 40),
+          padding: EdgeInsets.fromLTRB(gutter, 28, gutter, 40),
           children: [
             _Header(
               data: data,
@@ -295,7 +297,6 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final name = (data.profile.displayName?.isNotEmpty ?? false)
         ? data.profile.displayName!.split(' ').first
@@ -313,30 +314,15 @@ class _Header extends StatelessWidget {
             ? l10n.dashboardSubtitleLive(latest.name)
             : l10n.dashboardSubtitleFinished(latest.name);
 
-    return Wrap(
-      spacing: 24,
-      runSpacing: 16,
-      alignment: WrapAlignment.spaceBetween,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Semantics(
-              header: true,
-              child: Text(greeting, style: WandererTheme.display(32)),
-            ),
-            const SizedBox(height: 6),
-            Text(subtitle, style: TextStyle(fontSize: 15, color: c.textMuted)),
-          ],
-        ),
-        ElevatedButton.icon(
-          onPressed: onStartTrip,
-          icon: const Icon(Icons.add, size: 18),
-          label: Text(l10n.startATrip),
-        ),
-      ],
+    return WebPageHeader(
+      title: greeting,
+      subtitle: subtitle,
+      userId: data.profile.id,
+      primaryAction: ElevatedButton.icon(
+        onPressed: onStartTrip,
+        icon: const Icon(Icons.add, size: 18),
+        label: Text(l10n.startATrip),
+      ),
     );
   }
 }

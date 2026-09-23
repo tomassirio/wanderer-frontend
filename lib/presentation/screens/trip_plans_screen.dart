@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
@@ -12,6 +13,7 @@ import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.d
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_plans_content.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_plans/web_trip_plans_layout.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'auth_screen.dart';
 import 'create_trip_plan_screen.dart';
@@ -249,6 +251,7 @@ class _TripPlansScreenState extends ConsumerState<TripPlansScreen> {
   @override
   Widget build(BuildContext context) {
     return WandererScaffold(
+      hideAppBarWithSidebar: kIsWeb,
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
@@ -270,25 +273,40 @@ class _TripPlansScreenState extends ConsumerState<TripPlansScreen> {
         onSettings: _handleSettings,
         isAdmin: _isAdmin,
       ),
-      body: TripPlansContent(
-        isLoading: _isLoading,
-        error: _error,
-        tripPlans: _filteredPlans,
-        isLoggedIn: _isLoggedIn,
-        onRefresh: _loadTripPlans,
-        onTripPlanTap: _handleTripPlanTap,
-        onCreateTripFromPlan: _handleCreateTripFromPlan,
-        onDeletePlan: _handleDeletePlan,
-        onLoginPressed: _navigateToAuth,
-        onCreatePressed: _handleCreatePlan,
-      ),
-      floatingActionButton: _isLoggedIn && !_isLoading && _tripPlans.isNotEmpty
-          ? FloatingActionButton(
-              onPressed: _handleCreatePlan,
-              backgroundColor: Theme.of(context).primaryColor,
-              child: const Icon(Icons.add, color: Colors.white),
+      body: kIsWeb
+          ? WebTripPlansLayout(
+              isLoading: _isLoading,
+              error: _error,
+              tripPlans: _filteredPlans,
+              isLoggedIn: _isLoggedIn,
+              userId: _userId,
+              onRefresh: _loadTripPlans,
+              onOpen: _handleTripPlanTap,
+              onStartTrip: _handleCreateTripFromPlan,
+              onDelete: _handleDeletePlan,
+              onLogin: _navigateToAuth,
+              onCreate: _handleCreatePlan,
             )
-          : null,
+          : TripPlansContent(
+              isLoading: _isLoading,
+              error: _error,
+              tripPlans: _filteredPlans,
+              isLoggedIn: _isLoggedIn,
+              onRefresh: _loadTripPlans,
+              onTripPlanTap: _handleTripPlanTap,
+              onCreateTripFromPlan: _handleCreateTripFromPlan,
+              onDeletePlan: _handleDeletePlan,
+              onLoginPressed: _navigateToAuth,
+              onCreatePressed: _handleCreatePlan,
+            ),
+      floatingActionButton:
+          !kIsWeb && _isLoggedIn && !_isLoading && _tripPlans.isNotEmpty
+              ? FloatingActionButton(
+                  onPressed: _handleCreatePlan,
+                  backgroundColor: Theme.of(context).primaryColor,
+                  child: const Icon(Icons.add, color: Colors.white),
+                )
+              : null,
     );
   }
 }

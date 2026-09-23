@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -27,8 +28,10 @@ import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/home/enhanced_trip_card.dart';
 import 'package:wanderer_frontend/presentation/widgets/home/feed_section_header.dart';
 import 'package:wanderer_frontend/presentation/widgets/home/relationship_badge.dart';
+import 'package:wanderer_frontend/presentation/widgets/home/web_explore_view.dart';
 import 'package:wanderer_frontend/main.dart' show routeObserver;
 import 'create_trip_screen.dart';
+import 'friends_followers_screen.dart';
 import 'settings_screen.dart';
 import 'trip_detail_screen.dart';
 import 'auth_screen.dart';
@@ -374,6 +377,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// device, the first time a logged-in user with a resolved username
   /// reaches this screen.
   Future<void> _maybeShowHomeTutorial() async {
+    // The coach-mark targets (bottom nav, FAB) only exist in the mobile UI.
+    if (kIsWeb) return;
     if (_tutorialCheckDone || !_isLoggedIn || _username == null) return;
     _tutorialCheckDone = true;
 
@@ -1712,11 +1717,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    return WandererScaffold(
-      appBar: WandererAppBar(
+  WandererAppBar _buildAppBar() => WandererAppBar(
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
         username: _username,
@@ -1729,8 +1730,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         menuButtonKey: _tutorialMenuKey,
         searchButtonKey: _tutorialSearchKey,
         notificationButtonKey: _tutorialNotificationsKey,
-      ),
-      drawer: AppSidebar(
+      );
+
+  AppSidebar _buildSidebar() => AppSidebar(
         username: _username,
         userId: _userId,
         displayName: _displayName,
@@ -1739,7 +1741,59 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         onLogout: _logout,
         onSettings: _handleSettings,
         isAdmin: _isAdmin,
-      ),
+      );
+
+  Widget _buildWeb() {
+    return WandererScaffold(
+      hideAppBarWithSidebar: true,
+      appBar: _buildAppBar(),
+      drawer: _buildSidebar(),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(context.l10n.errorLoadingTrips),
+                      const SizedBox(height: 16),
+                      OutlinedButton(
+                          onPressed: _loadTrips,
+                          child: Text(context.l10n.retry)),
+                    ],
+                  ),
+                )
+              : WebExploreView(
+                  isLoggedIn: _isLoggedIn,
+                  userId: _userId,
+                  discoverTrips: _discoverTrips,
+                  feedTrips: _feedTrips,
+                  hasMore: _hasMoreTrips,
+                  isLoadingMore: _isLoadingMoreTrips,
+                  onLoadMore: _loadMoreTrips,
+                  onRefresh: _loadTrips,
+                  onOpenTrip: _navigateToTripDetail,
+                  onNewTrip: _navigateToCreateTrip,
+                  onLogIn: () => _navigateToAuth(),
+                  onGetStarted: () => _navigateToAuth(startInSignup: true),
+                  onFindFriends: _isLoggedIn
+                      ? () => Navigator.push(
+                            context,
+                            PageTransitions.slideFromRight(
+                                const FriendsFollowersScreen()),
+                          )
+                      : () => _navigateToAuth(startInSignup: true),
+                ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb) return _buildWeb();
+    final l10n = context.l10n;
+    return WandererScaffold(
+      appBar: _buildAppBar(),
+      drawer: _buildSidebar(),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

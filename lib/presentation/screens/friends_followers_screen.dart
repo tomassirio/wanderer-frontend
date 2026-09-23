@@ -1,7 +1,11 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
@@ -16,7 +20,12 @@ import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/web_page_header.dart';
+import 'package:wanderer_frontend/presentation/widgets/friends/friends_web_widgets.dart';
 import 'package:wanderer_frontend/presentation/widgets/home/relationship_badge.dart';
+import 'search_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/search/search_overlay.dart';
 import 'auth_screen.dart';
 import 'settings_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
@@ -59,6 +68,7 @@ class _FriendsFollowersScreenState extends ConsumerState<FriendsFollowersScreen>
   UserProfile? _currentUser;
   bool _isAdmin = false;
   final int _selectedSidebarIndex = 2; // Friends is index 2
+  int _webTab = 0; // web: 0 friends, 1 requests, 2 suggestions
 
   // Pagination — People tab
   static const int _pageSize = 20;
@@ -472,6 +482,7 @@ class _FriendsFollowersScreenState extends ConsumerState<FriendsFollowersScreen>
   @override
   Widget build(BuildContext context) {
     return WandererScaffold(
+      hideAppBarWithSidebar: true,
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
@@ -493,7 +504,7 @@ class _FriendsFollowersScreenState extends ConsumerState<FriendsFollowersScreen>
         onSettings: _handleSettings,
         isAdmin: _isAdmin,
       ),
-      body: _buildBody(),
+      body: kIsWeb ? _buildWebBody() : _buildBody(),
     );
   }
 
@@ -1209,6 +1220,320 @@ class _FriendsFollowersScreenState extends ConsumerState<FriendsFollowersScreen>
           );
         },
       ),
+    );
+  }
+
+  // ---------------------------------------------------------------------
+  // Web layout (design board "Friends"). Mobile keeps [_buildBody].
+  // ---------------------------------------------------------------------
+
+  FriendRequest? _receivedFrom(String userId) =>
+      _receivedRequests.where((r) => r.senderId == userId).firstOrNull;
+
+  FriendRequest? _sentTo(String userId) =>
+      _sentRequests.where((r) => r.receiverId == userId).firstOrNull;
+
+  Future<void> _handleCancelFriendRequest(String requestId) async {
+    try {
+      await _userService.deleteFriendRequest(requestId);
+      if (mounted) {
+        UiHelpers.showSuccessMessage(
+            context, context.l10n.friendRequestCancelled);
+        await _loadData();
+      }
+    } catch (e) {
+      if (mounted) {
+        UiHelpers.showErrorMessage(
+            context, context.l10n.failedToDeclineFriendRequest(e.toString()));
+      }
+    }
+  }
+
+  void _openSearch() {
+    if (kIsWeb) {
+      showSearchOverlay(context);
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SearchScreen()),
+    );
+  }
+
+  /// Copies the `/user/<username>` deep link (see UserRouteStrategy).
+  void _copyInviteLink() {
+    final username = _currentUser?.username;
+    if (username == null) return;
+    Clipboard.setData(ClipboardData(
+        text:
+            '${ApiEndpoints.appBaseUrl}/user/${Uri.encodeComponent(username)}'));
+    UiHelpers.showSuccessMessage(context, context.l10n.friendsInviteLinkCopied);
+  }
+
+  Widget _buildWebBody() {
+    final l10n = context.l10n;
+    // Polling reloads every 15s; only block the page on the first load.
+    if (_isLoading && _currentUser == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null && !_isLoggedIn) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_error!, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            OutlinedButton(onPressed: _navigateToAuth, child: Text(l10n.login)),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: LayoutBuilder(builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 1000;
+        final gutter = constraints.maxWidth >= 720 ? 40.0 : 16.0;
+        final side = [
+          AddFriendsCard(
+            onSearch: _openSearch,
+            onCopyInviteLink: _currentUser == null ? null : _copyInviteLink,
+          ),
+          const SizedBox(height: 24),
+          WaitingForYouCard(
+            requests: [
+              for (final r in _receivedRequests)
+                (
+                  id: r.id,
+                  username:
+                      _userProfiles[r.senderId]?.username ?? l10n.unknownUser,
+                  displayName: _userProfiles[r.senderId]?.displayName,
+                  avatarUrl: _userProfiles[r.senderId]?.avatarUrl,
+                  onOpen: () => _navigateToUserProfile(r.senderId),
+                ),
+            ],
+            onAccept: _handleAcceptFriendRequest,
+            onDecline: _handleDeclineFriendRequest,
+          ),
+        ];
+
+        return ListView(
+          padding: EdgeInsets.fromLTRB(gutter, 28, gutter, 40),
+          children: [
+            WebPageHeader(
+              title: l10n.friends,
+              subtitle: l10n.friendsPageSubtitle,
+              userId: _currentUser?.id,
+              isLoggedIn: _isLoggedIn,
+            ),
+            const SizedBox(height: 24),
+            if (wide)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildWebListCard()),
+                  const SizedBox(width: 24),
+                  SizedBox(width: 360, child: Column(children: side)),
+                ],
+              )
+            else ...[
+              ...side,
+              const SizedBox(height: 24),
+              _buildWebListCard(),
+            ],
+          ],
+        );
+      }),
+    );
+  }
+
+  Widget _buildWebListCard() {
+    final l10n = context.l10n;
+    final requestCount = _receivedRequests.length + _sentRequests.length;
+    final rows = switch (_webTab) {
+      0 => _associatedUsers.map(_buildWebAssociatedRow).toList(),
+      1 => [
+          ..._receivedRequests.map((r) => _buildWebRequestRow(r, true)),
+          ..._sentRequests.map((r) => _buildWebRequestRow(r, false)),
+        ],
+      _ => _discoverableUsers.map(_buildWebSuggestionRow).toList(),
+    };
+    final (hasMore, loadingMore, loadMore) = switch (_webTab) {
+      0 => (_hasMoreAssociated, _isLoadingMoreAssociated, _loadMoreAssociated),
+      2 => (_hasMoreDiscover, _isLoadingMoreDiscover, _loadMoreDiscover),
+      _ => (false, false, () async {}),
+    };
+    final empty = switch (_webTab) {
+      0 => FriendsEmptyState(
+          title: l10n.friendsEmptyTitle, body: l10n.friendsEmptyBody),
+      1 => FriendsEmptyState(
+          icon: Icons.inbox_outlined,
+          title: l10n.noFriendRequests,
+          body: l10n.sendFriendRequests),
+      _ => FriendsEmptyState(
+          icon: Icons.explore_outlined,
+          title: l10n.noUsersToDiscover,
+          body: l10n.addFriendsToDiscoverMore),
+    };
+
+    return Container(
+      decoration: WandererTheme.cardDecoration(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FriendsUnderlineTabs(
+            tabs: [
+              (l10n.friends, _associatedUsers.length, false),
+              (l10n.requestsTab, requestCount, _receivedRequests.isNotEmpty),
+              (l10n.friendsSuggestionsTab, _discoverableUsers.length, false),
+            ],
+            selected: _webTab,
+            onSelected: (i) => setState(() => _webTab = i),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (rows.isEmpty) empty else ...rows,
+                if (hasMore)
+                  _buildLoadMoreButton(
+                      isLoading: loadingMore, onPressed: loadMore),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _viewProfileButton(String userId) => OutlinedButton(
+        onPressed: () => _navigateToUserProfile(userId),
+        style: friendsRowButtonStyle(context),
+        child: Text(context.l10n.viewProfile),
+      );
+
+  Widget _followButton(String userId, bool isFollowing) => TextButton(
+        onPressed: () => isFollowing
+            ? _handleUnfollowUser(userId)
+            : _handleFollowUser(userId),
+        child: Text(isFollowing ? context.l10n.unfollow : context.l10n.follow),
+      );
+
+  /// Relationship pills plus the friend-request action for a person.
+  (List<Widget>, List<Widget>) _relationshipParts({
+    required String userId,
+    required String username,
+    required bool isFriend,
+    required bool isFollowing,
+    required bool isFollowedBy,
+  }) {
+    final l10n = context.l10n;
+    final received = _receivedFrom(userId);
+    final sent = _sentTo(userId);
+    final pills = <Widget>[
+      if (isFriend) Pill(l10n.friend, tone: PillTone.completed),
+      if (!isFriend && sent != null)
+        Pill(l10n.friendsPillRequestPending, tone: PillTone.gold),
+      if (!isFriend && received != null)
+        Pill(l10n.friendsPillWantsToBeFriends, tone: PillTone.promoted),
+      if (isFollowing) Pill(l10n.friendsPillYouFollow, tone: PillTone.progress),
+      if (isFollowedBy) Pill(l10n.friendsPillFollowsYou),
+    ];
+    final actions = <Widget>[
+      _viewProfileButton(userId),
+      if (!isFriend && received != null) ...[
+        FriendsAcceptButton(
+            onPressed: () => _handleAcceptFriendRequest(received.id)),
+        FriendsDeclineButton(
+            onPressed: () => _handleDeclineFriendRequest(received.id)),
+      ] else if (!isFriend && sent != null)
+        OutlinedButton(
+          onPressed: () => _handleCancelFriendRequest(sent.id),
+          style: friendsRowButtonStyle(context,
+              foreground: Theme.of(context).colorScheme.error),
+          child: Text(l10n.friendsCancelRequest),
+        )
+      else if (!isFriend)
+        OutlinedButton(
+          onPressed: () => _handleSendFriendRequest(userId, username),
+          style: friendsRowButtonStyle(context),
+          child: Text(l10n.friendsAddFriend),
+        ),
+      _followButton(userId, isFollowing),
+    ];
+    return (pills, actions);
+  }
+
+  Widget _buildWebAssociatedRow(UserRelationship user) {
+    final (pills, actions) = _relationshipParts(
+      userId: user.id,
+      username: user.username,
+      isFriend: user.isFriend,
+      isFollowing: user.isFollowing,
+      isFollowedBy: user.isFollowedBy,
+    );
+    return FriendRow(
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      pills: pills,
+      actions: actions,
+      onTap: () => _navigateToUserProfile(user.id),
+    );
+  }
+
+  Widget _buildWebSuggestionRow(UserProfile user) {
+    final associated =
+        _associatedUsers.where((a) => a.id == user.id).firstOrNull;
+    final (pills, actions) = _relationshipParts(
+      userId: user.id,
+      username: user.username,
+      isFriend: associated?.isFriend ?? false,
+      isFollowing: associated?.isFollowing ?? false,
+      isFollowedBy: associated?.isFollowedBy ?? false,
+    );
+    return FriendRow(
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      pills: pills,
+      actions: actions,
+      onTap: () => _navigateToUserProfile(user.id),
+    );
+  }
+
+  Widget _buildWebRequestRow(FriendRequest request, bool received) {
+    final l10n = context.l10n;
+    final userId = received ? request.senderId : request.receiverId;
+    final profile = _userProfiles[userId];
+    final username = profile?.username ?? l10n.unknownUser;
+    return FriendRow(
+      username: username,
+      displayName: profile?.displayName,
+      avatarUrl: profile?.avatarUrl,
+      pills: [
+        received
+            ? Pill(l10n.friendsPillWantsToBeFriends, tone: PillTone.promoted)
+            : Pill(l10n.friendsPillRequestPending, tone: PillTone.gold),
+        Pill(l10n.sentDateLabel(_formatDate(context, request.createdAt))),
+      ],
+      actions: [
+        _viewProfileButton(userId),
+        if (received) ...[
+          FriendsAcceptButton(
+              onPressed: () => _handleAcceptFriendRequest(request.id)),
+          FriendsDeclineButton(
+              onPressed: () => _handleDeclineFriendRequest(request.id)),
+        ] else
+          OutlinedButton(
+            onPressed: () => _handleCancelFriendRequest(request.id),
+            style: friendsRowButtonStyle(context,
+                foreground: Theme.of(context).colorScheme.error),
+            child: Text(l10n.friendsCancelRequest),
+          ),
+      ],
+      onTap: () => _navigateToUserProfile(userId),
     );
   }
 

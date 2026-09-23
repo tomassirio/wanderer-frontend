@@ -47,4 +47,14 @@ class ThemeController {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_darkModeKey, isDark);
   }
+
+  /// Set light, dark or "follow the device" and persist it. System clears the
+  /// saved choice, which on web means following the device (mobile never
+  /// offers it and keeps its light default).
+  Future<void> setThemeMode(ThemeMode mode) async {
+    if (mode != ThemeMode.system) return setDarkMode(mode == ThemeMode.dark);
+    themeMode.value = ThemeMode.system;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_darkModeKey);
+  }
 }

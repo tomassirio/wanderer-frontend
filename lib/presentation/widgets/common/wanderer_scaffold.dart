@@ -21,6 +21,10 @@ class WandererScaffold extends StatelessWidget {
   final bool? resizeToAvoidBottomInset;
   final bool collapsedSidebar;
 
+  /// Web pages with a [WebPageHeader]: drop the top bar while the sidebar
+  /// is beside the page (header carries theme toggle and notifications).
+  final bool hideAppBarWithSidebar;
+
   const WandererScaffold({
     super.key,
     this.appBar,
@@ -33,6 +37,7 @@ class WandererScaffold extends StatelessWidget {
     this.extendBodyBehindAppBar = false,
     this.resizeToAvoidBottomInset,
     this.collapsedSidebar = false,
+    this.hideAppBarWithSidebar = false,
   });
 
   static const double railBreakpoint = 720;
@@ -46,7 +51,7 @@ class WandererScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final persistent = drawer != null && hasPersistentSidebar(context);
     final scaffold = Scaffold(
-      appBar: appBar,
+      appBar: persistent && hideAppBarWithSidebar ? null : appBar,
       drawer: persistent ? null : drawer,
       body: body,
       floatingActionButton: floatingActionButton,

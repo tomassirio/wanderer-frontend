@@ -1,16 +1,21 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
+import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/achievement_models.dart';
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/data/services/auth_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
+import 'package:wanderer_frontend/presentation/widgets/achievements/web_achievements_layout.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/web_page_header.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'auth_screen.dart';
+import 'create_trip_screen.dart';
 import 'settings_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
@@ -297,6 +302,7 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
   @override
   Widget build(BuildContext context) {
     return WandererScaffold(
+      hideAppBarWithSidebar: true,
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
@@ -318,8 +324,117 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
         onSettings: _handleSettings,
         isAdmin: _isAdmin,
       ),
-      body: _buildBody(),
+      body: kIsWeb ? _buildWebBody() : _buildBody(),
     );
+  }
+
+  /// Web redesign: page header, summary card and one section per category.
+  Widget _buildWebBody() {
+    final c = WandererTheme.of(context);
+    final l10n = context.l10n;
+    final wide = MediaQuery.sizeOf(context).width >= 720;
+    final groups = _groupByCategory();
+    Achievement? nextUp;
+    for (final list in groups.values) {
+      nextUp ??= list.where((a) => !_isUnlocked(a)).firstOrNull;
+    }
+
+    final Widget content;
+    if (_isLoading) {
+      content = const Padding(
+        padding: EdgeInsets.all(48),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    } else if (_error != null) {
+      content = Column(children: [
+        Icon(Icons.error_outline, size: 48, color: c.textMuted),
+        const SizedBox(height: 12),
+        Text(_error!,
+            textAlign: TextAlign.center, style: TextStyle(color: c.textMuted)),
+        const SizedBox(height: 16),
+        OutlinedButton(onPressed: _loadData, child: Text(l10n.retry)),
+      ]);
+    } else if (_allAchievements.isEmpty) {
+      content = Padding(
+        padding: const EdgeInsets.all(48),
+        child: Center(
+          child: Text(l10n.noAchievementsYet,
+              style: TextStyle(fontSize: 15, color: c.textMuted)),
+        ),
+      );
+    } else {
+      content = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_isLoggedIn) ...[
+            AchievementsSummaryCard(
+              unlocked: _myAchievements.length,
+              total: _allAchievements.length,
+              nextUp: nextUp,
+              onStartTrip: () => Navigator.push(
+                context,
+                PageTransitions.slideUp(const CreateTripScreen()),
+              ),
+            ),
+            const SizedBox(height: 28),
+          ],
+          for (final entry in groups.entries) ...[
+            AchievementCategorySection(
+              label: _localizeCategory(context, entry.key),
+              color: _webCategoryColor(c, entry.key),
+              achievements: entry.value,
+              isUnlocked: _isUnlocked,
+              hintFor: (a) {
+                final ua = _getUnlockedAchievement(a);
+                return ua != null
+                    ? _formatValue(context, a, ua.valueAchieved)
+                    : _formatThreshold(context, a);
+              },
+              onTap: (a) =>
+                  _showAchievementDetail(a, _getUnlockedAchievement(a)),
+              showCount: _isLoggedIn,
+            ),
+            const SizedBox(height: 28),
+          ],
+        ],
+      );
+    }
+
+    return Container(
+      color: c.ground,
+      child: RefreshIndicator(
+        onRefresh: _loadData,
+        child: ListView(
+          padding: wide
+              ? const EdgeInsets.fromLTRB(40, 28, 40, 40)
+              : const EdgeInsets.all(16),
+          children: [
+            WebPageHeader(
+              title: l10n.achievements,
+              userId: _userId,
+              isLoggedIn: _isLoggedIn,
+            ),
+            const SizedBox(height: 28),
+            content,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _webCategoryColor(WandererColors c, String category) {
+    switch (category) {
+      case 'Getting Started':
+        return c.forestFg;
+      case 'Distance':
+        return c.skyFg;
+      case 'Updates':
+        return c.accentText;
+      case 'Duration':
+        return c.goldFg;
+      default:
+        return c.neutralFg;
+    }
   }
 
   Widget _buildBody() {

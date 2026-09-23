@@ -797,33 +797,35 @@ class WandererColors extends ThemeExtension<WandererColors> {
     overlayPillBg: Colors.white,
   );
 
-  /// Dark style guide: Night → Surface → Raised, Chalk text, Ash secondary.
+  /// Dark style guide ("Dusk"): Ground → Surface → Raised, Chalk text, Ash
+  /// secondary, Pebble captions.
   static const dark = WandererColors(
-    ground: Color(0xFF151311), // Night
-    sidebar: Color(0xFF1F1C19),
-    surface: Color(0xFF1F1C19), // Surface
-    raised: Color(0xFF2A2622), // Raised
-    line: Color(0xFF36312B),
-    lineSoft: Color(0xFF2E2A25),
-    text: Color(0xFFF3EFE8), // Chalk
-    textMuted: Color(0xFFB5AEA6), // Ash
-    caption: Color(0xFFB5AEA6),
-    label: Color(0xFF8A837B),
-    accentText: Color(0xFFF59E5B),
-    trailSoftBg: Color(0xFF3A2418),
-    trailSoftFg: Color(0xFFF8B283),
-    forestBg: Color(0xFF1E3329),
-    forestFg: Color(0xFF7BCBA3),
-    skyBg: Color(0xFF1D2A38),
-    skyFg: Color(0xFF93BEEB),
-    goldBg: Color(0xFF3A2E14),
-    goldFg: Color(0xFFF2C265),
-    neutralBg: Color(0xFF2A2622),
-    neutralFg: Color(0xFFCFC8BF),
-    neutralButtonBg: Color(0xFFF3EFE8),
-    neutralButtonFg: Color(0xFF151311),
-    mapGround: Color(0xFF24211D),
-    overlayPillBg: Color(0xFF151311),
+    ground: Color(0xFF24201C), // Ground
+    sidebar: Color(0xFF2E2924),
+    surface: Color(0xFF2E2924), // Surface
+    raised: Color(0xFF39332D), // Raised
+    line: Color(0xFF4A423A),
+    lineSoft: Color(0xFF3F3832),
+    text: Color(0xFFF6F1EA), // Chalk
+    textMuted: Color(0xFFC4BBB1), // Ash
+    caption: Color(0xFFC4BBB1),
+    label: Color(0xFF9E958B), // Pebble
+    accentText: Color(0xFFF6A56A),
+    trailSoftBg: Color(0xFF4D301F),
+    trailSoftFg: Color(0xFFFFC49A),
+    forestBg: Color(0xFF27402F),
+    forestFg: Color(0xFF8FD6B0),
+    skyBg: Color(0xFF263648),
+    skyFg: Color(0xFFA8CCF2),
+    goldBg: Color(0xFF4A3918),
+    goldFg: Color(0xFFF7CF7A),
+    neutralBg: Color(0xFF39332D),
+    neutralFg: Color(0xFFD9D1C7),
+    neutralButtonBg: Color(0xFFF6F1EA),
+    neutralButtonFg: Color(0xFF24201C),
+    // Empty map areas use Raised so they don't read as holes.
+    mapGround: Color(0xFF39332D),
+    overlayPillBg: Color(0xFF24201C),
   );
 
   @override

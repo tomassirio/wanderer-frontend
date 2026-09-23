@@ -8,12 +8,16 @@ class UsernameField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onFieldSubmitted;
 
+  /// Web redesign: label rendered above by the caller, no floating label.
+  final InputDecoration? decoration;
+
   const UsernameField({
     super.key,
     required this.controller,
     required this.isLogin,
     this.textInputAction,
     this.onFieldSubmitted,
+    this.decoration,
   });
 
   @override
@@ -21,12 +25,13 @@ class UsernameField extends StatelessWidget {
     final l10n = context.l10n;
     return TextFormField(
       controller: controller,
-      decoration: InputDecoration(
-        labelText: isLogin ? l10n.usernameOrEmailLabel : l10n.usernameLabel,
-        hintText: isLogin ? l10n.usernameOrEmailHint : null,
-        prefixIcon: const Icon(Icons.person),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+      decoration: decoration ??
+          InputDecoration(
+            labelText: isLogin ? l10n.usernameOrEmailLabel : l10n.usernameLabel,
+            hintText: isLogin ? l10n.usernameOrEmailHint : null,
+            prefixIcon: const Icon(Icons.person),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
       keyboardType: isLogin ? TextInputType.emailAddress : TextInputType.text,
       textCapitalization: TextCapitalization.none,
       textInputAction: textInputAction ?? TextInputAction.next,
