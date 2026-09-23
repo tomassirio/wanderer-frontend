@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart' show setEquals;
+import 'package:flutter/foundation.dart' show kIsWeb, setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -131,7 +131,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   int _friendsCount = 0;
 
   // Sorting and filtering
-  TripSortOption _tripSortOption = TripSortOption.statusPriority;
+  // Web defaults to newest first (canvas: "Most recent"); mobile keeps status.
+  TripSortOption _tripSortOption =
+      kIsWeb ? TripSortOption.newestFirst : TripSortOption.statusPriority;
   final Set<TripStatus> _selectedStatusFilters = {}; // empty = show all
   bool _showFilterPanel = false;
 

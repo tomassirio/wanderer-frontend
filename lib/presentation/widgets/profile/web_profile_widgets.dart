@@ -96,17 +96,21 @@ class ProfileSegmentedFilter extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(9),
                 onTap: () => onSelected(i),
+                // No Container.alignment here: inside a Wrap it would expand
+                // each segment to the full width and stack them vertically.
                 child: Container(
                   height: 36,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  alignment: Alignment.center,
-                  child: Text(
-                    labels[i],
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight:
-                          i == selected ? FontWeight.w700 : FontWeight.w600,
-                      color: i == selected ? c.text : c.textMuted,
+                  child: Center(
+                    widthFactor: 1,
+                    child: Text(
+                      labels[i],
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight:
+                            i == selected ? FontWeight.w700 : FontWeight.w600,
+                        color: i == selected ? c.text : c.textMuted,
+                      ),
                     ),
                   ),
                 ),
