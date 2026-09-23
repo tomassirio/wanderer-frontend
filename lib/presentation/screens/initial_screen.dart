@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/storage/token_refresh_manager.dart';
+import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/presentation/screens/dashboard_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
 import 'package:wanderer_frontend/presentation/screens/landing_screen.dart';
 
 /// Initial screen that checks auth state and shows appropriate content
@@ -56,6 +59,12 @@ class _InitialScreenState extends ConsumerState<InitialScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isChecking && kIsWeb) {
+      return const Scaffold(
+        backgroundColor: WandererTheme.sand,
+        body: Center(child: WandererLogo(size: 64)),
+      );
+    }
     if (_isChecking) {
       return Scaffold(
         body: Container(
@@ -85,8 +94,8 @@ class _InitialScreenState extends ConsumerState<InitialScreen> {
       );
     }
 
-    if (kIsWeb && !_isLoggedIn) {
-      return const LandingScreen();
+    if (kIsWeb) {
+      return _isLoggedIn ? const DashboardScreen() : const LandingScreen();
     }
 
     // Always show HomeScreen - it will handle showing public trips or user's trips

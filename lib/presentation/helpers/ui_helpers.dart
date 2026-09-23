@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
@@ -27,7 +28,7 @@ class UiHelpers {
       case TripStatus.created:
         return const Color(0xFF6C757D);
       case TripStatus.inProgress:
-        return const Color(0xFF4CAF50);
+        return kIsWeb ? WandererTheme.sky : const Color(0xFF4CAF50);
       case TripStatus.paused:
         return const Color(0xFFFF9800);
       case TripStatus.finished:

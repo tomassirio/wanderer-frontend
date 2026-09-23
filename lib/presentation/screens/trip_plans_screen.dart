@@ -15,11 +15,12 @@ import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_plans_con
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'auth_screen.dart';
 import 'create_trip_plan_screen.dart';
-import 'home_screen.dart';
 import 'settings_screen.dart';
 import 'trip_detail_screen.dart';
 import 'trip_plan_detail_screen.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 
 /// Trip Plans screen showing list of planned trips
 class TripPlansScreen extends ConsumerStatefulWidget {
@@ -112,7 +113,7 @@ class _TripPlansScreenState extends ConsumerState<TripPlansScreen> {
       await _homeRepository.logout();
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          PageTransitions.fade(const HomeScreen()),
+          PageTransitions.fade(const InitialScreen()),
           (route) => false,
         );
       }
@@ -247,7 +248,7 @@ class _TripPlansScreenState extends ConsumerState<TripPlansScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WandererScaffold(
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,

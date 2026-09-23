@@ -200,13 +200,14 @@ abstract class TripDetailLayoutStrategy {
     );
   }
 
-  /// Helper to create TripSettingsPanel with proper callbacks
-  @protected
-  TripSettingsPanel createTripSettingsPanel(TripDetailLayoutData data) {
+  /// Helper to create TripSettingsPanel with proper callbacks.
+  /// [onClose] overrides the collapse toggle (e.g. when shown in a dialog).
+  TripSettingsPanel createTripSettingsPanel(TripDetailLayoutData data,
+      {VoidCallback? onClose}) {
     return TripSettingsPanel(
-      key: data.settingsPanelKey,
-      isCollapsed: data.isTripSettingsCollapsed,
-      onToggleCollapse: data.onToggleTripSettings,
+      key: onClose == null ? data.settingsPanelKey : null,
+      isCollapsed: onClose == null && data.isTripSettingsCollapsed,
+      onToggleCollapse: onClose ?? data.onToggleTripSettings,
       isOwner:
           data.currentUserId != null && data.trip.userId == data.currentUserId,
       tripHasPlannedRoute: data.trip.hasPlannedRoute,
@@ -225,10 +226,11 @@ abstract class TripDetailLayoutStrategy {
   }
 
   /// Helper to create CommentsSection with proper callbacks
-  @protected
-  CommentsSection createCommentsSection(TripDetailLayoutData data) {
+  CommentsSection createCommentsSection(TripDetailLayoutData data,
+      {bool embedded = false}) {
     return CommentsSection(
-      key: data.commentsSectionKey,
+      key: embedded ? null : data.commentsSectionKey,
+      embedded: embedded,
       comments: data.comments,
       replies: data.replies,
       expandedComments: data.expandedComments,

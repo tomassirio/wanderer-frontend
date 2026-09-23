@@ -32,6 +32,8 @@ import 'create_trip_screen.dart';
 import 'settings_screen.dart';
 import 'trip_detail_screen.dart';
 import 'auth_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 
 /// Redesigned Home screen with personalized feed, visibility badges, and prioritization
 class HomeScreen extends ConsumerStatefulWidget {
@@ -737,7 +739,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       await _repository.logout();
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          PageTransitions.fade(const HomeScreen()),
+          PageTransitions.fade(const InitialScreen()),
           (route) => false,
         );
       }
@@ -1138,7 +1140,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       ),
     );
   }
-
 
   String _getStatusLabel(TripStatus status, AppLocalizations l10n) {
     switch (status) {
@@ -1714,7 +1715,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return Scaffold(
+    return WandererScaffold(
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,

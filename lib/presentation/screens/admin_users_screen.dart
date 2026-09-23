@@ -7,13 +7,14 @@ import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
-import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 
 /// Admin User Management screen for viewing all users with pagination
 class AdminUsersScreen extends ConsumerStatefulWidget {
@@ -321,7 +322,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
-        PageTransitions.fade(const HomeScreen()),
+        PageTransitions.fade(const InitialScreen()),
         (route) => false,
       );
     }
@@ -336,7 +337,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WandererScaffold(
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
         username: _username,

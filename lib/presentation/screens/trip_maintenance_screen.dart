@@ -10,13 +10,14 @@ import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
-import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 
 /// Admin screen for managing trip data maintenance (polyline and geocoding recomputation).
 /// Allows admins to view statistics and trigger backend recomputation of encoded polylines
@@ -442,7 +443,7 @@ class _TripMaintenanceScreenState extends ConsumerState<TripMaintenanceScreen> {
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
-        PageTransitions.fade(const HomeScreen()),
+        PageTransitions.fade(const InitialScreen()),
         (route) => false,
       );
     }
@@ -457,7 +458,7 @@ class _TripMaintenanceScreenState extends ConsumerState<TripMaintenanceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WandererScaffold(
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
         username: _username,

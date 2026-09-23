@@ -207,8 +207,7 @@ class AppLocalizations {
       TranslationTemplate.format(_tr('hoursAgo'), {'n': n});
 
   String get dayAgo => _tr('dayAgo');
-  String daysAgo(int n) =>
-      TranslationTemplate.format(_tr('daysAgo'), {'n': n});
+  String daysAgo(int n) => TranslationTemplate.format(_tr('daysAgo'), {'n': n});
 
   String get weekAgo => _tr('weekAgo');
   String weeksAgo(int n) =>
@@ -655,8 +654,8 @@ class AppLocalizations {
   String get sortOptionNameZA => _tr('sortOptionNameZA');
   String get sortOptionNewest => _tr('sortOptionNewest');
   String get sortOptionOldest => _tr('sortOptionOldest');
-  String unfollowedUser(String username) => TranslationTemplate.format(
-      _tr('unfollowedUser'), {'username': username});
+  String unfollowedUser(String username) =>
+      TranslationTemplate.format(_tr('unfollowedUser'), {'username': username});
 
   String nowFollowingUser(String username) => TranslationTemplate.format(
       _tr('nowFollowingUser'), {'username': username});
@@ -720,4 +719,91 @@ class AppLocalizations {
 
   /// Returns the native name for a given language code.
   String languageNameFor(String code) => _tr('languageName_$code');
+
+  // --- Web redesign ---
+  String get navAdventures => _tr('navAdventures');
+  String get navSocial => _tr('navSocial');
+  String get navAdmin => _tr('navAdmin');
+  String get navHome => _tr('navHome');
+  String get navMyTrips => _tr('navMyTrips');
+  String get navExplore => _tr('navExplore');
+  String get navSupport => _tr('navSupport');
+  String greetingMorning(Object name) =>
+      TranslationTemplate.format(_tr('greetingMorning'), {'name': name});
+  String greetingAfternoon(Object name) =>
+      TranslationTemplate.format(_tr('greetingAfternoon'), {'name': name});
+  String greetingEvening(Object name) =>
+      TranslationTemplate.format(_tr('greetingEvening'), {'name': name});
+  String dashboardSubtitleFinished(Object trip) => TranslationTemplate.format(
+      _tr('dashboardSubtitleFinished'), {'trip': trip});
+  String dashboardSubtitleLive(Object trip) =>
+      TranslationTemplate.format(_tr('dashboardSubtitleLive'), {'trip': trip});
+  String get dashboardSubtitleEmpty => _tr('dashboardSubtitleEmpty');
+  String get startATrip => _tr('startATrip');
+  String get longestTrip => _tr('longestTrip');
+  String get latestTrip => _tr('latestTrip');
+  String get viewTrip => _tr('viewTrip');
+  String get friendRequestsTitle => _tr('friendRequestsTitle');
+  String seeAllCount(Object n) =>
+      TranslationTemplate.format(_tr('seeAllCount'), {'n': n});
+  String get acceptRequest => _tr('acceptRequest');
+  String get declineRequest => _tr('declineRequest');
+  String get recentAchievements => _tr('recentAchievements');
+  String allCount(Object n) =>
+      TranslationTemplate.format(_tr('allCount'), {'n': n});
+  String get recentActivity => _tr('recentActivity');
+  String get onYourTrips => _tr('onYourTrips');
+  String commentedOn(Object trip) =>
+      TranslationTemplate.format(_tr('commentedOn'), {'trip': trip});
+  String get noRecentActivity => _tr('noRecentActivity');
+  String get yourTrips => _tr('yourTrips');
+  String viewAllCount(Object n) =>
+      TranslationTemplate.format(_tr('viewAllCount'), {'n': n});
+  String commentsCount(Object n) =>
+      TranslationTemplate.format(_tr('commentsCount'), {'n': n});
+  String daysCount(Object n) =>
+      TranslationTemplate.format(_tr('daysCount'), {'n': n});
+  String kmValue(Object km) =>
+      TranslationTemplate.format(_tr('kmValue'), {'km': km});
+  String get noTripsDashboard => _tr('noTripsDashboard');
+  String achievementsEarnedCount(Object n) =>
+      TranslationTemplate.format(_tr('achievementsEarnedCount'), {'n': n});
+  String get noAchievementsDashboard => _tr('noAchievementsDashboard');
+  String get mapFinish => _tr('mapFinish');
+  String get mapLatestUpdate => _tr('mapLatestUpdate');
+  String finishedOn(Object date) =>
+      TranslationTemplate.format(_tr('finishedOn'), {'date': date});
+  String startedOn(Object date) =>
+      TranslationTemplate.format(_tr('startedOn'), {'date': date});
+  String commentsTab(Object n) =>
+      TranslationTemplate.format(_tr('commentsTab'), {'n': n});
+  String achievementsCountLabel(Object n) =>
+      TranslationTemplate.format(_tr('achievementsCountLabel'), {'n': n});
+  String get addFriend => _tr('addFriend');
+  String get requestSent => _tr('requestSent');
+  String get landingNavExplore => _tr('landingNavExplore');
+  String get landingNavFeatures => _tr('landingNavFeatures');
+  String get landingNavAbout => _tr('landingNavAbout');
+  String get landingGetStartedFree => _tr('landingGetStartedFree');
+  String get landingFreeBadge => _tr('landingFreeBadge');
+  String get landingHeroBefore => _tr('landingHeroBefore');
+  String get landingHeroAccent => _tr('landingHeroAccent');
+  String get landingHeroAfter => _tr('landingHeroAfter');
+  String get landingHeroSub => _tr('landingHeroSub');
+  String get landingStartFirstTrip => _tr('landingStartFirstTrip');
+  String get landingCheckLive => _tr('landingCheckLive');
+  String get landingCheckComments => _tr('landingCheckComments');
+  String get landingCheckPrivacy => _tr('landingCheckPrivacy');
+  String get landingWhatYouGet => _tr('landingWhatYouGet');
+  String get landingFeaturesTitle => _tr('landingFeaturesTitle');
+  String get landingFeatureTrackingLong => _tr('landingFeatureTrackingLong');
+  String get landingFeatureSocialLong => _tr('landingFeatureSocialLong');
+  String get landingFeatureAchievementsLong =>
+      _tr('landingFeatureAchievementsLong');
+  String get landingFromCommunity => _tr('landingFromCommunity');
+  String get landingSeeAllPublic => _tr('landingSeeAllPublic');
+  String get landingFeaturedCtaTitle => _tr('landingFeaturedCtaTitle');
+  String get landingFeaturedCtaSub => _tr('landingFeaturedCtaSub');
+  String get landingFooterTagline => _tr('landingFooterTagline');
+  String get termsShort => _tr('termsShort');
 }

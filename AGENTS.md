@@ -47,6 +47,7 @@ Google API clients (`GoogleMapsApiClient`, `GoogleDirectionsApiClient`) live dir
 - **Routing**: Strategy pattern in `lib/core/routing/` — `AppRouter` iterates `RouteStrategy` instances; add new deep links by creating a strategy in `strategies/`
 - **Responsive layouts**: Strategy pattern in `lib/presentation/strategies/` — `TripDetailLayoutStrategy` with `MobileLayoutStrategy` and `DesktopLayoutStrategy` implementations
 - **Localization**: Custom `context.l10n` extension via `L10nScope` InheritedNotifier (not flutter_gen) — translations are plain `Map<String, String>` in `lib/core/l10n/translations/` (en, es, fr, nl)
+- **Web design system**: follow `docs/design-system.md` for any web UI (sand/trail palette, Bricolage + Manrope, `Pill`, `WandererScaffold`)
 - **Theme**: `WandererTheme` in `lib/core/theme/wanderer_theme.dart` — use `WandererTheme.primaryOrange`, status colors, glassmorphism helpers, etc. instead of hardcoded values. `ThemeController` persists dark/light mode preference
 - **Barrel files**: Models use barrel exports (`trip_models.dart`, `models.dart`); clients use `clients.dart`; services use `services.dart`. Import the barrel, not individual files
 - **Web config**: `ApiEndpoints` uses conditional imports (`dart.library.js_interop`) to read config from `window.appConfig` on web vs. defaults on mobile

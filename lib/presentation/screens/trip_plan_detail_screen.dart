@@ -16,7 +16,6 @@ import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_plan_map_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
-import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
@@ -25,6 +24,8 @@ import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_plan_info_card.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 
 /// The type of point the user wants to place next on the map in edit mode
 enum _EditPlacementMode { start, end, waypoint }
@@ -154,7 +155,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
-          PageTransitions.fade(const HomeScreen()),
+          PageTransitions.fade(const InitialScreen()),
           (route) => false,
         );
       }
@@ -607,7 +608,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
     }
 
     // Normal view with fullscreen map and floating info card
-    return Scaffold(
+    return WandererScaffold(
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
@@ -800,7 +801,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   Widget _buildEditScreenDesktop() {
     final l10n = context.l10n;
     const double panelWidth = 400.0;
-    return Scaffold(
+    return WandererScaffold(
       backgroundColor: WandererTheme.backgroundLight,
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
@@ -1249,7 +1250,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
     final expandedHeight = MediaQuery.of(context).size.height -
         MediaQuery.of(context).padding.top -
         kToolbarHeight;
-    return Scaffold(
+    return WandererScaffold(
       backgroundColor: WandererTheme.backgroundLight,
       resizeToAvoidBottomInset: false,
       appBar: WandererAppBar(

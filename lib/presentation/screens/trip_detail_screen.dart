@@ -41,8 +41,10 @@ import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/strategies/trip_detail_layout_strategy.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'auth_screen.dart';
-import 'home_screen.dart';
 import 'settings_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/web_trip_detail_layout.dart';
 
 /// Trip detail screen showing trip info, map, and comments
 class TripDetailScreen extends ConsumerStatefulWidget {
@@ -2159,7 +2161,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       if (mounted) {
         UiHelpers.showSuccessMessage(context, 'Trip deleted');
         Navigator.of(context).pushAndRemoveUntil(
-          PageTransitions.fade(const HomeScreen()),
+          PageTransitions.fade(const InitialScreen()),
           (route) => false,
         );
       }
@@ -2587,7 +2589,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       await _repository.logout();
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          PageTransitions.fade(const HomeScreen()),
+          PageTransitions.fade(const InitialScreen()),
           (route) => false,
         );
       }
@@ -2732,7 +2734,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return Scaffold(
+    return WandererScaffold(
+      collapsedSidebar: true,
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
@@ -2769,42 +2772,55 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           final leftPanelWidth =
               strategy.calculateLeftPanelWidth(constraints, layoutData);
 
+          final map = TripMapView(
+            initialLocation: TripMapHelper.getInitialLocation(_trip,
+                userLocation: _userLocation),
+            initialZoom: TripMapHelper.getInitialZoom(_trip,
+                userLocation: _userLocation),
+            markers: _markers,
+            polylines: _polylines,
+            onMapCreated: (controller) {
+              _mapController = controller;
+              if (!_mapControllerCompleter.isCompleted) {
+                _mapControllerCompleter.complete(controller);
+              }
+            },
+            isOwner: _userId != null && _trip.userId == _userId,
+            // On mobile: disable map gestures when any panel is expanded
+            // to prevent scroll-through on touch devices.
+            // On desktop: disable map gestures only when the mouse is
+            // hovering over a panel, so scroll/drag on panels doesn't
+            // move the map, but the map is freely navigable otherwise.
+            gesturesEnabled: isMobile
+                ? (_isTripInfoCollapsed &&
+                    _isCommentsCollapsed &&
+                    _isTimelineCollapsed &&
+                    _isTripUpdateCollapsed &&
+                    _isTripSettingsCollapsed)
+                : !_isHoveringOverPanel,
+            selectedLocation: _selectedMapLocation,
+            onInfoWindowClosed: _onInfoWindowClosed,
+            selectedPlannedWaypoint: _selectedPlannedWaypoint,
+            onPlannedInfoWindowClosed: _onInfoWindowClosed,
+            onMapTap: _onInfoWindowClosed,
+          );
+
+          if (kIsWeb && constraints.maxWidth >= WebTripDetailLayout.minWidth) {
+            return WebTripDetailLayout(
+              data: layoutData,
+              map: map,
+              isMapLoading: _isMapLoading,
+              donationButton: _isPromoted && _donationLink != null
+                  ? _buildDonationButton()
+                  : null,
+            );
+          }
+
           return Stack(
             children: [
               // Full-screen Map (background)
               Positioned.fill(
-                child: TripMapView(
-                  initialLocation: TripMapHelper.getInitialLocation(_trip,
-                      userLocation: _userLocation),
-                  initialZoom: TripMapHelper.getInitialZoom(_trip,
-                      userLocation: _userLocation),
-                  markers: _markers,
-                  polylines: _polylines,
-                  onMapCreated: (controller) {
-                    _mapController = controller;
-                    if (!_mapControllerCompleter.isCompleted) {
-                      _mapControllerCompleter.complete(controller);
-                    }
-                  },
-                  isOwner: _userId != null && _trip.userId == _userId,
-                  // On mobile: disable map gestures when any panel is expanded
-                  // to prevent scroll-through on touch devices.
-                  // On desktop: disable map gestures only when the mouse is
-                  // hovering over a panel, so scroll/drag on panels doesn't
-                  // move the map, but the map is freely navigable otherwise.
-                  gesturesEnabled: isMobile
-                      ? (_isTripInfoCollapsed &&
-                          _isCommentsCollapsed &&
-                          _isTimelineCollapsed &&
-                          _isTripUpdateCollapsed &&
-                          _isTripSettingsCollapsed)
-                      : !_isHoveringOverPanel,
-                  selectedLocation: _selectedMapLocation,
-                  onInfoWindowClosed: _onInfoWindowClosed,
-                  selectedPlannedWaypoint: _selectedPlannedWaypoint,
-                  onPlannedInfoWindowClosed: _onInfoWindowClosed,
-                  onMapTap: _onInfoWindowClosed,
-                ),
+                child: map,
               ),
 
               // Map loading overlay with blur and spinner

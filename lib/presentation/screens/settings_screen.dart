@@ -16,11 +16,11 @@ import 'package:wanderer_frontend/data/storage/onboarding_storage.dart';
 import 'package:wanderer_frontend/presentation/helpers/tutorial_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
-import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/privacy_policy_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/terms_and_conditions_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/floating_notification.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/fireworks_widget.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 
 /// Settings screen with categorized options for the user.
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -410,7 +410,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         UiHelpers.showSuccessMessage(context, 'Account deleted successfully');
         Navigator.of(context).pushAndRemoveUntil(
-          PageTransitions.fade(const HomeScreen()),
+          PageTransitions.fade(const InitialScreen()),
           (route) => false,
         );
       }

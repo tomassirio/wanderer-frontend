@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
@@ -13,6 +14,7 @@ import 'package:wanderer_frontend/presentation/screens/trip_promotion_screen.dar
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/web_sidebar.dart';
 
 /// Sidebar navigation for the app
 class AppSidebar extends StatelessWidget {
@@ -25,6 +27,17 @@ class AppSidebar extends StatelessWidget {
   final VoidCallback? onSettings;
   final bool isAdmin;
 
+  /// Web only: render beside the page instead of inside a [Drawer].
+  final bool persistent;
+
+  /// Web only: show the persistent sidebar as a 72px icon rail.
+  final bool collapsed;
+
+  /// Web-only destinations (mobile keeps indices 0–7).
+  static const int dashboardIndex = 8;
+  static const int myTripsIndex = 4;
+  static const int exploreIndex = 0;
+
   const AppSidebar({
     super.key,
     this.username,
@@ -35,7 +48,22 @@ class AppSidebar extends StatelessWidget {
     this.onLogout,
     this.onSettings,
     this.isAdmin = false,
+    this.persistent = false,
+    this.collapsed = false,
   });
+
+  AppSidebar asPersistent({required bool collapsed}) => AppSidebar(
+        username: username,
+        userId: userId,
+        displayName: displayName,
+        avatarUrl: avatarUrl,
+        selectedIndex: selectedIndex,
+        onLogout: onLogout,
+        onSettings: onSettings,
+        isAdmin: isAdmin,
+        persistent: true,
+        collapsed: collapsed,
+      );
 
   void _handleNavigation(BuildContext context, int index) {
     // Close drawer first
@@ -310,6 +338,13 @@ class AppSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return WebSidebar(
+        config: this,
+        persistent: persistent,
+        collapsed: collapsed,
+      );
+    }
     return ValueListenableBuilder<Locale>(
       valueListenable: LocaleController().locale,
       builder: (context, locale, _) {

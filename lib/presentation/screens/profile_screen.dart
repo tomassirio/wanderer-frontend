@@ -24,11 +24,12 @@ import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import '../../core/constants/enums.dart';
 import 'auth_screen.dart';
-import 'home_screen.dart';
 import 'settings_screen.dart';
 import 'trip_detail_screen.dart';
 import 'friends_followers_screen.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 
 /// Returns a localized label for a [TripStatus] using the current locale.
 String _localizedTripStatus(TripStatus status, AppLocalizations l10n) {
@@ -546,7 +547,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (mounted) {
         // Navigate to home screen and clear navigation stack
         Navigator.of(context).pushAndRemoveUntil(
-          PageTransitions.fade(const HomeScreen()),
+          PageTransitions.fade(const InitialScreen()),
           (route) => false,
         );
       }
@@ -995,7 +996,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WandererScaffold(
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
@@ -1966,7 +1967,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ],
     );
   }
-
 
   Widget _buildTripCard(Trip trip) {
     return ProfileTripCard(

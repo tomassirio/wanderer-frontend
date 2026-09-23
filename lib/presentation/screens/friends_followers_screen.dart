@@ -18,8 +18,9 @@ import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
 import 'package:wanderer_frontend/presentation/widgets/home/relationship_badge.dart';
 import 'auth_screen.dart';
-import 'home_screen.dart';
 import 'settings_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 
 /// Screen for managing friends and followers
 class FriendsFollowersScreen extends ConsumerStatefulWidget {
@@ -373,7 +374,7 @@ class _FriendsFollowersScreenState extends ConsumerState<FriendsFollowersScreen>
       if (mounted) {
         // Navigate to home screen and clear navigation stack
         Navigator.of(context).pushAndRemoveUntil(
-          PageTransitions.fade(const HomeScreen()),
+          PageTransitions.fade(const InitialScreen()),
           (route) => false,
         );
       }
@@ -470,7 +471,7 @@ class _FriendsFollowersScreenState extends ConsumerState<FriendsFollowersScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WandererScaffold(
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
