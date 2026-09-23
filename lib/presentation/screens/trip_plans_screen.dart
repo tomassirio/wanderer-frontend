@@ -167,11 +167,8 @@ class _TripPlansScreenState extends ConsumerState<TripPlansScreen> {
   }
 
   Future<void> _handleCreateTripFromPlan(TripPlan plan) async {
-    final request = await showDialog<TripFromPlanRequest>(
-      context: context,
-      builder: (context) =>
-          TripFromPlanDialog(planName: plan.name, planType: plan.planType),
-    );
+    final request = await TripFromPlanDialog.show(context,
+        planName: plan.name, planType: plan.planType);
 
     if (request == null || !mounted) return;
 

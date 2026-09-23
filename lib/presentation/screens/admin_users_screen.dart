@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/services/admin_service.dart';
@@ -190,24 +192,32 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
 
   Future<void> _promoteUser(UserProfile user) async {
     final l10n = context.l10n;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.promoteToAdmin),
-        content: Text(
-            'Are you sure you want to promote "${user.username}" to admin?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Promote'),
-          ),
-        ],
-      ),
-    );
+    final confirmed = kIsWeb
+        ? await WandererDialog.confirm(
+            context,
+            title: l10n.dialogsAdminPromoteTitle,
+            message: l10n.dialogsAdminPromoteMessage(user.username),
+            confirmLabel: l10n.dialogsAdminPromoteAction,
+            icon: Icons.admin_panel_settings_outlined,
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.promoteToAdmin),
+              content: Text(
+                  'Are you sure you want to promote "${user.username}" to admin?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Promote'),
+                ),
+              ],
+            ),
+          );
 
     if (confirmed == true && mounted) {
       try {
@@ -227,27 +237,36 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
 
   Future<void> _demoteUser(UserProfile user) async {
     final l10n = context.l10n;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.demoteFromAdmin),
-        content: Text(
-            'Are you sure you want to remove admin role from "${user.username}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
+    final confirmed = kIsWeb
+        ? await WandererDialog.confirm(
+            context,
+            title: l10n.dialogsAdminDemoteTitle,
+            message: l10n.dialogsAdminDemoteMessage(user.username),
+            confirmLabel: l10n.dialogsAdminDemoteAction,
+            icon: Icons.remove_moderator_outlined,
+            destructive: true,
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.demoteFromAdmin),
+              content: Text(
+                  'Are you sure you want to remove admin role from "${user.username}"?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                  ),
+                  child: const Text('Demote'),
+                ),
+              ],
             ),
-            child: const Text('Demote'),
-          ),
-        ],
-      ),
-    );
+          );
 
     if (confirmed == true && mounted) {
       try {
@@ -267,39 +286,48 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
 
   Future<void> _deleteUser(UserProfile user) async {
     final l10n = context.l10n;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.deleteUser),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-                'Are you sure you want to permanently delete "${user.username}"?'),
-            const SizedBox(height: 8),
-            Text(
-              l10n.deleteUserNote,
-              style: const TextStyle(color: Colors.red, fontSize: 13),
+    final confirmed = kIsWeb
+        ? await WandererDialog.confirm(
+            context,
+            title: l10n.dialogsAdminDeleteTitle,
+            message: l10n.dialogsAdminDeleteMessage(user.username),
+            confirmLabel: l10n.dialogsAdminDeleteAction,
+            icon: Icons.person_remove_outlined,
+            destructive: true,
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.deleteUser),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                      'Are you sure you want to permanently delete "${user.username}"?'),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.deleteUserNote,
+                    style: const TextStyle(color: Colors.red, fontSize: 13),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(l10n.delete),
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: Text(l10n.delete),
-          ),
-        ],
-      ),
-    );
+          );
 
     if (confirmed == true && mounted) {
       try {

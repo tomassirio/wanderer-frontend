@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
 
 /// Widget for controlling trip status (start/pause/resume/finish)
 /// Only shown on mobile (not web) and only for trip owners
@@ -141,28 +142,36 @@ class TripStatusControl extends StatelessWidget {
 
   Future<void> _showFinishConfirmation(BuildContext context) async {
     final l10n = context.l10n;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.finishTrip),
-        content: Text(l10n.finishTripConfirm),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            key: const Key('confirm_finish_button'),
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: WandererTheme.statusCompleted,
-              foregroundColor: Colors.white,
+    final confirmed = kIsWeb
+        ? await WandererDialog.confirm(
+            context,
+            title: l10n.dialogsFinishTripTitle,
+            message: l10n.finishTripConfirm,
+            confirmLabel: l10n.dialogsFinishTripAction,
+            icon: Icons.flag_outlined,
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: Text(l10n.finishTrip),
+              content: Text(l10n.finishTripConfirm),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  key: const Key('confirm_finish_button'),
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: WandererTheme.statusCompleted,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(l10n.finish),
+                ),
+              ],
             ),
-            child: Text(l10n.finish),
-          ),
-        ],
-      ),
-    );
+          );
 
     if (confirmed == true) {
       onStatusChange(TripStatus.finished);

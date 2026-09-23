@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -9,6 +10,7 @@ import 'package:wanderer_frontend/data/client/websocket_client.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/services/notification_api_service.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
+import 'package:wanderer_frontend/presentation/helpers/live_toast_bridge.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/notifications_dropdown.dart';
 
 /// Notifications button with a live unread badge (WebSocket, with polling
@@ -101,6 +103,7 @@ class _NotificationBellState extends ConsumerState<NotificationBell> {
         _ensureUserTopicSubscribed(widget.userId!);
       }
     } else if (!widget.isLoggedIn && oldWidget.isLoggedIn) {
+      if (kIsWeb) LiveToastBridge().stop();
       _stopPolling();
       setState(() {
         _unreadCount = 0;
@@ -190,6 +193,7 @@ class _NotificationBellState extends ConsumerState<NotificationBell> {
     _webSocketService.connect().then((_) {
       if (!mounted || _subscribedUserId != userId) return;
       _webSocketService.subscribeToUser(userId);
+      if (kIsWeb) LiveToastBridge().start(userId);
     });
   }
 

@@ -55,6 +55,11 @@ class WebPlanEditorLayout extends StatelessWidget {
   /// Optional extra content under the form (e.g. errors).
   final Widget? footer;
 
+  /// Called when a pointer goes down on a floating map control. On Flutter
+  /// Web the click also reaches the map platform view underneath, so the
+  /// screen should ignore the map tap that follows.
+  final VoidCallback? onOverlayPointerDown;
+
   const WebPlanEditorLayout({
     super.key,
     required this.breadcrumbCurrent,
@@ -84,7 +89,13 @@ class WebPlanEditorLayout extends StatelessWidget {
     required this.map,
     this.showStartHint = false,
     this.footer,
+    this.onOverlayPointerDown,
   });
+
+  Widget _guard(Widget child) => Listener(
+        onPointerDown: (_) => onOverlayPointerDown?.call(),
+        child: child,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -237,19 +248,19 @@ class WebPlanEditorLayout extends StatelessWidget {
           Positioned(
             top: 16,
             left: 16,
-            child: _PlacementPicker(
+            child: _guard(_PlacementPicker(
               mode: placementMode,
               onChanged: onPlacementModeChanged,
-            ),
+            )),
           ),
           Positioned(
             top: 16,
             right: 16,
-            child: _MapControls(
+            child: _guard(_MapControls(
               onZoomIn: onZoomIn,
               onZoomOut: onZoomOut,
               onUndo: onUndo,
-            ),
+            )),
           ),
           if (showStartHint)
             Center(
