@@ -1054,6 +1054,12 @@ class AppLocalizations {
       TranslationTemplate.format(_tr('planDetailWaypoints'), {'n': n});
   String toastMoreInNotifications(Object n) =>
       TranslationTemplate.format(_tr('toastMoreInNotifications'), {'n': n});
+  String get notifTabAll => _tr('notifTabAll');
+  String get notifTabUnread => _tr('notifTabUnread');
+  String get notifSectionNew => _tr('notifSectionNew');
+  String get notifSectionEarlier => _tr('notifSectionEarlier');
+  String notifAchievementsUnlocked(Object n) =>
+      TranslationTemplate.format(_tr('notifAchievementsUnlocked'), {'n': n});
   String get toastDecline => _tr('toastDecline');
   String get toastDismiss => _tr('toastDismiss');
   String liveToastCommented(Object user) =>

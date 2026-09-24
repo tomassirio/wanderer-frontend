@@ -106,9 +106,10 @@ class LiveToastBridge {
   }
 }
 
-/// What the toast links and buttons do (navigator + services).
-class _Actions {
-  const _Actions();
+/// What toast and notification-panel links and buttons do (navigator +
+/// services).
+class NotificationActions {
+  const NotificationActions();
 
   BuildContext? get _ctx => NavigationService().navigatorKey.currentContext;
 
@@ -188,7 +189,7 @@ ToastData? liveToastFor(
   final quoted = q2 > q1 && q1 >= 0 ? msg.substring(q1 + 1, q2) : '';
   final ref = e.referenceId;
   final actor = e.actorId;
-  const actions = _Actions();
+  const actions = NotificationActions();
 
   ToastData social(String title,
           {String? body,

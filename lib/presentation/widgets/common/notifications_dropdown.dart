@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
@@ -10,7 +11,9 @@ import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/data/services/notification_api_service.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
+import 'package:wanderer_frontend/presentation/helpers/live_toast_bridge.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
+import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_deep_link_screen.dart';
 
 /// Shows a notifications dropdown anchored below a given button.
@@ -26,6 +29,23 @@ Future<bool> showNotificationsDropdown({
     _NotificationsDropdownRoute(position: position),
   );
   return result ?? false;
+}
+
+/// Consecutive achievements collapse into one panel item.
+@visibleForTesting
+List<List<NotificationDto>> groupNotifications(List<NotificationDto> items) {
+  final groups = <List<NotificationDto>>[];
+  for (final n in items) {
+    final prev = groups.isEmpty ? null : groups.last;
+    if (prev != null &&
+        n.type == NotificationType.achievementUnlocked &&
+        prev.first.type == NotificationType.achievementUnlocked) {
+      prev.add(n);
+    } else {
+      groups.add([n]);
+    }
+  }
+  return groups;
 }
 
 class _NotificationsDropdownRoute extends PopupRoute<bool> {
@@ -84,6 +104,10 @@ class _NotificationsDropdownContentState
   int _currentPage = 0;
   bool _hasMore = true;
   int _unreadCount = 0;
+  bool _unreadOnly = false;
+
+  /// Friend requests answered from the panel; their buttons disappear.
+  final Set<String> _answeredRequests = {};
 
   @override
   void initState() {
@@ -181,16 +205,7 @@ class _NotificationsDropdownContentState
             (n) => n.id == notification.id,
           );
           if (index != -1) {
-            _notifications[index] = NotificationDto(
-              id: notification.id,
-              recipientId: notification.recipientId,
-              actorId: notification.actorId,
-              type: notification.type,
-              referenceId: notification.referenceId,
-              message: notification.message,
-              read: true,
-              createdAt: notification.createdAt,
-            );
+            _notifications[index] = _asRead(notification);
             _unreadCount = max(0, _unreadCount - 1);
           }
         });
@@ -207,19 +222,7 @@ class _NotificationsDropdownContentState
       if (mounted) {
         setState(() {
           for (int i = 0; i < _notifications.length; i++) {
-            final n = _notifications[i];
-            if (!n.read) {
-              _notifications[i] = NotificationDto(
-                id: n.id,
-                recipientId: n.recipientId,
-                actorId: n.actorId,
-                type: n.type,
-                referenceId: n.referenceId,
-                message: n.message,
-                read: true,
-                createdAt: n.createdAt,
-              );
-            }
+            _notifications[i] = _asRead(_notifications[i]);
           }
           _unreadCount = 0;
         });
@@ -227,6 +230,38 @@ class _NotificationsDropdownContentState
     } catch (e) {
       // Silently fail
     }
+  }
+
+  NotificationDto _asRead(NotificationDto n) => n.read
+      ? n
+      : NotificationDto(
+          id: n.id,
+          recipientId: n.recipientId,
+          actorId: n.actorId,
+          type: n.type,
+          referenceId: n.referenceId,
+          message: n.message,
+          read: true,
+          createdAt: n.createdAt,
+        );
+
+  Future<void> _answerFriendRequest(
+      NotificationDto notification, bool accept) async {
+    final requestId = notification.referenceId!;
+    setState(() => _answeredRequests.add(requestId));
+    const actions = NotificationActions();
+    await (accept
+        ? actions.acceptFriendRequest(requestId)
+        : actions.declineFriendRequest(requestId));
+    _markAsRead(notification);
+  }
+
+  void _onGroupTap(List<NotificationDto> group) {
+    for (final n in group) {
+      _markAsRead(n);
+    }
+    Navigator.pop(context, true);
+    AuthNavigationHelper.navigateToAchievements(context);
   }
 
   void _onNotificationTap(NotificationDto notification) {
@@ -275,11 +310,11 @@ class _NotificationsDropdownContentState
   IconData _getNotificationIcon(NotificationType type) {
     switch (type) {
       case NotificationType.friendRequestReceived:
-        return Icons.person_add;
+        return Icons.person_add_alt;
       case NotificationType.friendRequestAccepted:
-        return Icons.handshake;
+        return Icons.handshake_outlined;
       case NotificationType.friendRequestDeclined:
-        return Icons.person_off;
+        return Icons.person_off_outlined;
       case NotificationType.commentOnTrip:
         return Icons.chat_bubble_outline;
       case NotificationType.replyToComment:
@@ -287,34 +322,35 @@ class _NotificationsDropdownContentState
       case NotificationType.commentReaction:
         return Icons.favorite_border;
       case NotificationType.newFollower:
-        return Icons.person_add;
+        return Icons.person_add_alt;
       case NotificationType.achievementUnlocked:
-        return Icons.emoji_events;
+        return Icons.emoji_events_outlined;
       case NotificationType.tripStatusChanged:
         return Icons.hiking;
       case NotificationType.tripUpdatePosted:
-        return Icons.location_on;
+        return Icons.location_on_outlined;
     }
   }
 
-  Color _getNotificationColor(NotificationType type) {
+  /// People orange, requests blue, achievements gold, trips green.
+  (Color, Color) _getNotificationColors(NotificationType type) {
+    final c = WandererTheme.of(context);
     switch (type) {
       case NotificationType.friendRequestReceived:
-      case NotificationType.friendRequestAccepted:
-      case NotificationType.newFollower:
-        return Colors.blue;
+        return (c.skyBg, c.skyFg);
       case NotificationType.friendRequestDeclined:
-        return Colors.grey;
-      case NotificationType.commentOnTrip:
-      case NotificationType.replyToComment:
-        return WandererTheme.primaryOrange;
-      case NotificationType.commentReaction:
-        return Colors.red;
+        return (c.neutralBg, c.neutralFg);
       case NotificationType.achievementUnlocked:
-        return Colors.amber;
+        return (c.goldBg, c.goldFg);
       case NotificationType.tripStatusChanged:
       case NotificationType.tripUpdatePosted:
-        return Colors.green;
+        return (c.forestBg, c.forestFg);
+      case NotificationType.friendRequestAccepted:
+      case NotificationType.newFollower:
+      case NotificationType.commentOnTrip:
+      case NotificationType.replyToComment:
+      case NotificationType.commentReaction:
+        return (c.trailSoftBg, c.trailSoftFg);
     }
   }
 
@@ -330,35 +366,94 @@ class _NotificationsDropdownContentState
     return '${(diff.inDays / 30).floor()}mo ago';
   }
 
+  static final _quoted = RegExp(r'"([^"]+)"');
+
+  /// Achievement name from `You unlocked the achievement "X"!`.
+  static String _achievementName(NotificationDto n) =>
+      _quoted.firstMatch(n.message)?.group(1) ?? n.message;
+
+  /// Backend messages start with the actor's name and quote trip or
+  /// achievement names: those are bold, the rest muted.
+  InlineSpan _messageSpan(NotificationDto n) {
+    final c = WandererTheme.of(context);
+    final bold = TextStyle(fontWeight: FontWeight.w700, color: c.text);
+    final spans = <InlineSpan>[];
+    var rest = n.message;
+    final space = rest.indexOf(' ');
+    if (n.actorId != null && space > 0) {
+      spans.add(TextSpan(text: rest.substring(0, space), style: bold));
+      rest = rest.substring(space);
+    }
+    var last = 0;
+    for (final m in _quoted.allMatches(rest)) {
+      spans.add(TextSpan(text: rest.substring(last, m.start)));
+      spans.add(TextSpan(text: m.group(1), style: bold));
+      last = m.end;
+    }
+    spans.add(TextSpan(text: rest.substring(last)));
+    return TextSpan(
+      style: TextStyle(fontSize: 14, height: 1.4, color: c.textMuted),
+      children: spans,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
-    final dropdownWidth = min(360.0, mediaQuery.size.width - 16);
+    final dropdownWidth = min(420.0, mediaQuery.size.width - 16);
+    final c = WandererTheme.of(context);
 
-    return FadeTransition(
-      opacity: widget.animation,
-      child: CustomSingleChildLayout(
-        delegate: _DropdownLayoutDelegate(
-          position: widget.position,
-          dropdownWidth: dropdownWidth,
-          screenPadding: mediaQuery.padding,
-        ),
-        child: Material(
-          elevation: 8,
-          borderRadius: BorderRadius.circular(12),
-          clipBehavior: Clip.antiAlias,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: dropdownWidth,
-              maxHeight: min(440.0, mediaQuery.size.height * 0.6),
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): () =>
+            Navigator.pop(context, true),
+      },
+      child: Focus(
+        autofocus: true,
+        child: FadeTransition(
+          opacity: widget.animation,
+          child: CustomSingleChildLayout(
+            delegate: _DropdownLayoutDelegate(
+              position: widget.position,
+              dropdownWidth: dropdownWidth,
+              screenPadding: mediaQuery.padding,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildHeader(),
-                const Divider(height: 1),
-                Flexible(child: _buildBody()),
-              ],
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(
+                        Theme.of(context).brightness == Brightness.dark
+                            ? 0.45
+                            : 0.18),
+                    blurRadius: 60,
+                    offset: const Offset(0, 24),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: c.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: BorderSide(color: c.line),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: dropdownWidth,
+                    maxHeight: min(640.0, mediaQuery.size.height * 0.75),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildHeader(),
+                      Flexible(child: _buildBody()),
+                      _buildFooter(),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -367,35 +462,138 @@ class _NotificationsDropdownContentState
   }
 
   Widget _buildHeader() {
-    final theme = Theme.of(context);
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
-    final countLabel = _notifications.isNotEmpty
-        ? ' (${_notifications.length}${_hasMore ? '+' : ''})'
-        : '';
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            '${l10n.notifications}$countLabel',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurface,
+          Row(
+            children: [
+              Text(
+                l10n.notifications,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: c.text,
+                ),
+              ),
+              const Spacer(),
+              if (_unreadCount > 0)
+                TextButton(
+                  onPressed: _markAllAsRead,
+                  style: TextButton.styleFrom(
+                    foregroundColor: c.accentText,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    visualDensity: VisualDensity.compact,
+                    textStyle: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w700),
+                  ),
+                  child: Text(l10n.readAll),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: c.line)),
+            ),
+            child: Row(
+              children: [
+                _buildTab(l10n.notifTabAll, unreadOnly: false),
+                const SizedBox(width: 20),
+                _buildTab(l10n.notifTabUnread,
+                    unreadOnly: true, count: _unreadCount),
+              ],
             ),
           ),
-          const Spacer(),
-          if (_unreadCount > 0)
-            TextButton.icon(
-              onPressed: _markAllAsRead,
-              icon: const Icon(Icons.done_all, size: 18),
-              label: Text(l10n.readAll, style: const TextStyle(fontSize: 13)),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                visualDensity: VisualDensity.compact,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTab(String label, {required bool unreadOnly, int count = 0}) {
+    final c = WandererTheme.of(context);
+    final selected = _unreadOnly == unreadOnly;
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: InkWell(
+        onTap: () => setState(() => _unreadOnly = unreadOnly),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(2, 6, 2, 10),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color:
+                    selected ? WandererTheme.primaryOrange : Colors.transparent,
+                width: 2,
               ),
             ),
-        ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                  color: selected ? c.text : c.textMuted,
+                ),
+              ),
+              if (count > 0) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: WandererTheme.primaryOrange,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    count > 99 ? '99+' : '$count',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooter() {
+    final c = WandererTheme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: c.raised,
+        border: Border(top: BorderSide(color: c.line)),
+      ),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: TextButton(
+          onPressed: () {
+            Navigator.pop(context, true);
+            Navigator.push(
+              context,
+              PageTransitions.slideFromBottom(const SettingsScreen()),
+            );
+          },
+          style: TextButton.styleFrom(
+            foregroundColor: c.textMuted,
+            textStyle:
+                const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+          child: Text(context.l10n.settings),
+        ),
       ),
     );
   }
@@ -408,9 +606,10 @@ class _NotificationsDropdownContentState
       );
     }
 
+    final c = WandererTheme.of(context);
+    final l10n = context.l10n;
+
     if (_error != null) {
-      final theme = Theme.of(context);
-      final l10n = context.l10n;
       final errorText = _error == 'auth'
           ? l10n.pleaseLogInForNotifications
           : l10n.failedToLoadNotifications;
@@ -419,14 +618,11 @@ class _NotificationsDropdownContentState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline,
-                size: 36, color: theme.colorScheme.onSurface.withOpacity(0.4)),
+            Icon(Icons.error_outline, size: 36, color: c.caption),
             const SizedBox(height: 8),
             Text(
               errorText,
-              style: TextStyle(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
-                  fontSize: 13),
+              style: TextStyle(color: c.textMuted, fontSize: 13),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
@@ -439,31 +635,31 @@ class _NotificationsDropdownContentState
       );
     }
 
-    if (_notifications.isEmpty) {
-      final theme = Theme.of(context);
-      final l10n = context.l10n;
+    final unread = _notifications.where((n) => !n.read).toList();
+    final earlier = _unreadOnly
+        ? <NotificationDto>[]
+        : _notifications.where((n) => n.read).toList();
+
+    if (unread.isEmpty && earlier.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.notifications_none,
-                size: 48, color: theme.colorScheme.onSurface.withOpacity(0.4)),
+            Icon(Icons.notifications_none, size: 48, color: c.caption),
             const SizedBox(height: 12),
             Text(
               l10n.noNotificationsYet,
               style: TextStyle(
                 fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                fontWeight: FontWeight.w600,
+                color: c.textMuted,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               l10n.notificationsWillAppear,
-              style: TextStyle(
-                  fontSize: 12,
-                  color: theme.colorScheme.onSurface.withOpacity(0.5)),
+              style: TextStyle(fontSize: 12, color: c.caption),
               textAlign: TextAlign.center,
             ),
           ],
@@ -471,19 +667,47 @@ class _NotificationsDropdownContentState
       );
     }
 
-    return ListView.separated(
+    final children = <Widget>[
+      if (unread.isNotEmpty) ...[
+        _buildSectionLabel(l10n.notifSectionNew),
+        ..._buildItems(unread),
+      ],
+      if (earlier.isNotEmpty) ...[
+        _buildSectionLabel(l10n.notifSectionEarlier),
+        ..._buildItems(earlier),
+      ],
+      if (_hasMore) _buildLoadMoreButton(),
+    ];
+
+    return ListView(
       controller: _scrollController,
       shrinkWrap: true,
-      padding: EdgeInsets.zero,
-      itemCount: _notifications.length + (_hasMore ? 1 : 0),
-      separatorBuilder: (_, __) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        if (index >= _notifications.length) {
-          return _buildLoadMoreButton();
-        }
-        return _buildNotificationTile(_notifications[index]);
-      },
+      padding: const EdgeInsets.only(bottom: 4),
+      children: children,
     );
+  }
+
+  Widget _buildSectionLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 6),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.9,
+          color: WandererTheme.of(context).label,
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildItems(List<NotificationDto> items) {
+    final groups = groupNotifications(items);
+    return [
+      for (var i = 0; i < groups.length; i++)
+        _buildNotificationTile(groups[i], divider: i > 0),
+    ];
   }
 
   Widget _buildLoadMoreButton() {
@@ -515,64 +739,120 @@ class _NotificationsDropdownContentState
     );
   }
 
-  Widget _buildNotificationTile(NotificationDto notification) {
-    final icon = _getNotificationIcon(notification.type);
-    final color = _getNotificationColor(notification.type);
-    final timeAgo = _formatTimeAgo(notification.createdAt);
-    final theme = Theme.of(context);
+  Widget _buildNotificationTile(
+    List<NotificationDto> group, {
+    required bool divider,
+  }) {
+    final c = WandererTheme.of(context);
+    final l10n = context.l10n;
+    final first = group.first;
+    final isGroup = group.length > 1;
+    final unread = group.any((n) => !n.read);
+    final (iconBg, iconFg) = _getNotificationColors(first.type);
+    final showRequestActions =
+        first.type == NotificationType.friendRequestReceived &&
+            !first.read &&
+            first.referenceId != null &&
+            !_answeredRequests.contains(first.referenceId);
 
     return InkWell(
-      onTap: () => _onNotificationTap(notification),
+      onTap:
+          isGroup ? () => _onGroupTap(group) : () => _onNotificationTap(first),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        color: notification.read
-            ? null
-            : WandererTheme.primaryOrange.withAlpha(15),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        decoration: BoxDecoration(
+          color: unread ? WandererTheme.primaryOrange.withAlpha(15) : null,
+          border: divider ? Border(top: BorderSide(color: c.line)) : null,
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: color.withAlpha(26),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 16),
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+              child: Icon(_getNotificationIcon(first.type),
+                  color: iconFg, size: 18),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    notification.message,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: notification.read
-                          ? FontWeight.normal
-                          : FontWeight.w600,
-                      color: theme.colorScheme.onSurface.withOpacity(0.87),
+                  if (isGroup)
+                    Text(
+                      l10n.notifAchievementsUnlocked(group.length),
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.4,
+                        fontWeight: FontWeight.w700,
+                        color: c.text,
+                      ),
+                    )
+                  else
+                    Text.rich(
+                      _messageSpan(first),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
+                  if (isGroup) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final n in group)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 9, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: c.goldBg,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              _achievementName(n),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: c.goldFg,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                  if (showRequestActions) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _buildRequestButton(
+                          l10n.acceptRequest,
+                          solid: true,
+                          onPressed: () => _answerFriendRequest(first, true),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildRequestButton(
+                          l10n.toastDecline,
+                          solid: false,
+                          onPressed: () => _answerFriendRequest(first, false),
+                        ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 6),
                   Text(
-                    timeAgo,
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: theme.colorScheme.onSurface.withOpacity(0.5)),
+                    _formatTimeAgo(first.createdAt),
+                    style: TextStyle(fontSize: 12, color: c.caption),
                   ),
                 ],
               ),
             ),
-            if (!notification.read)
+            if (unread)
               Container(
                 width: 8,
                 height: 8,
-                margin: const EdgeInsets.only(top: 4, left: 4),
-                decoration: BoxDecoration(
+                margin: const EdgeInsets.only(top: 6, left: 8),
+                decoration: const BoxDecoration(
                   color: WandererTheme.primaryOrange,
                   shape: BoxShape.circle,
                 ),
@@ -581,6 +861,41 @@ class _NotificationsDropdownContentState
         ),
       ),
     );
+  }
+
+  Widget _buildRequestButton(
+    String label, {
+    required bool solid,
+    required VoidCallback onPressed,
+  }) {
+    final c = WandererTheme.of(context);
+    final style = ButtonStyle(
+      minimumSize: const WidgetStatePropertyAll(Size(0, 32)),
+      padding:
+          const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 14)),
+      shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(9))),
+      textStyle: const WidgetStatePropertyAll(
+          TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+    return solid
+        ? FilledButton(
+            onPressed: onPressed,
+            style: style.copyWith(
+              backgroundColor: WidgetStatePropertyAll(c.neutralButtonBg),
+              foregroundColor: WidgetStatePropertyAll(c.neutralButtonFg),
+            ),
+            child: Text(label),
+          )
+        : OutlinedButton(
+            onPressed: onPressed,
+            style: style.copyWith(
+              foregroundColor: WidgetStatePropertyAll(c.text),
+              side: WidgetStatePropertyAll(BorderSide(color: c.line)),
+            ),
+            child: Text(label),
+          );
   }
 }
 
