@@ -38,6 +38,10 @@ class CommentsSection extends StatelessWidget {
   final VoidCallback? onLoadMore;
   final Widget? bottomWidget;
 
+  /// Render just the list and input (no floating card, header or collapse),
+  /// for hosts that provide their own chrome, like the web trip layout.
+  final bool embedded;
+
   const CommentsSection({
     super.key,
     required this.comments,
@@ -65,6 +69,7 @@ class CommentsSection extends StatelessWidget {
     required this.onCancelReply,
     this.onLoadMore,
     this.bottomWidget,
+    this.embedded = false,
   });
 
   @override
@@ -75,6 +80,16 @@ class CommentsSection extends StatelessWidget {
         : (comments.length > 99
             ? '99+'
             : '${comments.length}${hasMore ? '+' : ''}');
+
+    if (embedded) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: _buildList(context)),
+          ..._buildFooter(context),
+        ],
+      );
+    }
 
     return BasePanel(
       isCollapsed: isCollapsed,
@@ -174,116 +189,123 @@ class CommentsSection extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             // Comments list
-            Flexible(
-              child: isLoading
-                  ? const SizedBox(
-                      height: 100,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: WandererTheme.primaryOrange,
-                        ),
-                      ),
-                    )
-                  : comments.isEmpty
-                      ? _buildEmptyCommentsState(context)
-                      : ListView.builder(
-                          key: const PageStorageKey('trip_comments_list'),
-                          controller: scrollController,
-                          shrinkWrap: true,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          itemCount: comments.length + (hasMore ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index == comments.length) {
-                              return _buildLoadMoreButton(context);
-                            }
-                            final comment = comments[index];
-                            final isExpanded =
-                                expandedComments[comment.id] ?? false;
-                            final commentReplies = replies[comment.id] ?? [];
-
-                            return CommentCard(
-                              comment: comment,
-                              tripUserId: tripUserId,
-                              currentUserId: currentUserId,
-                              isExpanded: isExpanded,
-                              replies: commentReplies,
-                              onReact: () => onReact(comment.id),
-                              onReactionChipTap: (type) =>
-                                  onReactionChipTap(comment.id, type),
-                              onReply: () => onReply(comment.id),
-                              onToggleReplies: () =>
-                                  onToggleReplies(comment.id, isExpanded),
-                              isLoggedIn: isLoggedIn,
-                            );
-                          },
-                        ),
-            ),
-            // Comment input (disabled if not logged in)
-            if (isLoggedIn)
-              CommentInput(
-                controller: commentController,
-                isAddingComment: isAddingComment,
-                isReplyMode: replyingToCommentId != null,
-                onSend: onSendComment,
-                onCancelReply: onCancelReply,
-              )
-            else
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
-                  border: Border(
-                    top: BorderSide(
-                      color: WandererTheme.glassBorderColorFor(context),
-                      width: 0.5,
-                    ),
-                  ),
-                ),
-                child: Center(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AuthScreen(),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: WandererTheme.primaryOrange,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Text(
-                      l10n.pleaseLogInToComment,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            if (bottomWidget != null)
-              Padding(
-                padding: const EdgeInsets.only(
-                  left: 12,
-                  right: 12,
-                  bottom: 12,
-                ),
-                child: Center(child: bottomWidget!),
-              ),
+            Flexible(child: _buildList(context)),
+            ..._buildFooter(context),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildList(BuildContext context) {
+    return isLoading
+        ? const SizedBox(
+            height: 100,
+            child: Center(
+              child: CircularProgressIndicator(
+                color: WandererTheme.primaryOrange,
+              ),
+            ),
+          )
+        : comments.isEmpty
+            ? _buildEmptyCommentsState(context)
+            : ListView.builder(
+                key: const PageStorageKey('trip_comments_list'),
+                controller: scrollController,
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: comments.length + (hasMore ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == comments.length) {
+                    return _buildLoadMoreButton(context);
+                  }
+                  final comment = comments[index];
+                  final isExpanded = expandedComments[comment.id] ?? false;
+                  final commentReplies = replies[comment.id] ?? [];
+
+                  return CommentCard(
+                    comment: comment,
+                    tripUserId: tripUserId,
+                    currentUserId: currentUserId,
+                    isExpanded: isExpanded,
+                    replies: commentReplies,
+                    onReact: () => onReact(comment.id),
+                    onReactionChipTap: (type) =>
+                        onReactionChipTap(comment.id, type),
+                    onReply: () => onReply(comment.id),
+                    onToggleReplies: () =>
+                        onToggleReplies(comment.id, isExpanded),
+                    isLoggedIn: isLoggedIn,
+                  );
+                },
+              );
+  }
+
+  List<Widget> _buildFooter(BuildContext context) {
+    final l10n = context.l10n;
+    return [
+      // Comment input (disabled if not logged in)
+      if (isLoggedIn)
+        CommentInput(
+          controller: commentController,
+          isAddingComment: isAddingComment,
+          isReplyMode: replyingToCommentId != null,
+          onSend: onSendComment,
+          onCancelReply: onCancelReply,
+        )
+      else
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
+            border: Border(
+              top: BorderSide(
+                color: WandererTheme.glassBorderColorFor(context),
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: Center(
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AuthScreen(),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: WandererTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                l10n.pleaseLogInToComment,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ),
+      if (bottomWidget != null)
+        Padding(
+          padding: const EdgeInsets.only(
+            left: 12,
+            right: 12,
+            bottom: 12,
+          ),
+          child: Center(child: bottomWidget!),
+        ),
+    ];
   }
 
   Widget _buildLoadMoreButton(BuildContext context) {

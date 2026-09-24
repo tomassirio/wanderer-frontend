@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -13,14 +14,19 @@ import 'package:wanderer_frontend/data/services/auth_service.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/data/models/requests/password_change_request.dart';
 import 'package:wanderer_frontend/data/storage/onboarding_storage.dart';
+import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/tutorial_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
-import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/privacy_policy_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/terms_and_conditions_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/floating_notification.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/fireworks_widget.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
+import 'package:wanderer_frontend/presentation/widgets/settings/web_settings_layout.dart';
 
 /// Settings screen with categorized options for the user.
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -43,6 +49,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isAdmin = false;
   String _appVersion = '';
 
+  // Web sidebar / account ID
+  String? _userId;
+  String? _username;
+  String? _displayName;
+  String? _avatarUrl;
+
   // Easter egg state
   int _easterEggTapCount = 0;
   OverlayEntry? _easterEggOverlay;
@@ -57,6 +69,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _loadAppVersion();
     _loadAdminStatus();
     _isDarkMode = ThemeController().isDarkMode;
+    if (kIsWeb) _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final userId = await _homeRepository.getCurrentUserId();
+    final username = await _homeRepository.getCurrentUsername();
+    final displayName = await _homeRepository.getCurrentDisplayName();
+    final avatarUrl = await _homeRepository.getCurrentAvatarUrl();
+    if (mounted) {
+      setState(() {
+        _userId = userId;
+        _username = username;
+        _displayName = displayName;
+        _avatarUrl = avatarUrl;
+      });
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    final confirm = await DialogHelper.showLogoutConfirmation(context);
+    if (!confirm) return;
+    await _homeRepository.logout();
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        PageTransitions.fade(const InitialScreen()),
+        (route) => false,
+      );
+    }
   }
 
   Future<void> _loadAdminStatus() async {
@@ -130,57 +170,64 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final confirmPasswordController = TextEditingController();
 
     final l10n = context.l10n;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(l10n.changePasswordTitle),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: currentPasswordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: l10n.currentPassword,
-                    prefixIcon: const Icon(Icons.lock_outline),
+    final confirmed = kIsWeb
+        ? await showWebChangePasswordDialog(
+            context,
+            current: currentPasswordController,
+            next: newPasswordController,
+            confirm: confirmPasswordController,
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: Text(l10n.changePasswordTitle),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: currentPasswordController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: l10n.currentPassword,
+                          prefixIcon: const Icon(Icons.lock_outline),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: newPasswordController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: l10n.newPassword,
+                          prefixIcon: const Icon(Icons.lock),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: confirmPasswordController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: l10n.confirmNewPassword,
+                          prefixIcon: const Icon(Icons.lock),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: newPasswordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: l10n.newPassword,
-                    prefixIcon: const Icon(Icons.lock),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text(l10n.cancel),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: confirmPasswordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: l10n.confirmNewPassword,
-                    prefixIcon: const Icon(Icons.lock),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Change'),
                   ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(l10n.cancel),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Change'),
-            ),
-          ],
-        );
-      },
-    );
+                ],
+              );
+            },
+          );
 
     if (confirmed != true || !mounted) return;
 
@@ -193,12 +240,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     confirmPasswordController.dispose();
 
     if (currentPassword.isEmpty || newPassword.isEmpty) {
-      UiHelpers.showErrorMessage(context, 'All fields are required');
+      UiHelpers.showErrorMessage(context, context.l10n.msgAllFieldsRequired);
       return;
     }
 
     if (newPassword != confirmPassword) {
-      UiHelpers.showErrorMessage(context, 'New passwords do not match');
+      UiHelpers.showErrorMessage(context, context.l10n.msgPasswordsDontMatch);
       return;
     }
 
@@ -220,11 +267,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       );
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, 'Password changed successfully');
+        UiHelpers.showSuccessMessage(context, context.l10n.msgPasswordChanged);
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Failed to change password: $e');
+        UiHelpers.showErrorMessage(
+            context, context.l10n.msgPasswordChangeFailed(e));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -235,39 +283,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final emailController = TextEditingController();
 
     final l10n = context.l10n;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(l10n.resetPassword),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(l10n.enterEmailForReset),
-              const SizedBox(height: 16),
-              TextField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: l10n.emailLabel,
-                  prefixIcon: const Icon(Icons.email_outlined),
+    final confirmed = kIsWeb
+        ? await showWebResetPasswordDialog(context, email: emailController)
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: Text(l10n.resetPassword),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(l10n.enterEmailForReset),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: l10n.emailLabel,
+                        prefixIcon: const Icon(Icons.email_outlined),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(l10n.cancel),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(l10n.sendResetLink),
-            ),
-          ],
-        );
-      },
-    );
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text(l10n.cancel),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: Text(l10n.sendResetLink),
+                  ),
+                ],
+              );
+            },
+          );
 
     if (confirmed != true || !mounted) return;
 
@@ -275,7 +325,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     emailController.dispose();
 
     if (email.isEmpty) {
-      UiHelpers.showErrorMessage(context, 'Please enter your email');
+      UiHelpers.showErrorMessage(context, context.l10n.msgEnterEmail);
       return;
     }
 
@@ -291,7 +341,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Failed to send reset link: $e');
+        UiHelpers.showErrorMessage(context, context.l10n.msgResetLinkFailed(e));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -310,11 +360,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     try {
       final launched = await launchUrl(uri);
       if (!launched && mounted) {
-        UiHelpers.showErrorMessage(context, 'Could not open email client');
+        UiHelpers.showErrorMessage(
+            context, context.l10n.msgEmailClientUnavailable);
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Error opening email client: $e');
+        UiHelpers.showErrorMessage(
+            context, context.l10n.msgEmailClientError(e));
       }
     }
   }
@@ -334,70 +386,82 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _handleCloseAccount() async {
     final l10n = context.l10n;
     // First confirmation
-    final firstConfirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.closeAccount),
-        content: const Text(
-          'Are you sure you want to permanently delete your account? '
-          'This action cannot be undone. All your trips, plans, and data will be lost.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text(l10n.continue_),
-          ),
-        ],
-      ),
-    );
+    final firstConfirm = kIsWeb
+        ? await WandererDialog.confirm(
+            context,
+            title: l10n.closeAccount,
+            message: l10n.settingsCloseAccountMessage,
+            confirmLabel: l10n.continue_,
+            icon: Icons.delete_forever,
+            destructive: true,
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.closeAccount),
+              content: const Text(
+                'Are you sure you want to permanently delete your account? '
+                'This action cannot be undone. All your trips, plans, and data will be lost.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: Text(l10n.continue_),
+                ),
+              ],
+            ),
+          );
 
     if (firstConfirm != true || !mounted) return;
 
     // Second confirmation with typed input
     final confirmController = TextEditingController();
-    final secondConfirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.confirmAccountDeletion),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l10n.typeDELETEConfirm),
-            const SizedBox(height: 16),
-            TextField(
-              controller: confirmController,
-              decoration: InputDecoration(
-                hintText: l10n.typeDELETE,
-                border: const OutlineInputBorder(),
+    final secondConfirm = kIsWeb
+        ? await showWebTypeDeleteDialog(context, controller: confirmController)
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.confirmAccountDeletion),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(l10n.typeDELETEConfirm),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: confirmController,
+                    decoration: InputDecoration(
+                      hintText: l10n.typeDELETE,
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                ],
               ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: Text(l10n.deleteMyAccount),
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text(l10n.deleteMyAccount),
-          ),
-        ],
-      ),
-    );
+          );
 
     final typedValue = confirmController.text.trim();
     confirmController.dispose();
 
     if (secondConfirm != true || typedValue != 'DELETE' || !mounted) {
       if (secondConfirm == true && typedValue != 'DELETE' && mounted) {
-        UiHelpers.showErrorMessage(context, 'You must type DELETE to confirm');
+        UiHelpers.showErrorMessage(
+            context, context.l10n.msgTypeDeleteToConfirm);
       }
       return;
     }
@@ -408,15 +472,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await _userService.deleteMyAccount();
       await _homeRepository.logout();
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, 'Account deleted successfully');
+        UiHelpers.showSuccessMessage(context, context.l10n.msgAccountDeleted);
         Navigator.of(context).pushAndRemoveUntil(
-          PageTransitions.fade(const HomeScreen()),
+          PageTransitions.fade(const InitialScreen()),
           (route) => false,
         );
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Failed to delete account: $e');
+        UiHelpers.showErrorMessage(
+            context, context.l10n.msgAccountDeleteFailed(e));
         setState(() => _isLoading = false);
       }
     }
@@ -477,11 +542,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final appBar = AppBar(
+      title: Text(l10n.settings),
+      backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+    );
+    if (kIsWeb) return _buildWeb(appBar);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.settings),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
+      appBar: appBar,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -588,6 +655,52 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   isDestructive: true,
                 ),
               ],
+            ),
+    );
+  }
+
+  /// Web redesign. Push notifications are Android-only
+  /// ([PushNotificationManager]), so the Notifications section is omitted.
+  Widget _buildWeb(PreferredSizeWidget appBar) {
+    // Narrow web keeps the back button: only pass the sidebar when it sits
+    // beside the page.
+    final wide = WandererScaffold.hasPersistentSidebar(context);
+    return WandererScaffold(
+      hideAppBarWithSidebar: true,
+      appBar: appBar,
+      drawer: wide
+          ? AppSidebar(
+              username: _username,
+              userId: _userId,
+              displayName: _displayName,
+              avatarUrl: _avatarUrl,
+              selectedIndex: -1,
+              onLogout: _handleLogout,
+              isAdmin: _isAdmin,
+            )
+          : null,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : WebSettingsLayout(
+              userId: _userId,
+              isAdmin: _isAdmin,
+              appVersion: _appVersion,
+              onChangePassword: _handleChangePassword,
+              onResetPassword: _handleResetPassword,
+              onContactSupport: _handleContactSupport,
+              onResetTutorials: _handleResetTutorials,
+              onTerms: () => Navigator.push(
+                context,
+                PageTransitions.slideFromRight(
+                    const TermsAndConditionsScreen()),
+              ),
+              onPrivacy: () => Navigator.push(
+                context,
+                PageTransitions.slideFromRight(const PrivacyPolicyScreen()),
+              ),
+              onCloseAccount: _handleCloseAccount,
+              onVersionTap: _handleVersionTap,
+              onLocaleChanged: () => setState(() {}),
             ),
     );
   }

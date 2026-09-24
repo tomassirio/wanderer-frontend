@@ -4,6 +4,8 @@ import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/achievement_models.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
+import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
+import 'package:wanderer_frontend/presentation/widgets/achievements/achievement_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
@@ -538,6 +540,11 @@ class TripInfoCard extends StatelessWidget {
     BuildContext context,
     UserAchievement userAchievement,
   ) {
+    if (kIsWeb) {
+      showAchievementDialog(context, userAchievement.achievement,
+          unlocked: userAchievement);
+      return;
+    }
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -624,51 +631,75 @@ class TripInfoCard extends StatelessWidget {
 
   void _showVisibilityPicker(BuildContext context) {
     final l10n = context.l10n;
-    showModalBottomSheet<Visibility>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                l10n.changeVisibility,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+    final picker = kIsWeb
+        ? DialogHelper.showWebOptions<Visibility>(
+            context,
+            title: l10n.changeVisibility,
+            selected: trip.visibility,
+            options: [
+              DialogOption(
+                  icon: Icons.public,
+                  label: l10n.publicVisibility,
+                  subtitle: l10n.visibleToEveryone,
+                  value: Visibility.public),
+              DialogOption(
+                  icon: Icons.shield_outlined,
+                  label: l10n.protectedVisibility,
+                  subtitle: l10n.visibleToFriendsOnly,
+                  value: Visibility.protected),
+              DialogOption(
+                  icon: Icons.lock_outline,
+                  label: l10n.privateVisibility,
+                  subtitle: l10n.onlyVisibleToYou,
+                  value: Visibility.private),
+            ],
+          )
+        : showModalBottomSheet<Visibility>(
+            context: context,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            builder: (context) => SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      l10n.changeVisibility,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.public, color: Colors.green),
+                    title: Text(l10n.publicVisibility),
+                    subtitle: Text(l10n.visibleToEveryone),
+                    selected: trip.visibility == Visibility.public,
+                    onTap: () => Navigator.pop(context, Visibility.public),
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.shield, color: Colors.orange.shade700),
+                    title: Text(l10n.protectedVisibility),
+                    subtitle: Text(l10n.visibleToFriendsOnly),
+                    selected: trip.visibility == Visibility.protected,
+                    onTap: () => Navigator.pop(context, Visibility.protected),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.lock, color: Colors.red),
+                    title: Text(l10n.privateVisibility),
+                    subtitle: Text(l10n.onlyVisibleToYou),
+                    selected: trip.visibility == Visibility.private,
+                    onTap: () => Navigator.pop(context, Visibility.private),
+                  ),
+                  const SizedBox(height: 8),
+                ],
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.public, color: Colors.green),
-              title: Text(l10n.publicVisibility),
-              subtitle: Text(l10n.visibleToEveryone),
-              selected: trip.visibility == Visibility.public,
-              onTap: () => Navigator.pop(context, Visibility.public),
-            ),
-            ListTile(
-              leading: Icon(Icons.shield, color: Colors.orange.shade700),
-              title: Text(l10n.protectedVisibility),
-              subtitle: Text(l10n.visibleToFriendsOnly),
-              selected: trip.visibility == Visibility.protected,
-              onTap: () => Navigator.pop(context, Visibility.protected),
-            ),
-            ListTile(
-              leading: const Icon(Icons.lock, color: Colors.red),
-              title: Text(l10n.privateVisibility),
-              subtitle: Text(l10n.onlyVisibleToYou),
-              selected: trip.visibility == Visibility.private,
-              onTap: () => Navigator.pop(context, Visibility.private),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    ).then((selectedVisibility) {
+          );
+    picker.then((selectedVisibility) {
       if (selectedVisibility != null &&
           selectedVisibility != trip.visibility &&
           onVisibilityChange != null) {

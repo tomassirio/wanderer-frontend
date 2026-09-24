@@ -13,7 +13,7 @@ define check_env
 	fi
 endef
 
-.PHONY: help verify format analyze test clean build run docker clean-verify test-watch run-android run-web run-android-dev run-android-prod run-web-dev run-web-prod bundle bundle-dev bundle-prod
+.PHONY: help verify format analyze test clean build run docker clean-verify test-watch run-android run-web run-web-local run-android-dev run-android-prod run-web-dev run-web-prod bundle bundle-dev bundle-prod
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -100,9 +100,7 @@ run-web: ## Run on Web (usage: make run-web TARGET_ENV=dev)
 	$(call check_env,$(ENV_FILE))
 	@echo "🌐 Running web application ($(TARGET_ENV))..."
 	@source $(ENV_FILE) && \
-	if [ ! -f web/index.html.template ]; then \
-		cp web/index.html web/index.html.template; \
-	fi && \
+	git show HEAD:web/index.html > web/index.html.template && \
 	cp web/index.html.template web/index.html && \
 	API_PATH=$${API_PATH:-/api/1} && \
 	COMMAND_URL="$${WEB_HTTP_PROTOCOL}://$${DOMAIN}$${API_PATH}/command" && \
@@ -117,7 +115,22 @@ run-web: ## Run on Web (usage: make run-web TARGET_ENV=dev)
 	sed -i.bak "s|{{WS_BASE_URL}}|$${WS_URL}|g" web/index.html && \
 	rm -f web/index.html.bak && \
 	trap 'cp web/index.html.template web/index.html' EXIT INT TERM && \
-	flutter run -d web-server --web-port=51538 --web-hostname=0.0.0.0
+	flutter run -d web-server --web-port=51538 --web-hostname=localhost
+
+run-web-local: ## Run web against local docker-compose backend (raw ports, no reverse proxy)
+	$(call check_env,.env.local)
+	@echo "🐳 Running web application (local docker backend)..."
+	@source .env.local && \
+	git show HEAD:web/index.html > web/index.html.template && \
+	cp web/index.html.template web/index.html && \
+	sed -i.bak "s|{{GOOGLE_MAPS_API_KEY}}|$${GOOGLE_MAPS_API_KEY}|g" web/index.html && \
+	sed -i.bak "s|{{COMMAND_BASE_URL}}|$${COMMAND_BASE_URL}|g" web/index.html && \
+	sed -i.bak "s|{{QUERY_BASE_URL}}|$${QUERY_BASE_URL}|g" web/index.html && \
+	sed -i.bak "s|{{AUTH_BASE_URL}}|$${AUTH_BASE_URL}|g" web/index.html && \
+	sed -i.bak "s|{{WS_BASE_URL}}|$${WS_BASE_URL}|g" web/index.html && \
+	rm -f web/index.html.bak && \
+	trap 'cp web/index.html.template web/index.html' EXIT INT TERM && \
+	flutter run -d web-server --web-port=51538 --web-hostname=localhost
 
 bundle: ## Build Android App Bundle (usage: make bundle TARGET_ENV=prod)
 	$(call check_env,$(ENV_FILE))

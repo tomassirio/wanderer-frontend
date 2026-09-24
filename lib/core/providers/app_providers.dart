@@ -35,6 +35,7 @@ import '../../data/services/websocket_service.dart';
 import '../../data/storage/token_storage.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/create_trip_repository.dart';
+import '../../data/repositories/dashboard_repository.dart';
 import '../../data/repositories/home_repository.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../../data/repositories/trip_detail_repository.dart';
@@ -279,5 +280,14 @@ final tripDetailRepositoryProvider = Provider<TripDetailRepository>((ref) {
     commentService: ref.watch(commentServiceProvider),
     authService: ref.watch(authServiceProvider),
     tripUpdateService: ref.watch(tripUpdateServiceProvider),
+  );
+});
+
+final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
+  return DashboardRepository(
+    tripService: ref.watch(tripServiceProvider),
+    userService: ref.watch(userServiceProvider),
+    achievementService: ref.watch(achievementServiceProvider),
+    commentService: ref.watch(commentServiceProvider),
   );
 });

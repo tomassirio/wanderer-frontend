@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +15,14 @@ import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/presentation/helpers/tutorial_helper.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
+import 'package:wanderer_frontend/data/repositories/home_repository.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/trip_plans_screen.dart';
+import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
+import 'package:wanderer_frontend/presentation/widgets/create_trip/web_create_trip_layout.dart';
 
 /// Screen for creating a new trip with a clean, modern design
 class CreateTripScreen extends ConsumerStatefulWidget {
@@ -55,6 +64,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
     _tripPlanService = ref.read(tripPlanServiceProvider);
     _tripService = ref.read(tripServiceProvider);
     _loadTripPlans();
+    if (kIsWeb) _loadUserInfo();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -197,7 +207,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
           : trip;
 
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, 'Trip created successfully!');
+        UiHelpers.showSuccessMessage(context, context.l10n.msgTripCreated);
         Navigator.pushReplacement(
           context,
           PageTransitions.slideFromRight(TripDetailScreen(trip: effectiveTrip)),
@@ -205,7 +215,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Error creating trip: $e');
+        UiHelpers.showErrorMessage(context, context.l10n.msgTripCreateError(e));
       }
     } finally {
       if (mounted) {
@@ -217,12 +227,9 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
   Future<void> _createTripFromPlan() async {
     if (_selectedTripPlan == null) return;
 
-    final request = await showDialog<TripFromPlanRequest>(
-      context: context,
-      builder: (context) => TripFromPlanDialog(
-          planName: _selectedTripPlan!.name,
-          planType: _selectedTripPlan!.planType),
-    );
+    final request = await TripFromPlanDialog.show(context,
+        planName: _selectedTripPlan!.name,
+        planType: _selectedTripPlan!.planType);
 
     if (request == null || !mounted) return;
 
@@ -247,7 +254,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Error creating trip: $e');
+        UiHelpers.showErrorMessage(context, context.l10n.msgTripCreateError(e));
       }
     } finally {
       if (mounted) {
@@ -256,8 +263,112 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
     }
   }
 
+  // Web only: sidebar user details.
+  String? _userId;
+  String? _username;
+  String? _displayName;
+  String? _avatarUrl;
+  bool _isLoggedIn = true;
+  bool _isAdmin = false;
+
+  HomeRepository get _homeRepository => ref.read(homeRepositoryProvider);
+
+  Future<void> _loadUserInfo() async {
+    try {
+      final repo = _homeRepository;
+      final isLoggedIn = await repo.isLoggedIn();
+      final username = await repo.getCurrentUsername();
+      final userId = await repo.getCurrentUserId();
+      final isAdmin = await repo.isAdmin();
+      final displayName = await repo.getCurrentDisplayName();
+      final avatarUrl = await repo.getCurrentAvatarUrl();
+      if (!mounted) return;
+      setState(() {
+        _isLoggedIn = isLoggedIn;
+        _username = username;
+        _userId = userId;
+        _isAdmin = isAdmin;
+        _displayName = displayName;
+        _avatarUrl = avatarUrl;
+      });
+    } catch (e) {
+      debugPrint('Failed to load user info: $e');
+    }
+  }
+
+  Future<void> _logout() async {
+    if (!await DialogHelper.showLogoutConfirmation(context)) return;
+    await _homeRepository.logout();
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        PageTransitions.fade(const InitialScreen()),
+        (route) => false,
+      );
+    }
+  }
+
+  int get _intervalMinutes =>
+      int.tryParse(_intervalController.text) ?? _minIntervalMinutes;
+
+  Widget _buildWeb(BuildContext context) {
+    final l10n = context.l10n;
+    return WandererScaffold(
+      hideAppBarWithSidebar: true,
+      backgroundColor: WandererTheme.of(context).ground,
+      appBar: AppBar(
+        title: Text(l10n.newTripTitle),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      drawer: WandererScaffold.hasPersistentSidebar(context)
+          ? AppSidebar(
+              username: _username,
+              userId: _userId,
+              displayName: _displayName,
+              avatarUrl: _avatarUrl,
+              selectedIndex: AppSidebar.myTripsIndex,
+              onLogout: _logout,
+              onSettings: () => Navigator.push(
+                context,
+                PageTransitions.slideFromBottom(const SettingsScreen()),
+              ),
+              isAdmin: _isAdmin,
+            )
+          : null,
+      body: WebCreateTripLayout(
+        formKey: _formKey,
+        titleController: _titleController,
+        descriptionController: _descriptionController,
+        modality: _selectedModality,
+        onModalityChanged: (m) => setState(() => _selectedModality = m),
+        visibility: _selectedVisibility,
+        onVisibilityChanged: (v) => setState(() => _selectedVisibility = v),
+        automaticUpdates: _automaticUpdates,
+        onAutomaticUpdatesChanged: (v) => setState(() => _automaticUpdates = v),
+        intervalMinutes: _intervalMinutes,
+        onIntervalChanged: (m) =>
+            setState(() => _intervalController.text = '$m'),
+        isLoading: _isLoading,
+        isLoggedIn: _isLoggedIn,
+        userId: _userId,
+        onCreate: _createTrip,
+        onCancel: () => Navigator.maybePop(context),
+        onFromPlan: () => Navigator.pushReplacement(
+          context,
+          PageTransitions.fade(const TripPlansScreen()),
+        ),
+        titleKey: _tutorialTitleKey,
+        tripTypeKey: _tutorialTripTypeKey,
+        visibilityKey: _tutorialVisibilityKey,
+        autoUpdatesKey: _tutorialAutoUpdatesKey,
+        createButtonKey: _tutorialCreateButtonKey,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) return _buildWeb(context);
     final l10n = context.l10n;
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,

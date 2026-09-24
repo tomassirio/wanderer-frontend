@@ -16,15 +16,21 @@ import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_plan_map_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
-import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_plan_info_card.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_plans/web_plan_detail_layout.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_plans/web_plan_editor_layout.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
+import 'package:wanderer_frontend/presentation/helpers/map_style_helper.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// The type of point the user wants to place next on the map in edit mode
 enum _EditPlacementMode { start, end, waypoint }
@@ -154,7 +160,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
-          PageTransitions.fade(const HomeScreen()),
+          PageTransitions.fade(const InitialScreen()),
           (route) => false,
         );
       }
@@ -515,29 +521,39 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
 
   Future<void> _deleteTripPlan() async {
     final l10n = context.l10n;
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.deleteTripPlan),
-        content: Text(
-          'Are you sure you want to delete "${_tripPlan.name}"? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+    final confirm = kIsWeb
+        ? await WandererDialog.confirm(
+            context,
+            title: l10n.tripPlansDeleteTitle,
+            message: l10n.tripPlansDeleteMessage(_tripPlan.name),
+            confirmLabel: l10n.tripPlansDeleteAction,
+            cancelLabel: l10n.tripPlansKeepPlan,
+            icon: Icons.delete_outline,
+            destructive: true,
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.deleteTripPlan),
+              content: Text(
+                'Are you sure you want to delete "${_tripPlan.name}"? This action cannot be undone.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(l10n.delete),
+                ),
+              ],
             ),
-            child: Text(l10n.delete),
-          ),
-        ],
-      ),
-    );
+          );
 
     if (confirm != true || !mounted) return;
 
@@ -558,11 +574,8 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   }
 
   Future<void> _createTripFromPlan() async {
-    final request = await showDialog<TripFromPlanRequest>(
-      context: context,
-      builder: (context) => TripFromPlanDialog(
-          planName: _tripPlan.name, planType: _tripPlan.planType),
-    );
+    final request = await TripFromPlanDialog.show(context,
+        planName: _tripPlan.name, planType: _tripPlan.planType);
 
     if (request == null || !mounted) return;
 
@@ -603,11 +616,13 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
 
     // When editing, show the edit form
     if (_isEditing) {
-      return _buildEditScreen();
+      return kIsWeb ? _buildEditScreenWeb() : _buildEditScreen();
     }
 
+    if (kIsWeb) return _buildWebView();
+
     // Normal view with fullscreen map and floating info card
-    return Scaffold(
+    return WandererScaffold(
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
@@ -642,6 +657,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
               Positioned.fill(
                 child: hasMapData
                     ? GoogleMap(
+                        style: MapStyleHelper.of(context),
                         initialCameraPosition: CameraPosition(
                           target:
                               TripPlanMapHelper.getInitialLocation(_tripPlan),
@@ -750,6 +766,247 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Web (redesign) layouts
+  // ---------------------------------------------------------------------------
+
+  void _enterEditMode() {
+    _initEditLocations();
+    _initEditPolylines();
+    setState(() {
+      _isEditing = true;
+      _editFormExpanded = false;
+      _showEditWaypointsList = false;
+    });
+  }
+
+  WandererAppBar _webAppBar(VoidCallback onBack) => WandererAppBar(
+        isLoggedIn: _isLoggedIn,
+        onLoginPressed: _navigateToAuth,
+        username: _username,
+        userId: _userId,
+        displayName: _displayName,
+        avatarUrl: _avatarUrl,
+        onProfile: () => AuthNavigationHelper.navigateToOwnProfile(context),
+        onSettings: _handleSettings,
+        onLogout: _handleLogout,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: onBack,
+        ),
+      );
+
+  AppSidebar _webSidebar() => AppSidebar(
+        username: _username,
+        userId: _userId,
+        displayName: _displayName,
+        avatarUrl: _avatarUrl,
+        selectedIndex: 1, // Trip plans
+        onLogout: _handleLogout,
+        onSettings: _handleSettings,
+        isAdmin: _isAdmin,
+      );
+
+  void _zoomIn() => _mapController?.animateCamera(CameraUpdate.zoomIn());
+  void _zoomOut() => _mapController?.animateCamera(CameraUpdate.zoomOut());
+
+  /// Web view mode: header + map card + route / dates column.
+  Widget _buildWebView() {
+    final c = WandererTheme.of(context);
+    final hasMapData = _markers.isNotEmpty;
+    return WandererScaffold(
+      hideAppBarWithSidebar: true,
+      appBar: _webAppBar(() => Navigator.pop(context)),
+      drawer: _webSidebar(),
+      body: WebPlanDetailLayout(
+        plan: _tripPlan,
+        onBack: () => Navigator.pop(context),
+        onDelete: _deleteTripPlan,
+        onEdit: _enterEditMode,
+        onStartTrip: _createTripFromPlan,
+        onZoomIn: hasMapData ? _zoomIn : null,
+        onZoomOut: hasMapData ? _zoomOut : null,
+        onFitRoute: _markers.length >= 2 ? _fitBounds : null,
+        map: hasMapData
+            ? GoogleMap(
+                style: MapStyleHelper.of(context),
+                initialCameraPosition: CameraPosition(
+                  target: TripPlanMapHelper.getInitialLocation(_tripPlan),
+                  zoom: 10,
+                ),
+                markers: _markers,
+                polylines: _polylines,
+                onMapCreated: (controller) {
+                  _mapController = controller;
+                  if (_markers.length >= 2) _fitBounds();
+                },
+                myLocationEnabled: false,
+                zoomControlsEnabled: false,
+                mapToolbarEnabled: false,
+              )
+            : Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.map_outlined, size: 48, color: c.caption),
+                    const SizedBox(height: 12),
+                    Text(context.l10n.noLocationData,
+                        style: TextStyle(color: c.caption, fontSize: 15)),
+                  ],
+                ),
+              ),
+      ),
+    );
+  }
+
+  static const _toWebPlacement = {
+    _EditPlacementMode.start: PlanPlacementMode.start,
+    _EditPlacementMode.waypoint: PlanPlacementMode.stop,
+    _EditPlacementMode.end: PlanPlacementMode.finish,
+  };
+
+  static String _coords(LatLng p) =>
+      '${p.latitude.toStringAsFixed(4)}, ${p.longitude.toStringAsFixed(4)}';
+
+  /// Web edit mode: shared plan editor layout around the editing map.
+  Widget _buildEditScreenWeb() {
+    final l10n = context.l10n;
+    final c = WandererTheme.of(context);
+    // Swallow the map click that follows a click on our floating overlays.
+    Widget guard(Widget child) => Listener(
+          behavior: HitTestBehavior.opaque,
+          onPointerDown: (_) => _editIgnoreNextMapTap = true,
+          child: child,
+        );
+    return WandererScaffold(
+      hideAppBarWithSidebar: true,
+      appBar: _webAppBar(_cancelEditing),
+      drawer: _webSidebar(),
+      body: WebPlanEditorLayout(
+        breadcrumbCurrent: _tripPlan.name,
+        onBreadcrumbTap: () => Navigator.pop(context),
+        onOverlayPointerDown: () {
+          _editIgnoreNextMapTap = true;
+          // ponytail: time-boxed so an unused guard can't swallow a later
+          // real map click.
+          Future.delayed(const Duration(milliseconds: 300),
+              () => _editIgnoreNextMapTap = false);
+        },
+        title: l10n.planDetailEditPlan,
+        saveLabel: l10n.planDetailSaveChanges,
+        onCancel: _cancelEditing,
+        onSave: _saveChanges,
+        isSaving: _isLoading,
+        nameController: _nameController,
+        multiDay: _selectedPlanType == 'MULTI_DAY',
+        onMultiDayChanged: (multi) =>
+            setState(() => _selectedPlanType = multi ? 'MULTI_DAY' : 'SIMPLE'),
+        startDate: _startDate,
+        endDate: _endDate,
+        onPickStartDate: _selectDateRange,
+        onPickEndDate: _selectDateRange,
+        startLabel:
+            _editStartLocation == null ? null : _coords(_editStartLocation!),
+        finishLabel:
+            _editEndLocation == null ? null : _coords(_editEndLocation!),
+        stopCount: _editWaypoints.length,
+        placementMode: _toWebPlacement[_editPlacementMode]!,
+        onPlacementModeChanged: (mode) => setState(() => _editPlacementMode =
+            _toWebPlacement.entries.firstWhere((e) => e.value == mode).key),
+        onZoomIn: _zoomIn,
+        onZoomOut: _zoomOut,
+        onUndo: _editWaypoints.isEmpty
+            ? null
+            : () {
+                setState(() => _editWaypoints.removeLast());
+                _computeEditRoutePolyline();
+              },
+        map: Stack(
+          fit: StackFit.expand,
+          children: [
+            GoogleMap(
+              style: MapStyleHelper.of(context),
+              initialCameraPosition: CameraPosition(
+                target: _editStartLocation ?? const LatLng(40.7128, -74.0060),
+                zoom: 10,
+              ),
+              markers: _buildEditMarkers(),
+              polylines: _editPolylines,
+              onMapCreated: (controller) {
+                _mapController = controller;
+                if (_editStartLocation != null) {
+                  Future.delayed(const Duration(milliseconds: 300), () {
+                    _fitEditBounds();
+                  });
+                }
+              },
+              onTap: _onEditMapTapped,
+              myLocationEnabled: true,
+              myLocationButtonEnabled: false,
+              zoomControlsEnabled: false,
+              mapToolbarEnabled: false,
+            ),
+            if (_showEditWaypointsList && _editWaypoints.isNotEmpty)
+              Positioned(
+                left: 16,
+                bottom: 68,
+                width: 340,
+                child: guard(ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 360),
+                  child: _buildEditWaypointsPanel(),
+                )),
+              ),
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: Row(
+                children: [
+                  if (_editWaypoints.isNotEmpty)
+                    guard(FilledButton.icon(
+                      onPressed: () => setState(() =>
+                          _showEditWaypointsList = !_showEditWaypointsList),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: c.surface,
+                        foregroundColor: c.text,
+                      ),
+                      icon: const Icon(Icons.reorder_rounded, size: 16),
+                      label:
+                          Text(l10n.planDetailWaypoints(_editWaypoints.length)),
+                    )),
+                  const Spacer(),
+                  if (_isEditComputingRoute)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: c.surface,
+                        borderRadius:
+                            BorderRadius.circular(WandererTheme.radiusControl),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(l10n.computingRoute,
+                              style: TextStyle(fontSize: 12, color: c.text)),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Cancels editing and restores state
   void _cancelEditing() {
     setState(() {
@@ -800,7 +1057,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   Widget _buildEditScreenDesktop() {
     final l10n = context.l10n;
     const double panelWidth = 400.0;
-    return Scaffold(
+    return WandererScaffold(
       backgroundColor: WandererTheme.backgroundLight,
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
@@ -832,6 +1089,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
           // Full-screen map
           Positioned.fill(
             child: GoogleMap(
+              style: MapStyleHelper.of(context),
               initialCameraPosition: CameraPosition(
                 target: _editStartLocation ?? const LatLng(40.7128, -74.0060),
                 zoom: 10,
@@ -1249,7 +1507,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
     final expandedHeight = MediaQuery.of(context).size.height -
         MediaQuery.of(context).padding.top -
         kToolbarHeight;
-    return Scaffold(
+    return WandererScaffold(
       backgroundColor: WandererTheme.backgroundLight,
       resizeToAvoidBottomInset: false,
       appBar: WandererAppBar(
@@ -1284,6 +1542,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
             child: AbsorbPointer(
               absorbing: _editFormExpanded,
               child: GoogleMap(
+                style: MapStyleHelper.of(context),
                 initialCameraPosition: CameraPosition(
                   target: _editStartLocation ?? const LatLng(40.7128, -74.0060),
                   zoom: 10,

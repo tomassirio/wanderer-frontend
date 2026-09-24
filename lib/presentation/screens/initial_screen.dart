@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/storage/token_refresh_manager.dart';
+import 'package:wanderer_frontend/presentation/screens/dashboard_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
 import 'package:wanderer_frontend/presentation/screens/landing_screen.dart';
 
 /// Initial screen that checks auth state and shows appropriate content
@@ -30,18 +32,12 @@ class _InitialScreenState extends ConsumerState<InitialScreen> {
     // they still have a valid refresh token.
     try {
       final tokenStorage = ref.read(tokenStorageProvider);
-      final isLoggedIn = await tokenStorage.isLoggedIn();
-      _isLoggedIn = isLoggedIn;
-
-      if (isLoggedIn) {
-        final isExpired = await tokenStorage.isAccessTokenExpired();
-        if (isExpired) {
-          debugPrint('InitialScreen: Access token expired, refreshing...');
-          final refreshed =
-              await TokenRefreshManager.instance.ensureValidToken();
-          debugPrint('InitialScreen: Token refresh result: $refreshed');
-        }
+      if (await tokenStorage.isLoggedIn()) {
+        await TokenRefreshManager.instance
+            .ensureValidToken(tokenStorage: tokenStorage);
       }
+      // Re-read: a rejected refresh clears the session.
+      _isLoggedIn = await tokenStorage.isLoggedIn();
     } catch (e) {
       debugPrint('InitialScreen: Error during startup token check: $e');
       // Continue to HomeScreen regardless — it handles guest mode gracefully
@@ -56,6 +52,11 @@ class _InitialScreenState extends ConsumerState<InitialScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isChecking && kIsWeb) {
+      return const Scaffold(
+        body: Center(child: WandererLogo(size: 64)),
+      );
+    }
     if (_isChecking) {
       return Scaffold(
         body: Container(
@@ -85,8 +86,8 @@ class _InitialScreenState extends ConsumerState<InitialScreen> {
       );
     }
 
-    if (kIsWeb && !_isLoggedIn) {
-      return const LandingScreen();
+    if (kIsWeb) {
+      return _isLoggedIn ? const DashboardScreen() : const LandingScreen();
     }
 
     // Always show HomeScreen - it will handle showing public trips or user's trips

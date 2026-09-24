@@ -144,6 +144,7 @@ The full list of Makefile targets:
 | `make verify` | Format + analyze + test |
 | `make build` | Build web release |
 | `make run` | Run in Chrome |
+| `make run-web-local` | Run in Chrome against a local docker-compose backend (needs `.env.local`, see `.env.local`) |
 | `make clean` | Remove build artifacts |
 
 ## Building for Android

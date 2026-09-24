@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
@@ -13,7 +14,10 @@ import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/core/services/background_update_manager.dart';
 import 'package:wanderer_frontend/core/services/navigation_service.dart';
 import 'package:wanderer_frontend/core/services/notification_service.dart';
+import 'package:wanderer_frontend/data/storage/token_refresh_manager.dart';
 import 'package:wanderer_frontend/presentation/helpers/web_marker_generator.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
+import 'package:wanderer_frontend/presentation/widgets/search/search_overlay.dart';
 
 /// Global route observer for detecting when screens become visible again
 final RouteObserver<ModalRoute<void>> routeObserver =
@@ -45,7 +49,31 @@ void main() async {
     await notificationService.requestPermission();
   }
 
+  if (kIsWeb) HardwareKeyboard.instance.addHandler(_openSearchShortcut);
+
+  // Session died server-side (redeploy, revoked or expired refresh token):
+  // drop every screen so nothing keeps showing a stale logged-in state.
+  TokenRefreshManager.onSessionExpired = () => NavigationService()
+      .navigatorKey
+      .currentState
+      ?.pushNamedAndRemoveUntil('/', (_) => false);
+
   runApp(const ProviderScope(child: MyApp()));
+}
+
+/// Web: Ctrl+K / Cmd+K opens the search overlay from anywhere, regardless of
+/// which widget has focus.
+bool _openSearchShortcut(KeyEvent event) {
+  final keyboard = HardwareKeyboard.instance;
+  if (event is! KeyDownEvent ||
+      event.logicalKey != LogicalKeyboardKey.keyK ||
+      !(keyboard.isControlPressed || keyboard.isMetaPressed)) {
+    return false;
+  }
+  final context = NavigationService().navigatorKey.currentContext;
+  if (context == null) return false;
+  showSearchOverlay(context);
+  return true; // stop the browser's own Ctrl+K
 }
 
 class MyApp extends StatelessWidget {
@@ -78,7 +106,7 @@ class MyApp extends StatelessWidget {
               // automatically rebuilds via context.l10n when locale changes.
               builder: (context, child) => L10nScope(
                 notifier: LocaleController().locale,
-                child: child!,
+                child: kIsWeb ? ToastHost(child: child!) : child!,
               ),
               navigatorKey: NavigationService().navigatorKey,
               navigatorObservers: [routeObserver],

@@ -1,6 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 
+/// Sign-up password rules as (label, met) pairs; mirrors the validator below.
+List<(String, bool)> passwordRules(AppLocalizations l10n, String password) => [
+      (l10n.passwordRequirement8Chars, password.length >= 8),
+      (l10n.passwordRequirementUppercase, RegExp(r'[A-Z]').hasMatch(password)),
+      (l10n.passwordRequirementLowercase, RegExp(r'[a-z]').hasMatch(password)),
+      (l10n.passwordRequirementNumber, RegExp(r'\d').hasMatch(password)),
+      (
+        l10n.passwordRequirementSpecial,
+        RegExp(r'[@$!%*?&#]').hasMatch(password)
+      ),
+    ];
+
 /// Password input field with visibility toggle
 class PasswordField extends StatefulWidget {
   final TextEditingController controller;
@@ -10,6 +22,10 @@ class PasswordField extends StatefulWidget {
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onFieldSubmitted;
 
+  /// Web redesign: base decoration (label rendered above by the caller);
+  /// the visibility toggle is added as the suffix icon.
+  final InputDecoration? decoration;
+
   const PasswordField({
     super.key,
     required this.controller,
@@ -18,6 +34,7 @@ class PasswordField extends StatefulWidget {
     this.compareController,
     this.textInputAction,
     this.onFieldSubmitted,
+    this.decoration,
   });
 
   @override
@@ -50,25 +67,38 @@ class _PasswordFieldState extends State<PasswordField> {
       children: [
         TextFormField(
           controller: widget.controller,
-          decoration: InputDecoration(
-            labelText: labelText,
-            prefixIcon: Icon(
-              widget.compareController == null
-                  ? Icons.lock
-                  : Icons.lock_outline,
-            ),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+          decoration: widget.decoration?.copyWith(
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    size: 18,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ) ??
+              InputDecoration(
+                labelText: labelText,
+                prefixIcon: Icon(
+                  widget.compareController == null
+                      ? Icons.lock
+                      : Icons.lock_outline,
+                ),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                ),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              onPressed: () {
-                setState(() {
-                  _obscurePassword = !_obscurePassword;
-                });
-              },
-            ),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
           obscureText: _obscurePassword,
           textInputAction: widget.textInputAction ?? TextInputAction.done,
           onFieldSubmitted: widget.onFieldSubmitted,

@@ -9,6 +9,7 @@ import 'package:wanderer_frontend/data/repositories/auth_repository.dart';
 import 'package:wanderer_frontend/presentation/screens/verify_email_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/auth_form.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/forgot_password_form.dart';
+import 'package:wanderer_frontend/presentation/widgets/auth/web_auth_layout.dart';
 
 /// Authentication screen for login and registration
 class AuthScreen extends ConsumerStatefulWidget {
@@ -188,8 +189,52 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     });
   }
 
+  Widget _buildForgotPasswordForm() => ForgotPasswordForm(
+        emailController: _emailController,
+        isLoading: _isLoading,
+        errorMessage: _errorMessage,
+        passwordResetSent: _passwordResetSent,
+        onSubmit: _submitForgotPassword,
+        onBackToLogin: _backToLogin,
+      );
+
+  void _goBackOrHome() {
+    final nav = Navigator.of(context);
+    if (nav.canPop()) {
+      nav.pop();
+    } else {
+      nav.pushNamedAndRemoveUntil('/', (_) => false);
+    }
+  }
+
+  Widget _buildWeb(BuildContext context) {
+    return WebAuthLayout(
+      isLogin: _isLogin,
+      onLogoTap: _goBackOrHome,
+      child: _registrationPending
+          ? _buildRegistrationPendingView()
+          : _isForgotPassword
+              ? _buildForgotPasswordForm()
+              : WebAuthForm(
+                  formKey: _formKey,
+                  isLogin: _isLogin,
+                  isLoading: _isLoading,
+                  errorMessage: _errorMessage,
+                  usernameController: _usernameController,
+                  emailController: _emailController,
+                  passwordController: _passwordController,
+                  confirmPasswordController: _confirmPasswordController,
+                  onSubmit: _submit,
+                  onToggleMode: _toggleMode,
+                  onForgotPassword: _forgotPassword,
+                  onNeedVerificationToken: _navigateToManualVerification,
+                ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) return _buildWeb(context);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -225,14 +270,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 child: _registrationPending
                     ? _buildRegistrationPendingView()
                     : _isForgotPassword
-                        ? ForgotPasswordForm(
-                            emailController: _emailController,
-                            isLoading: _isLoading,
-                            errorMessage: _errorMessage,
-                            passwordResetSent: _passwordResetSent,
-                            onSubmit: _submitForgotPassword,
-                            onBackToLogin: _backToLogin,
-                          )
+                        ? _buildForgotPasswordForm()
                         : AuthForm(
                             formKey: _formKey,
                             isLogin: _isLogin,
@@ -261,7 +299,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: ThemeController().themeMode,
       builder: (context, mode, _) {
-        final isDark = mode == ThemeMode.dark;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         final l10n = context.l10n;
         return IconButton(
           icon: Icon(

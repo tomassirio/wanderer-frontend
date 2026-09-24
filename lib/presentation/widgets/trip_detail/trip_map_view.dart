@@ -6,6 +6,7 @@ import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/domain/trip_location.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_info_window.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_planned_info_window.dart';
+import 'package:wanderer_frontend/presentation/helpers/map_style_helper.dart';
 
 /// Widget displaying the Google Maps view for a trip
 class TripMapView extends StatefulWidget {
@@ -240,6 +241,7 @@ class _TripMapViewState extends State<TripMapView> {
     return Stack(
       children: [
         GoogleMap(
+          style: MapStyleHelper.of(context),
           initialCameraPosition: CameraPosition(
             target: widget.initialLocation,
             zoom: widget.initialZoom,

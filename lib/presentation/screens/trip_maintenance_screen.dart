@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/data/models/admin_models.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
@@ -10,13 +12,14 @@ import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
-import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 
 /// Admin screen for managing trip data maintenance (polyline and geocoding recomputation).
 /// Allows admins to view statistics and trigger backend recomputation of encoded polylines
@@ -183,51 +186,66 @@ class _TripMaintenanceScreenState extends ConsumerState<TripMaintenanceScreen> {
 
   Future<void> _recomputePolyline(Trip trip) async {
     final l10n = context.l10n;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.recomputePolyline),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Trip: ${trip.name}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+    final confirmed = kIsWeb
+        ? await WandererDialog.confirm(
+            context,
+            title: l10n.recomputePolyline,
+            message: l10n.dialogsMaintenancePolylineMessage(
+              trip.name,
+              trip.username,
+              trip.locations?.length ?? 0,
+              trip.encodedPolyline != null
+                  ? l10n.dialogsMaintenanceHasPolyline
+                  : l10n.dialogsMaintenanceNoPolyline,
             ),
-            const SizedBox(height: 4),
-            Text('By: ${trip.username}'),
-            const SizedBox(height: 12),
-            Text(
-              'This will fully recompute the encoded polyline from all '
-              'trip updates using the Google Routes API on the backend.',
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+            confirmLabel: l10n.recompute,
+            icon: Icons.route,
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.recomputePolyline),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Trip: ${trip.name}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text('By: ${trip.username}'),
+                  const SizedBox(height: 12),
+                  Text(
+                    'This will fully recompute the encoded polyline from all '
+                    'trip updates using the Google Routes API on the backend.',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Locations: ${trip.locations?.length ?? 0}',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  ),
+                  Text(
+                    'Has polyline: ${trip.encodedPolyline != null ? "Yes" : "No"}',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(l10n.recompute),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Locations: ${trip.locations?.length ?? 0}',
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
-            ),
-            Text(
-              'Has polyline: ${trip.encodedPolyline != null ? "Yes" : "No"}',
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.recompute),
-          ),
-        ],
-      ),
-    );
+          );
 
     if (confirmed == true && mounted) {
       setState(() {
@@ -263,47 +281,59 @@ class _TripMaintenanceScreenState extends ConsumerState<TripMaintenanceScreen> {
 
   Future<void> _recomputeGeocoding(Trip trip) async {
     final l10n = context.l10n;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.recomputeGeocoding),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Trip: ${trip.name}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+    final confirmed = kIsWeb
+        ? await WandererDialog.confirm(
+            context,
+            title: l10n.recomputeGeocoding,
+            message: l10n.dialogsMaintenanceGeocodingMessage(
+              trip.name,
+              trip.username,
+              trip.locations?.length ?? 0,
             ),
-            const SizedBox(height: 4),
-            Text('By: ${trip.username}'),
-            const SizedBox(height: 12),
-            Text(
-              'This will recompute city and country for all '
-              'trip updates using reverse geocoding on the backend.',
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+            confirmLabel: l10n.recompute,
+            icon: Icons.location_city,
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.recomputeGeocoding),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Trip: ${trip.name}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text('By: ${trip.username}'),
+                  const SizedBox(height: 12),
+                  Text(
+                    'This will recompute city and country for all '
+                    'trip updates using reverse geocoding on the backend.',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Locations: ${trip.locations?.length ?? 0}',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(l10n.recompute),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Locations: ${trip.locations?.length ?? 0}',
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.recompute),
-          ),
-        ],
-      ),
-    );
+          );
 
     if (confirmed == true && mounted) {
       setState(() {
@@ -348,32 +378,41 @@ class _TripMaintenanceScreenState extends ConsumerState<TripMaintenanceScreen> {
       return;
     }
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.recomputeAllPolylines),
-        content: Text(
-          'This will recompute polylines for ${tripsWithLocations.length} '
-          'trips with 2 or more locations.\n\n'
-          'This may take a while and will use Google Routes API calls '
-          'on the backend.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
+    final confirmed = kIsWeb
+        ? await WandererDialog.confirm(
+            context,
+            title: l10n.recomputeAllPolylines,
+            message:
+                l10n.dialogsMaintenanceAllMessage(tripsWithLocations.length),
+            confirmLabel: l10n.recomputeAll,
+            icon: Icons.sync,
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.recomputeAllPolylines),
+              content: Text(
+                'This will recompute polylines for ${tripsWithLocations.length} '
+                'trips with 2 or more locations.\n\n'
+                'This may take a while and will use Google Routes API calls '
+                'on the backend.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(l10n.recomputeAll),
+                ),
+              ],
             ),
-            child: Text(l10n.recomputeAll),
-          ),
-        ],
-      ),
-    );
+          );
 
     if (confirmed == true && mounted) {
       int successes = 0;
@@ -442,7 +481,7 @@ class _TripMaintenanceScreenState extends ConsumerState<TripMaintenanceScreen> {
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
-        PageTransitions.fade(const HomeScreen()),
+        PageTransitions.fade(const InitialScreen()),
         (route) => false,
       );
     }
@@ -457,7 +496,7 @@ class _TripMaintenanceScreenState extends ConsumerState<TripMaintenanceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WandererScaffold(
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
         username: _username,

@@ -207,8 +207,7 @@ class AppLocalizations {
       TranslationTemplate.format(_tr('hoursAgo'), {'n': n});
 
   String get dayAgo => _tr('dayAgo');
-  String daysAgo(int n) =>
-      TranslationTemplate.format(_tr('daysAgo'), {'n': n});
+  String daysAgo(int n) => TranslationTemplate.format(_tr('daysAgo'), {'n': n});
 
   String get weekAgo => _tr('weekAgo');
   String weeksAgo(int n) =>
@@ -610,7 +609,8 @@ class AppLocalizations {
   String get categoryGettingStarted => _tr('categoryGettingStarted');
 
   // Achievement units
-  String achievementKm(double v) => '${v.toStringAsFixed(1)} km';
+  String achievementKm(double v) =>
+      '${v.toStringAsFixed(v == v.roundToDouble() ? 0 : 1)} km';
   String achievementDays(int v) =>
       TranslationTemplate.format(_tr('achievementDays'), {'v': v});
 
@@ -655,8 +655,8 @@ class AppLocalizations {
   String get sortOptionNameZA => _tr('sortOptionNameZA');
   String get sortOptionNewest => _tr('sortOptionNewest');
   String get sortOptionOldest => _tr('sortOptionOldest');
-  String unfollowedUser(String username) => TranslationTemplate.format(
-      _tr('unfollowedUser'), {'username': username});
+  String unfollowedUser(String username) =>
+      TranslationTemplate.format(_tr('unfollowedUser'), {'username': username});
 
   String nowFollowingUser(String username) => TranslationTemplate.format(
       _tr('nowFollowingUser'), {'username': username});
@@ -720,4 +720,421 @@ class AppLocalizations {
 
   /// Returns the native name for a given language code.
   String languageNameFor(String code) => _tr('languageName_$code');
+
+  // --- Web redesign ---
+  String get navAdventures => _tr('navAdventures');
+  String get navSocial => _tr('navSocial');
+  String get navAdmin => _tr('navAdmin');
+  String get navHome => _tr('navHome');
+  String get navMyTrips => _tr('navMyTrips');
+  String get navExplore => _tr('navExplore');
+  String get navSupport => _tr('navSupport');
+  String greetingMorning(Object name) =>
+      TranslationTemplate.format(_tr('greetingMorning'), {'name': name});
+  String greetingAfternoon(Object name) =>
+      TranslationTemplate.format(_tr('greetingAfternoon'), {'name': name});
+  String greetingEvening(Object name) =>
+      TranslationTemplate.format(_tr('greetingEvening'), {'name': name});
+  String dashboardSubtitleFinished(Object trip) => TranslationTemplate.format(
+      _tr('dashboardSubtitleFinished'), {'trip': trip});
+  String dashboardSubtitleLive(Object trip) =>
+      TranslationTemplate.format(_tr('dashboardSubtitleLive'), {'trip': trip});
+  String get dashboardSubtitleEmpty => _tr('dashboardSubtitleEmpty');
+  String get startATrip => _tr('startATrip');
+  String get longestTrip => _tr('longestTrip');
+  String get latestTrip => _tr('latestTrip');
+  String get viewTrip => _tr('viewTrip');
+  String get friendRequestsTitle => _tr('friendRequestsTitle');
+  String seeAllCount(Object n) =>
+      TranslationTemplate.format(_tr('seeAllCount'), {'n': n});
+  String get acceptRequest => _tr('acceptRequest');
+  String get declineRequest => _tr('declineRequest');
+  String get recentAchievements => _tr('recentAchievements');
+  String allCount(Object n) =>
+      TranslationTemplate.format(_tr('allCount'), {'n': n});
+  String get recentActivity => _tr('recentActivity');
+  String get onYourTrips => _tr('onYourTrips');
+  String commentedOn(Object trip) =>
+      TranslationTemplate.format(_tr('commentedOn'), {'trip': trip});
+  String get noRecentActivity => _tr('noRecentActivity');
+  String get yourTrips => _tr('yourTrips');
+  String viewAllCount(Object n) =>
+      TranslationTemplate.format(_tr('viewAllCount'), {'n': n});
+  String commentsCount(Object n) =>
+      TranslationTemplate.format(_tr('commentsCount'), {'n': n});
+  String daysCount(Object n) =>
+      TranslationTemplate.format(_tr('daysCount'), {'n': n});
+  String kmValue(Object km) =>
+      TranslationTemplate.format(_tr('kmValue'), {'km': km});
+  String get noTripsDashboard => _tr('noTripsDashboard');
+  String achievementsEarnedCount(Object n) =>
+      TranslationTemplate.format(_tr('achievementsEarnedCount'), {'n': n});
+  String get noAchievementsDashboard => _tr('noAchievementsDashboard');
+  String get mapFinish => _tr('mapFinish');
+  String get mapLatestUpdate => _tr('mapLatestUpdate');
+  String finishedOn(Object date) =>
+      TranslationTemplate.format(_tr('finishedOn'), {'date': date});
+  String startedOn(Object date) =>
+      TranslationTemplate.format(_tr('startedOn'), {'date': date});
+  String commentsTab(Object n) =>
+      TranslationTemplate.format(_tr('commentsTab'), {'n': n});
+  String achievementsCountLabel(Object n) =>
+      TranslationTemplate.format(_tr('achievementsCountLabel'), {'n': n});
+  String get addFriend => _tr('addFriend');
+  String get requestSent => _tr('requestSent');
+  String get landingNavExplore => _tr('landingNavExplore');
+  String get landingNavFeatures => _tr('landingNavFeatures');
+  String get landingNavAbout => _tr('landingNavAbout');
+  String get landingGetStartedFree => _tr('landingGetStartedFree');
+  String get landingFreeBadge => _tr('landingFreeBadge');
+  String get landingHeroBefore => _tr('landingHeroBefore');
+  String get landingHeroAccent => _tr('landingHeroAccent');
+  String get landingHeroAfter => _tr('landingHeroAfter');
+  String get landingHeroSub => _tr('landingHeroSub');
+  String get landingStartFirstTrip => _tr('landingStartFirstTrip');
+  String get landingCheckLive => _tr('landingCheckLive');
+  String get landingCheckComments => _tr('landingCheckComments');
+  String get landingCheckPrivacy => _tr('landingCheckPrivacy');
+  String get landingWhatYouGet => _tr('landingWhatYouGet');
+  String get landingFeaturesTitle => _tr('landingFeaturesTitle');
+  String get landingFeatureTrackingLong => _tr('landingFeatureTrackingLong');
+  String get landingFeatureSocialLong => _tr('landingFeatureSocialLong');
+  String get landingFeatureAchievementsLong =>
+      _tr('landingFeatureAchievementsLong');
+  String get landingFromCommunity => _tr('landingFromCommunity');
+  String get landingSeeAllPublic => _tr('landingSeeAllPublic');
+  String get landingFeaturedCtaTitle => _tr('landingFeaturedCtaTitle');
+  String get landingFeaturedCtaSub => _tr('landingFeaturedCtaSub');
+  String get landingFooterTagline => _tr('landingFooterTagline');
+  String get termsShort => _tr('termsShort');
+  String achievementsUnlockedOf(Object unlocked, Object total) =>
+      TranslationTemplate.format(_tr('achievementsUnlockedOf'),
+          {'unlocked': unlocked, 'total': total});
+  String get achievementsNextUp => _tr('achievementsNextUp');
+  String get achievementsAllUnlocked => _tr('achievementsAllUnlocked');
+  String get tripPlansTitle => _tr('tripPlansTitle');
+  String get tripPlansSubtitle => _tr('tripPlansSubtitle');
+  String get tripPlansNewPlan => _tr('tripPlansNewPlan');
+  String get tripPlansDrawRoute => _tr('tripPlansDrawRoute');
+  String get tripPlansStartTrip => _tr('tripPlansStartTrip');
+  String get tripPlansMultiDay => _tr('tripPlansMultiDay');
+  String get tripPlansPlanNewTrip => _tr('tripPlansPlanNewTrip');
+  String get tripPlansPlanNewTripHint => _tr('tripPlansPlanNewTripHint');
+  String get profileAddShortBio => _tr('profileAddShortBio');
+  String get profileFilterAll => _tr('profileFilterAll');
+  String get profileFilterDrafts => _tr('profileFilterDrafts');
+  String get profileSort => _tr('profileSort');
+  String get profileNoRouteYet => _tr('profileNoRouteYet');
+  String get profileOpenLiveMap => _tr('profileOpenLiveMap');
+  String get profileContinueEditing => _tr('profileContinueEditing');
+  String get profileCopyUserId => _tr('profileCopyUserId');
+  String get profileChangeAvatar => _tr('profileChangeAvatar');
+  String get friendsPageSubtitle => _tr('friendsPageSubtitle');
+  String get friendsSuggestionsTab => _tr('friendsSuggestionsTab');
+  String get friendsEmptyTitle => _tr('friendsEmptyTitle');
+  String get friendsEmptyBody => _tr('friendsEmptyBody');
+  String get friendsAddFriendsTitle => _tr('friendsAddFriendsTitle');
+  String get friendsSearchByUsername => _tr('friendsSearchByUsername');
+  String get friendsOr => _tr('friendsOr');
+  String get friendsCopyInviteLink => _tr('friendsCopyInviteLink');
+  String get friendsInviteLinkCopied => _tr('friendsInviteLinkCopied');
+  String get friendsWaitingForYou => _tr('friendsWaitingForYou');
+  String get friendsPillRequestPending => _tr('friendsPillRequestPending');
+  String get friendsPillWantsToBeFriends => _tr('friendsPillWantsToBeFriends');
+  String get friendsPillYouFollow => _tr('friendsPillYouFollow');
+  String get friendsPillFollowsYou => _tr('friendsPillFollowsYou');
+  String get friendsCancelRequest => _tr('friendsCancelRequest');
+  String get friendsAddFriend => _tr('friendsAddFriend');
+  String get authWebWelcomeBack => _tr('authWebWelcomeBack');
+  String get authWebSignInSubtitle => _tr('authWebSignInSubtitle');
+  String get authWebCreateTitle => _tr('authWebCreateTitle');
+  String get authWebCreateSubtitle => _tr('authWebCreateSubtitle');
+  String get authWebForgotPassword => _tr('authWebForgotPassword');
+  String get authWebHaveCode => _tr('authWebHaveCode');
+  String get authWebNewToWanderer => _tr('authWebNewToWanderer');
+  String get authWebCreateAnAccount => _tr('authWebCreateAnAccount');
+  String get authWebConfirmPasswordHint => _tr('authWebConfirmPasswordHint');
+  String get authWebStrengthWeak => _tr('authWebStrengthWeak');
+  String get authWebStrengthFair => _tr('authWebStrengthFair');
+  String get authWebStrengthAlmost => _tr('authWebStrengthAlmost');
+  String get authWebStrengthStrong => _tr('authWebStrengthStrong');
+  String get authWebAchievementUnlocked => _tr('authWebAchievementUnlocked');
+  String get authWebAchievementSample => _tr('authWebAchievementSample');
+  String get authWebSignInHeadline => _tr('authWebSignInHeadline');
+  String get authWebSignInBody => _tr('authWebSignInBody');
+  String get authWebSignUpHeadline => _tr('authWebSignUpHeadline');
+  String get authWebSignUpPoint1 => _tr('authWebSignUpPoint1');
+  String get authWebSignUpPoint2 => _tr('authWebSignUpPoint2');
+  String get authWebSignUpPoint3 => _tr('authWebSignUpPoint3');
+  String get exploreSubtitle => _tr('exploreSubtitle');
+  String get exploreFriendsFeed => _tr('exploreFriendsFeed');
+  String get exploreSearchHint => _tr('exploreSearchHint');
+  String get exploreFilterAll => _tr('exploreFilterAll');
+  String get exploreFeatured => _tr('exploreFeatured');
+  String get exploreFeaturedSubtitle => _tr('exploreFeaturedSubtitle');
+  String get exploreLatestPublic => _tr('exploreLatestPublic');
+  String exploreUpdated(Object time) =>
+      TranslationTemplate.format(_tr('exploreUpdated'), {'time': time});
+  String get exploreFollowTrip => _tr('exploreFollowTrip');
+  String get exploreAllCaughtUp => _tr('exploreAllCaughtUp');
+  String get exploreAllCaughtUpBody => _tr('exploreAllCaughtUpBody');
+  String get exploreFindFriends => _tr('exploreFindFriends');
+  String get exploreNoMatches => _tr('exploreNoMatches');
+  String get searchOverlayHint => _tr('searchOverlayHint');
+  String get searchOverlayAll => _tr('searchOverlayAll');
+  String get searchOverlayPeople => _tr('searchOverlayPeople');
+  String get searchOverlayTrips => _tr('searchOverlayTrips');
+  String get searchOverlayRecent => _tr('searchOverlayRecent');
+  String get searchOverlayOpen => _tr('searchOverlayOpen');
+  String get searchOverlayMove => _tr('searchOverlayMove');
+  String get searchOverlayAnywhere => _tr('searchOverlayAnywhere');
+  String searchOverlayNoResults(Object query) => TranslationTemplate.format(
+      _tr('searchOverlayNoResults'), {'query': query});
+  String get searchOverlayError => _tr('searchOverlayError');
+  String searchOverlayComments(Object count) => TranslationTemplate.format(
+      _tr('searchOverlayComments'), {'count': count});
+  String get searchOverlayPrompt => _tr('searchOverlayPrompt');
+  String get profileUserIdCopied => _tr('profileUserIdCopied');
+  String get achievementDialogLocked => _tr('achievementDialogLocked');
+  String achievementDialogUnlocked(Object date) => TranslationTemplate.format(
+      _tr('achievementDialogUnlocked'), {'date': date});
+  String get achievementDialogProgress => _tr('achievementDialogProgress');
+  String get achievementDialogShare => _tr('achievementDialogShare');
+  String get achievementDialogLinkCopied => _tr('achievementDialogLinkCopied');
+  String get dialogLogoutTitle => _tr('dialogLogoutTitle');
+  String get dialogLogoutMessage => _tr('dialogLogoutMessage');
+  String get dialogLogoutAction => _tr('dialogLogoutAction');
+  String get tripPlansDeleteTitle => _tr('tripPlansDeleteTitle');
+  String tripPlansDeleteMessage(Object name) =>
+      TranslationTemplate.format(_tr('tripPlansDeleteMessage'), {'name': name});
+  String get tripPlansDeleteAction => _tr('tripPlansDeleteAction');
+  String get tripPlansKeepPlan => _tr('tripPlansKeepPlan');
+  String get tripDetailDeleteTitle => _tr('tripDetailDeleteTitle');
+  String tripDetailDeleteMessage(Object name) => TranslationTemplate.format(
+      _tr('tripDetailDeleteMessage'), {'name': name});
+  String get tripDetailDeleteAction => _tr('tripDetailDeleteAction');
+  String get tripDetailKeepTrip => _tr('tripDetailKeepTrip');
+  String get settingsSubtitle => _tr('settingsSubtitle');
+  String get settingsAccountSecurity => _tr('settingsAccountSecurity');
+  String get settingsHelpLegal => _tr('settingsHelpLegal');
+  String get settingsTheme => _tr('settingsTheme');
+  String get settingsThemeCaption => _tr('settingsThemeCaption');
+  String get settingsThemeLight => _tr('settingsThemeLight');
+  String get settingsThemeDark => _tr('settingsThemeDark');
+  String get settingsThemeSystem => _tr('settingsThemeSystem');
+  String get settingsLanguageCaption => _tr('settingsLanguageCaption');
+  String get settingsPassword => _tr('settingsPassword');
+  String get settingsPasswordCaption => _tr('settingsPasswordCaption');
+  String get settingsChangePasswordButton =>
+      _tr('settingsChangePasswordButton');
+  String get settingsForgotPassword => _tr('settingsForgotPassword');
+  String get settingsForgotPasswordCaption =>
+      _tr('settingsForgotPasswordCaption');
+  String get settingsSendResetLinkButton => _tr('settingsSendResetLinkButton');
+  String get settingsAccountId => _tr('settingsAccountId');
+  String get settingsCopy => _tr('settingsCopy');
+  String get settingsAccountIdCopied => _tr('settingsAccountIdCopied');
+  String get settingsCloseAccountButton => _tr('settingsCloseAccountButton');
+  String get settingsCloseAccountMessage => _tr('settingsCloseAccountMessage');
+  String settingsVersion(Object version) =>
+      TranslationTemplate.format(_tr('settingsVersion'), {'version': version});
+  String get newTripBreadcrumb => _tr('newTripBreadcrumb');
+  String get newTripPageTitle => _tr('newTripPageTitle');
+  String get newTripFromScratch => _tr('newTripFromScratch');
+  String get newTripFromPlan => _tr('newTripFromPlan');
+  String get newTripBasics => _tr('newTripBasics');
+  String get newTripName => _tr('newTripName');
+  String get newTripNameHint => _tr('newTripNameHint');
+  String get newTripNameRequired => _tr('newTripNameRequired');
+  String get newTripDescription => _tr('newTripDescription');
+  String get newTripOptional => _tr('newTripOptional');
+  String get newTripDescriptionHint => _tr('newTripDescriptionHint');
+  String get newTripHowLong => _tr('newTripHowLong');
+  String get newTripSingleDay => _tr('newTripSingleDay');
+  String get newTripSingleDayCaption => _tr('newTripSingleDayCaption');
+  String get newTripMultiDay => _tr('newTripMultiDay');
+  String get newTripMultiDayCaption => _tr('newTripMultiDayCaption');
+  String get newTripWhoCanSee => _tr('newTripWhoCanSee');
+  String get newTripPublic => _tr('newTripPublic');
+  String get newTripPublicCaption => _tr('newTripPublicCaption');
+  String get newTripFriends => _tr('newTripFriends');
+  String get newTripFriendsCaption => _tr('newTripFriendsCaption');
+  String get newTripPrivate => _tr('newTripPrivate');
+  String get newTripPrivateCaption => _tr('newTripPrivateCaption');
+  String get newTripLocationSharing => _tr('newTripLocationSharing');
+  String get newTripAutoUpdates => _tr('newTripAutoUpdates');
+  String get newTripAutoUpdatesCaption => _tr('newTripAutoUpdatesCaption');
+  String get newTripSendEvery => _tr('newTripSendEvery');
+  String get newTripIntervalNote => _tr('newTripIntervalNote');
+  String newTripMinutes(Object n) =>
+      TranslationTemplate.format(_tr('newTripMinutes'), {'n': n});
+  String newTripHours(Object n) =>
+      TranslationTemplate.format(_tr('newTripHours'), {'n': n});
+  String get newTripRoutePlaceholder => _tr('newTripRoutePlaceholder');
+  String get newTripSummary => _tr('newTripSummary');
+  String get newTripUntitled => _tr('newTripUntitled');
+  String get newTripLength => _tr('newTripLength');
+  String get newTripVisibleTo => _tr('newTripVisibleTo');
+  String get newTripAutoUpdatesShort => _tr('newTripAutoUpdatesShort');
+  String newTripEvery(Object interval) =>
+      TranslationTemplate.format(_tr('newTripEvery'), {'interval': interval});
+  String get newTripOff => _tr('newTripOff');
+  String get newTripCreate => _tr('newTripCreate');
+  String get msgTripCreated => _tr('msgTripCreated');
+  String msgTripCreateError(Object error) =>
+      TranslationTemplate.format(_tr('msgTripCreateError'), {'error': error});
+  String get msgAllFieldsRequired => _tr('msgAllFieldsRequired');
+  String get msgPasswordsDontMatch => _tr('msgPasswordsDontMatch');
+  String get msgPasswordChanged => _tr('msgPasswordChanged');
+  String msgPasswordChangeFailed(Object error) => TranslationTemplate.format(
+      _tr('msgPasswordChangeFailed'), {'error': error});
+  String get msgEnterEmail => _tr('msgEnterEmail');
+  String msgResetLinkFailed(Object error) =>
+      TranslationTemplate.format(_tr('msgResetLinkFailed'), {'error': error});
+  String get msgEmailClientUnavailable => _tr('msgEmailClientUnavailable');
+  String msgEmailClientError(Object error) =>
+      TranslationTemplate.format(_tr('msgEmailClientError'), {'error': error});
+  String get msgTypeDeleteToConfirm => _tr('msgTypeDeleteToConfirm');
+  String get msgAccountDeleted => _tr('msgAccountDeleted');
+  String msgAccountDeleteFailed(Object error) => TranslationTemplate.format(
+      _tr('msgAccountDeleteFailed'), {'error': error});
+  String get planEditorName => _tr('planEditorName');
+  String get planEditorNameHint => _tr('planEditorNameHint');
+  String get planEditorDates => _tr('planEditorDates');
+  String get planEditorLeave => _tr('planEditorLeave');
+  String get planEditorArrive => _tr('planEditorArrive');
+  String get planEditorPickDate => _tr('planEditorPickDate');
+  String planEditorDaysOnRoad(Object n) =>
+      TranslationTemplate.format(_tr('planEditorDaysOnRoad'), {'n': n});
+  String get planEditorRoute => _tr('planEditorRoute');
+  String get planEditorNothingPlaced => _tr('planEditorNothingPlaced');
+  String get planEditorStartCaps => _tr('planEditorStartCaps');
+  String get planEditorStopsCaps => _tr('planEditorStopsCaps');
+  String get planEditorFinishCaps => _tr('planEditorFinishCaps');
+  String get planEditorClickMap => _tr('planEditorClickMap');
+  String get planEditorOptional => _tr('planEditorOptional');
+  String planEditorStopsCount(Object n) =>
+      TranslationTemplate.format(_tr('planEditorStopsCount'), {'n': n});
+  String get planEditorAddStop => _tr('planEditorAddStop');
+  String get planEditorNotSet => _tr('planEditorNotSet');
+  String get planEditorEditStart => _tr('planEditorEditStart');
+  String get planEditorEditFinish => _tr('planEditorEditFinish');
+  String get planEditorAddDescription => _tr('planEditorAddDescription');
+  String get planEditorWhereStart => _tr('planEditorWhereStart');
+  String get planEditorWhereStartHint => _tr('planEditorWhereStartHint');
+  String get planEditorClickToPlace => _tr('planEditorClickToPlace');
+  String get planEditorStart => _tr('planEditorStart');
+  String get planEditorStop => _tr('planEditorStop');
+  String get planEditorFinish => _tr('planEditorFinish');
+  String get planEditorZoomIn => _tr('planEditorZoomIn');
+  String get planEditorZoomOut => _tr('planEditorZoomOut');
+  String get planEditorUndo => _tr('planEditorUndo');
+  String get tripPlansOpen => _tr('tripPlansOpen');
+  String get createPlanSave => _tr('createPlanSave');
+  String get createPlanNameRequired => _tr('createPlanNameRequired');
+  String get createPlanNameMinLength => _tr('createPlanNameMinLength');
+  String get createPlanSelectLocations => _tr('createPlanSelectLocations');
+  String get createPlanSelectDates => _tr('createPlanSelectDates');
+  String get createPlanCreated => _tr('createPlanCreated');
+  String createPlanError(Object error) =>
+      TranslationTemplate.format(_tr('createPlanError'), {'error': error});
+  String get planDetailSimplePlan => _tr('planDetailSimplePlan');
+  String get planDetailMultiDayPlan => _tr('planDetailMultiDayPlan');
+  String get planDetailEditPlan => _tr('planDetailEditPlan');
+  String get planDetailSaveChanges => _tr('planDetailSaveChanges');
+  String get planDetailStartTrip => _tr('planDetailStartTrip');
+  String get planDetailPlannedChip => _tr('planDetailPlannedChip');
+  String get planDetailFitRoute => _tr('planDetailFitRoute');
+  String get planDetailChange => _tr('planDetailChange');
+  String get planDetailStraightLine => _tr('planDetailStraightLine');
+  String get planDetailPerDay => _tr('planDetailPerDay');
+  String get planDetailWhatHappensTitle => _tr('planDetailWhatHappensTitle');
+  String get planDetailWhatHappensBody => _tr('planDetailWhatHappensBody');
+  String planDetailWaypoints(Object n) =>
+      TranslationTemplate.format(_tr('planDetailWaypoints'), {'n': n});
+  String toastMoreInNotifications(Object n) =>
+      TranslationTemplate.format(_tr('toastMoreInNotifications'), {'n': n});
+  String get notifTabAll => _tr('notifTabAll');
+  String get notifTabUnread => _tr('notifTabUnread');
+  String get notifSectionNew => _tr('notifSectionNew');
+  String get notifSectionEarlier => _tr('notifSectionEarlier');
+  String notifAchievementsUnlocked(Object n) =>
+      TranslationTemplate.format(_tr('notifAchievementsUnlocked'), {'n': n});
+  String get toastDecline => _tr('toastDecline');
+  String get toastDismiss => _tr('toastDismiss');
+  String liveToastCommented(Object user) =>
+      TranslationTemplate.format(_tr('liveToastCommented'), {'user': user});
+  String liveToastReplied(Object user) =>
+      TranslationTemplate.format(_tr('liveToastReplied'), {'user': user});
+  String liveToastReacted(Object user) =>
+      TranslationTemplate.format(_tr('liveToastReacted'), {'user': user});
+  String liveToastCommentsGrouped(Object n, Object trip) =>
+      TranslationTemplate.format(_tr('liveToastCommentsGrouped'), {'n': n, 'trip': trip});
+  String liveToastOnYourTrip(Object trip) =>
+      TranslationTemplate.format(_tr('liveToastOnYourTrip'), {'trip': trip});
+  String liveToastFollowed(Object user) =>
+      TranslationTemplate.format(_tr('liveToastFollowed'), {'user': user});
+  String liveToastFriendRequest(Object user) =>
+      TranslationTemplate.format(_tr('liveToastFriendRequest'), {'user': user});
+  String liveToastFriendAccepted(Object user) =>
+      TranslationTemplate.format(_tr('liveToastFriendAccepted'), {'user': user});
+  String get liveToastFriendDeclined => _tr('liveToastFriendDeclined');
+  String get liveToastAchievement => _tr('liveToastAchievement');
+  String get liveToastSeeAchievement => _tr('liveToastSeeAchievement');
+  String liveToastTripStarted(Object user, Object trip) =>
+      TranslationTemplate.format(_tr('liveToastTripStarted'), {'user': user, 'trip': trip});
+  String liveToastTripFinished(Object user, Object trip) =>
+      TranslationTemplate.format(_tr('liveToastTripFinished'), {'user': user, 'trip': trip});
+  String liveToastTripUpdate(Object user) =>
+      TranslationTemplate.format(_tr('liveToastTripUpdate'), {'user': user});
+  String get liveToastPausedTitle => _tr('liveToastPausedTitle');
+  String get liveToastPausedBody => _tr('liveToastPausedBody');
+  String get liveToastBack => _tr('liveToastBack');
+  String dialogsMaintenancePolylineMessage(Object name, Object user, Object count, Object polyline) =>
+      TranslationTemplate.format(_tr('dialogsMaintenancePolylineMessage'), {'name': name, 'user': user, 'count': count, 'polyline': polyline});
+  String get dialogsMaintenanceHasPolyline => _tr('dialogsMaintenanceHasPolyline');
+  String get dialogsMaintenanceNoPolyline => _tr('dialogsMaintenanceNoPolyline');
+  String dialogsMaintenanceGeocodingMessage(Object name, Object user, Object count) =>
+      TranslationTemplate.format(_tr('dialogsMaintenanceGeocodingMessage'), {'name': name, 'user': user, 'count': count});
+  String dialogsMaintenanceAllMessage(Object count) =>
+      TranslationTemplate.format(_tr('dialogsMaintenanceAllMessage'), {'count': count});
+  String get dialogsAdminPromoteTitle => _tr('dialogsAdminPromoteTitle');
+  String dialogsAdminPromoteMessage(Object username) =>
+      TranslationTemplate.format(_tr('dialogsAdminPromoteMessage'), {'username': username});
+  String get dialogsAdminPromoteAction => _tr('dialogsAdminPromoteAction');
+  String get dialogsAdminDemoteTitle => _tr('dialogsAdminDemoteTitle');
+  String dialogsAdminDemoteMessage(Object username) =>
+      TranslationTemplate.format(_tr('dialogsAdminDemoteMessage'), {'username': username});
+  String get dialogsAdminDemoteAction => _tr('dialogsAdminDemoteAction');
+  String get dialogsAdminDeleteTitle => _tr('dialogsAdminDeleteTitle');
+  String dialogsAdminDeleteMessage(Object username) =>
+      TranslationTemplate.format(_tr('dialogsAdminDeleteMessage'), {'username': username});
+  String get dialogsAdminDeleteAction => _tr('dialogsAdminDeleteAction');
+  String dialogsPromotionByUser(Object username) =>
+      TranslationTemplate.format(_tr('dialogsPromotionByUser'), {'username': username});
+  String get dialogsPromotionPickStart => _tr('dialogsPromotionPickStart');
+  String get dialogsPromotionSelectDate => _tr('dialogsPromotionSelectDate');
+  String get dialogsPromotionSelectTime => _tr('dialogsPromotionSelectTime');
+  String dialogsPromotionLocalTime(Object time) =>
+      TranslationTemplate.format(_tr('dialogsPromotionLocalTime'), {'time': time});
+  String get dialogsPromotionRemoveTitle => _tr('dialogsPromotionRemoveTitle');
+  String get dialogsPromotionRemoveAction => _tr('dialogsPromotionRemoveAction');
+  String dialogsFromPlanIntro(Object name) =>
+      TranslationTemplate.format(_tr('dialogsFromPlanIntro'), {'name': name});
+  String get dialogsFromPlanAutoOn => _tr('dialogsFromPlanAutoOn');
+  String get dialogsFromPlanAutoOff => _tr('dialogsFromPlanAutoOff');
+  String dialogsFromPlanInterval(Object min) =>
+      TranslationTemplate.format(_tr('dialogsFromPlanInterval'), {'min': min});
+  String get dialogsMinutesSuffix => _tr('dialogsMinutesSuffix');
+  String get dialogsAvatarTitle => _tr('dialogsAvatarTitle');
+  String get dialogsAvatarDeleteTitle => _tr('dialogsAvatarDeleteTitle');
+  String get dialogsAvatarDeleteMessage => _tr('dialogsAvatarDeleteMessage');
+  String get dialogsAvatarDeleteAction => _tr('dialogsAvatarDeleteAction');
+  String get dialogsFinishTripTitle => _tr('dialogsFinishTripTitle');
+  String get dialogsFinishTripAction => _tr('dialogsFinishTripAction');
+  String get dialogsMultiDayAction => _tr('dialogsMultiDayAction');
+  String get dialogsShareTripLink => _tr('dialogsShareTripLink');
+  String get dialogsShareShortLink => _tr('dialogsShareShortLink');
+  String get dialogsShareCopyLink => _tr('dialogsShareCopyLink');
+  String get dialogsShareLinkCopied => _tr('dialogsShareLinkCopied');
 }
