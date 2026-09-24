@@ -32,18 +32,12 @@ class _InitialScreenState extends ConsumerState<InitialScreen> {
     // they still have a valid refresh token.
     try {
       final tokenStorage = ref.read(tokenStorageProvider);
-      final isLoggedIn = await tokenStorage.isLoggedIn();
-      _isLoggedIn = isLoggedIn;
-
-      if (isLoggedIn) {
-        final isExpired = await tokenStorage.isAccessTokenExpired();
-        if (isExpired) {
-          debugPrint('InitialScreen: Access token expired, refreshing...');
-          final refreshed =
-              await TokenRefreshManager.instance.ensureValidToken();
-          debugPrint('InitialScreen: Token refresh result: $refreshed');
-        }
+      if (await tokenStorage.isLoggedIn()) {
+        await TokenRefreshManager.instance
+            .ensureValidToken(tokenStorage: tokenStorage);
       }
+      // Re-read: a rejected refresh clears the session.
+      _isLoggedIn = await tokenStorage.isLoggedIn();
     } catch (e) {
       debugPrint('InitialScreen: Error during startup token check: $e');
       // Continue to HomeScreen regardless — it handles guest mode gracefully

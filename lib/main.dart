@@ -14,6 +14,7 @@ import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/core/services/background_update_manager.dart';
 import 'package:wanderer_frontend/core/services/navigation_service.dart';
 import 'package:wanderer_frontend/core/services/notification_service.dart';
+import 'package:wanderer_frontend/data/storage/token_refresh_manager.dart';
 import 'package:wanderer_frontend/presentation/helpers/web_marker_generator.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 import 'package:wanderer_frontend/presentation/widgets/search/search_overlay.dart';
@@ -49,6 +50,13 @@ void main() async {
   }
 
   if (kIsWeb) HardwareKeyboard.instance.addHandler(_openSearchShortcut);
+
+  // Session died server-side (redeploy, revoked or expired refresh token):
+  // drop every screen so nothing keeps showing a stale logged-in state.
+  TokenRefreshManager.onSessionExpired = () => NavigationService()
+      .navigatorKey
+      .currentState
+      ?.pushNamedAndRemoveUntil('/', (_) => false);
 
   runApp(const ProviderScope(child: MyApp()));
 }

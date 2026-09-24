@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show VoidCallback, debugPrint;
 import 'package:http/http.dart' as http;
 import '../../core/constants/api_endpoints.dart';
 import 'token_storage.dart';
@@ -16,6 +16,11 @@ import 'token_storage.dart';
 class TokenRefreshManager {
   TokenRefreshManager._();
   static final TokenRefreshManager instance = TokenRefreshManager._();
+
+  /// Invoked after the refresh token is definitively rejected and the stored
+  /// session has been cleared. The main isolate wires this to reset the UI to
+  /// the guest view, so no screen keeps rendering a stale logged-in state.
+  static VoidCallback? onSessionExpired;
 
   /// Shared future to coalesce concurrent refresh calls.
   Future<bool>? _refreshFuture;
@@ -114,14 +119,16 @@ class TokenRefreshManager {
         );
         debugPrint('TokenRefreshManager: ✅ Token refreshed successfully');
         return true;
-      } else if (response.statusCode == 401 || response.statusCode == 403) {
-        // Definitive auth failure — refresh token is invalid/expired
+      } else if (response.statusCode == 400 ||
+          response.statusCode == 401 ||
+          response.statusCode == 403) {
+        // Definitive auth failure — refresh token is invalid, revoked or
+        // expired. The auth service reports these as 400.
         debugPrint(
           'TokenRefreshManager: Refresh token rejected '
-          '(${response.statusCode}) — clearing tokens',
+          '(${response.statusCode})',
         );
-        await tokenStorage.clearTokens();
-        return false;
+        return _handleRejected(tokenStorage, refreshToken);
       } else {
         // Transient server error (5xx, 429, etc.) — do NOT clear tokens.
         // The refresh token may still be valid; clearing would force an
@@ -156,6 +163,25 @@ class TokenRefreshManager {
         client.close();
       }
     }
+  }
+
+  /// Clears the session after [usedRefreshToken] was rejected, unless another
+  /// tab or isolate rotated it in the meantime — then the stored token is
+  /// fresh and the caller can retry with it.
+  Future<bool> _handleRejected(
+    TokenStorage tokenStorage,
+    String usedRefreshToken,
+  ) async {
+    await tokenStorage.reloadFromDisk();
+    final current = await tokenStorage.getRefreshToken();
+    if (current != null && current != usedRefreshToken) {
+      debugPrint('TokenRefreshManager: Token rotated elsewhere — reusing it');
+      return true;
+    }
+    debugPrint('TokenRefreshManager: Clearing session');
+    await tokenStorage.clearTokens();
+    onSessionExpired?.call();
+    return false;
   }
 
   /// Proactively ensure the access token is valid.
