@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/auth_models.dart';
+import 'package:wanderer_frontend/presentation/widgets/auth/google_logo.dart';
 
 /// Outlined "Continue with Google"-style button for SSO login.
 class SsoButton extends StatelessWidget {
@@ -25,7 +26,16 @@ class SsoButton extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
       ),
-      child: Text(label),
+      child: provider == SsoProvider.google
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const GoogleLogo(size: 18),
+                const SizedBox(width: 10),
+                Text(label),
+              ],
+            )
+          : Text(label),
     );
   }
 }

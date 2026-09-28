@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/auth_form.dart';
+import 'package:wanderer_frontend/presentation/widgets/auth/google_logo.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/web_auth_layout.dart';
 
 void main() {
@@ -67,6 +68,7 @@ void main() {
         expect(find.text('or'), findsOneWidget);
         final button = find.text('Continue with Google');
         expect(button, findsOneWidget);
+        expect(find.byType(GoogleLogo), findsOneWidget);
 
         await tester.ensureVisible(button);
         await tester.tap(button);
