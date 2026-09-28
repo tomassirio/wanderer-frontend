@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -5,6 +6,7 @@ import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
+import 'package:wanderer_frontend/core/services/cache_service.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/avatar_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
@@ -221,8 +223,12 @@ class _WebSidebarState extends ConsumerState<WebSidebar> {
     return CircleAvatar(
       radius: size / 2,
       backgroundColor: c.forestBg,
-      foregroundImage:
-          hasUrl ? NetworkImage(ApiEndpoints.resolveThumbnailUrl(url)) : null,
+      foregroundImage: hasUrl
+          ? CachedNetworkImageProvider(
+              ApiEndpoints.resolveThumbnailUrl(url),
+              cacheManager: CacheService.userAvatarCache,
+            )
+          : null,
       onForegroundImageError: hasUrl ? (_, __) {} : null,
       child: Text(
         AvatarHelper.getInitials(_c.displayName, _c.username ?? '?'),
