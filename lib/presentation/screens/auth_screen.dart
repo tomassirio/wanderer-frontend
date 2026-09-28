@@ -139,6 +139,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   Future<void> _startSso(SsoProvider provider) async {
+    if (_isLoading) return;
     final sso = ref.read(ssoServiceProvider);
     final pkce = PkcePair.generate();
     setState(() {
@@ -159,6 +160,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           webOnlyWindowName: '_self',
         );
         if (!launched) throw Exception('Could not open SSO page');
+        // The browser back-forward cache can restore this page without a
+        // reload if the user navigates back, so reset the loading state
+        // rather than leaving the form permanently disabled.
+        if (mounted) setState(() => _isLoading = false);
         return;
       }
 

@@ -13,10 +13,8 @@ class PkcePair {
   /// Generates a fresh verifier from 32 secure-random bytes (base64url,
   /// no padding — 43 chars) and its matching S256 challenge.
   factory PkcePair.generate({Random? random}) {
-    final bytes = List<int>.generate(
-      32,
-      (_) => (random ?? Random.secure()).nextInt(256),
-    );
+    final rng = random ?? Random.secure();
+    final bytes = List<int>.generate(32, (_) => rng.nextInt(256));
     final verifier = base64Url.encode(bytes).replaceAll('=', '');
     return PkcePair(verifier: verifier, challenge: challengeFor(verifier));
   }

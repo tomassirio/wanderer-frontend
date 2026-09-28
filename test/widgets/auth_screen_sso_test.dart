@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -98,6 +100,32 @@ void main() {
 
     expect(find.text("We couldn't sign you in with Google. Please try again."),
         findsOneWidget);
+  });
+
+  testWidgets('a second tap while a login is in flight is ignored',
+      (tester) async {
+    when(repository.completeSsoLogin(any, any)).thenAnswer((_) async {});
+    final completer = Completer<String>();
+    var authenticateCalls = 0;
+
+    await pumpScreen(tester, (url) {
+      authenticateCalls++;
+      return completer.future;
+    });
+
+    final button = find.text('Continue with Google');
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pump();
+    await tester.tap(button);
+    await tester.pump();
+
+    expect(authenticateCalls, 1);
+
+    completer.complete('wanderer://auth/sso-callback?code=the-code');
+    await tester.pumpAndSettle();
+
+    verify(repository.completeSsoLogin(any, any)).called(1);
   });
 
   testWidgets('user cancel stops loading silently', (tester) async {
