@@ -235,6 +235,114 @@ void main() {
       });
     });
 
+    group('completeSsoLogin', () {
+      test('exchanges the code, saves tokens and fetches user profile',
+          () async {
+        final authResponse = AuthResponse(
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
+          tokenType: 'Bearer',
+          expiresIn: 3600,
+        );
+
+        final userProfile = UserProfile(
+          id: 'user-123',
+          username: 'testuser',
+          email: 'test@example.com',
+          createdAt: DateTime.now(),
+          followersCount: 0,
+          followingCount: 0,
+          tripsCount: 0,
+        );
+
+        when(
+          mockAuthClient.exchangeSsoCode(any),
+        ).thenAnswer((_) async => authResponse);
+        when(
+          mockUserQueryClient.getCurrentUser(),
+        ).thenAnswer((_) async => userProfile);
+        when(
+          mockTokenStorage.saveTokens(
+            accessToken: anyNamed('accessToken'),
+            refreshToken: anyNamed('refreshToken'),
+            tokenType: anyNamed('tokenType'),
+            expiresIn: anyNamed('expiresIn'),
+            userId: anyNamed('userId'),
+            username: anyNamed('username'),
+          ),
+        ).thenAnswer((_) async => {});
+
+        final result = await authService.completeSsoLogin(
+          code: 'auth-code',
+          codeVerifier: 'verifier-123',
+        );
+
+        expect(result.accessToken, 'access-token');
+        verify(mockAuthClient.exchangeSsoCode(any)).called(1);
+        verify(mockUserQueryClient.getCurrentUser()).called(1);
+        verify(
+          mockTokenStorage.saveTokens(
+            accessToken: 'access-token',
+            refreshToken: 'refresh-token',
+            tokenType: 'Bearer',
+            expiresIn: 3600,
+            userId: 'user-123',
+            username: 'testuser',
+          ),
+        ).called(1);
+      });
+
+      test(
+        'saves tokens even if profile fetch fails',
+        () async {
+          final authResponse = AuthResponse(
+            accessToken: 'access-token',
+            refreshToken: 'refresh-token',
+            tokenType: 'Bearer',
+            expiresIn: 3600,
+          );
+
+          when(
+            mockAuthClient.exchangeSsoCode(any),
+          ).thenAnswer((_) async => authResponse);
+          when(
+            mockUserQueryClient.getCurrentUser(),
+          ).thenThrow(Exception('Profile fetch failed'));
+
+          final result = await authService.completeSsoLogin(
+            code: 'auth-code',
+            codeVerifier: 'verifier-123',
+          );
+
+          expect(result.accessToken, 'access-token');
+          verify(
+            mockTokenStorage.saveTokens(
+              accessToken: 'access-token',
+              refreshToken: 'refresh-token',
+              tokenType: 'Bearer',
+              expiresIn: 3600,
+              userId: anyNamed('userId'),
+              username: anyNamed('username'),
+            ),
+          ).called(1);
+        },
+      );
+
+      test('passes through exchange errors', () async {
+        when(
+          mockAuthClient.exchangeSsoCode(any),
+        ).thenThrow(Exception('Invalid or expired code'));
+
+        expect(
+          () => authService.completeSsoLogin(
+            code: 'bad-code',
+            codeVerifier: 'verifier-123',
+          ),
+          throwsException,
+        );
+      });
+    });
+
     group('logout', () {
       test('calls logout endpoint and clears tokens', () async {
         when(mockAuthClient.logout()).thenAnswer((_) async => {});

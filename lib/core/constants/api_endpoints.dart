@@ -54,6 +54,14 @@ class ApiEndpoints {
   static const String authPasswordReset = '/password/reset';
   static const String authPasswordChange = '/password/change';
 
+  // SSO endpoints (use authBaseUrl)
+  static const String authSsoExchange = '/sso/exchange';
+  static String ssoAuthorizationPath(String providerId) =>
+      '/oauth2/authorization/$providerId';
+  static const String ssoWebCallbackPath = '/auth/sso-callback';
+  static const String ssoMobileCallbackScheme = 'wanderer';
+  static const String ssoMobileCallbackUrl = 'wanderer://auth/sso-callback';
+
   // User Query endpoints (use queryBaseUrl)
   static const String usersMe = '/users/me';
   static const String usersAll = '/users';

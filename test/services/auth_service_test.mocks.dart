@@ -3,6 +3,7 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'dart:async' as _i6;
 
 import 'package:mockito/mockito.dart' as _i1;
@@ -177,6 +178,23 @@ class MockAuthClient extends _i1.Mock implements _i5.AuthClient {
         returnValue: _i6.Future<void>.value(),
         returnValueForMissingStub: _i6.Future<void>.value(),
       ) as _i6.Future<void>);
+
+  @override
+  _i6.Future<_i2.AuthResponse> exchangeSsoCode(
+          _i2.SsoExchangeRequest? request) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #exchangeSsoCode,
+          [request],
+        ),
+        returnValue: _i6.Future<_i2.AuthResponse>.value(_FakeAuthResponse_0(
+          this,
+          Invocation.method(
+            #exchangeSsoCode,
+            [request],
+          ),
+        )),
+      ) as _i6.Future<_i2.AuthResponse>);
 
   @override
   _i6.Future<void> changePassword(_i2.PasswordChangeRequest? request) =>
