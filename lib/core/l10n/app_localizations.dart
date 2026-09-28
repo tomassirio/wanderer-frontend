@@ -295,6 +295,8 @@ class AppLocalizations {
   String get ssoSigningIn => _tr('ssoSigningIn');
   String get ssoFailed => _tr('ssoFailed');
   String get ssoSessionExpired => _tr('ssoSessionExpired');
+  String get continueWithGoogle => _tr('continueWithGoogle');
+  String get orDivider => _tr('orDivider');
 
   // --- Settings screen ---
   String get appearance => _tr('appearance');

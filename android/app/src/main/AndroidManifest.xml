@@ -80,6 +80,19 @@
             </intent-filter>
         </activity>
         
+        <!-- Captures the wanderer:// SSO callback for flutter_web_auth_2 -->
+        <activity
+            android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
+            android:exported="true"
+            android:taskAffinity="">
+            <intent-filter android:label="flutter_web_auth_2">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="wanderer" />
+            </intent-filter>
+        </activity>
+
         <!-- UCrop Activity for image cropping -->
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"

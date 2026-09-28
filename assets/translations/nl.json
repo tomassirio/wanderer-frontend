@@ -182,6 +182,8 @@
   "ssoSigningIn": "Bezig met inloggen…",
   "ssoFailed": "We konden je niet inloggen met Google. Probeer het opnieuw.",
   "ssoSessionExpired": "Je inloglink is verlopen of werd in een andere browser geopend. Probeer het opnieuw.",
+  "continueWithGoogle": "Doorgaan met Google",
+  "orDivider": "of",
   "appearance": "Uiterlijk",
   "darkMode": "Donkere Modus",
   "darkModeSubtitle": "Schakelen tussen licht en donker thema",

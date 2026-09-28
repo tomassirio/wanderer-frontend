@@ -81,5 +81,29 @@ void main() {
       expect(result, 'verifier-123');
       expect(await service.takePendingVerifier(), isNull);
     });
+
+    group('codeFromCallback', () {
+      test('returns the code on success', () {
+        expect(
+          SsoService.codeFromCallback('wanderer://auth/sso-callback?code=abc'),
+          'abc',
+        );
+      });
+
+      test('returns null when the provider reported an error', () {
+        expect(
+          SsoService.codeFromCallback(
+              'wanderer://auth/sso-callback?error=sso_failed'),
+          isNull,
+        );
+      });
+
+      test('returns null when neither code nor error is present', () {
+        expect(
+          SsoService.codeFromCallback('wanderer://auth/sso-callback'),
+          isNull,
+        );
+      });
+    });
   });
 }

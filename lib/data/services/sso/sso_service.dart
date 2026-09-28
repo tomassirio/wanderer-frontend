@@ -46,6 +46,13 @@ class SsoService {
   String webReturnUri() =>
       '$_trimmedAppBaseUrl${ApiEndpoints.ssoWebCallbackPath}';
 
+  /// Extracts the authorization `code` from an SSO callback URL, or `null`
+  /// when the provider reported an `error` or the URL carries neither.
+  static String? codeFromCallback(String callbackUrl) {
+    final params = Uri.parse(callbackUrl).queryParameters;
+    return params.containsKey('error') ? null : params['code'];
+  }
+
   /// Persists the PKCE verifier for the pending SSO login until the
   /// callback completes.
   Future<void> savePendingVerifier(String verifier) async {

@@ -182,6 +182,8 @@
   "ssoSigningIn": "Iniciando sesión…",
   "ssoFailed": "No pudimos iniciar tu sesión con Google. Inténtalo de nuevo.",
   "ssoSessionExpired": "Tu enlace de inicio de sesión expiró o se abrió en otro navegador. Inténtalo de nuevo.",
+  "continueWithGoogle": "Continuar con Google",
+  "orDivider": "o",
   "appearance": "Apariencia",
   "darkMode": "Modo Oscuro",
   "darkModeSubtitle": "Cambiar entre tema claro y oscuro",

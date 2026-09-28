@@ -182,6 +182,8 @@
   "ssoSigningIn": "Connexion en cours…",
   "ssoFailed": "Nous n'avons pas pu vous connecter avec Google. Veuillez réessayer.",
   "ssoSessionExpired": "Votre lien de connexion a expiré ou a été ouvert dans un autre navigateur. Veuillez réessayer.",
+  "continueWithGoogle": "Continuer avec Google",
+  "orDivider": "ou",
   "appearance": "Apparence",
   "darkMode": "Mode Sombre",
   "darkModeSubtitle": "Basculer entre thème clair et sombre",

@@ -182,6 +182,8 @@
   "ssoSigningIn": "Signing you in…",
   "ssoFailed": "We couldn't sign you in with Google. Please try again.",
   "ssoSessionExpired": "Your sign-in link expired or was opened in a different browser. Please try again.",
+  "continueWithGoogle": "Continue with Google",
+  "orDivider": "or",
   "appearance": "Appearance",
   "darkMode": "Dark Mode",
   "darkModeSubtitle": "Switch between light and dark theme",
