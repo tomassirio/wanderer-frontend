@@ -26,6 +26,7 @@ import '../../data/services/auth_service.dart';
 import '../../data/services/comment_service.dart';
 import '../../data/services/notification_api_service.dart';
 import '../../data/services/search_service.dart';
+import '../../data/services/sso/sso_service.dart';
 import '../../data/services/trip_plan_service.dart';
 import '../../data/services/trip_service.dart';
 import '../../data/services/trip_update_service.dart';
@@ -204,6 +205,12 @@ final notificationApiServiceProvider = Provider<NotificationApiService>((ref) {
 
 final searchServiceProvider = Provider<SearchService>((ref) {
   return SearchService(queryClient: ref.watch(apiClientQueryProvider));
+});
+
+/// Builds SSO authorization URLs and persists/reads the pending PKCE
+/// verifier across the redirect to the provider and back.
+final ssoServiceProvider = Provider<SsoService>((ref) {
+  return SsoService();
 });
 
 final tripPlanServiceProvider = Provider<TripPlanService>((ref) {

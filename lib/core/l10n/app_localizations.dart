@@ -291,6 +291,11 @@ class AppLocalizations {
   String get enterVerificationToken => _tr('enterVerificationToken');
   String get accountNowActive => _tr('accountNowActive');
 
+  // --- SSO callback ---
+  String get ssoSigningIn => _tr('ssoSigningIn');
+  String get ssoFailed => _tr('ssoFailed');
+  String get ssoSessionExpired => _tr('ssoSessionExpired');
+
   // --- Settings screen ---
   String get appearance => _tr('appearance');
   String get darkMode => _tr('darkMode');
