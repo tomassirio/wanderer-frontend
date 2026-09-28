@@ -61,13 +61,17 @@ void main() {
       },
     );
 
-    test('webReturnUri trims trailing slashes and appends the callback path',
-        () {
-      final service = SsoService(appBaseUrl: 'https://wanderer.example.com/');
+    test(
+        'webReturnUri builds from the serving origin (not appBaseUrl) and '
+        'appends the callback path', () {
+      final service = SsoService(
+        appBaseUrl: 'https://wanderer.example.com/',
+        webOrigin: 'https://alias.example.com',
+      );
 
       expect(
         service.webReturnUri(),
-        'https://wanderer.example.com/auth/sso-callback',
+        'https://alias.example.com/auth/sso-callback',
       );
     });
 

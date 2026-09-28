@@ -6,13 +6,11 @@ import 'package:wanderer_frontend/data/models/auth_models.dart';
 class SsoButton extends StatelessWidget {
   final SsoProvider provider;
   final VoidCallback? onPressed;
-  final bool isLoading;
 
   const SsoButton({
     super.key,
     required this.provider,
     required this.onPressed,
-    this.isLoading = false,
   });
 
   @override
@@ -21,19 +19,13 @@ class SsoButton extends StatelessWidget {
     final label =
         provider == SsoProvider.google ? l10n.continueWithGoogle : provider.id;
     return OutlinedButton(
-      onPressed: isLoading ? null : onPressed,
+      onPressed: onPressed,
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(48),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
       ),
-      child: isLoading
-          ? const SizedBox(
-              height: 18,
-              width: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Text(label),
+      child: Text(label),
     );
   }
 }

@@ -171,7 +171,7 @@ For Google Play, use `flutter build appbundle` instead. Add `--split-per-abi` to
 - **Web**: a full-page redirect to `<authBaseUrl>/oauth2/authorization/google` (with `return_to`, `code_challenge`, `code_challenge_method=S256`). Google redirects back to `/auth/sso-callback?code=...`, which exchanges the code at `<authBaseUrl>/sso/exchange` and completes the login.
 - **Mobile** (Android/iOS): the same authorization URL is opened in the system browser via `flutter_web_auth_2`, with callback `wanderer://auth/sso-callback`. The app intercepts that redirect and exchanges the code the same way.
 
-Backend requirement: `SSO_ALLOWED_RETURN_URIS` on `wanderer-auth` must exactly match every `return_to` value the app can send — `<appBaseUrl>/auth/sso-callback` for each web environment, plus `wanderer://auth/sso-callback` for mobile.
+Backend requirement: `SSO_ALLOWED_RETURN_URIS` on `wanderer-auth` must exactly match every `return_to` value the app can send — on web, `return_to` is built from the origin actually serving the app (not a configured `appBaseUrl`), so register `<origin>/auth/sso-callback` for each web environment/alias the app is served from, plus `wanderer://auth/sso-callback` for mobile.
 
 Mobile builds must set `AUTH_BASE_URL` (see [Building for Android](#building-for-android)) to the public host, e.g. `https://your-domain/api/auth` — a relative path won't resolve outside the web reverse proxy.
 

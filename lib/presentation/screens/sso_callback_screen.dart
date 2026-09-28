@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -38,8 +40,10 @@ class _SsoCallbackScreenState extends ConsumerState<SsoCallbackScreen> {
     final code = widget.code;
     if (widget.error != null || code == null) {
       // Provider reported a failure, or the redirect is malformed — nothing
-      // to exchange.
+      // to exchange, but still clear the pending verifier so an abandoned
+      // or failed flow doesn't leave it behind in storage.
       _state = _CallbackState.failed;
+      unawaited(_ssoService.takePendingVerifier());
     } else {
       _state = _CallbackState.loading;
       WidgetsBinding.instance.addPostFrameCallback((_) => _exchange(code));

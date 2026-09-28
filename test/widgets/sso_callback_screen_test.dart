@@ -39,8 +39,11 @@ void main() {
   }
 
   testWidgets(
-    'shows error state and never exchanges when error param is present',
+    'shows error state, never exchanges, but clears the pending verifier '
+    'when error param is present',
     (tester) async {
+      when(mockSsoService.takePendingVerifier()).thenAnswer((_) async => null);
+
       await tester.pumpWidget(buildScreen(error: 'sso_failed'));
       await tester.pumpAndSettle();
 
@@ -48,14 +51,17 @@ void main() {
         find.text("We couldn't sign you in with Google. Please try again."),
         findsOneWidget,
       );
-      verifyNever(mockSsoService.takePendingVerifier());
+      verify(mockSsoService.takePendingVerifier()).called(1);
       verifyNever(mockRepository.completeSsoLogin(any, any));
     },
   );
 
   testWidgets(
-    'shows error state and never exchanges when code is missing',
+    'shows error state, never exchanges, but clears the pending verifier '
+    'when code is missing',
     (tester) async {
+      when(mockSsoService.takePendingVerifier()).thenAnswer((_) async => null);
+
       await tester.pumpWidget(buildScreen());
       await tester.pumpAndSettle();
 
@@ -63,7 +69,7 @@ void main() {
         find.text("We couldn't sign you in with Google. Please try again."),
         findsOneWidget,
       );
-      verifyNever(mockSsoService.takePendingVerifier());
+      verify(mockSsoService.takePendingVerifier()).called(1);
       verifyNever(mockRepository.completeSsoLogin(any, any));
     },
   );
@@ -125,6 +131,8 @@ void main() {
   testWidgets(
     'back to login button navigates to /auth',
     (tester) async {
+      when(mockSsoService.takePendingVerifier()).thenAnswer((_) async => null);
+
       await tester.pumpWidget(buildScreen(error: 'sso_failed'));
       await tester.pumpAndSettle();
 

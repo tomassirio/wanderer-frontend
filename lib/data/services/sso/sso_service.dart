@@ -10,10 +10,12 @@ class SsoService {
 
   final String _authBaseUrl;
   final String _appBaseUrl;
+  final String? _webOrigin;
 
-  SsoService({String? authBaseUrl, String? appBaseUrl})
+  SsoService({String? authBaseUrl, String? appBaseUrl, String? webOrigin})
       : _authBaseUrl = authBaseUrl ?? ApiEndpoints.authBaseUrl,
-        _appBaseUrl = appBaseUrl ?? ApiEndpoints.appBaseUrl;
+        _appBaseUrl = appBaseUrl ?? ApiEndpoints.appBaseUrl,
+        _webOrigin = webOrigin;
 
   String get _trimmedAppBaseUrl {
     var url = _appBaseUrl;
@@ -43,8 +45,13 @@ class SsoService {
 
   /// The `return_to` value used on web, where the callback is handled by
   /// an in-app route rather than a custom URL scheme.
+  ///
+  /// Built from the origin actually serving the page (`Uri.base.origin`),
+  /// not the configured `appBaseUrl`, so the PKCE verifier — stored
+  /// per-origin in localStorage — and the callback always land on the same
+  /// origin, even when the site is reachable under an alias/alternate host.
   String webReturnUri() =>
-      '$_trimmedAppBaseUrl${ApiEndpoints.ssoWebCallbackPath}';
+      '${_webOrigin ?? Uri.base.origin}${ApiEndpoints.ssoWebCallbackPath}';
 
   /// Extracts the authorization `code` from an SSO callback URL, or `null`
   /// when the provider reported an `error` or the URL carries neither.
