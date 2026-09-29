@@ -73,10 +73,9 @@ class _WandererAppBarState extends ConsumerState<WandererAppBar> {
     // navigation, so the bar only keeps its actions.
     final sidebarShown = WandererScaffold.hasPersistentSidebar(context);
     return AppBar(
-      backgroundColor: kIsWeb
-          ? Theme.of(context).scaffoldBackgroundColor
-          : Theme.of(context).colorScheme.inversePrimary,
-      scrolledUnderElevation: kIsWeb ? 0 : null,
+      // Sand ground on web and Android alike (redesign).
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      scrolledUnderElevation: 0,
       centerTitle: isDesktop && !kIsWeb,
       titleSpacing: isDesktop ? null : 0,
       leading: widget.leading ??
@@ -105,10 +104,7 @@ class _WandererAppBarState extends ConsumerState<WandererAppBar> {
                 const SizedBox(width: 8),
                 Text(
                   'Wanderer',
-                  style: kIsWeb
-                      ? WandererTheme.display(18)
-                      : const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold),
+                  style: WandererTheme.display(18),
                 ),
               ],
             ),
@@ -150,11 +146,8 @@ class _WandererAppBarState extends ConsumerState<WandererAppBar> {
             padding: const EdgeInsets.only(right: 8),
             child: TextButton.icon(
               onPressed: widget.onLoginPressed,
-              icon: Icon(Icons.login,
-                  size: 18, color: kIsWeb ? null : Colors.white),
-              label: Text(l10n.login,
-                  style: TextStyle(
-                      fontSize: 13, color: kIsWeb ? null : Colors.white)),
+              icon: const Icon(Icons.login, size: 18),
+              label: Text(l10n.login, style: const TextStyle(fontSize: 13)),
             ),
           ),
         if (widget.isLoggedIn && widget.username != null)

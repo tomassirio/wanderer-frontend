@@ -1405,4 +1405,7 @@ class AppLocalizations {
   String get welcomeSubtitle => _tr('welcomeSubtitle');
   String get welcomeSignUpEmail => _tr('welcomeSignUpEmail');
   String get welcomeLookAround => _tr('welcomeLookAround');
+  String get youAdminPromotionSub => _tr('youAdminPromotionSub');
+  String get youAdminUsersSub => _tr('youAdminUsersSub');
+  String get youAdminMaintenanceSub => _tr('youAdminMaintenanceSub');
 }

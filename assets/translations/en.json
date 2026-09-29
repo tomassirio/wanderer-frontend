@@ -1110,5 +1110,8 @@
   "welcomeTitle": "Every trip, tracked live.",
   "welcomeSubtitle": "Share the road with friends and unlock achievements along the way.",
   "welcomeSignUpEmail": "Sign up with email",
-  "welcomeLookAround": "Look around first"
+  "welcomeLookAround": "Look around first",
+  "youAdminPromotionSub": "Promote and manage trips",
+  "youAdminUsersSub": "Roles and accounts",
+  "youAdminMaintenanceSub": "Repair and clean up trip data"
 }

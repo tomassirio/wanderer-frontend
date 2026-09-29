@@ -1110,5 +1110,8 @@
   "welcomeTitle": "Cada viaje, seguido en vivo.",
   "welcomeSubtitle": "Comparte el camino con tus amigos y desbloquea logros por el camino.",
   "welcomeSignUpEmail": "Regístrate con email",
-  "welcomeLookAround": "Echa un vistazo primero"
+  "welcomeLookAround": "Echa un vistazo primero",
+  "youAdminPromotionSub": "Promociona y gestiona viajes",
+  "youAdminUsersSub": "Roles y cuentas",
+  "youAdminMaintenanceSub": "Repara y limpia datos de viajes"
 }

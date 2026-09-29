@@ -1110,5 +1110,8 @@
   "welcomeTitle": "Elke reis, live gevolgd.",
   "welcomeSubtitle": "Deel de weg met vrienden en ontgrendel prestaties onderweg.",
   "welcomeSignUpEmail": "Aanmelden met e-mail",
-  "welcomeLookAround": "Eerst rondkijken"
+  "welcomeLookAround": "Eerst rondkijken",
+  "youAdminPromotionSub": "Reizen uitlichten en beheren",
+  "youAdminUsersSub": "Rollen en accounts",
+  "youAdminMaintenanceSub": "Reisgegevens herstellen en opschonen"
 }

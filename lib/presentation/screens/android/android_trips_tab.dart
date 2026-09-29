@@ -36,6 +36,13 @@ enum TripsFilter {
 class AndroidTripsTab extends StatelessWidget {
   const AndroidTripsTab({super.key});
 
+  /// Bumped to ask the tab to show its Plans sub tab (a counter, so asking
+  /// twice in a row still fires after the user swiped back).
+  static final ValueNotifier<int> _plansRequests = ValueNotifier(0);
+
+  /// Show the Plans sub tab (e.g. from the You tab's "Trip plans" link).
+  static void showPlans() => _plansRequests.value++;
+
   @override
   Widget build(BuildContext context) {
     final c = WandererTheme.of(context);
@@ -91,8 +98,10 @@ class AndroidTripsTab extends StatelessWidget {
                 ),
               ),
               const Expanded(
-                child: TabBarView(
-                  children: [_MyTripsList(), AndroidPlansList()],
+                child: _PlansRequestListener(
+                  child: TabBarView(
+                    children: [_MyTripsList(), AndroidPlansList()],
+                  ),
                 ),
               ),
             ],
@@ -101,6 +110,34 @@ class AndroidTripsTab extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Switches to the Plans sub tab whenever [AndroidTripsTab.showPlans] runs.
+class _PlansRequestListener extends StatefulWidget {
+  final Widget child;
+  const _PlansRequestListener({required this.child});
+
+  @override
+  State<_PlansRequestListener> createState() => _PlansRequestListenerState();
+}
+
+class _PlansRequestListenerState extends State<_PlansRequestListener> {
+  @override
+  void initState() {
+    super.initState();
+    AndroidTripsTab._plansRequests.addListener(_showPlans);
+  }
+
+  @override
+  void dispose() {
+    AndroidTripsTab._plansRequests.removeListener(_showPlans);
+    super.dispose();
+  }
+
+  void _showPlans() => DefaultTabController.of(context).animateTo(1);
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _MyTripsList extends ConsumerStatefulWidget {
