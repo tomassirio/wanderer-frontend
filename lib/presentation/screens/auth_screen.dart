@@ -24,6 +24,10 @@ class AuthScreen extends ConsumerStatefulWidget {
   final bool startInSignup;
   final String? initialUsername;
 
+  /// Android Welcome's "Continue with Google": start the Google flow as
+  /// soon as the screen opens (the sign-in form stays behind it).
+  final bool autoStartSso;
+
   /// Mobile SSO: opens the authorization [Uri] in a system browser session
   /// and returns the callback URL. Defaults to `flutter_web_auth_2`;
   /// overridable for tests.
@@ -34,6 +38,7 @@ class AuthScreen extends ConsumerStatefulWidget {
     this.startInSignup = false,
     this.initialUsername,
     this.ssoAuthenticate,
+    this.autoStartSso = false,
   });
 
   static Future<String> _browserAuthenticate(Uri url) =>
@@ -69,6 +74,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     super.initState();
     _repository = ref.read(authRepositoryProvider);
     _prefillUsername();
+    if (widget.autoStartSso) {
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _startSso(SsoProvider.google));
+    }
   }
 
   void _prefillUsername() {
@@ -361,7 +370,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       usernameController: _usernameController,
       emailController: _emailController,
       passwordController: _passwordController,
-      confirmPasswordController: _confirmPasswordController,
       onSubmit: _submit,
       onToggleMode: _toggleMode,
       onForgotPassword: _forgotPassword,

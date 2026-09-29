@@ -3,12 +3,10 @@ import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
-import 'package:wanderer_frontend/data/models/auth_models.dart'
-    show SsoProvider;
 import 'package:wanderer_frontend/presentation/widgets/auth/email_field.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/error_message.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/password_field.dart';
-import 'package:wanderer_frontend/presentation/widgets/auth/sso_button.dart';
+import 'package:wanderer_frontend/presentation/widgets/auth/google_logo.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/username_field.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/web_auth_layout.dart'
     show PasswordStrengthMeter;
@@ -50,39 +48,8 @@ class AndroidAuthHeaderActions extends StatelessWidget {
     final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final controller = LocaleController();
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      ValueListenableBuilder<Locale>(
-        valueListenable: controller.locale,
-        builder: (context, _, __) => PopupMenuButton<String>(
-          tooltip: 'Change language',
-          onSelected: (code) => controller.setLocale(Locale(code)),
-          itemBuilder: (_) => [
-            for (final loc in LocaleController.supportedLocales)
-              PopupMenuItem(
-                value: loc.languageCode,
-                child: Text(l10n.languageNameFor(loc.languageCode)),
-              ),
-          ],
-          child: Container(
-            height: 36,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: c.surface,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: c.line),
-            ),
-            child: Text(
-              LocaleController.localeLabels[controller.languageCode] ?? 'EN',
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: c.textMuted),
-            ),
-          ),
-        ),
-      ),
+      const AndroidLanguageChip(),
       IconButton(
         iconSize: 22,
         constraints: const BoxConstraints.tightFor(width: 48, height: 48),
@@ -92,6 +59,105 @@ class AndroidAuthHeaderActions extends StatelessWidget {
             color: c.text),
         onPressed: () => ThemeController().setDarkMode(!isDark),
       ),
+    ]);
+  }
+}
+
+/// "EN" language picker chip. [overImage]: translucent, borderless (the
+/// Welcome hero).
+class AndroidLanguageChip extends StatelessWidget {
+  final bool overImage;
+  const AndroidLanguageChip({super.key, this.overImage = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
+    final l10n = context.l10n;
+    final controller = LocaleController();
+    return ValueListenableBuilder<Locale>(
+      valueListenable: controller.locale,
+      builder: (context, _, __) => PopupMenuButton<String>(
+        tooltip: 'Change language',
+        onSelected: (code) => controller.setLocale(Locale(code)),
+        itemBuilder: (_) => [
+          for (final loc in LocaleController.supportedLocales)
+            PopupMenuItem(
+              value: loc.languageCode,
+              child: Text(l10n.languageNameFor(loc.languageCode)),
+            ),
+        ],
+        child: Container(
+          height: 36,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: overImage ? c.surface.withValues(alpha: 0.8) : c.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: overImage ? null : Border.all(color: c.line),
+          ),
+          child: Text(
+            LocaleController.localeLabels[controller.languageCode] ?? 'EN',
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w700, color: c.textMuted),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Google sign-in button from the canvas: 56dp, radius 16, Google's own
+/// neutral colours (light: white / #1F1F1F, dark: #131314 / #E3E3E3).
+class AndroidGoogleButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onPressed;
+  const AndroidGoogleButton(
+      {super.key, required this.label, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return SizedBox(
+      height: 56,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: dark ? const Color(0xFF131314) : Colors.white,
+          foregroundColor:
+              dark ? const Color(0xFFE3E3E3) : const Color(0xFF1F1F1F),
+          side: BorderSide(
+              color: dark ? const Color(0xFF8E918F) : const Color(0xFFD6CFC2)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: const TextStyle(
+              fontFamily: 'Roboto', fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          const GoogleLogo(size: 20),
+          const SizedBox(width: 12),
+          Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
+        ]),
+      ),
+    );
+  }
+}
+
+/// "—— or ——" between Google and the email form (canvas colours).
+class AndroidOrDivider extends StatelessWidget {
+  const AndroidOrDivider({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
+    final line = Expanded(child: Container(height: 1, color: c.line));
+    return Row(children: [
+      line,
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Text(context.l10n.orDivider,
+            style: TextStyle(fontSize: 13, color: c.label)),
+      ),
+      line,
     ]);
   }
 }
@@ -146,7 +212,6 @@ class AndroidAuthForm extends StatefulWidget {
   final TextEditingController usernameController;
   final TextEditingController emailController;
   final TextEditingController passwordController;
-  final TextEditingController confirmPasswordController;
   final VoidCallback onSubmit;
   final VoidCallback onToggleMode;
   final VoidCallback onForgotPassword;
@@ -165,7 +230,6 @@ class AndroidAuthForm extends StatefulWidget {
     required this.usernameController,
     required this.emailController,
     required this.passwordController,
-    required this.confirmPasswordController,
     required this.onSubmit,
     required this.onToggleMode,
     required this.onForgotPassword,
@@ -217,8 +281,8 @@ class _AndroidAuthFormState extends State<AndroidAuthForm> {
         controller: widget.passwordController,
         isLogin: isLogin,
         decoration: _decoration(c),
-        textInputAction: isLogin ? TextInputAction.done : TextInputAction.next,
-        onFieldSubmitted: isLogin ? (_) => submit() : null,
+        textInputAction: TextInputAction.done,
+        onFieldSubmitted: (_) => submit(),
       ),
       trailing: isLogin
           ? InkWell(
@@ -231,16 +295,26 @@ class _AndroidAuthFormState extends State<AndroidAuthForm> {
           : null,
     );
 
+    final google = widget.onSsoPressed == null
+        ? const <Widget>[]
+        : [
+            AndroidGoogleButton(
+              label: isLogin ? l10n.continueWithGoogle : l10n.signUpWithGoogle,
+              onPressed: busy ? null : widget.onSsoPressed,
+            ),
+            SizedBox(height: isLogin ? 20 : 12),
+            const AndroidOrDivider(),
+            SizedBox(height: isLogin ? 20 : 12),
+          ];
+
     final fields = isLogin
         ? [
-            const WandererLogo(size: 56),
-            const SizedBox(height: 14),
+            const WandererLogo(size: 48),
+            const SizedBox(height: 12),
             Text(l10n.authWebWelcomeBack,
                 style: WandererTheme.display(32, color: c.text)),
-            const SizedBox(height: 14),
-            Text(l10n.authWebSignInSubtitle,
-                style: TextStyle(fontSize: 16, color: c.textMuted)),
-            const SizedBox(height: 26),
+            const SizedBox(height: 20),
+            ...google,
             username,
             const SizedBox(height: 18),
             password,
@@ -260,6 +334,7 @@ class _AndroidAuthFormState extends State<AndroidAuthForm> {
             Text(l10n.authWebCreateTitle,
                 style: WandererTheme.display(30, color: c.text)),
             const SizedBox(height: 12),
+            ...google,
             username,
             const SizedBox(height: 12),
             _labeled(
@@ -275,19 +350,6 @@ class _AndroidAuthFormState extends State<AndroidAuthForm> {
             const SizedBox(height: 12),
             PasswordStrengthMeter(
                 rules: passwordRules(l10n, widget.passwordController.text)),
-            const SizedBox(height: 12),
-            _labeled(
-              c,
-              l10n.confirmPassword,
-              PasswordField(
-                controller: widget.confirmPasswordController,
-                isLogin: false,
-                compareController: widget.passwordController,
-                decoration:
-                    _decoration(c, hint: l10n.authWebConfirmPasswordHint),
-                onFieldSubmitted: (_) => submit(),
-              ),
-            ),
           ];
 
     return Scaffold(
@@ -334,15 +396,6 @@ class _AndroidAuthFormState extends State<AndroidAuthForm> {
                       onPressed: widget.onSubmit,
                       busy: busy,
                     ),
-                    if (widget.onSsoPressed != null) ...[
-                      const SizedBox(height: 14),
-                      const OrDivider(),
-                      const SizedBox(height: 14),
-                      SsoButton(
-                        provider: SsoProvider.google,
-                        onPressed: busy ? null : widget.onSsoPressed,
-                      ),
-                    ],
                     const SizedBox(height: 6),
                     Wrap(
                       alignment: WrapAlignment.center,

@@ -964,10 +964,6 @@
   "newTripPickPlan": "Kies een plan",
   "newTripCreateFromPlan": "Maken vanuit plan",
   "msgTripCreatedFromPlan": "Reis gemaakt vanuit plan",
-  "welcomeCreateFreeAccount": "Gratis account aanmaken",
-  "welcomeHaveAccount": "Ik heb al een account",
-  "welcomeHeroSubShort": "Volg reizen live, deel momenten met vrienden en ontgrendel prestaties.",
-  "welcomeFeaturedTrips": "Uitgelichte reizen",
   "authForgotShort": "Vergeten?",
   "authResetSheetTitle": "Wachtwoord vergeten?",
   "authResetSheetBody": "We mailen je een link om een nieuw wachtwoord te kiezen.",
@@ -1109,5 +1105,10 @@
   "tripCenterOnMe": "Centreren op mijn locatie",
   "tripMessageOptional": "Bericht (optioneel)",
   "tripHoursMinutes": "{h} u {m} m",
-  "tripOpenInMaps": "Openen in Kaarten"
+  "tripOpenInMaps": "Openen in Kaarten",
+  "signUpWithGoogle": "Aanmelden met Google",
+  "welcomeTitle": "Elke reis, live gevolgd.",
+  "welcomeSubtitle": "Deel de weg met vrienden en ontgrendel prestaties onderweg.",
+  "welcomeSignUpEmail": "Aanmelden met e-mail",
+  "welcomeLookAround": "Eerst rondkijken"
 }

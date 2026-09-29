@@ -15,18 +15,26 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('Create free account opens sign-up', (tester) async {
+  testWidgets('Sign up with email opens sign-up', (tester) async {
     await pump(tester);
-    await tester.tap(find.text('Create free account'));
+    await tester.tap(find.text('Sign up with email'));
     await tester.pumpAndSettle();
     expect(find.byType(AuthScreen), findsOneWidget);
     expect(find.text('Create your account'), findsOneWidget);
   });
 
-  testWidgets('I already have an account opens sign-in', (tester) async {
+  testWidgets('Sign in opens sign-in with Google on top', (tester) async {
     await pump(tester);
-    await tester.tap(find.text('I already have an account'));
+    await tester.tap(find.text('Sign In'));
     await tester.pumpAndSettle();
     expect(find.text('Welcome back'), findsOneWidget);
+    expect(find.text('Continue with Google'), findsOneWidget);
+  });
+
+  testWidgets('shows the hero copy and Look around first', (tester) async {
+    await pump(tester);
+    expect(find.text('Every trip, tracked live.'), findsOneWidget);
+    expect(find.text('Continue with Google'), findsOneWidget);
+    expect(find.text('Look around first'), findsOneWidget);
   });
 }

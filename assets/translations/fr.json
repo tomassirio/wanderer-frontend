@@ -964,10 +964,6 @@
   "newTripPickPlan": "Choisissez un plan",
   "newTripCreateFromPlan": "Créer depuis le plan",
   "msgTripCreatedFromPlan": "Voyage créé depuis le plan",
-  "welcomeCreateFreeAccount": "Créer un compte gratuit",
-  "welcomeHaveAccount": "J'ai déjà un compte",
-  "welcomeHeroSubShort": "Suivez vos voyages en temps réel, partagez des moments avec vos amis et débloquez des succès.",
-  "welcomeFeaturedTrips": "Voyages à la une",
   "authForgotShort": "Oubli ?",
   "authResetSheetTitle": "Mot de passe oublié ?",
   "authResetSheetBody": "Nous vous enverrons un lien par e-mail pour en choisir un nouveau.",
@@ -1109,5 +1105,10 @@
   "tripCenterOnMe": "Centrer sur ma position",
   "tripMessageOptional": "Message (facultatif)",
   "tripHoursMinutes": "{h} h {m} min",
-  "tripOpenInMaps": "Ouvrir dans Maps"
+  "tripOpenInMaps": "Ouvrir dans Maps",
+  "signUpWithGoogle": "S'inscrire avec Google",
+  "welcomeTitle": "Chaque voyage, suivi en direct.",
+  "welcomeSubtitle": "Partagez la route avec vos amis et débloquez des succès en chemin.",
+  "welcomeSignUpEmail": "S'inscrire avec un e-mail",
+  "welcomeLookAround": "Jeter un œil d'abord"
 }

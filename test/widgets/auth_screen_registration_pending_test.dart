@@ -24,7 +24,6 @@ void main() {
     await tester.enterText(fields.at(0), 'newuser'); // username
     await tester.enterText(fields.at(1), 'newuser@example.com'); // email
     await tester.enterText(fields.at(2), 'Password1!'); // password
-    await tester.enterText(fields.at(3), 'Password1!'); // confirm password
     await tester.tap(find.text('Create Account'));
     await tester.pumpAndSettle();
   }

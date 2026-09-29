@@ -964,10 +964,6 @@
   "newTripPickPlan": "Pick a plan",
   "newTripCreateFromPlan": "Create from plan",
   "msgTripCreatedFromPlan": "Trip created from plan",
-  "welcomeCreateFreeAccount": "Create free account",
-  "welcomeHaveAccount": "I already have an account",
-  "welcomeHeroSubShort": "Track trips in real time, share moments with friends, and unlock achievements.",
-  "welcomeFeaturedTrips": "Featured trips",
   "authForgotShort": "Forgot?",
   "authResetSheetTitle": "Forgot your password?",
   "authResetSheetBody": "We’ll email you a link to choose a new one.",
@@ -1109,5 +1105,10 @@
   "tripCenterOnMe": "Center on my location",
   "tripMessageOptional": "Message (optional)",
   "tripHoursMinutes": "{h} h {m} m",
-  "tripOpenInMaps": "Open in Maps"
+  "tripOpenInMaps": "Open in Maps",
+  "signUpWithGoogle": "Sign up with Google",
+  "welcomeTitle": "Every trip, tracked live.",
+  "welcomeSubtitle": "Share the road with friends and unlock achievements along the way.",
+  "welcomeSignUpEmail": "Sign up with email",
+  "welcomeLookAround": "Look around first"
 }

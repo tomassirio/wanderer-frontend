@@ -1223,10 +1223,6 @@ class AppLocalizations {
   String get newTripPickPlan => _tr('newTripPickPlan');
   String get newTripCreateFromPlan => _tr('newTripCreateFromPlan');
   String get msgTripCreatedFromPlan => _tr('msgTripCreatedFromPlan');
-  String get welcomeCreateFreeAccount => _tr('welcomeCreateFreeAccount');
-  String get welcomeHaveAccount => _tr('welcomeHaveAccount');
-  String get welcomeHeroSubShort => _tr('welcomeHeroSubShort');
-  String get welcomeFeaturedTrips => _tr('welcomeFeaturedTrips');
   String get authForgotShort => _tr('authForgotShort');
   String get authResetSheetTitle => _tr('authResetSheetTitle');
   String get authResetSheetBody => _tr('authResetSheetBody');
@@ -1404,4 +1400,9 @@ class AppLocalizations {
   String tripHoursMinutes(Object h, Object m) =>
       TranslationTemplate.format(_tr('tripHoursMinutes'), {'h': h, 'm': m});
   String get tripOpenInMaps => _tr('tripOpenInMaps');
+  String get signUpWithGoogle => _tr('signUpWithGoogle');
+  String get welcomeTitle => _tr('welcomeTitle');
+  String get welcomeSubtitle => _tr('welcomeSubtitle');
+  String get welcomeSignUpEmail => _tr('welcomeSignUpEmail');
+  String get welcomeLookAround => _tr('welcomeLookAround');
 }
