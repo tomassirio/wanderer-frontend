@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.0-blue" alt="Version" />
-  <img src="https://img.shields.io/badge/coverage-23%25-red" alt="Coverage" />
+  <img src="https://img.shields.io/badge/version-2.0.1-blue" alt="Version" />
+  <img src="https://img.shields.io/badge/coverage-28%25-red" alt="Coverage" />
   <img src="https://img.shields.io/badge/Flutter-3.41.5-02569B?logo=flutter" alt="Flutter" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
 </p>
@@ -163,6 +163,19 @@ flutter build apk --release \
 The APK is written to `build/app/outputs/flutter-apk/app-release.apk`.
 
 For Google Play, use `flutter build appbundle` instead. Add `--split-per-abi` to the APK command for smaller per-architecture binaries.
+
+## Google sign-in (SSO)
+
+"Continue with Google" logs the user in via the backend's OAuth2 handshake, bound with PKCE (S256):
+
+- **Web**: a full-page redirect to `<authBaseUrl>/oauth2/authorization/google` (with `return_to`, `code_challenge`, `code_challenge_method=S256`). Google redirects back to `/auth/sso-callback?code=...`, which exchanges the code at `<authBaseUrl>/sso/exchange` and completes the login.
+- **Mobile** (Android/iOS): the same authorization URL is opened in the system browser via `flutter_web_auth_2`, with callback `wanderer://auth/sso-callback`. The app intercepts that redirect and exchanges the code the same way.
+
+Backend requirement: `SSO_ALLOWED_RETURN_URIS` on `wanderer-auth` must exactly match every `return_to` value the app can send — on web, `return_to` is built from the origin actually serving the app (not a configured `appBaseUrl`), so register `<origin>/auth/sso-callback` for each web environment/alias the app is served from, plus `wanderer://auth/sso-callback` for mobile.
+
+Mobile builds must set `AUTH_BASE_URL` (see [Building for Android](#building-for-android)) to the public host, e.g. `https://your-domain/api/auth` — a relative path won't resolve outside the web reverse proxy.
+
+Android registers the `flutter_web_auth_2` callback activity in `android/app/src/main/AndroidManifest.xml` (already present); iOS needs no extra configuration (it uses `ASWebAuthenticationSession`).
 
 ## Docker
 

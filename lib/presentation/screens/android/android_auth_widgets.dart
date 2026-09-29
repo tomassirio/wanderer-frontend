@@ -3,9 +3,12 @@ import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/data/models/auth_models.dart'
+    show SsoProvider;
 import 'package:wanderer_frontend/presentation/widgets/auth/email_field.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/error_message.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/password_field.dart';
+import 'package:wanderer_frontend/presentation/widgets/auth/sso_button.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/username_field.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/web_auth_layout.dart'
     show PasswordStrengthMeter;
@@ -150,6 +153,9 @@ class AndroidAuthForm extends StatefulWidget {
   final VoidCallback onNeedVerificationToken;
   final VoidCallback onBack;
 
+  /// Continue with Google; hidden when null.
+  final VoidCallback? onSsoPressed;
+
   const AndroidAuthForm({
     super.key,
     required this.formKey,
@@ -165,6 +171,7 @@ class AndroidAuthForm extends StatefulWidget {
     required this.onForgotPassword,
     required this.onNeedVerificationToken,
     required this.onBack,
+    this.onSsoPressed,
   });
 
   @override
@@ -327,6 +334,15 @@ class _AndroidAuthFormState extends State<AndroidAuthForm> {
                       onPressed: widget.onSubmit,
                       busy: busy,
                     ),
+                    if (widget.onSsoPressed != null) ...[
+                      const SizedBox(height: 14),
+                      const OrDivider(),
+                      const SizedBox(height: 14),
+                      SsoButton(
+                        provider: SsoProvider.google,
+                        onPressed: busy ? null : widget.onSsoPressed,
+                      ),
+                    ],
                     const SizedBox(height: 6),
                     Wrap(
                       alignment: WrapAlignment.center,

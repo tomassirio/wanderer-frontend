@@ -94,6 +94,17 @@ class AuthClient {
     _apiClient.handleNoContentResponse(response);
   }
 
+  /// Exchange an SSO authorization code (+ PKCE verifier) for tokens
+  /// No authentication required; code is single-use and burned on any attempt
+  Future<AuthResponse> exchangeSsoCode(SsoExchangeRequest request) async {
+    final response = await _apiClient.post(
+      ApiEndpoints.authSsoExchange,
+      body: request.toJson(),
+      requireAuth: false,
+    );
+    return _apiClient.handleResponse(response, AuthResponse.fromJson);
+  }
+
   /// Change password for authenticated user
   /// Requires authentication (USER, ADMIN)
   Future<void> changePassword(PasswordChangeRequest request) async {

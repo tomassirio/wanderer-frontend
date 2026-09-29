@@ -29,6 +29,10 @@ class ApiEndpoints {
   // Trip deep link URL
   static String tripDeepLink(String tripId) => '$appBaseUrl/trip/$tripId';
 
+  // Android app listing on Google Play
+  static const playStoreUrl =
+      'https://play.google.com/store/apps/details?id=com.tomassirio.wanderer.wanderer_frontend';
+
   // Resolve thumbnail URL (handles both relative and absolute URLs)
   static String resolveThumbnailUrl(String? thumbnailUrl) {
     if (thumbnailUrl == null || thumbnailUrl.isEmpty) {
@@ -53,6 +57,14 @@ class ApiEndpoints {
   static const String authRefresh = '/refresh';
   static const String authPasswordReset = '/password/reset';
   static const String authPasswordChange = '/password/change';
+
+  // SSO endpoints (use authBaseUrl)
+  static const String authSsoExchange = '/sso/exchange';
+  static String ssoAuthorizationPath(String providerId) =>
+      '/oauth2/authorization/$providerId';
+  static const String ssoWebCallbackPath = '/auth/sso-callback';
+  static const String ssoMobileCallbackScheme = 'wanderer';
+  static const String ssoMobileCallbackUrl = 'wanderer://auth/sso-callback';
 
   // User Query endpoints (use queryBaseUrl)
   static const String usersMe = '/users/me';
@@ -142,11 +154,14 @@ class ApiEndpoints {
   static String adminUserRoles(String userId) => '/admin/users/$userId/roles';
 
   // Admin Trip Management endpoints (ADMIN only, commandBaseUrl)
+  static String adminTripById(String tripId) => '/admin/trips/$tripId';
   static String adminRecomputePolyline(String tripId) =>
       '/admin/trips/$tripId/recompute-polyline';
   static String adminRecomputeGeocoding(String tripId) =>
       '/admin/trips/$tripId/recompute-geocoding';
   static const String adminTripStats = '/admin/trips/stats';
+  static const String adminRegenerateMissingThumbnails =
+      '/admin/trips/thumbnails/regenerate-missing';
 
   // Self-deletion endpoint (use commandBaseUrl, any authenticated user)
   static const String usersDeleteMe = '/users/me';

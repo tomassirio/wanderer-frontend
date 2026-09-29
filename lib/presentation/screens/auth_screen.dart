@@ -1,6 +1,10 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
@@ -8,6 +12,9 @@ import 'package:wanderer_frontend/data/repositories/auth_repository.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_auth_widgets.dart';
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
+import 'package:wanderer_frontend/data/models/auth_models.dart';
+import 'package:wanderer_frontend/data/services/sso/pkce.dart';
+import 'package:wanderer_frontend/data/services/sso/sso_service.dart';
 import 'package:wanderer_frontend/presentation/screens/verify_email_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/forgot_password_form.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/web_auth_layout.dart';
@@ -17,8 +24,23 @@ class AuthScreen extends ConsumerStatefulWidget {
   final bool startInSignup;
   final String? initialUsername;
 
-  const AuthScreen(
-      {super.key, this.startInSignup = false, this.initialUsername});
+  /// Mobile SSO: opens the authorization [Uri] in a system browser session
+  /// and returns the callback URL. Defaults to `flutter_web_auth_2`;
+  /// overridable for tests.
+  final Future<String> Function(Uri url)? ssoAuthenticate;
+
+  const AuthScreen({
+    super.key,
+    this.startInSignup = false,
+    this.initialUsername,
+    this.ssoAuthenticate,
+  });
+
+  static Future<String> _browserAuthenticate(Uri url) =>
+      FlutterWebAuth2.authenticate(
+        url: url.toString(),
+        callbackUrlScheme: ApiEndpoints.ssoMobileCallbackScheme,
+      );
 
   @override
   ConsumerState<AuthScreen> createState() => _AuthScreenState();
@@ -119,6 +141,67 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       setState(() {
         _errorMessage = e.toString().replaceAll('Exception: ', '');
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _startSso(SsoProvider provider) async {
+    if (_isLoading) return;
+    final sso = ref.read(ssoServiceProvider);
+    final pkce = PkcePair.generate();
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      if (kIsWeb) {
+        // The page navigates away; SsoCallbackScreen finishes the flow.
+        await sso.savePendingVerifier(pkce.verifier);
+        final launched = await launchUrl(
+          sso.buildAuthorizationUri(
+            provider: provider,
+            returnTo: sso.webReturnUri(),
+            codeChallenge: pkce.challenge,
+          ),
+          webOnlyWindowName: '_self',
+        );
+        if (!launched) throw Exception('Could not open SSO page');
+        // The browser back-forward cache can restore this page without a
+        // reload if the user navigates back, so reset the loading state
+        // rather than leaving the form permanently disabled.
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
+
+      final callback =
+          await (widget.ssoAuthenticate ?? AuthScreen._browserAuthenticate)(
+        sso.buildAuthorizationUri(
+          provider: provider,
+          returnTo: ApiEndpoints.ssoMobileCallbackUrl,
+          codeChallenge: pkce.challenge,
+        ),
+      );
+      final code = SsoService.codeFromCallback(callback);
+      if (code == null) throw Exception('SSO callback without code');
+      await _repository.completeSsoLogin(code, pkce.verifier);
+      // Mobile only (web returned above): land on the Android shell, like
+      // a password login.
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+            PageTransitions.fade(const InitialScreen()), (_) => false);
+      }
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        if (e.code != 'CANCELED') _errorMessage = context.l10n.ssoFailed;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = context.l10n.ssoFailed;
       });
     }
   }
@@ -245,6 +328,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   onToggleMode: _toggleMode,
                   onForgotPassword: _forgotPassword,
                   onNeedVerificationToken: _navigateToManualVerification,
+                  onSsoPressed: () => _startSso(SsoProvider.google),
                 ),
     );
   }
@@ -283,6 +367,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       onForgotPassword: _forgotPassword,
       onNeedVerificationToken: _navigateToManualVerification,
       onBack: _goBackOrHome,
+      onSsoPressed: () => _startSso(SsoProvider.google),
     );
   }
 

@@ -27,8 +27,9 @@ class AuthNavigationHelper {
   /// If not logged in, redirects to auth screen first.
   static Future<void> navigateToUserProfile(
     BuildContext context,
-    String userId,
-  ) async {
+    String userId, {
+    ProfileOrigin origin = ProfileOrigin.explore,
+  }) async {
     final loggedIn = await isLoggedIn();
 
     if (!loggedIn) {
@@ -43,7 +44,8 @@ class AuthNavigationHelper {
         if (result == true && context.mounted) {
           Navigator.push(
             context,
-            PageTransitions.slideRight(ProfileScreen(userId: userId)),
+            PageTransitions.slideRight(
+                ProfileScreen(userId: userId, origin: origin)),
           );
         }
       }
@@ -54,7 +56,8 @@ class AuthNavigationHelper {
     if (context.mounted) {
       Navigator.push(
         context,
-        PageTransitions.slideRight(ProfileScreen(userId: userId)),
+        PageTransitions.slideRight(
+            ProfileScreen(userId: userId, origin: origin)),
       );
     }
   }

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/data/models/auth_models.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/auth_header.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/auth_mode_toggle.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/auth_submit_button.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/email_field.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/error_message.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/password_field.dart';
+import 'package:wanderer_frontend/presentation/widgets/auth/sso_button.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/username_field.dart';
 
 /// Main authentication form widget
@@ -23,6 +25,9 @@ class AuthForm extends StatefulWidget {
   final VoidCallback onForgotPassword;
   final VoidCallback onNeedVerificationToken;
 
+  /// Starts Google SSO; the SSO section is hidden when null.
+  final VoidCallback? onSsoPressed;
+
   const AuthForm({
     super.key,
     required this.formKey,
@@ -37,6 +42,7 @@ class AuthForm extends StatefulWidget {
     required this.onToggleMode,
     required this.onForgotPassword,
     required this.onNeedVerificationToken,
+    this.onSsoPressed,
   });
 
   @override
@@ -174,6 +180,16 @@ class _AuthFormState extends State<AuthForm> {
                   isLoading: widget.isLoading,
                   onPressed: widget.onSubmit,
                 ),
+
+                if (widget.onSsoPressed != null) ...[
+                  SizedBox(height: widget.isLogin ? 16 : 12),
+                  const OrDivider(),
+                  SizedBox(height: widget.isLogin ? 16 : 12),
+                  SsoButton(
+                    provider: SsoProvider.google,
+                    onPressed: widget.isLoading ? null : widget.onSsoPressed,
+                  ),
+                ],
 
                 SizedBox(height: widget.isLogin ? 16 : 12),
 

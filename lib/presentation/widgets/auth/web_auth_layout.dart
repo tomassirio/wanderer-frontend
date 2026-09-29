@@ -3,9 +3,11 @@ import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/data/models/auth_models.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/email_field.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/error_message.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/password_field.dart';
+import 'package:wanderer_frontend/presentation/widgets/auth/sso_button.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/username_field.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
 
@@ -303,6 +305,9 @@ class WebAuthForm extends StatefulWidget {
   final VoidCallback onForgotPassword;
   final VoidCallback onNeedVerificationToken;
 
+  /// Starts Google SSO; the SSO section is hidden when null.
+  final VoidCallback? onSsoPressed;
+
   const WebAuthForm({
     super.key,
     required this.formKey,
@@ -317,6 +322,7 @@ class WebAuthForm extends StatefulWidget {
     required this.onToggleMode,
     required this.onForgotPassword,
     required this.onNeedVerificationToken,
+    this.onSsoPressed,
   });
 
   @override
@@ -510,6 +516,15 @@ class _WebAuthFormState extends State<WebAuthForm> {
                     : Text(isLogin ? l10n.signIn : l10n.createAccount),
               ),
             ),
+            if (widget.onSsoPressed != null) ...[
+              const SizedBox(height: 18),
+              const OrDivider(),
+              const SizedBox(height: 18),
+              SsoButton(
+                provider: SsoProvider.google,
+                onPressed: busy ? null : widget.onSsoPressed,
+              ),
+            ],
             if (isLogin) ...[
               const SizedBox(height: 14),
               SizedBox(

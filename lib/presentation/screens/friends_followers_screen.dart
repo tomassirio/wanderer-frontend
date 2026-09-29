@@ -17,6 +17,8 @@ import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
+import 'package:wanderer_frontend/presentation/screens/profile_screen.dart'
+    show ProfileOrigin;
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
@@ -474,7 +476,8 @@ class _FriendsFollowersScreenState
   }
 
   void _navigateToUserProfile(String userId) {
-    AuthNavigationHelper.navigateToUserProfile(context, userId);
+    AuthNavigationHelper.navigateToUserProfile(context, userId,
+        origin: ProfileOrigin.friends);
   }
 
   @override
