@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
+import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 
 void main() {
@@ -412,6 +414,80 @@ void main() {
       // Language picker should still be visible even for guest users
       expect(find.text('EN'), findsOneWidget);
       expect(find.byType(PopupMenuButton<String>), findsOneWidget);
+    });
+
+    testWidgets(
+        'tapping the highlighted item does nothing by default (onSameScreen: true)',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            drawer: AppSidebar(
+              username: 'testuser',
+              userId: 'user-123',
+              selectedIndex: 2,
+              onLogout: () {},
+              onSettings: () {},
+            ),
+            body: Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byIcon(Icons.menu));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Friends'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AuthScreen), findsNothing);
+    });
+
+    testWidgets(
+        'tapping the highlighted item navigates when onSameScreen is false',
+        (WidgetTester tester) async {
+      // AuthScreen needs more height than the default test surface.
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              drawer: AppSidebar(
+                username: 'testuser',
+                userId: 'user-123',
+                selectedIndex: 2,
+                onSameScreen: false,
+                onLogout: () {},
+                onSettings: () {},
+              ),
+              body: Builder(
+                builder: (context) => IconButton(
+                  icon: const Icon(Icons.menu),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byIcon(Icons.menu));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Friends'));
+      await tester.pumpAndSettle();
+
+      // Not logged in, so navigating to Friends redirects to auth first —
+      // still proof that the guard let navigation through.
+      expect(find.byType(AuthScreen), findsOneWidget);
     });
   });
 }

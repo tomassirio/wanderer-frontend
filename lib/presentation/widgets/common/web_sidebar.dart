@@ -69,7 +69,7 @@ class _WebSidebarState extends ConsumerState<WebSidebar> {
 
   void _go(int index) {
     if (!widget.persistent) Navigator.pop(context);
-    if (index == _c.selectedIndex) return;
+    if (index == _c.selectedIndex && _c.onSameScreen) return;
 
     final Widget? screen = switch (index) {
       AppSidebar.dashboardIndex => const InitialScreen(),

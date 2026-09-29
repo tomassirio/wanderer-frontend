@@ -33,6 +33,14 @@ class AppSidebar extends StatelessWidget {
   /// Web only: show the persistent sidebar as a 72px icon rail.
   final bool collapsed;
 
+  /// Whether [selectedIndex] reflects the screen actually on display.
+  ///
+  /// Some screens (e.g. another user's profile) highlight the section they
+  /// were opened from even though that section isn't the current screen.
+  /// In that case tapping the highlighted item should still navigate there,
+  /// so callers set this to false.
+  final bool onSameScreen;
+
   /// Web-only destinations (mobile keeps indices 0–7).
   static const int dashboardIndex = 8;
   static const int myTripsIndex = 4;
@@ -51,6 +59,7 @@ class AppSidebar extends StatelessWidget {
     this.isAdmin = false,
     this.persistent = false,
     this.collapsed = false,
+    this.onSameScreen = true,
   });
 
   AppSidebar asPersistent({required bool collapsed}) => AppSidebar(
@@ -64,6 +73,7 @@ class AppSidebar extends StatelessWidget {
         isAdmin: isAdmin,
         persistent: true,
         collapsed: collapsed,
+        onSameScreen: onSameScreen,
       );
 
   void _handleNavigation(BuildContext context, int index) {
@@ -71,7 +81,7 @@ class AppSidebar extends StatelessWidget {
     Navigator.pop(context);
 
     // If already on the selected screen, do nothing
-    if (selectedIndex == index) {
+    if (selectedIndex == index && onSameScreen) {
       return;
     }
 

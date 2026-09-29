@@ -89,13 +89,16 @@ void main() {
     expect(find.text('Friend'), findsNWidgets(2)); // pill + button
   });
 
-  testWidgets('following state and More options menu', (tester) async {
+  testWidgets(
+      'following state shows Following button; More options has no Follow duplicate',
+      (tester) async {
     await pumpHeader(tester, isFollowing: true, isFriend: true);
     expect(find.widgetWithText(ElevatedButton, 'Following'), findsOneWidget);
 
     await tester.tap(find.byTooltip('More options'));
     await tester.pumpAndSettle();
-    expect(find.text('Unfollow'), findsOneWidget);
+    expect(find.text('Unfollow'), findsNothing);
+    expect(find.text('Follow'), findsNothing);
     expect(find.text('Unfriend'), findsOneWidget);
   });
 

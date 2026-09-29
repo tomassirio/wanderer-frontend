@@ -136,10 +136,6 @@ class OtherUserProfileHeader extends StatelessWidget {
           onSelected: (action) => action(),
           itemBuilder: (_) => [
             PopupMenuItem(
-              value: onFollow,
-              child: Text(isFollowing ? l10n.unfollow : l10n.follow),
-            ),
-            PopupMenuItem(
               value: onFriend,
               child: Text(isFriend
                   ? l10n.unfriend

@@ -1077,6 +1077,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         onLogout: _logout,
         onSettings: _handleSettings,
         isAdmin: _isAdmin,
+        onSameScreen: _isViewingOwnProfile,
       ),
       body: _buildBody(),
     );
