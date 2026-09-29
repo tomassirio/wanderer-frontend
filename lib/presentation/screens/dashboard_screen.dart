@@ -350,7 +350,7 @@ class _StatStrip extends StatelessWidget {
         Icons.emoji_events_outlined,
         c.goldBg,
         c.goldFg,
-        '${data.achievements.length}',
+        '${data.unlockedAchievementCount}',
         l10n.achievements
       ),
       (
@@ -772,7 +772,7 @@ class _AchievementsCard extends StatelessWidget {
       title: l10n.recentAchievements,
       actionLabel: data.achievements.isEmpty
           ? null
-          : l10n.allCount(data.achievements.length),
+          : l10n.allCount(data.unlockedAchievementCount),
       onAction: onSeeAll,
       child: recent.isEmpty
           ? Padding(

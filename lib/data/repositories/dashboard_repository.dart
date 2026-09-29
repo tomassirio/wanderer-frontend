@@ -49,9 +49,19 @@ class DashboardData {
       (max, t) =>
           (t.accruedDistanceKm ?? 0) > max ? t.accruedDistanceKm! : max);
 
-  /// Newest achievements first.
-  List<UserAchievement> get recentAchievements =>
-      [...achievements]..sort((a, b) => b.unlockedAt.compareTo(a.unlockedAt));
+  /// Distinct achievements unlocked. Per-trip achievements (e.g. distance in a
+  /// single trip) come back once per trip, so [achievements] can repeat one.
+  int get unlockedAchievementCount =>
+      achievements.map((a) => a.achievement.id).toSet().length;
+
+  /// Newest achievements first, each achievement once (its latest unlock).
+  List<UserAchievement> get recentAchievements {
+    final seen = <String>{};
+    return ([...achievements]
+          ..sort((a, b) => b.unlockedAt.compareTo(a.unlockedAt)))
+        .where((a) => seen.add(a.achievement.id))
+        .toList();
+  }
 }
 
 /// Repository composing the services the web home dashboard needs.
