@@ -770,8 +770,6 @@
   "draftTripInviteTitle": "Invita a gente a seguirte",
   "draftTripInviteBody": "Comparte el enlace ahora para que tus amigos reciban un aviso en cuanto empieces.",
   "draftTripCopyLink": "Copiar enlace del viaje",
-  "draftTripHiddenHint": "Los viajes se inician desde la app de Android.",
-  "draftTripShow": "Mostrar",
   "newTripCreate": "Crear viaje",
   "msgTripCreated": "¡Viaje creado!",
   "msgTripCreateError": "Error al crear el viaje: {error}",

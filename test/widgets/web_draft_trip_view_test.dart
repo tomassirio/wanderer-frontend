@@ -8,7 +8,8 @@ import 'package:wanderer_frontend/presentation/strategies/trip_detail_layout_str
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/comments_section.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/web_draft_trip_view.dart';
 
-Trip _trip({TripStatus status = TripStatus.created, int? updateCount}) => Trip(
+Trip tripFor({TripStatus status = TripStatus.created, int? updateCount}) =>
+    Trip(
       id: 'trip-1',
       userId: 'me',
       name: 'Trjs',
@@ -23,7 +24,7 @@ Trip _trip({TripStatus status = TripStatus.created, int? updateCount}) => Trip(
       updatedAt: DateTime.now(),
     );
 
-TripDetailLayoutData _data(Trip trip) => TripDetailLayoutData(
+TripDetailLayoutData dataFor(Trip trip) => TripDetailLayoutData(
       trip: trip,
       comments: const [],
       replies: const {},
@@ -59,12 +60,15 @@ TripDetailLayoutData _data(Trip trip) => TripDetailLayoutData(
       onSendTripUpdate: (_) async {},
     );
 
-Future<void> _pump(WidgetTester tester, {double width = 1440}) async {
+Future<void> _pump(WidgetTester tester,
+    {double width = 1440, VoidCallback? onDismiss}) async {
   tester.view.physicalSize = Size(width, 1000);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(MaterialApp(
-    home: Scaffold(body: WebDraftTripView(data: _data(_trip()))),
+    home: Scaffold(
+        body: WebDraftTripView(
+            data: dataFor(tripFor()), onDismiss: onDismiss ?? () {})),
   ));
   await tester.pumpAndSettle();
 }
@@ -72,26 +76,26 @@ Future<void> _pump(WidgetTester tester, {double width = 1440}) async {
 void main() {
   group('WebDraftTripView.shouldShow', () {
     test('owner, draft, nothing tracked', () {
-      expect(WebDraftTripView.shouldShow(_trip(), 'me', const []), isTrue);
+      expect(WebDraftTripView.shouldShow(tripFor(), 'me', const []), isTrue);
     });
     test('not for other viewers or logged out', () {
       expect(
-          WebDraftTripView.shouldShow(_trip(), 'someone', const []), isFalse);
-      expect(WebDraftTripView.shouldShow(_trip(), null, const []), isFalse);
+          WebDraftTripView.shouldShow(tripFor(), 'someone', const []), isFalse);
+      expect(WebDraftTripView.shouldShow(tripFor(), null, const []), isFalse);
     });
     test('not once started or tracked', () {
       for (final s in TripStatus.values.where((s) => s != TripStatus.created)) {
-        expect(WebDraftTripView.shouldShow(_trip(status: s), 'me', const []),
+        expect(WebDraftTripView.shouldShow(tripFor(status: s), 'me', const []),
             isFalse);
       }
-      expect(WebDraftTripView.shouldShow(_trip(updateCount: 1), 'me', const []),
+      expect(
+          WebDraftTripView.shouldShow(tripFor(updateCount: 1), 'me', const []),
           isFalse);
     });
   });
 
   testWidgets('shows heading, steps, QR, copy link and settings rows',
       (tester) async {
-    SharedPreferences.setMockInitialValues({});
     await _pump(tester);
 
     expect(find.text('Start this trip from your phone'), findsOneWidget);
@@ -108,36 +112,45 @@ void main() {
     expect(find.text('Visible to'), findsOneWidget);
   });
 
-  testWidgets('× hides the card and persists per trip', (tester) async {
-    SharedPreferences.setMockInitialValues({});
-    await _pump(tester);
+  testWidgets('× calls onDismiss', (tester) async {
+    var dismissed = 0;
+    await _pump(tester, onDismiss: () => dismissed++);
 
     await tester.tap(find.byTooltip('Hide this for this trip'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Start this trip from your phone'), findsNothing);
-    expect(find.text('Copy trip link'), findsOneWidget);
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getBool(WebDraftTripView.dismissedKey('trip-1')), isTrue);
+    expect(dismissed, 1);
   });
 
-  testWidgets('stays hidden when dismissed earlier', (tester) async {
-    SharedPreferences.setMockInitialValues(
-        {WebDraftTripView.dismissedKey('trip-1'): true});
-    await _pump(tester);
+  test('dismissal persists per trip and hides the view', () async {
+    SharedPreferences.setMockInitialValues({});
+    expect(await WebDraftTripView.isDismissed('trip-1'), isFalse);
 
-    expect(find.text('Start this trip from your phone'), findsNothing);
-    await tester.tap(find.text('Show'));
-    await tester.pumpAndSettle();
-    expect(find.text('Start this trip from your phone'), findsOneWidget);
+    await WebDraftTripView.setDismissed('trip-1');
+
+    expect(await WebDraftTripView.isDismissed('trip-1'), isTrue);
+    expect(await WebDraftTripView.isDismissed('trip-2'), isFalse);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('draft_start_hint_dismissed_trip-1'), isTrue);
+    expect(
+        WebDraftTripView.shouldShow(tripFor(), 'me', const [], dismissed: true),
+        isFalse);
   });
 
   testWidgets('stacks without overflow on narrow web widths', (tester) async {
-    SharedPreferences.setMockInitialValues({});
     await _pump(tester, width: 700);
 
     expect(tester.takeException(), isNull);
     expect(find.byType(QrImageView), findsOneWidget);
     expect(find.text('Copy trip link'), findsOneWidget);
+  });
+
+  testWidgets('wide windows keep the capped three-column card', (tester) async {
+    await _pump(tester, width: 2000);
+
+    final heading =
+        tester.getRect(find.text('Start this trip from your phone'));
+    final qr = tester.getRect(find.byType(QrImageView));
+    expect(qr.left, greaterThan(heading.right));
+    expect(tester.getRect(find.text('Copy trip link')).right,
+        lessThanOrEqualTo(40 + WebDraftTripView.maxContentWidth));
   });
 }

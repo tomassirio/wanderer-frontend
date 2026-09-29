@@ -22,11 +22,17 @@ import 'package:wanderer_frontend/presentation/widgets/trip_detail/web_trip_deta
 class WebDraftTripView extends StatefulWidget {
   final TripDetailLayoutData data;
 
-  const WebDraftTripView({super.key, required this.data});
+  /// Called by the × — the screen then shows the normal trip view.
+  final VoidCallback onDismiss;
 
-  /// Owner, still a draft, and nothing tracked yet.
+  const WebDraftTripView(
+      {super.key, required this.data, required this.onDismiss});
+
+  /// Owner, still a draft, nothing tracked yet, and not dismissed.
   static bool shouldShow(
-          Trip trip, String? currentUserId, List<TripLocation> updates) =>
+          Trip trip, String? currentUserId, List<TripLocation> updates,
+          {bool dismissed = false}) =>
+      !dismissed &&
       currentUserId != null &&
       trip.userId == currentUserId &&
       trip.status == TripStatus.created &&
@@ -36,30 +42,24 @@ class WebDraftTripView extends StatefulWidget {
   static String dismissedKey(String tripId) =>
       'draft_start_hint_dismissed_$tripId';
 
+  static Future<bool> isDismissed(String tripId) async =>
+      (await SharedPreferences.getInstance()).getBool(dismissedKey(tripId)) ??
+      false;
+
+  static Future<void> setDismissed(String tripId) async =>
+      (await SharedPreferences.getInstance())
+          .setBool(dismissedKey(tripId), true);
+
+  /// Content width cap, so wide windows keep the board's proportions.
+  static const double maxContentWidth = 1100;
+
   @override
   State<WebDraftTripView> createState() => _WebDraftTripViewState();
 }
 
 class _WebDraftTripViewState extends State<WebDraftTripView> {
-  bool _dismissed = false;
-
   Trip get _trip => widget.data.trip;
   String get _link => ApiEndpoints.tripDeepLink(_trip.id);
-
-  @override
-  void initState() {
-    super.initState();
-    SharedPreferences.getInstance().then((p) {
-      final v = p.getBool(WebDraftTripView.dismissedKey(_trip.id)) ?? false;
-      if (mounted && v) setState(() => _dismissed = true);
-    });
-  }
-
-  Future<void> _setDismissed(bool value) async {
-    setState(() => _dismissed = value);
-    final p = await SharedPreferences.getInstance();
-    await p.setBool(WebDraftTripView.dismissedKey(_trip.id), value);
-  }
 
   String _visibilityLabel(AppLocalizations l10n, Visibility v) => switch (v) {
         Visibility.public => l10n.newTripPublic,
@@ -101,32 +101,41 @@ class _WebDraftTripViewState extends State<WebDraftTripView> {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      final wide = constraints.maxWidth >= 1100;
-      final gutter = constraints.maxWidth >= 720 ? 32.0 : 16.0;
-      final main = _dismissed ? _buildHiddenHint(context) : _buildMainCard();
-      final side = _buildSide(context);
+      final gutter = constraints.maxWidth >= 720 ? 40.0 : 16.0;
       return SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(gutter, 8, gutter, 28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildHeader(context),
-            const SizedBox(height: 22),
-            if (wide)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        padding: EdgeInsets.fromLTRB(gutter, 24, gutter, 28),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+                maxWidth: WebDraftTripView.maxContentWidth),
+            child: LayoutBuilder(builder: (context, box) {
+              final main = _buildMainCard(context);
+              final side = _buildSide(context);
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(child: main),
-                  const SizedBox(width: 20),
-                  SizedBox(width: 360, child: side),
+                  _buildHeader(context),
+                  const SizedBox(height: 22),
+                  // Board grid: minmax(0, 1fr) + 360px.
+                  if (box.maxWidth >= 1000)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: main),
+                        const SizedBox(width: 20),
+                        SizedBox(width: 360, child: side),
+                      ],
+                    )
+                  else ...[
+                    main,
+                    const SizedBox(height: 16),
+                    side,
+                  ],
                 ],
-              )
-            else ...[
-              main,
-              const SizedBox(height: 16),
-              side,
-            ],
-          ],
+              );
+            }),
+          ),
         ),
       );
     });
@@ -276,54 +285,54 @@ class _WebDraftTripViewState extends State<WebDraftTripView> {
     );
   }
 
-  Widget _buildMainCard() {
-    return Builder(builder: (context) {
-      final c = WandererTheme.of(context);
-      final l10n = context.l10n;
-      return Container(
-        decoration: WandererTheme.cardDecoration(context, radius: 22),
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: LayoutBuilder(builder: (context, box) {
-                final text = _buildSteps(context);
-                final qr = SizedBox(width: 170, child: _buildQrColumn(context));
-                if (box.maxWidth >= 720) {
-                  return Row(children: [
-                    const SizedBox(
-                        width: 150,
-                        height: 250,
-                        child: CustomPaint(painter: _PhonePainter())),
-                    const SizedBox(width: 32),
-                    Expanded(child: text),
-                    const SizedBox(width: 32),
-                    qr,
-                  ]);
-                }
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    text,
-                    const SizedBox(height: 24),
-                    Center(child: qr)
-                  ],
-                );
-              }),
+  Widget _buildMainCard(BuildContext context) {
+    final c = WandererTheme.of(context);
+    final l10n = context.l10n;
+    return Container(
+      decoration: WandererTheme.cardDecoration(context, radius: 22),
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(32),
+            child: LayoutBuilder(builder: (context, box) {
+              final text = _buildSteps(context);
+              final qr = SizedBox(width: 170, child: _buildQrColumn(context));
+              // Board: 150px | 1fr | 170px, 32px gaps, vertically centred.
+              if (box.maxWidth >= 560) {
+                return Row(children: [
+                  const SizedBox(
+                      width: 150,
+                      height: 250,
+                      child: CustomPaint(painter: _PhonePainter())),
+                  const SizedBox(width: 32),
+                  Expanded(child: text),
+                  const SizedBox(width: 32),
+                  qr,
+                ]);
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [text, const SizedBox(height: 24), Center(child: qr)],
+              );
+            }),
+          ),
+          Positioned(
+            top: 14,
+            right: 14,
+            child: IconButton(
+              tooltip: l10n.draftTripHide,
+              onPressed: widget.onDismiss,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+              style: IconButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10))),
+              icon: Icon(Icons.close, size: 16, color: c.caption),
             ),
-            Positioned(
-              top: 14,
-              right: 14,
-              child: IconButton(
-                tooltip: l10n.draftTripHide,
-                onPressed: () => _setDismissed(true),
-                icon: Icon(Icons.close, size: 18, color: c.caption),
-              ),
-            ),
-          ],
-        ),
-      );
-    });
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildSteps(BuildContext context) {
@@ -425,28 +434,14 @@ class _WebDraftTripViewState extends State<WebDraftTripView> {
           ),
         ),
         const SizedBox(height: 4),
-        TextButton(onPressed: _emailLink, child: Text(l10n.draftTripEmailMe)),
-      ],
-    );
-  }
-
-  Widget _buildHiddenHint(BuildContext context) {
-    final c = WandererTheme.of(context);
-    final l10n = context.l10n;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 6, 8, 6),
-      decoration: WandererTheme.cardDecoration(context),
-      child: Row(children: [
-        Icon(Icons.phone_android, size: 18, color: c.textMuted),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(l10n.draftTripHiddenHint,
-              style: TextStyle(fontSize: 14, color: c.textMuted)),
-        ),
         TextButton(
-            onPressed: () => _setDismissed(false),
-            child: Text(l10n.draftTripShow)),
-      ]),
+          onPressed: _emailLink,
+          style: TextButton.styleFrom(
+              textStyle:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+          child: Text(l10n.draftTripEmailMe),
+        ),
+      ],
     );
   }
 

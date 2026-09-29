@@ -1037,8 +1037,6 @@ class AppLocalizations {
   String get draftTripInviteTitle => _tr('draftTripInviteTitle');
   String get draftTripInviteBody => _tr('draftTripInviteBody');
   String get draftTripCopyLink => _tr('draftTripCopyLink');
-  String get draftTripHiddenHint => _tr('draftTripHiddenHint');
-  String get draftTripShow => _tr('draftTripShow');
   String get newTripCreate => _tr('newTripCreate');
   String get msgTripCreated => _tr('msgTripCreated');
   String msgTripCreateError(Object error) =>
