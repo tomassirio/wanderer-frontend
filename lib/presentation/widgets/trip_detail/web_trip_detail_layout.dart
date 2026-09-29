@@ -63,12 +63,16 @@ class WebTripDetailLayout extends StatefulWidget {
   final bool isMapLoading;
   final Widget? donationButton;
 
+  /// Brings back the start-on-phone guide (owner, trip not started).
+  final VoidCallback? onStartOnPhone;
+
   const WebTripDetailLayout({
     super.key,
     required this.data,
     required this.map,
     this.isMapLoading = false,
     this.donationButton,
+    this.onStartOnPhone,
   });
 
   /// Below this width the floating-panel layout is used instead.
@@ -172,6 +176,12 @@ class _WebTripDetailLayoutState extends State<WebTripDetailLayout> {
               : _d.hasSentFriendRequest
                   ? l10n.requestSent
                   : l10n.addFriend),
+        ),
+      if (widget.onStartOnPhone != null)
+        OutlinedButton.icon(
+          onPressed: widget.onStartOnPhone,
+          icon: const Icon(Icons.phone_android, size: 16),
+          label: Text(l10n.draftTripStartOnPhone),
         ),
       if (_hasSettings)
         OutlinedButton.icon(

@@ -50,8 +50,12 @@ class WebDraftTripView extends StatefulWidget {
       (await SharedPreferences.getInstance())
           .setBool(dismissedKey(tripId), true);
 
-  /// Content width cap, so wide windows keep the board's proportions.
-  static const double maxContentWidth = 1100;
+  static Future<void> clearDismissed(String tripId) async =>
+      (await SharedPreferences.getInstance()).remove(dismissedKey(tripId));
+
+  /// Cap on the card's text column so body copy stays readable on very wide
+  /// windows; the card itself stays fluid.
+  static const double maxTextWidth = 560;
 
   @override
   State<WebDraftTripView> createState() => _WebDraftTripViewState();
@@ -104,39 +108,32 @@ class _WebDraftTripViewState extends State<WebDraftTripView> {
       final gutter = constraints.maxWidth >= 720 ? 40.0 : 16.0;
       return SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(gutter, 24, gutter, 28),
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-                maxWidth: WebDraftTripView.maxContentWidth),
-            child: LayoutBuilder(builder: (context, box) {
-              final main = _buildMainCard(context);
-              final side = _buildSide(context);
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildHeader(context),
-                  const SizedBox(height: 22),
-                  // Board grid: minmax(0, 1fr) + 360px.
-                  if (box.maxWidth >= 1000)
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: main),
-                        const SizedBox(width: 20),
-                        SizedBox(width: 360, child: side),
-                      ],
-                    )
-                  else ...[
-                    main,
-                    const SizedBox(height: 16),
-                    side,
+        child: LayoutBuilder(builder: (context, box) {
+          final main = _buildMainCard(context);
+          final side = _buildSide(context);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildHeader(context),
+              const SizedBox(height: 22),
+              // Board grid: minmax(0, 1fr) + 360px.
+              if (box.maxWidth >= 1000)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: main),
+                    const SizedBox(width: 20),
+                    SizedBox(width: 360, child: side),
                   ],
-                ],
-              );
-            }),
-          ),
-        ),
+                )
+              else ...[
+                main,
+                const SizedBox(height: 16),
+                side,
+              ],
+            ],
+          );
+        }),
       );
     });
   }
@@ -150,55 +147,56 @@ class _WebDraftTripViewState extends State<WebDraftTripView> {
         ? created
         : created[0].toLowerCase() + created.substring(1);
 
-    return Wrap(
-      spacing: 24,
-      runSpacing: 12,
-      alignment: WrapAlignment.spaceBetween,
-      crossAxisAlignment: WrapCrossAlignment.end,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(mainAxisSize: MainAxisSize.min, children: [
-              InkWell(
-                onTap: () => AuthNavigationHelper.navigateToOwnProfile(context),
-                child: Text(l10n.myTrips,
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: c.textMuted)),
-              ),
-              Text('  /  ', style: TextStyle(fontSize: 13, color: c.caption)),
-              Flexible(
-                child: Text(_trip.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: c.text)),
-              ),
-            ]),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Semantics(
-                  header: true,
-                  child: Text(_trip.name, style: WandererTheme.display(32)),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                InkWell(
+                  onTap: () =>
+                      AuthNavigationHelper.navigateToOwnProfile(context),
+                  child: Text(l10n.myTrips,
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: c.textMuted)),
                 ),
-                Pill.status(context, _trip.status),
-                Pill(_visibilityLabel(l10n, _trip.visibility)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(l10n.draftTripCreated(createdLower),
-                style: TextStyle(fontSize: 14, color: c.textMuted)),
-          ],
+                Text('  /  ', style: TextStyle(fontSize: 13, color: c.caption)),
+                Flexible(
+                  child: Text(_trip.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: c.text)),
+                ),
+              ]),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Semantics(
+                    header: true,
+                    child: Text(_trip.name, style: WandererTheme.display(32)),
+                  ),
+                  Pill.status(context, _trip.status),
+                  Pill(_visibilityLabel(l10n, _trip.visibility)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(l10n.draftTripCreated(createdLower),
+                  style: TextStyle(fontSize: 14, color: c.textMuted)),
+            ],
+          ),
         ),
+        const SizedBox(width: 24),
         Row(mainAxisSize: MainAxisSize.min, children: [
           _buildMoreMenu(context),
           const SizedBox(width: 10),
@@ -297,6 +295,10 @@ class _WebDraftTripViewState extends State<WebDraftTripView> {
             child: LayoutBuilder(builder: (context, box) {
               final text = _buildSteps(context);
               final qr = SizedBox(width: 170, child: _buildQrColumn(context));
+              // On short (very wide) cards the QR column is the tallest
+              // item; keep its top clear of the × in the corner.
+              final qrClear =
+                  Padding(padding: const EdgeInsets.only(top: 24), child: qr);
               // Board: 150px | 1fr | 170px, 32px gaps, vertically centred.
               if (box.maxWidth >= 560) {
                 return Row(children: [
@@ -305,9 +307,18 @@ class _WebDraftTripViewState extends State<WebDraftTripView> {
                       height: 250,
                       child: CustomPaint(painter: _PhonePainter())),
                   const SizedBox(width: 32),
-                  Expanded(child: text),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                            maxWidth: WebDraftTripView.maxTextWidth),
+                        child: text,
+                      ),
+                    ),
+                  ),
                   const SizedBox(width: 32),
-                  qr,
+                  qrClear,
                 ]);
               }
               return Column(

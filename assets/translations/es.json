@@ -770,6 +770,7 @@
   "draftTripInviteTitle": "Invita a gente a seguirte",
   "draftTripInviteBody": "Comparte el enlace ahora para que tus amigos reciban un aviso en cuanto empieces.",
   "draftTripCopyLink": "Copiar enlace del viaje",
+  "draftTripStartOnPhone": "Empezar en el móvil",
   "newTripCreate": "Crear viaje",
   "msgTripCreated": "¡Viaje creado!",
   "msgTripCreateError": "Error al crear el viaje: {error}",

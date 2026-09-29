@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,6 +8,7 @@ import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/presentation/strategies/trip_detail_layout_strategy.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/comments_section.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/web_draft_trip_view.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/web_trip_detail_layout.dart';
 
 Trip tripFor({TripStatus status = TripStatus.created, int? updateCount}) =>
     Trip(
@@ -143,14 +145,61 @@ void main() {
     expect(find.text('Copy trip link'), findsOneWidget);
   });
 
-  testWidgets('wide windows keep the capped three-column card', (tester) async {
+  testWidgets('wide windows: fluid page, three columns, capped text',
+      (tester) async {
     await _pump(tester, width: 2000);
 
     final heading =
         tester.getRect(find.text('Start this trip from your phone'));
+    final body = tester.getRect(find.textContaining('Live tracking needs'));
     final qr = tester.getRect(find.byType(QrImageView));
     expect(qr.left, greaterThan(heading.right));
+    expect(body.width, lessThanOrEqualTo(WebDraftTripView.maxTextWidth));
+    // Side column is pinned to the right content edge (40px gutter).
     expect(tester.getRect(find.text('Copy trip link')).right,
-        lessThanOrEqualTo(40 + WebDraftTripView.maxContentWidth));
+        closeTo(2000 - 40 - 21, 200));
+    expect(tester.getRect(find.text('Edit trip')).right, greaterThan(1900));
+  });
+
+  group('WebTripDetailLayout "Start on phone" button', () {
+    Future<void> pumpLayout(WidgetTester tester, VoidCallback? onTap) async {
+      tester.view.physicalSize = const Size(1440, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: WebTripDetailLayout(
+              data: dataFor(tripFor()),
+              map: const SizedBox(),
+              onStartOnPhone: onTap,
+            ),
+          ),
+        ),
+      ));
+      await tester.pump();
+    }
+
+    testWidgets('shown when given and brings the guide back', (tester) async {
+      var taps = 0;
+      await pumpLayout(tester, () => taps++);
+
+      await tester.tap(find.text('Start on phone'));
+      expect(taps, 1);
+      expect(find.byIcon(Icons.phone_android), findsOneWidget);
+    });
+
+    testWidgets('hidden without a callback (non-owner / started)',
+        (tester) async {
+      await pumpLayout(tester, null);
+      expect(find.text('Start on phone'), findsNothing);
+    });
+  });
+
+  test('clearDismissed removes the per-trip flag', () async {
+    SharedPreferences.setMockInitialValues(
+        {WebDraftTripView.dismissedKey('trip-1'): true});
+    await WebDraftTripView.clearDismissed('trip-1');
+    expect(await WebDraftTripView.isDismissed('trip-1'), isFalse);
   });
 }

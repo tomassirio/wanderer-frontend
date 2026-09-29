@@ -2858,6 +2858,13 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
               donationButton: _isPromoted && _donationLink != null
                   ? _buildDonationButton()
                   : null,
+              onStartOnPhone:
+                  WebDraftTripView.shouldShow(_trip, _userId, _tripUpdates)
+                      ? () {
+                          setState(() => _draftHintDismissed = false);
+                          WebDraftTripView.clearDismissed(_trip.id);
+                        }
+                      : null,
             );
           }
 

@@ -770,6 +770,7 @@
   "draftTripInviteTitle": "Nodig mensen uit om te volgen",
   "draftTripInviteBody": "Deel de link nu, zodat vrienden een melding krijgen zodra je start.",
   "draftTripCopyLink": "Reislink kopiëren",
+  "draftTripStartOnPhone": "Starten op telefoon",
   "newTripCreate": "Reis aanmaken",
   "msgTripCreated": "Reis aangemaakt!",
   "msgTripCreateError": "Fout bij het aanmaken van de reis: {error}",

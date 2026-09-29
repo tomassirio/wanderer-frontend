@@ -770,6 +770,7 @@
   "draftTripInviteTitle": "Invite people to follow",
   "draftTripInviteBody": "Share the link now so friends get notified the moment you start.",
   "draftTripCopyLink": "Copy trip link",
+  "draftTripStartOnPhone": "Start on phone",
   "newTripCreate": "Create trip",
   "msgTripCreated": "Trip created successfully!",
   "msgTripCreateError": "Error creating trip: {error}",
