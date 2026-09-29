@@ -14,6 +14,46 @@ import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_settings
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_share_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_timeline.dart';
 
+/// Web trip-settings dialog: the strategy's settings panel without its card.
+void showTripSettingsDialog(BuildContext context, TripDetailLayoutData d) {
+  final strategy = DesktopLayoutStrategy();
+  WandererDialog.show<void>(
+    context,
+    builder: (dialogContext) {
+      void close() => Navigator.of(dialogContext).pop();
+      // Same wiring as the strategy's panel, rendered without its card.
+      final p = strategy.createTripSettingsPanel(d, onClose: close);
+      return WandererFormDialog(
+        title: context.l10n.tripSettings,
+        body: TripSettingsPanel(
+          isCollapsed: false,
+          onToggleCollapse: close,
+          isOwner: p.isOwner,
+          tripHasPlannedRoute: p.tripHasPlannedRoute,
+          showPlannedWaypoints: p.showPlannedWaypoints,
+          onTogglePlannedWaypoints: p.onTogglePlannedWaypoints,
+          automaticUpdates: p.automaticUpdates,
+          updateRefresh: p.updateRefresh,
+          tripModality: p.tripModality,
+          isLoading: p.isLoading,
+          onSettingsChange: p.onSettingsChange,
+          tripStatus: p.tripStatus,
+          tripId: p.tripId,
+          onTestBackgroundUpdate: p.onTestBackgroundUpdate,
+          onDeleteTrip: p.onDeleteTrip,
+          embedded: true,
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: close,
+            child: Text(context.l10n.done),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 /// Wide-web trip detail: the map is a rounded card rather than a full-screen
 /// background, with stats and achievements in their own rows and the
 /// timeline and comments in a tabbed side panel.
@@ -53,43 +93,7 @@ class _WebTripDetailLayoutState extends State<WebTripDetailLayout> {
           (_trip.status == TripStatus.created ||
               _trip.status == TripStatus.inProgress));
 
-  void _openSettings() {
-    WandererDialog.show<void>(
-      context,
-      builder: (dialogContext) {
-        void close() => Navigator.of(dialogContext).pop();
-        // Same wiring as the strategy's panel, rendered without its card.
-        final p = _strategy.createTripSettingsPanel(_d, onClose: close);
-        return WandererFormDialog(
-          title: context.l10n.tripSettings,
-          body: TripSettingsPanel(
-            isCollapsed: false,
-            onToggleCollapse: close,
-            isOwner: p.isOwner,
-            tripHasPlannedRoute: p.tripHasPlannedRoute,
-            showPlannedWaypoints: p.showPlannedWaypoints,
-            onTogglePlannedWaypoints: p.onTogglePlannedWaypoints,
-            automaticUpdates: p.automaticUpdates,
-            updateRefresh: p.updateRefresh,
-            tripModality: p.tripModality,
-            isLoading: p.isLoading,
-            onSettingsChange: p.onSettingsChange,
-            tripStatus: p.tripStatus,
-            tripId: p.tripId,
-            onTestBackgroundUpdate: p.onTestBackgroundUpdate,
-            onDeleteTrip: p.onDeleteTrip,
-            embedded: true,
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: close,
-              child: Text(context.l10n.done),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  void _openSettings() => showTripSettingsDialog(context, _d);
 
   @override
   Widget build(BuildContext context) {

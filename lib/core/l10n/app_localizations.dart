@@ -1008,6 +1008,37 @@ class AppLocalizations {
   String newTripEvery(Object interval) =>
       TranslationTemplate.format(_tr('newTripEvery'), {'interval': interval});
   String get newTripOff => _tr('newTripOff');
+
+  // --- Draft trip (web, start on phone) ---
+  String draftTripCreated(Object when) =>
+      TranslationTemplate.format(_tr('draftTripCreated'), {'when': when});
+  String get draftTripMoreOptions => _tr('draftTripMoreOptions');
+  String get draftTripEdit => _tr('draftTripEdit');
+  String get draftTripNextStep => _tr('draftTripNextStep');
+  String get draftTripHide => _tr('draftTripHide');
+  String get draftTripTitle => _tr('draftTripTitle');
+  String get draftTripBody => _tr('draftTripBody');
+  String get draftTripStep1Bold => _tr('draftTripStep1Bold');
+  String draftTripStep1Rest(Object username) => TranslationTemplate.format(
+      _tr('draftTripStep1Rest'), {'username': username});
+  String get draftTripStep2Bold => _tr('draftTripStep2Bold');
+  String get draftTripStep2Rest => _tr('draftTripStep2Rest');
+  String get draftTripStep3Bold => _tr('draftTripStep3Bold');
+  String get draftTripStep3Rest => _tr('draftTripStep3Rest');
+  String get draftTripScan => _tr('draftTripScan');
+  String get draftTripQrLabel => _tr('draftTripQrLabel');
+  String get draftTripEmailMe => _tr('draftTripEmailMe');
+  String draftTripEmailSubject(Object name) =>
+      TranslationTemplate.format(_tr('draftTripEmailSubject'), {'name': name});
+  String draftTripEmailBody(Object link) =>
+      TranslationTemplate.format(_tr('draftTripEmailBody'), {'link': link});
+  String get draftTripAutoCheckIn => _tr('draftTripAutoCheckIn');
+  String get draftTripChangeSettings => _tr('draftTripChangeSettings');
+  String get draftTripInviteTitle => _tr('draftTripInviteTitle');
+  String get draftTripInviteBody => _tr('draftTripInviteBody');
+  String get draftTripCopyLink => _tr('draftTripCopyLink');
+  String get draftTripHiddenHint => _tr('draftTripHiddenHint');
+  String get draftTripShow => _tr('draftTripShow');
   String get newTripCreate => _tr('newTripCreate');
   String get msgTripCreated => _tr('msgTripCreated');
   String msgTripCreateError(Object error) =>

@@ -29,6 +29,10 @@ class ApiEndpoints {
   // Trip deep link URL
   static String tripDeepLink(String tripId) => '$appBaseUrl/trip/$tripId';
 
+  // Android app listing on Google Play
+  static const playStoreUrl =
+      'https://play.google.com/store/apps/details?id=com.tomassirio.wanderer.wanderer_frontend';
+
   // Resolve thumbnail URL (handles both relative and absolute URLs)
   static String resolveThumbnailUrl(String? thumbnailUrl) {
     if (thumbnailUrl == null || thumbnailUrl.isEmpty) {

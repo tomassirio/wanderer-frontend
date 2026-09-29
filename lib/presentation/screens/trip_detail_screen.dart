@@ -45,6 +45,7 @@ import 'auth_screen.dart';
 import 'settings_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/web_draft_trip_view.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/web_trip_detail_layout.dart';
 
 /// Trip detail screen showing trip info, map, and comments
@@ -2825,6 +2826,13 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
             onPlannedInfoWindowClosed: _onInfoWindowClosed,
             onMapTap: _onInfoWindowClosed,
           );
+
+          // Re-evaluated on every rebuild, so a WebSocket status change to
+          // live swaps this out for the map view below.
+          if (kIsWeb &&
+              WebDraftTripView.shouldShow(_trip, _userId, _tripUpdates)) {
+            return WebDraftTripView(data: layoutData);
+          }
 
           if (kIsWeb && constraints.maxWidth >= WebTripDetailLayout.minWidth) {
             return WebTripDetailLayout(
