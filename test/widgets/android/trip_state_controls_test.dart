@@ -60,6 +60,38 @@ void main() {
     expect(find.byType(TripSheetButton), findsNothing);
   });
 
+  testWidgets(
+      'blockStart greys out the Start button and calls onStartBlocked instead of onStart',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      theme: WandererTheme.lightTheme(),
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => TripStateControls(
+            status: TripStatus.created,
+            isMultiDay: false,
+            blockStart: true,
+            onStartBlocked: () => tapped.add('startBlocked'),
+            onStart: () => tapped.add('start'),
+            onCheckIn: () => tapped.add('checkIn'),
+            onPause: () => tapped.add('pause'),
+            onRest: () => tapped.add('rest'),
+            onResume: () => tapped.add('resume'),
+            onContinue: () => tapped.add('continue'),
+            onFinish: () => tapped.add('finish'),
+          ),
+        ),
+      ),
+    ));
+
+    final startButton =
+        tester.widget<TripSheetButton>(find.byKey(const Key('trip_start')));
+    expect(startButton.background, WandererTheme.trail.withOpacity(0.4));
+
+    await tester.tap(find.byKey(const Key('trip_start')));
+    expect(tapped, ['startBlocked']);
+  });
+
   testWidgets('only the main action is orange; pause is tinted paused',
       (tester) async {
     await tester.pumpWidget(app(TripStatus.inProgress, multiDay: true));

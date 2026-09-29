@@ -248,6 +248,7 @@
   "resume": "Resume",
   "finish": "Finish",
   "finishTripConfirm": "Are you sure you want to finish this trip? This will mark the trip as completed.",
+  "tripAlreadyInProgress": "You already have a trip in progress. Finish or pause it before starting a new one.",
   "shareTrip": "Share Trip",
   "tripSettings": "Trip Settings",
   "showPlannedRoute": "Show Planned Route",

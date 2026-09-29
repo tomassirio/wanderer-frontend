@@ -20,6 +20,14 @@ class TripStateControls extends StatelessWidget {
   final VoidCallback onContinue;
   final VoidCallback onFinish;
 
+  /// Whether the Start button should be greyed out because the user already
+  /// has another trip IN_PROGRESS (backend allows only one active trip at a time).
+  final bool blockStart;
+
+  /// Called instead of [onStart] when Start is tapped while [blockStart] is
+  /// true. Should surface a notification to the user.
+  final VoidCallback? onStartBlocked;
+
   const TripStateControls({
     super.key,
     required this.status,
@@ -32,6 +40,8 @@ class TripStateControls extends StatelessWidget {
     required this.onResume,
     required this.onContinue,
     required this.onFinish,
+    this.blockStart = false,
+    this.onStartBlocked,
   });
 
   @override
@@ -54,13 +64,16 @@ class TripStateControls extends StatelessWidget {
       );
     }
 
-    Widget main(IconData icon, String label, VoidCallback onTap, String key) =>
+    Widget main(IconData icon, String label, VoidCallback onTap, String key,
+            {bool greyedOut = false}) =>
         TripSheetButton(
           key: Key(key),
           label: label,
           icon: icon,
-          background: WandererTheme.trail,
-          foreground: Colors.white,
+          background: greyedOut
+              ? WandererTheme.trail.withOpacity(0.4)
+              : WandererTheme.trail,
+          foreground: greyedOut ? Colors.white70 : Colors.white,
           onPressed: isBusy ? null : onTap,
         );
 
@@ -69,8 +82,13 @@ class TripStateControls extends StatelessWidget {
 
     final List<Widget> children = switch (status) {
       TripStatus.created => [
-          main(Icons.play_arrow_rounded, l10n.tripStartAction, onStart,
-              'trip_start'),
+          main(
+            Icons.play_arrow_rounded,
+            l10n.tripStartAction,
+            blockStart ? (onStartBlocked ?? () {}) : onStart,
+            'trip_start',
+            greyedOut: blockStart,
+          ),
         ],
       TripStatus.inProgress => [
           main(Icons.add_location_alt_outlined, l10n.tripCheckIn, onCheckIn,

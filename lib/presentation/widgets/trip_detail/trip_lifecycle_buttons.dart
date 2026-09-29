@@ -29,6 +29,14 @@ class TripLifecycleButtons extends StatelessWidget {
   /// Override for tests — defaults to [kIsWeb]
   final bool? isWeb;
 
+  /// Whether the Start button should be greyed out because the user
+  /// already has another trip IN_PROGRESS (backend allows only one at a time).
+  final bool blockStart;
+
+  /// Called instead of [onStatusChange] when Start is tapped while
+  /// [blockStart] is true. Should surface a notification to the user.
+  final VoidCallback? onStartBlocked;
+
   const TripLifecycleButtons({
     super.key,
     required this.currentStatus,
@@ -41,6 +49,8 @@ class TripLifecycleButtons extends StatelessWidget {
     this.isResting = false,
     this.onDayButtonTap,
     this.isWeb,
+    this.blockStart = false,
+    this.onStartBlocked,
   });
 
   bool get _isMultiDay => tripModality == TripModality.multiDay;
@@ -71,7 +81,10 @@ class TripLifecycleButtons extends StatelessWidget {
           icon: Icons.play_arrow,
           color: WandererTheme.statusCreated,
           tooltip: 'Start Trip',
-          onPressed: () => onStatusChange(TripStatus.inProgress),
+          onPressed: blockStart
+              ? (onStartBlocked ?? () {})
+              : () => onStatusChange(TripStatus.inProgress),
+          greyedOut: blockStart,
         ),
       );
     }
@@ -150,13 +163,15 @@ class TripLifecycleButtons extends StatelessWidget {
     required Color color,
     required String tooltip,
     required VoidCallback onPressed,
+    bool greyedOut = false,
   }) {
     return Tooltip(
       message: tooltip,
       child: FloatingActionButton(
         heroTag: 'lifecycle_$tooltip',
         onPressed: isLoading ? null : onPressed,
-        backgroundColor: isLoading ? color.withOpacity(0.5) : color,
+        backgroundColor:
+            (isLoading || greyedOut) ? color.withOpacity(0.5) : color,
         foregroundColor: Colors.white,
         elevation: 4,
         mini: false,

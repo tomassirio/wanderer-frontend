@@ -248,6 +248,7 @@
   "resume": "Reprendre",
   "finish": "Terminer",
   "finishTripConfirm": "Êtes-vous sûr de vouloir terminer ce voyage ? Cela marquera le voyage comme terminé.",
+  "tripAlreadyInProgress": "Vous avez déjà un voyage en cours. Terminez-le ou mettez-le en pause avant d'en commencer un nouveau.",
   "shareTrip": "Partager le Voyage",
   "tripSettings": "Paramètres du Voyage",
   "showPlannedRoute": "Afficher l'Itinéraire Planifié",

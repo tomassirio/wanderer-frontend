@@ -272,6 +272,9 @@ class _ProfileAndroidViewState extends ConsumerState<ProfileAndroidView> {
     } else if (action == 'change') {
       final image = await ImagePicker().pickImage(source: ImageSource.gallery);
       if (image == null) return;
+      if (!mounted) return;
+      final c = WandererTheme.of(context);
+      final isDark = Theme.of(context).brightness == Brightness.dark;
       final cropped = await ImageCropper().cropImage(
         sourcePath: image.path,
         aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
@@ -279,13 +282,40 @@ class _ProfileAndroidViewState extends ConsumerState<ProfileAndroidView> {
         maxWidth: 1024,
         maxHeight: 1024,
         uiSettings: [
+          // Circle crop bounds match the final CircleAvatar rendering, so
+          // the preview is a true WYSIWYG of the resulting avatar. Colours
+          // mirror the rest of the app: a neutral ground/surface toolbar
+          // (like AndroidTopBar) with the single trail-orange accent
+          // reserved for the active crop handles, not the whole bar.
           AndroidUiSettings(
             toolbarTitle: l10n.profileChangeAvatar,
-            toolbarColor: WandererTheme.trail,
-            toolbarWidgetColor: Colors.white,
+            toolbarColor: c.ground,
+            toolbarWidgetColor: c.text,
+            statusBarLight: !isDark,
+            navBarLight: !isDark,
+            backgroundColor: c.surface,
             activeControlsWidgetColor: WandererTheme.trail,
+            cropFrameColor: WandererTheme.trail,
+            cropGridColor: c.line,
+            dimmedLayerColor: Colors.black.withOpacity(0.6),
             lockAspectRatio: true,
+            // The native Scale/Rotate/Aspect-ratio tab bar can't be
+            // recoloured via this API and its fixed white background clashes
+            // with the app's themed cropper — hide it. Pinch-to-zoom and
+            // drag still work on the image without it, and aspect ratio is
+            // locked anyway.
+            hideBottomControls: true,
             initAspectRatio: CropAspectRatioPreset.square,
+            showCropGrid: true,
+            cropStyle: CropStyle.circle,
+          ),
+          IOSUiSettings(
+            title: l10n.profileChangeAvatar,
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+            aspectRatioPickerButtonHidden: true,
+            minimumAspectRatio: 1.0,
+            cropStyle: CropStyle.circle,
           ),
         ],
       );

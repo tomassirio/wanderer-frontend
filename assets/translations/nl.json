@@ -248,6 +248,7 @@
   "resume": "Hervatten",
   "finish": "Beëindigen",
   "finishTripConfirm": "Weet je zeker dat je deze reis wilt beëindigen? Dit markeert de reis als voltooid.",
+  "tripAlreadyInProgress": "Je hebt al een reis in uitvoering. Beëindig of pauzeer deze voordat je een nieuwe start.",
   "shareTrip": "Reis Delen",
   "tripSettings": "Reisinstellingen",
   "showPlannedRoute": "Geplande Route Tonen",

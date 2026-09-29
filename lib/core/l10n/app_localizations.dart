@@ -369,6 +369,7 @@ class AppLocalizations {
   String get resume => _tr('resume');
   String get finish => _tr('finish');
   String get finishTripConfirm => _tr('finishTripConfirm');
+  String get tripAlreadyInProgress => _tr('tripAlreadyInProgress');
   String get shareTrip => _tr('shareTrip');
   String get tripSettings => _tr('tripSettings');
   String get showPlannedRoute => _tr('showPlannedRoute');

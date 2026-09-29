@@ -99,6 +99,11 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   bool _isAdmin = false;
   bool _isChangingStatus = false;
   bool _isChangingSettings = false;
+
+  /// Whether another trip owned by this user is already IN_PROGRESS.
+  /// When true, the Start/Resume controls are greyed out and tapping them
+  /// only shows a notification (backend allows only one active trip).
+  bool _hasOtherActiveTrip = false;
   String? _replyingToCommentId;
   CommentSortOption _sortOption = CommentSortOption.latest;
   final int _selectedSidebarIndex = -1; // Trip detail is not a main nav item
@@ -1261,6 +1266,34 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     if (userId != null && _trip.userId != userId) {
       await _loadSocialStatus();
     }
+
+    // Only relevant for owners who haven't started this trip yet — check
+    // whether another trip of theirs is already IN_PROGRESS so the Start
+    // button can be greyed out instead of failing after the tap.
+    if (userId != null &&
+        _trip.userId == userId &&
+        _trip.status == TripStatus.created) {
+      await _checkOtherActiveTrip();
+    }
+  }
+
+  /// Fetches the user's trips and checks if another one is already
+  /// IN_PROGRESS (the backend only allows one active trip at a time).
+  Future<void> _checkOtherActiveTrip() async {
+    try {
+      final hasOther = await _repository.hasOtherActiveTrip(_trip.id);
+      if (mounted) {
+        setState(() => _hasOtherActiveTrip = hasOther);
+      }
+    } catch (e) {
+      debugPrint('TripDetailScreen: Could not check active trip: $e');
+    }
+  }
+
+  /// Called when the Start/Resume control is tapped while blocked by
+  /// [_hasOtherActiveTrip]. Shows a notification instead of silently no-op'ing.
+  void _handleBlockedStart() {
+    _showInfo(context.l10n.tripAlreadyInProgress);
   }
 
   /// Shows the first-time trip detail tutorial (coach marks) once per
@@ -3117,6 +3150,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
                     isResting: _trip.status == TripStatus.resting,
                     onDayButtonTap:
                         _showDayButton ? () => _handleDayButtonTap(null) : null,
+                    blockStart: _hasOtherActiveTrip,
+                    onStartBlocked: _handleBlockedStart,
                   ),
                 ),
 
@@ -3193,6 +3228,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
                 onResume: () => _changeTripStatus(TripStatus.inProgress),
                 onContinue: () => _handleDayButtonTap(null),
                 onFinish: _androidFinish,
+                blockStart: _hasOtherActiveTrip,
+                onStartBlocked: _handleBlockedStart,
               )
             : null,
       ),
