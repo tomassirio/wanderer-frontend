@@ -150,6 +150,7 @@ class ApiEndpoints {
   static String adminUserRoles(String userId) => '/admin/users/$userId/roles';
 
   // Admin Trip Management endpoints (ADMIN only, commandBaseUrl)
+  static String adminTripById(String tripId) => '/admin/trips/$tripId';
   static String adminRecomputePolyline(String tripId) =>
       '/admin/trips/$tripId/recompute-polyline';
   static String adminRecomputeGeocoding(String tripId) =>

@@ -171,7 +171,6 @@ final achievementServiceProvider = Provider<AchievementService>((ref) {
 
 final adminServiceProvider = Provider<AdminService>((ref) {
   return AdminService(
-    tripCommandClient: ref.watch(tripCommandClientProvider),
     promotionCommandClient: ref.watch(promotionCommandClientProvider),
     promotionQueryClient: ref.watch(promotionQueryClientProvider),
     tripQueryClient: ref.watch(tripQueryClientProvider),

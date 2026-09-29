@@ -5,49 +5,6 @@ import 'package:wanderer_frontend/data/models/admin_models.dart';
 
 void main() {
   group('AdminService', () {
-    late MockTripCommandClient mockTripCommandClient;
-    late AdminService adminService;
-
-    setUp(() {
-      mockTripCommandClient = MockTripCommandClient();
-      adminService = AdminService(tripCommandClient: mockTripCommandClient);
-    });
-
-    group('deleteTrip', () {
-      test('deletes trip successfully', () async {
-        await adminService.deleteTrip('trip-123');
-
-        expect(mockTripCommandClient.deleteTripCalled, true);
-        expect(mockTripCommandClient.lastTripId, 'trip-123');
-      });
-
-      test('passes through errors when deleting trip', () async {
-        mockTripCommandClient.shouldThrowError = true;
-
-        expect(() => adminService.deleteTrip('trip-123'), throwsException);
-      });
-
-      test('handles unauthorized errors', () async {
-        mockTripCommandClient.errorMessage = 'Unauthorized';
-        mockTripCommandClient.shouldThrowError = true;
-
-        expect(
-          () => adminService.deleteTrip('trip-123'),
-          throwsA(predicate((e) => e.toString().contains('Unauthorized'))),
-        );
-      });
-
-      test('handles not found errors', () async {
-        mockTripCommandClient.errorMessage = 'Trip not found';
-        mockTripCommandClient.shouldThrowError = true;
-
-        expect(
-          () => adminService.deleteTrip('nonexistent-trip'),
-          throwsA(predicate((e) => e.toString().contains('not found'))),
-        );
-      });
-    });
-
     group('User management', () {
       late MockAdminCommandClient mockAdminCommandClient;
       late MockAdminQueryClient mockAdminQueryClient;
@@ -57,10 +14,47 @@ void main() {
         mockAdminCommandClient = MockAdminCommandClient();
         mockAdminQueryClient = MockAdminQueryClient();
         serviceWithAdmin = AdminService(
-          tripCommandClient: mockTripCommandClient,
           adminCommandClient: mockAdminCommandClient,
           adminQueryClient: mockAdminQueryClient,
         );
+      });
+
+      group('deleteTrip', () {
+        test('deletes trip successfully', () async {
+          await serviceWithAdmin.deleteTrip('trip-123');
+
+          expect(mockAdminCommandClient.deleteTripCalled, true);
+          expect(mockAdminCommandClient.lastTripId, 'trip-123');
+        });
+
+        test('passes through errors when deleting trip', () async {
+          mockAdminCommandClient.shouldThrowError = true;
+
+          expect(
+            () => serviceWithAdmin.deleteTrip('trip-123'),
+            throwsException,
+          );
+        });
+
+        test('handles unauthorized errors', () async {
+          mockAdminCommandClient.errorMessage = 'Unauthorized';
+          mockAdminCommandClient.shouldThrowError = true;
+
+          expect(
+            () => serviceWithAdmin.deleteTrip('trip-123'),
+            throwsA(predicate((e) => e.toString().contains('Unauthorized'))),
+          );
+        });
+
+        test('handles not found errors', () async {
+          mockAdminCommandClient.errorMessage = 'Trip not found';
+          mockAdminCommandClient.shouldThrowError = true;
+
+          expect(
+            () => serviceWithAdmin.deleteTrip('nonexistent-trip'),
+            throwsA(predicate((e) => e.toString().contains('not found'))),
+          );
+        });
       });
 
       group('promoteUserToAdmin', () {
@@ -214,13 +208,6 @@ void main() {
     });
 
     group('AdminService initialization', () {
-      test('creates with provided client', () {
-        final tripClient = MockTripCommandClient();
-        final service = AdminService(tripCommandClient: tripClient);
-
-        expect(service, isNotNull);
-      });
-
       test('creates with default client when not provided', () {
         final service = AdminService();
 
@@ -244,29 +231,12 @@ void main() {
   });
 }
 
-// Mock TripCommandClient
-class MockTripCommandClient extends TripCommandClient {
-  bool deleteTripCalled = false;
-  String? lastTripId;
-  bool shouldThrowError = false;
-  String errorMessage = 'Trip command failed';
-
-  @override
-  Future<String> deleteTrip(String tripId) async {
-    deleteTripCalled = true;
-    lastTripId = tripId;
-    if (shouldThrowError) {
-      throw Exception(errorMessage);
-    }
-    return tripId;
-  }
-}
-
 // Mock AdminCommandClient
 class MockAdminCommandClient extends AdminCommandClient {
   bool promoteToAdminCalled = false;
   bool demoteFromAdminCalled = false;
   bool deleteUserCalled = false;
+  bool deleteTripCalled = false;
   bool recomputePolylineCalled = false;
   bool regenerateMissingThumbnailsCalled = false;
   String? lastUserId;
@@ -302,6 +272,15 @@ class MockAdminCommandClient extends AdminCommandClient {
   Future<void> deleteUser(String userId) async {
     deleteUserCalled = true;
     lastUserId = userId;
+    if (shouldThrowError) {
+      throw Exception(errorMessage);
+    }
+  }
+
+  @override
+  Future<void> deleteTrip(String tripId) async {
+    deleteTripCalled = true;
+    lastTripId = tripId;
     if (shouldThrowError) {
       throw Exception(errorMessage);
     }

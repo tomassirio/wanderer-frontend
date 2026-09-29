@@ -222,6 +222,67 @@ void main() {
       });
     });
 
+    group('deleteTrip', () {
+      test('successful deletion completes without error', () async {
+        mockHttpClient.response = http.Response('', 204);
+
+        await adminCommandClient.deleteTrip('trip-123');
+
+        expect(mockHttpClient.lastMethod, 'DELETE');
+        expect(
+          mockHttpClient.lastUri.toString(),
+          contains('/admin/trips/trip-123'),
+        );
+        expect(
+          mockHttpClient.lastHeaders?['Authorization'],
+          'Bearer test-token',
+        );
+      });
+
+      test('deleteTrip uses command service base URL', () async {
+        mockHttpClient.response = http.Response('', 204);
+
+        await adminCommandClient.deleteTrip('trip-123');
+
+        expect(
+          mockHttpClient.lastUri.toString(),
+          startsWith(ApiEndpoints.commandBaseUrl),
+        );
+      });
+
+      test('deleteTrip requires authentication', () async {
+        mockHttpClient.response = http.Response('', 204);
+
+        await adminCommandClient.deleteTrip('trip-123');
+
+        expect(mockHttpClient.lastHeaders?['Authorization'], isNotNull);
+      });
+
+      test('deleteTrip throws on 404 not found', () async {
+        mockHttpClient.response = http.Response(
+          '{"message":"Trip not found"}',
+          404,
+        );
+
+        expect(
+          () => adminCommandClient.deleteTrip('nonexistent'),
+          throwsException,
+        );
+      });
+
+      test('deleteTrip throws on 403 forbidden', () async {
+        mockHttpClient.response = http.Response(
+          '{"message":"Forbidden"}',
+          403,
+        );
+
+        expect(
+          () => adminCommandClient.deleteTrip('trip-123'),
+          throwsException,
+        );
+      });
+    });
+
     group('recomputePolyline', () {
       test('successful recomputation completes without error', () async {
         mockHttpClient.response = http.Response('', 204);

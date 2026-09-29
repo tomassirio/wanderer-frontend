@@ -435,6 +435,59 @@ class _TripPromotionScreenState extends ConsumerState<TripPromotionScreen> {
     }
   }
 
+  Future<void> _deleteTrip(Trip trip) async {
+    final l10n = context.l10n;
+    final confirmed = kIsWeb
+        ? await WandererDialog.confirm(
+            context,
+            title: l10n.adminDeleteTripTitle,
+            message: l10n.adminDeleteTripMessage(trip.name),
+            confirmLabel: l10n.adminDeleteTripAction,
+            icon: Icons.delete_outline,
+            destructive: true,
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.adminDeleteTripTitle),
+              content: Text(l10n.adminDeleteTripMessage(trip.name)),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(l10n.adminDeleteTripAction),
+                ),
+              ],
+            ),
+          );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await _adminService.deleteTrip(trip.id);
+
+      if (mounted) {
+        setState(() {
+          _allTrips.removeWhere((t) => t.id == trip.id);
+          _filteredTrips.removeWhere((t) => t.id == trip.id);
+          _promotedTrips.removeWhere((p) => p.tripId == trip.id);
+        });
+        UiHelpers.showSuccessMessage(context, 'Trip deleted successfully!');
+      }
+    } catch (e) {
+      if (mounted) {
+        UiHelpers.showErrorMessage(context, 'Failed to delete trip: $e');
+      }
+    }
+  }
+
   Future<void> _unpromoteTrip(String tripId) async {
     final l10n = context.l10n;
     final confirmed = kIsWeb
@@ -882,21 +935,30 @@ class _TripPromotionScreenState extends ConsumerState<TripPromotionScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: isPromoted
-              ? ElevatedButton(
-                  onPressed: () => _unpromoteTrip(trip.id),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade400,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: Text(l10n.unpromote),
-                )
-              : ElevatedButton(
-                  onPressed: () => _promoteTrip(trip),
-                  child: Text(l10n.promote),
-                ),
+        Row(
+          children: [
+            Expanded(
+              child: isPromoted
+                  ? ElevatedButton(
+                      onPressed: () => _unpromoteTrip(trip.id),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade400,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(l10n.unpromote),
+                    )
+                  : ElevatedButton(
+                      onPressed: () => _promoteTrip(trip),
+                      child: Text(l10n.promote),
+                    ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              onPressed: () => _deleteTrip(trip),
+              tooltip: l10n.deleteTrip,
+            ),
+          ],
         ),
       ],
     );
@@ -962,6 +1024,12 @@ class _TripPromotionScreenState extends ConsumerState<TripPromotionScreen> {
                     textAlign: TextAlign.center,
                   ),
                 ),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          icon: const Icon(Icons.delete_outline, color: Colors.red),
+          onPressed: () => _deleteTrip(trip),
+          tooltip: l10n.deleteTrip,
         ),
       ],
     );

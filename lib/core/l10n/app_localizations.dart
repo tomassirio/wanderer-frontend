@@ -939,6 +939,10 @@ class AppLocalizations {
       _tr('tripDetailDeleteMessage'), {'name': name});
   String get tripDetailDeleteAction => _tr('tripDetailDeleteAction');
   String get tripDetailKeepTrip => _tr('tripDetailKeepTrip');
+  String get adminDeleteTripTitle => _tr('adminDeleteTripTitle');
+  String adminDeleteTripMessage(Object name) =>
+      TranslationTemplate.format(_tr('adminDeleteTripMessage'), {'name': name});
+  String get adminDeleteTripAction => _tr('adminDeleteTripAction');
   String get settingsSubtitle => _tr('settingsSubtitle');
   String get settingsAccountSecurity => _tr('settingsAccountSecurity');
   String get settingsHelpLegal => _tr('settingsHelpLegal');
