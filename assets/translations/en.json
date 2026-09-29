@@ -1111,7 +1111,10 @@
   "welcomeSubtitle": "Share the road with friends and unlock achievements along the way.",
   "welcomeSignUpEmail": "Sign up with email",
   "welcomeLookAround": "Look around first",
-  "youAdminPromotionSub": "Promote and manage trips",
-  "youAdminUsersSub": "Roles and accounts",
-  "youAdminMaintenanceSub": "Repair and clean up trip data"
+  "youAdminPromotionSub": "Choose which trips are featured on Explore and which ones get deleted",
+  "youAdminUsersSub": "Find accounts, change roles, delete users",
+  "youAdminMaintenanceSub": "Repair or clean up trip data and check-ins",
+  "adminToolsTitle": "Admin tools",
+  "adminToolsSub": "Trip promotion, users, trip data",
+  "adminToolsNotice": "Only admins see this. Changes here affect every user."
 }

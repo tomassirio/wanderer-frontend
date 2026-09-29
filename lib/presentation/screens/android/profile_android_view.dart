@@ -14,14 +14,12 @@ import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/achievements_screen.dart';
-import 'package:wanderer_frontend/presentation/screens/admin_users_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_admin_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_shell.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_trips_tab.dart';
 import 'package:wanderer_frontend/presentation/screens/friends_followers_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
-import 'package:wanderer_frontend/presentation/screens/trip_maintenance_screen.dart';
-import 'package:wanderer_frontend/presentation/screens/trip_promotion_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
@@ -363,15 +361,9 @@ class _ProfileAndroidViewState extends ConsumerState<ProfileAndroidView> {
             if (_own) ...[
               _links(c, l10n),
               if (_isAdmin) ...[
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 20, 4, 10),
-                  child: Text(l10n.navAdmin,
-                      style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: c.text)),
-                ),
-                _adminLinks(c, l10n),
+                const SizedBox(height: 16),
+                AdminToolsButton(
+                    onTap: () => _push(const AndroidAdminScreen())),
               ],
             ] else ...[
               Padding(
@@ -594,34 +586,6 @@ class _ProfileAndroidViewState extends ConsumerState<ProfileAndroidView> {
     ];
     return _linkCard(c, rows);
   }
-
-  /// Admin-only tools that lived in the old ☰ drawer.
-  Widget _adminLinks(WandererColors c, AppLocalizations l10n) => _linkCard(c, [
-        (
-          Icons.campaign_outlined,
-          c.trailSoftBg,
-          WandererTheme.trail,
-          l10n.tripPromotion,
-          l10n.youAdminPromotionSub,
-          () => _push(const TripPromotionScreen()),
-        ),
-        (
-          Icons.manage_accounts_outlined,
-          c.skyBg,
-          c.skyFg,
-          l10n.userManagement,
-          l10n.youAdminUsersSub,
-          () => _push(const AdminUsersScreen()),
-        ),
-        (
-          Icons.build_outlined,
-          c.neutralBg,
-          c.neutralFg,
-          l10n.tripDataMaintenance,
-          l10n.youAdminMaintenanceSub,
-          () => _push(const TripMaintenanceScreen()),
-        ),
-      ]);
 
   Widget _linkCard(WandererColors c,
       List<(IconData, Color, Color, String, String, VoidCallback)> rows) {

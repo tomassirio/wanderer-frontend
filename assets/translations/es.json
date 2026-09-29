@@ -1111,7 +1111,10 @@
   "welcomeSubtitle": "Comparte el camino con tus amigos y desbloquea logros por el camino.",
   "welcomeSignUpEmail": "Regístrate con email",
   "welcomeLookAround": "Echa un vistazo primero",
-  "youAdminPromotionSub": "Promociona y gestiona viajes",
-  "youAdminUsersSub": "Roles y cuentas",
-  "youAdminMaintenanceSub": "Repara y limpia datos de viajes"
+  "youAdminPromotionSub": "Elige qué viajes se destacan en Explorar y cuáles se eliminan",
+  "youAdminUsersSub": "Busca cuentas, cambia roles, elimina usuarios",
+  "youAdminMaintenanceSub": "Repara o limpia datos de viajes y check-ins",
+  "adminToolsTitle": "Herramientas de admin",
+  "adminToolsSub": "Promoción de viajes, usuarios, datos de viajes",
+  "adminToolsNotice": "Solo los admins ven esto. Los cambios afectan a todos los usuarios."
 }

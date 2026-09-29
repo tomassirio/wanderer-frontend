@@ -1111,7 +1111,10 @@
   "welcomeSubtitle": "Deel de weg met vrienden en ontgrendel prestaties onderweg.",
   "welcomeSignUpEmail": "Aanmelden met e-mail",
   "welcomeLookAround": "Eerst rondkijken",
-  "youAdminPromotionSub": "Reizen uitlichten en beheren",
-  "youAdminUsersSub": "Rollen en accounts",
-  "youAdminMaintenanceSub": "Reisgegevens herstellen en opschonen"
+  "youAdminPromotionSub": "Kies welke reizen uitgelicht worden in Ontdekken en welke verwijderd worden",
+  "youAdminUsersSub": "Zoek accounts, wijzig rollen, verwijder gebruikers",
+  "youAdminMaintenanceSub": "Herstel of schoon reisgegevens en check-ins op",
+  "adminToolsTitle": "Beheertools",
+  "adminToolsSub": "Reispromotie, gebruikers, reisgegevens",
+  "adminToolsNotice": "Alleen admins zien dit. Wijzigingen hier gelden voor alle gebruikers."
 }

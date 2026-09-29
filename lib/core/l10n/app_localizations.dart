@@ -1408,4 +1408,7 @@ class AppLocalizations {
   String get youAdminPromotionSub => _tr('youAdminPromotionSub');
   String get youAdminUsersSub => _tr('youAdminUsersSub');
   String get youAdminMaintenanceSub => _tr('youAdminMaintenanceSub');
+  String get adminToolsTitle => _tr('adminToolsTitle');
+  String get adminToolsSub => _tr('adminToolsSub');
+  String get adminToolsNotice => _tr('adminToolsNotice');
 }
