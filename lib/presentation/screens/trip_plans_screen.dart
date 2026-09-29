@@ -13,7 +13,9 @@ import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
-import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_plans_content.dart';
+import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/presentation/screens/android/trips_plans_list.dart';
+import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/web_trip_plans_layout.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'auth_screen.dart';
@@ -37,7 +39,6 @@ class _TripPlansScreenState extends ConsumerState<TripPlansScreen> {
   late final TripPlanService _tripPlanService;
   late final HomeRepository _homeRepository;
   late final TripService _tripService;
-  List<TripPlan> _tripPlans = [];
   List<TripPlan> _filteredPlans = [];
   bool _isLoading = false;
   String? _error;
@@ -97,7 +98,6 @@ class _TripPlansScreenState extends ConsumerState<TripPlansScreen> {
       // Get user's trip plans
       final plans = await _tripPlanService.getUserTripPlans();
       setState(() {
-        _tripPlans = plans;
         _filteredPlans = plans;
         _isLoading = false;
       });
@@ -258,6 +258,13 @@ class _TripPlansScreenState extends ConsumerState<TripPlansScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!kIsWeb) {
+      return Scaffold(
+        backgroundColor: WandererTheme.of(context).ground,
+        appBar: AndroidTopBar(title: context.l10n.tripPlansTitle),
+        body: const AndroidPlansList(),
+      );
+    }
     return WandererScaffold(
       hideAppBarWithSidebar: kIsWeb,
       appBar: WandererAppBar(
@@ -281,40 +288,19 @@ class _TripPlansScreenState extends ConsumerState<TripPlansScreen> {
         onSettings: _handleSettings,
         isAdmin: _isAdmin,
       ),
-      body: kIsWeb
-          ? WebTripPlansLayout(
-              isLoading: _isLoading,
-              error: _error,
-              tripPlans: _filteredPlans,
-              isLoggedIn: _isLoggedIn,
-              userId: _userId,
-              onRefresh: _loadTripPlans,
-              onOpen: _handleTripPlanTap,
-              onStartTrip: _handleCreateTripFromPlan,
-              onDelete: _handleDeletePlan,
-              onLogin: _navigateToAuth,
-              onCreate: _handleCreatePlan,
-            )
-          : TripPlansContent(
-              isLoading: _isLoading,
-              error: _error,
-              tripPlans: _filteredPlans,
-              isLoggedIn: _isLoggedIn,
-              onRefresh: _loadTripPlans,
-              onTripPlanTap: _handleTripPlanTap,
-              onCreateTripFromPlan: _handleCreateTripFromPlan,
-              onDeletePlan: _handleDeletePlan,
-              onLoginPressed: _navigateToAuth,
-              onCreatePressed: _handleCreatePlan,
-            ),
-      floatingActionButton:
-          !kIsWeb && _isLoggedIn && !_isLoading && _tripPlans.isNotEmpty
-              ? FloatingActionButton(
-                  onPressed: _handleCreatePlan,
-                  backgroundColor: Theme.of(context).primaryColor,
-                  child: const Icon(Icons.add, color: Colors.white),
-                )
-              : null,
+      body: WebTripPlansLayout(
+        isLoading: _isLoading,
+        error: _error,
+        tripPlans: _filteredPlans,
+        isLoggedIn: _isLoggedIn,
+        userId: _userId,
+        onRefresh: _loadTripPlans,
+        onOpen: _handleTripPlanTap,
+        onStartTrip: _handleCreateTripFromPlan,
+        onDelete: _handleDeletePlan,
+        onLogin: _navigateToAuth,
+        onCreate: _handleCreatePlan,
+      ),
     );
   }
 }

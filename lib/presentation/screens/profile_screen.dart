@@ -35,6 +35,7 @@ import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/create_trip_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/web_page_header.dart';
 import 'package:wanderer_frontend/presentation/widgets/profile/web_profile_widgets.dart';
+import 'package:wanderer_frontend/presentation/screens/android/profile_android_view.dart';
 
 /// Returns a localized label for a [TripStatus] using the current locale.
 String _localizedTripStatus(TripStatus status, AppLocalizations l10n) {
@@ -141,6 +142,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    // Android renders ProfileAndroidView, which loads its own data.
+    if (!kIsWeb) return;
     _repository = ref.read(profileRepositoryProvider);
     _userService = ref.read(userServiceProvider);
     _webSocketService = ref.read(websocketServiceProvider);
@@ -1031,6 +1034,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!kIsWeb) return ProfileAndroidView(userId: widget.userId);
     return WandererScaffold(
       hideAppBarWithSidebar: true,
       appBar: WandererAppBar(

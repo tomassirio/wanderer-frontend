@@ -7,7 +7,6 @@ import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
-import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/data/services/auth_service.dart';
@@ -24,6 +23,9 @@ import 'package:wanderer_frontend/presentation/widgets/common/floating_notificat
 import 'package:wanderer_frontend/presentation/widgets/common/fireworks_widget.dart';
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
+import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
+import 'package:wanderer_frontend/presentation/widgets/android/settings_android.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
 import 'package:wanderer_frontend/presentation/widgets/settings/web_settings_layout.dart';
@@ -45,7 +47,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   bool _isLoading = false;
   bool _pushEnabled = true;
-  bool _isDarkMode = false;
   bool _isAdmin = false;
   String _appVersion = '';
 
@@ -68,8 +69,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _loadPushPreference();
     _loadAppVersion();
     _loadAdminStatus();
-    _isDarkMode = ThemeController().isDarkMode;
-    if (kIsWeb) _loadUser();
+    _loadUser();
   }
 
   Future<void> _loadUser() async {
@@ -145,89 +145,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         setState(() {
           _pushEnabled = previousValue;
         });
-        UiHelpers.showErrorMessage(
-          context,
-          'Failed to update notification preference',
-        );
+        _notify('Failed to update notification preference', error: true);
       }
     }
   }
 
-  // --- Appearance ---
-
-  Future<void> _toggleDarkMode(bool value) async {
-    await ThemeController().setDarkMode(value);
-    if (mounted) {
-      setState(() => _isDarkMode = value);
+  /// Web keeps its floating notifications; Android shows toasts.
+  void _notify(String message, {bool error = false}) {
+    if (kIsWeb) {
+      error
+          ? UiHelpers.showErrorMessage(context, message)
+          : UiHelpers.showSuccessMessage(context, message);
+      return;
     }
+    Toasts.show(ToastData(
+        kind: error ? ToastKind.error : ToastKind.success, title: message));
   }
 
   // --- Account Actions ---
 
   Future<void> _handleChangePassword() async {
+    if (!kIsWeb) {
+      final result = await showSettingsChangePasswordSheet(context);
+      if (result == null || !mounted) return;
+      return _submitPasswordChange(result.$1, result.$2);
+    }
     final currentPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
 
-    final l10n = context.l10n;
-    final confirmed = kIsWeb
-        ? await showWebChangePasswordDialog(
-            context,
-            current: currentPasswordController,
-            next: newPasswordController,
-            confirm: confirmPasswordController,
-          )
-        : await showDialog<bool>(
-            context: context,
-            builder: (context) {
-              return AlertDialog(
-                title: Text(l10n.changePasswordTitle),
-                content: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextField(
-                        controller: currentPasswordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: l10n.currentPassword,
-                          prefixIcon: const Icon(Icons.lock_outline),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: newPasswordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: l10n.newPassword,
-                          prefixIcon: const Icon(Icons.lock),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: confirmPasswordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: l10n.confirmNewPassword,
-                          prefixIcon: const Icon(Icons.lock),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: Text(l10n.cancel),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: const Text('Change'),
-                  ),
-                ],
-              );
-            },
-          );
+    final confirmed = await showWebChangePasswordDialog(
+      context,
+      current: currentPasswordController,
+      next: newPasswordController,
+      confirm: confirmPasswordController,
+    );
 
     if (confirmed != true || !mounted) return;
 
@@ -240,23 +192,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     confirmPasswordController.dispose();
 
     if (currentPassword.isEmpty || newPassword.isEmpty) {
-      UiHelpers.showErrorMessage(context, context.l10n.msgAllFieldsRequired);
+      _notify(context.l10n.msgAllFieldsRequired, error: true);
       return;
     }
 
     if (newPassword != confirmPassword) {
-      UiHelpers.showErrorMessage(context, context.l10n.msgPasswordsDontMatch);
+      _notify(context.l10n.msgPasswordsDontMatch, error: true);
       return;
     }
 
     if (newPassword.length < 8) {
-      UiHelpers.showErrorMessage(
-        context,
-        'New password must be at least 8 characters',
-      );
+      _notify('New password must be at least 8 characters', error: true);
       return;
     }
 
+    await _submitPasswordChange(currentPassword, newPassword);
+  }
+
+  Future<void> _submitPasswordChange(
+      String currentPassword, String newPassword) async {
     setState(() => _isLoading = true);
 
     try {
@@ -267,12 +221,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       );
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, context.l10n.msgPasswordChanged);
+        _notify(context.l10n.msgPasswordChanged);
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(
-            context, context.l10n.msgPasswordChangeFailed(e));
+        _notify(context.l10n.msgPasswordChangeFailed(e), error: true);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -280,44 +233,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _handleResetPassword() async {
+    if (!kIsWeb) {
+      final email = await showSettingsResetPasswordSheet(context);
+      if (email == null || !mounted) return;
+      return _submitPasswordReset(email);
+    }
     final emailController = TextEditingController();
 
-    final l10n = context.l10n;
-    final confirmed = kIsWeb
-        ? await showWebResetPasswordDialog(context, email: emailController)
-        : await showDialog<bool>(
-            context: context,
-            builder: (context) {
-              return AlertDialog(
-                title: Text(l10n.resetPassword),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(l10n.enterEmailForReset),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        labelText: l10n.emailLabel,
-                        prefixIcon: const Icon(Icons.email_outlined),
-                      ),
-                    ),
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: Text(l10n.cancel),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: Text(l10n.sendResetLink),
-                  ),
-                ],
-              );
-            },
-          );
+    final confirmed =
+        await showWebResetPasswordDialog(context, email: emailController);
 
     if (confirmed != true || !mounted) return;
 
@@ -325,23 +249,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     emailController.dispose();
 
     if (email.isEmpty) {
-      UiHelpers.showErrorMessage(context, context.l10n.msgEnterEmail);
+      _notify(context.l10n.msgEnterEmail, error: true);
       return;
     }
 
+    await _submitPasswordReset(email);
+  }
+
+  Future<void> _submitPasswordReset(String email) async {
     setState(() => _isLoading = true);
 
     try {
       await _authService.requestPasswordReset(email);
       if (mounted) {
-        UiHelpers.showSuccessMessage(
-          context,
-          'Password reset link sent to $email',
-        );
+        _notify(kIsWeb
+            ? 'Password reset link sent to $email'
+            : context.l10n.passwordResetEmailSent(email));
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, context.l10n.msgResetLinkFailed(e));
+        _notify(context.l10n.msgResetLinkFailed(e), error: true);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -360,13 +287,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     try {
       final launched = await launchUrl(uri);
       if (!launched && mounted) {
-        UiHelpers.showErrorMessage(
-            context, context.l10n.msgEmailClientUnavailable);
+        _notify(context.l10n.msgEmailClientUnavailable, error: true);
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(
-            context, context.l10n.msgEmailClientError(e));
+        _notify(context.l10n.msgEmailClientError(e), error: true);
       }
     }
   }
@@ -377,102 +302,58 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await Future.wait(TutorialKeys.all.map(storage.resetTutorial));
 
     if (mounted) {
-      UiHelpers.showSuccessMessage(context, l10n.resetTutorialsSuccess);
+      _notify(l10n.resetTutorialsSuccess);
     }
   }
 
   // --- Danger Zone ---
 
   Future<void> _handleCloseAccount() async {
+    if (!kIsWeb) {
+      final confirmed =
+          await showSettingsCloseAccountSheet(context, username: _username);
+      if (!confirmed || !mounted) return;
+      return _deleteAccount();
+    }
     final l10n = context.l10n;
     // First confirmation
-    final firstConfirm = kIsWeb
-        ? await WandererDialog.confirm(
-            context,
-            title: l10n.closeAccount,
-            message: l10n.settingsCloseAccountMessage,
-            confirmLabel: l10n.continue_,
-            icon: Icons.delete_forever,
-            destructive: true,
-          )
-        : await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text(l10n.closeAccount),
-              content: const Text(
-                'Are you sure you want to permanently delete your account? '
-                'This action cannot be undone. All your trips, plans, and data will be lost.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: Text(l10n.cancel),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  style: TextButton.styleFrom(foregroundColor: Colors.red),
-                  child: Text(l10n.continue_),
-                ),
-              ],
-            ),
-          );
+    final firstConfirm = await WandererDialog.confirm(
+      context,
+      title: l10n.closeAccount,
+      message: l10n.settingsCloseAccountMessage,
+      confirmLabel: l10n.continue_,
+      icon: Icons.delete_forever,
+      destructive: true,
+    );
 
     if (firstConfirm != true || !mounted) return;
 
     // Second confirmation with typed input
     final confirmController = TextEditingController();
-    final secondConfirm = kIsWeb
-        ? await showWebTypeDeleteDialog(context, controller: confirmController)
-        : await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text(l10n.confirmAccountDeletion),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(l10n.typeDELETEConfirm),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: confirmController,
-                    decoration: InputDecoration(
-                      hintText: l10n.typeDELETE,
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: Text(l10n.cancel),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  style: TextButton.styleFrom(foregroundColor: Colors.red),
-                  child: Text(l10n.deleteMyAccount),
-                ),
-              ],
-            ),
-          );
+    final secondConfirm =
+        await showWebTypeDeleteDialog(context, controller: confirmController);
 
     final typedValue = confirmController.text.trim();
     confirmController.dispose();
 
     if (secondConfirm != true || typedValue != 'DELETE' || !mounted) {
       if (secondConfirm == true && typedValue != 'DELETE' && mounted) {
-        UiHelpers.showErrorMessage(
-            context, context.l10n.msgTypeDeleteToConfirm);
+        _notify(context.l10n.msgTypeDeleteToConfirm, error: true);
       }
       return;
     }
 
+    await _deleteAccount();
+  }
+
+  Future<void> _deleteAccount() async {
     setState(() => _isLoading = true);
 
     try {
       await _userService.deleteMyAccount();
       await _homeRepository.logout();
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, context.l10n.msgAccountDeleted);
+        _notify(context.l10n.msgAccountDeleted);
         Navigator.of(context).pushAndRemoveUntil(
           PageTransitions.fade(const InitialScreen()),
           (route) => false,
@@ -480,8 +361,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(
-            context, context.l10n.msgAccountDeleteFailed(e));
+        _notify(context.l10n.msgAccountDeleteFailed(e), error: true);
         setState(() => _isLoading = false);
       }
     }
@@ -497,7 +377,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final remaining = 10 - _easterEggTapCount;
     final l10n = context.l10n;
 
-    if (_easterEggTapCount >= 8 && _easterEggTapCount < 10) {
+    if (!kIsWeb && _easterEggTapCount >= 8 && _easterEggTapCount < 10) {
+      Toasts.show(ToastData(
+        kind: ToastKind.hint,
+        title: l10n.settingsAndroidEggHintTitle,
+        body: remaining == 1
+            ? l10n.settingsAndroidEggOneMore
+            : l10n.settingsAndroidEggMore(remaining),
+      ));
+    } else if (!kIsWeb && _easterEggTapCount == 10) {
+      Toasts.show(ToastData(
+        kind: ToastKind.achievement,
+        title: l10n.easterEggFound,
+        body: l10n.easterEggThanks,
+      ));
+      _showEasterEggOverlay();
+    } else if (_easterEggTapCount >= 8 && _easterEggTapCount < 10) {
       FloatingNotification.show(
         context,
         l10n.easterEggTapsRemaining(remaining),
@@ -547,116 +442,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
     );
     if (kIsWeb) return _buildWeb(appBar);
-    return Scaffold(
-      appBar: appBar,
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              children: [
-                _buildSectionHeader(l10n.appearance),
-                _buildSwitchTile(
-                  icon: Icons.dark_mode_outlined,
-                  iconColor:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                  title: l10n.darkMode,
-                  subtitle: l10n.darkModeSubtitle,
-                  value: _isDarkMode,
-                  onChanged: _toggleDarkMode,
-                ),
-                _buildLanguageTile(l10n),
-                const SizedBox(height: 8),
-                _buildSectionHeader(l10n.account),
-                _buildSettingsTile(
-                  icon: Icons.lock_outline,
-                  iconColor: WandererTheme.primaryOrange,
-                  title: l10n.changePassword,
-                  subtitle: l10n.changePasswordSubtitle,
-                  onTap: _handleChangePassword,
-                ),
-                _buildSettingsTile(
-                  icon: Icons.email_outlined,
-                  iconColor: WandererTheme.primaryOrange,
-                  title: l10n.resetPassword,
-                  subtitle: l10n.resetPasswordSubtitle,
-                  onTap: _handleResetPassword,
-                ),
-                const SizedBox(height: 8),
-                _buildSectionHeader(l10n.notificationsSection),
-                _buildSwitchTile(
-                  icon: Icons.notifications_outlined,
-                  iconColor: WandererTheme.primaryOrange,
-                  title: l10n.pushNotifications,
-                  subtitle: l10n.pushNotificationsSubtitle,
-                  value: _pushEnabled,
-                  onChanged: _togglePushNotifications,
-                ),
-                const SizedBox(height: 8),
-                _buildSectionHeader(l10n.support),
-                _buildSettingsTile(
-                  icon: Icons.help_outline,
-                  iconColor: WandererTheme.statusCompleted,
-                  title: l10n.contactSupport,
-                  subtitle: l10n.contactSupportSubtitle,
-                  onTap: _handleContactSupport,
-                ),
-                if (_isAdmin)
-                  _buildSettingsTile(
-                    icon: Icons.replay,
-                    iconColor: WandererTheme.statusCompleted,
-                    title: l10n.resetTutorials,
-                    subtitle: l10n.resetTutorialsSubtitle,
-                    onTap: _handleResetTutorials,
-                  ),
-                _buildSettingsTile(
-                  icon: Icons.description_outlined,
-                  iconColor: WandererTheme.statusCompleted,
-                  title: l10n.termsOfService,
-                  subtitle: 'Read our terms and conditions',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      PageTransitions.slideFromRight(
-                          const TermsAndConditionsScreen()),
-                    );
-                  },
-                ),
-                _buildSettingsTile(
-                  icon: Icons.privacy_tip_outlined,
-                  iconColor: WandererTheme.statusCompleted,
-                  title: l10n.privacyPolicy,
-                  subtitle: 'Review our privacy practices',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      PageTransitions.slideFromRight(
-                          const PrivacyPolicyScreen()),
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-                _buildSectionHeader('About'),
-                _buildSettingsTile(
-                  icon: Icons.info_outline,
-                  iconColor:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                  title: l10n.appVersion,
-                  subtitle: _appVersion.isEmpty ? 'Loading...' : _appVersion,
-                  onTap: _handleVersionTap,
-                ),
-                const SizedBox(height: 8),
-                _buildSectionHeader('Danger Zone'),
-                _buildSettingsTile(
-                  icon: Icons.delete_forever,
-                  iconColor: Colors.red,
-                  title: l10n.closeAccount,
-                  subtitle: l10n.closeAccountSubtitle,
-                  onTap: _handleCloseAccount,
-                  isDestructive: true,
-                ),
-              ],
-            ),
-    );
+    return _buildAndroid();
   }
 
   /// Web redesign. Push notifications are Android-only
@@ -705,196 +491,114 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildLanguageTile(AppLocalizations l10n) {
-    final controller = LocaleController();
-    final currentCode = controller.languageCode;
-    final flag = LocaleController.localeFlags[currentCode] ?? '🌐';
-    final nativeName = l10n.languageNameFor(currentCode);
-
-    return ListTile(
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: WandererTheme.primaryOrange.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: const Icon(Icons.language,
-            color: WandererTheme.primaryOrange, size: 22),
-      ),
-      title: Text(
-        l10n.language,
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
-      ),
-      subtitle: Text(
-        '$flag $nativeName',
-        style: TextStyle(
-          fontSize: 13,
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-        ),
-      ),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => _showLanguagePicker(l10n),
-    );
-  }
-
-  void _showLanguagePicker(AppLocalizations l10n) {
-    final controller = LocaleController();
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  l10n.language,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+  /// Android redesign (canvas "AndroidSettings"): grouped cards, sheets
+  /// instead of dialogs, toasts instead of floating notifications.
+  Widget _buildAndroid() {
+    final l10n = context.l10n;
+    final c = WandererTheme.of(context);
+    final danger = Theme.of(context).colorScheme.error;
+    void push(Widget screen) =>
+        Navigator.push(context, PageTransitions.slideFromRight(screen));
+    return Scaffold(
+      backgroundColor: c.ground,
+      appBar: AndroidTopBar(title: l10n.settings),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+              children: [
+                SettingsGroup(label: l10n.appearance, children: [
+                  SettingsRow(
+                    title: l10n.settingsTheme,
+                    trailing: const SettingsThemeSelector(),
                   ),
-                ),
-              ),
-              ...LocaleController.supportedLocales.map((locale) {
-                final code = locale.languageCode;
-                final flag = LocaleController.localeFlags[code] ?? '🌐';
-                final name = l10n.languageNameFor(code);
-                final isSelected = code == controller.languageCode;
-                return ListTile(
-                  leading: Text(flag, style: const TextStyle(fontSize: 24)),
-                  title: Text(
-                    name,
-                    style: TextStyle(
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
+                  SettingsRow(
+                    title: l10n.language,
+                    subtitle:
+                        l10n.languageNameFor(LocaleController().languageCode),
+                    onTap: () async {
+                      await showSettingsLanguageSheet(context);
+                      if (mounted) setState(() {});
+                    },
+                  ),
+                ]),
+                const SizedBox(height: 14),
+                SettingsGroup(label: l10n.account, children: [
+                  SettingsRow(
+                    title: l10n.settingsChangePasswordButton,
+                    onTap: _handleChangePassword,
+                  ),
+                  SettingsRow(
+                    title: l10n.settingsAndroidForgotPassword,
+                    subtitle: l10n.settingsAndroidForgotCaption,
+                    onTap: _handleResetPassword,
+                  ),
+                ]),
+                const SizedBox(height: 14),
+                SettingsGroup(label: l10n.notificationsSection, children: [
+                  SettingsRow(
+                    title: l10n.settingsAndroidPush,
+                    subtitle: l10n.settingsAndroidPushCaption,
+                    onTap: () => _togglePushNotifications(!_pushEnabled),
+                    trailing: Switch(
+                      value: _pushEnabled,
+                      onChanged: _togglePushNotifications,
+                      activeTrackColor: WandererTheme.trail,
                     ),
                   ),
-                  trailing: isSelected
-                      ? Icon(Icons.check, color: WandererTheme.primaryOrange)
-                      : null,
-                  onTap: () {
-                    controller.setLocale(Locale(code));
-                    Navigator.pop(ctx);
-                    setState(() {}); // Rebuild to reflect new locale
-                  },
-                );
-              }),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSwitchTile({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return ListTile(
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: iconColor.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, color: iconColor, size: 22),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          fontSize: 13,
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-        ),
-      ),
-      trailing: Switch(
-        value: value,
-        onChanged: onChanged,
-        activeColor: WandererTheme.primaryOrange,
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        title.toUpperCase(),
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.2,
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSettingsTile({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required VoidCallback? onTap,
-    bool isDestructive = false,
-  }) {
-    final onSurface = Theme.of(context).colorScheme.onSurface;
-    return ListTile(
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: iconColor.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, color: iconColor, size: 22),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: isDestructive ? Colors.red : onSurface,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          fontSize: 13,
-          color: isDestructive
-              ? Colors.red.withOpacity(0.7)
-              : onSurface.withOpacity(0.6),
-        ),
-      ),
-      trailing: onTap != null
-          ? Icon(
-              Icons.chevron_right,
-              color: isDestructive ? Colors.red : onSurface.withOpacity(0.4),
-            )
-          : null,
-      onTap: onTap,
+                ]),
+                const SizedBox(height: 14),
+                SettingsGroup(label: l10n.settingsHelp, children: [
+                  SettingsRow(
+                    title: l10n.settingsAndroidContactSupport,
+                    onTap: _handleContactSupport,
+                  ),
+                  if (_isAdmin)
+                    SettingsRow(
+                      title: l10n.settingsAndroidShowTutorials,
+                      onTap: _handleResetTutorials,
+                    ),
+                  SettingsRow(
+                    title: l10n.settingsAndroidTerms,
+                    onTap: () => push(const TermsAndConditionsScreen()),
+                  ),
+                  SettingsRow(
+                    title: l10n.settingsAndroidPrivacy,
+                    onTap: () => push(const PrivacyPolicyScreen()),
+                  ),
+                ]),
+                const SizedBox(height: 14),
+                SettingsGroup(children: [
+                  SettingsRow(
+                    title: l10n.dialogLogoutAction,
+                    chevron: false,
+                    onTap: _handleLogout,
+                  ),
+                  SettingsRow(
+                    title: l10n.settingsCloseAccountButton,
+                    color: danger,
+                    chevron: false,
+                    onTap: _handleCloseAccount,
+                  ),
+                ]),
+                const SizedBox(height: 6),
+                Center(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: _handleVersionTap,
+                    child: Container(
+                      height: 48,
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        l10n.settingsAndroidVersion(_appVersion).trim(),
+                        style: TextStyle(fontSize: 12, color: c.label),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }

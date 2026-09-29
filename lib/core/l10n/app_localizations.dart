@@ -1069,56 +1069,70 @@ class AppLocalizations {
   String liveToastReacted(Object user) =>
       TranslationTemplate.format(_tr('liveToastReacted'), {'user': user});
   String liveToastCommentsGrouped(Object n, Object trip) =>
-      TranslationTemplate.format(_tr('liveToastCommentsGrouped'), {'n': n, 'trip': trip});
+      TranslationTemplate.format(
+          _tr('liveToastCommentsGrouped'), {'n': n, 'trip': trip});
   String liveToastOnYourTrip(Object trip) =>
       TranslationTemplate.format(_tr('liveToastOnYourTrip'), {'trip': trip});
   String liveToastFollowed(Object user) =>
       TranslationTemplate.format(_tr('liveToastFollowed'), {'user': user});
   String liveToastFriendRequest(Object user) =>
       TranslationTemplate.format(_tr('liveToastFriendRequest'), {'user': user});
-  String liveToastFriendAccepted(Object user) =>
-      TranslationTemplate.format(_tr('liveToastFriendAccepted'), {'user': user});
+  String liveToastFriendAccepted(Object user) => TranslationTemplate.format(
+      _tr('liveToastFriendAccepted'), {'user': user});
   String get liveToastFriendDeclined => _tr('liveToastFriendDeclined');
   String get liveToastAchievement => _tr('liveToastAchievement');
   String get liveToastSeeAchievement => _tr('liveToastSeeAchievement');
   String liveToastTripStarted(Object user, Object trip) =>
-      TranslationTemplate.format(_tr('liveToastTripStarted'), {'user': user, 'trip': trip});
+      TranslationTemplate.format(
+          _tr('liveToastTripStarted'), {'user': user, 'trip': trip});
   String liveToastTripFinished(Object user, Object trip) =>
-      TranslationTemplate.format(_tr('liveToastTripFinished'), {'user': user, 'trip': trip});
+      TranslationTemplate.format(
+          _tr('liveToastTripFinished'), {'user': user, 'trip': trip});
   String liveToastTripUpdate(Object user) =>
       TranslationTemplate.format(_tr('liveToastTripUpdate'), {'user': user});
   String get liveToastPausedTitle => _tr('liveToastPausedTitle');
   String get liveToastPausedBody => _tr('liveToastPausedBody');
   String get liveToastBack => _tr('liveToastBack');
-  String dialogsMaintenancePolylineMessage(Object name, Object user, Object count, Object polyline) =>
-      TranslationTemplate.format(_tr('dialogsMaintenancePolylineMessage'), {'name': name, 'user': user, 'count': count, 'polyline': polyline});
-  String get dialogsMaintenanceHasPolyline => _tr('dialogsMaintenanceHasPolyline');
-  String get dialogsMaintenanceNoPolyline => _tr('dialogsMaintenanceNoPolyline');
-  String dialogsMaintenanceGeocodingMessage(Object name, Object user, Object count) =>
-      TranslationTemplate.format(_tr('dialogsMaintenanceGeocodingMessage'), {'name': name, 'user': user, 'count': count});
+  String dialogsMaintenancePolylineMessage(
+          Object name, Object user, Object count, Object polyline) =>
+      TranslationTemplate.format(_tr('dialogsMaintenancePolylineMessage'),
+          {'name': name, 'user': user, 'count': count, 'polyline': polyline});
+  String get dialogsMaintenanceHasPolyline =>
+      _tr('dialogsMaintenanceHasPolyline');
+  String get dialogsMaintenanceNoPolyline =>
+      _tr('dialogsMaintenanceNoPolyline');
+  String dialogsMaintenanceGeocodingMessage(
+          Object name, Object user, Object count) =>
+      TranslationTemplate.format(_tr('dialogsMaintenanceGeocodingMessage'),
+          {'name': name, 'user': user, 'count': count});
   String dialogsMaintenanceAllMessage(Object count) =>
-      TranslationTemplate.format(_tr('dialogsMaintenanceAllMessage'), {'count': count});
+      TranslationTemplate.format(
+          _tr('dialogsMaintenanceAllMessage'), {'count': count});
   String get dialogsAdminPromoteTitle => _tr('dialogsAdminPromoteTitle');
   String dialogsAdminPromoteMessage(Object username) =>
-      TranslationTemplate.format(_tr('dialogsAdminPromoteMessage'), {'username': username});
+      TranslationTemplate.format(
+          _tr('dialogsAdminPromoteMessage'), {'username': username});
   String get dialogsAdminPromoteAction => _tr('dialogsAdminPromoteAction');
   String get dialogsAdminDemoteTitle => _tr('dialogsAdminDemoteTitle');
   String dialogsAdminDemoteMessage(Object username) =>
-      TranslationTemplate.format(_tr('dialogsAdminDemoteMessage'), {'username': username});
+      TranslationTemplate.format(
+          _tr('dialogsAdminDemoteMessage'), {'username': username});
   String get dialogsAdminDemoteAction => _tr('dialogsAdminDemoteAction');
   String get dialogsAdminDeleteTitle => _tr('dialogsAdminDeleteTitle');
   String dialogsAdminDeleteMessage(Object username) =>
-      TranslationTemplate.format(_tr('dialogsAdminDeleteMessage'), {'username': username});
+      TranslationTemplate.format(
+          _tr('dialogsAdminDeleteMessage'), {'username': username});
   String get dialogsAdminDeleteAction => _tr('dialogsAdminDeleteAction');
-  String dialogsPromotionByUser(Object username) =>
-      TranslationTemplate.format(_tr('dialogsPromotionByUser'), {'username': username});
+  String dialogsPromotionByUser(Object username) => TranslationTemplate.format(
+      _tr('dialogsPromotionByUser'), {'username': username});
   String get dialogsPromotionPickStart => _tr('dialogsPromotionPickStart');
   String get dialogsPromotionSelectDate => _tr('dialogsPromotionSelectDate');
   String get dialogsPromotionSelectTime => _tr('dialogsPromotionSelectTime');
-  String dialogsPromotionLocalTime(Object time) =>
-      TranslationTemplate.format(_tr('dialogsPromotionLocalTime'), {'time': time});
+  String dialogsPromotionLocalTime(Object time) => TranslationTemplate.format(
+      _tr('dialogsPromotionLocalTime'), {'time': time});
   String get dialogsPromotionRemoveTitle => _tr('dialogsPromotionRemoveTitle');
-  String get dialogsPromotionRemoveAction => _tr('dialogsPromotionRemoveAction');
+  String get dialogsPromotionRemoveAction =>
+      _tr('dialogsPromotionRemoveAction');
   String dialogsFromPlanIntro(Object name) =>
       TranslationTemplate.format(_tr('dialogsFromPlanIntro'), {'name': name});
   String get dialogsFromPlanAutoOn => _tr('dialogsFromPlanAutoOn');
@@ -1137,4 +1151,198 @@ class AppLocalizations {
   String get dialogsShareShortLink => _tr('dialogsShareShortLink');
   String get dialogsShareCopyLink => _tr('dialogsShareCopyLink');
   String get dialogsShareLinkCopied => _tr('dialogsShareLinkCopied');
+  String get home => _tr('home');
+  String get explore => _tr('explore');
+  String get you => _tr('you');
+  String get trip => _tr('trip');
+  String get tripPlan => _tr('tripPlan');
+  String get createMenuPlanSubtitle => _tr('createMenuPlanSubtitle');
+  String get createMenuTripSubtitle => _tr('createMenuTripSubtitle');
+  String get closeCreateMenu => _tr('closeCreateMenu');
+  String get newTripAutoCheckIn => _tr('newTripAutoCheckIn');
+  String get newTripAutoCheckInCaption => _tr('newTripAutoCheckInCaption');
+  String get newTripPickPlan => _tr('newTripPickPlan');
+  String get newTripCreateFromPlan => _tr('newTripCreateFromPlan');
+  String get msgTripCreatedFromPlan => _tr('msgTripCreatedFromPlan');
+  String get welcomeCreateFreeAccount => _tr('welcomeCreateFreeAccount');
+  String get welcomeHaveAccount => _tr('welcomeHaveAccount');
+  String get welcomeHeroSubShort => _tr('welcomeHeroSubShort');
+  String get welcomeFeaturedTrips => _tr('welcomeFeaturedTrips');
+  String get authForgotShort => _tr('authForgotShort');
+  String get authResetSheetTitle => _tr('authResetSheetTitle');
+  String get authResetSheetBody => _tr('authResetSheetBody');
+  String get settingsHelp => _tr('settingsHelp');
+  String get settingsThemeAuto => _tr('settingsThemeAuto');
+  String get settingsAndroidForgotPassword =>
+      _tr('settingsAndroidForgotPassword');
+  String get settingsAndroidForgotCaption =>
+      _tr('settingsAndroidForgotCaption');
+  String get settingsAndroidPush => _tr('settingsAndroidPush');
+  String get settingsAndroidPushCaption => _tr('settingsAndroidPushCaption');
+  String get settingsAndroidContactSupport =>
+      _tr('settingsAndroidContactSupport');
+  String get settingsAndroidShowTutorials =>
+      _tr('settingsAndroidShowTutorials');
+  String get settingsAndroidTerms => _tr('settingsAndroidTerms');
+  String get settingsAndroidPrivacy => _tr('settingsAndroidPrivacy');
+  String settingsAndroidVersion(Object version) => TranslationTemplate.format(
+      _tr('settingsAndroidVersion'), {'version': version});
+  String get settingsAndroidCurrentPassword =>
+      _tr('settingsAndroidCurrentPassword');
+  String get settingsAndroidNewPassword => _tr('settingsAndroidNewPassword');
+  String get settingsAndroidConfirmPassword =>
+      _tr('settingsAndroidConfirmPassword');
+  String get settingsAndroidPasswordRules =>
+      _tr('settingsAndroidPasswordRules');
+  String get settingsAndroidSavePassword => _tr('settingsAndroidSavePassword');
+  String get settingsAndroidShowPassword => _tr('settingsAndroidShowPassword');
+  String get settingsAndroidHidePassword => _tr('settingsAndroidHidePassword');
+  String get settingsAndroidCloseTitle => _tr('settingsAndroidCloseTitle');
+  String get settingsAndroidCloseMessage => _tr('settingsAndroidCloseMessage');
+  String get settingsAndroidCloseTrips => _tr('settingsAndroidCloseTrips');
+  String get settingsAndroidClosePlans => _tr('settingsAndroidClosePlans');
+  String get settingsAndroidCloseAchievements =>
+      _tr('settingsAndroidCloseAchievements');
+  String get settingsAndroidCloseSocial => _tr('settingsAndroidCloseSocial');
+  String get settingsAndroidCloseTypeUsername =>
+      _tr('settingsAndroidCloseTypeUsername');
+  String get settingsAndroidCloseConfirm => _tr('settingsAndroidCloseConfirm');
+  String get settingsAndroidCloseKeep => _tr('settingsAndroidCloseKeep');
+  String get settingsAndroidEggHintTitle => _tr('settingsAndroidEggHintTitle');
+  String get settingsAndroidEggOneMore => _tr('settingsAndroidEggOneMore');
+  String settingsAndroidEggMore(Object remaining) => TranslationTemplate.format(
+      _tr('settingsAndroidEggMore'), {'remaining': remaining});
+  String homeGreetingMorning(Object name) =>
+      TranslationTemplate.format(_tr('homeGreetingMorning'), {'name': name});
+  String homeGreetingAfternoon(Object name) =>
+      TranslationTemplate.format(_tr('homeGreetingAfternoon'), {'name': name});
+  String homeGreetingEvening(Object name) =>
+      TranslationTemplate.format(_tr('homeGreetingEvening'), {'name': name});
+  String get homeSubtitleLive => _tr('homeSubtitleLive');
+  String get homeSubtitleIdle => _tr('homeSubtitleIdle');
+  String homeLiveFor(Object duration) =>
+      TranslationTemplate.format(_tr('homeLiveFor'), {'duration': duration});
+  String homeLastUpdatePlace(Object place, Object time) =>
+      TranslationTemplate.format(
+          _tr('homeLastUpdatePlace'), {'place': place, 'time': time});
+  String homeLastUpdateTime(Object time) =>
+      TranslationTemplate.format(_tr('homeLastUpdateTime'), {'time': time});
+  String homeAutoEvery(Object interval) =>
+      TranslationTemplate.format(_tr('homeAutoEvery'), {'interval': interval});
+  String get homeCheckInNow => _tr('homeCheckInNow');
+  String get homeCheckedIn => _tr('homeCheckedIn');
+  String get homeOpenMap => _tr('homeOpenMap');
+  String get homeDrafts => _tr('homeDrafts');
+  String get homeBadges => _tr('homeBadges');
+  String get homePickUp => _tr('homePickUp');
+  String get homeFriendsOnRoad => _tr('homeFriendsOnRoad');
+  String get homeNoFriends => _tr('homeNoFriends');
+  String get homeNoFriendsLive => _tr('homeNoFriendsLive');
+  String homeNotificationsNew(Object n) =>
+      TranslationTemplate.format(_tr('homeNotificationsNew'), {'n': n});
+  String searchByUser(Object username) =>
+      TranslationTemplate.format(_tr('searchByUser'), {'username': username});
+  String get exploreNoTrips => _tr('exploreNoTrips');
+  String get tripsTabPlans => _tr('tripsTabPlans');
+  String get tripsFilterFinished => _tr('tripsFilterFinished');
+  String tripsFilterCount(Object label, Object n) => TranslationTemplate.format(
+      _tr('tripsFilterCount'), {'label': label, 'n': n});
+  String get tripsNoneForFilter => _tr('tripsNoneForFilter');
+  String get plansEmptyHint => _tr('plansEmptyHint');
+  String planStartFromPlan(Object name) =>
+      TranslationTemplate.format(_tr('planStartFromPlan'), {'name': name});
+  String get planStartNow => _tr('planStartNow');
+  String get planNotYet => _tr('planNotYet');
+  String get planAutoCheckInCaption => _tr('planAutoCheckInCaption');
+  String get planStepStart => _tr('planStepStart');
+  String get planStepFinish => _tr('planStepFinish');
+  String get planStepStops => _tr('planStepStops');
+  String get planEditMapHint => _tr('planEditMapHint');
+  String get planPlannedDistance => _tr('planPlannedDistance');
+  String get planShowAll => _tr('planShowAll');
+  String planStopsShort(Object n) =>
+      TranslationTemplate.format(_tr('planStopsShort'), {'n': n});
+  String planKmPlanned(Object km) =>
+      TranslationTemplate.format(_tr('planKmPlanned'), {'km': km});
+  String get planMyLocation => _tr('planMyLocation');
+  String get planDiscardChanges => _tr('planDiscardChanges');
+  String get planMoreOptions => _tr('planMoreOptions');
+  String get planDeleted => _tr('planDeleted');
+  String get planUpdated => _tr('planUpdated');
+  String get planNoStops => _tr('planNoStops');
+  String get planPlaceStart => _tr('planPlaceStart');
+  String get planPlaceFinish => _tr('planPlaceFinish');
+  String get planPlaceStop => _tr('planPlaceStop');
+  String get planSearchPlace => _tr('planSearchPlace');
+  String get tripsVisibilityFriends => _tr('tripsVisibilityFriends');
+  String youRequestsWaiting(Object n) =>
+      TranslationTemplate.format(_tr('youRequestsWaiting'), {'n': n});
+  String get youOneRequestWaiting => _tr('youOneRequestWaiting');
+  String get youNoRequestsWaiting => _tr('youNoRequestsWaiting');
+  String get youPlanRoutesAhead => _tr('youPlanRoutesAhead');
+  String get youShareProfile => _tr('youShareProfile');
+  String get youMoreOptions => _tr('youMoreOptions');
+  String achievementsCountOf(Object unlocked, Object total) =>
+      TranslationTemplate.format(
+          _tr('achievementsCountOf'), {'unlocked': unlocked, 'total': total});
+  String get notifTripStarted => _tr('notifTripStarted');
+  String get notifTripFinished => _tr('notifTripFinished');
+  String get notifTripOneUpdate => _tr('notifTripOneUpdate');
+  String notifTripUpdates(Object n) =>
+      TranslationTemplate.format(_tr('notifTripUpdates'), {'n': n});
+  String get youDeleteAvatar => _tr('youDeleteAvatar');
+  String get tripCheckIn => _tr('tripCheckIn');
+  String get tripStartAction => _tr('tripStartAction');
+  String get tripRestAction => _tr('tripRestAction');
+  String get tripContinueAction => _tr('tripContinueAction');
+  String get tripResumeAction => _tr('tripResumeAction');
+  String get tripFinishAction => _tr('tripFinishAction');
+  String get tripKeepGoing => _tr('tripKeepGoing');
+  String get tripConfirm => _tr('tripConfirm');
+  String get tripFinishConfirmBody => _tr('tripFinishConfirmBody');
+  String get tripUndo => _tr('tripUndo');
+  String get tripToastStarted => _tr('tripToastStarted');
+  String get tripToastStartedBody => _tr('tripToastStartedBody');
+  String get tripToastPaused => _tr('tripToastPaused');
+  String get tripToastPausedBody => _tr('tripToastPausedBody');
+  String get tripToastResting => _tr('tripToastResting');
+  String get tripToastRestingBody => _tr('tripToastRestingBody');
+  String get tripToastResumed => _tr('tripToastResumed');
+  String get tripToastResumedBody => _tr('tripToastResumedBody');
+  String tripToastDayStarted(Object day) =>
+      TranslationTemplate.format(_tr('tripToastDayStarted'), {'day': day});
+  String get tripToastFinished => _tr('tripToastFinished');
+  String get tripToastFinishedBody => _tr('tripToastFinishedBody');
+  String get tripToastCheckedIn => _tr('tripToastCheckedIn');
+  String tripToastCheckedInAt(Object place) =>
+      TranslationTemplate.format(_tr('tripToastCheckedInAt'), {'place': place});
+  String get tripToastCheckedInBody => _tr('tripToastCheckedInBody');
+  String get tripStatTime => _tr('tripStatTime');
+  String tripAutoCheckInEvery(Object interval) => TranslationTemplate.format(
+      _tr('tripAutoCheckInEvery'), {'interval': interval});
+  String get tripChange => _tr('tripChange');
+  String tripTimelineTab(Object n) =>
+      TranslationTemplate.format(_tr('tripTimelineTab'), {'n': n});
+  String get tripCheckInLabel => _tr('tripCheckInLabel');
+  String get tripEventStarted => _tr('tripEventStarted');
+  String get tripEventFinished => _tr('tripEventFinished');
+  String get tripEventDayStart => _tr('tripEventDayStart');
+  String get tripEventDayEnd => _tr('tripEventDayEnd');
+  String get tripWeather => _tr('tripWeather');
+  String get tripBattery => _tr('tripBattery');
+  String get tripCheckInType => _tr('tripCheckInType');
+  String get tripBatteryGood => _tr('tripBatteryGood');
+  String get tripBatteryLow => _tr('tripBatteryLow');
+  String get tripCopyLocation => _tr('tripCopyLocation');
+  String get tripShareSpot => _tr('tripShareSpot');
+  String get tripLocationCopied => _tr('tripLocationCopied');
+  String get tripGuestCta => _tr('tripGuestCta');
+  String get tripLogIn => _tr('tripLogIn');
+  String tripLastCheckIn(Object time) =>
+      TranslationTemplate.format(_tr('tripLastCheckIn'), {'time': time});
+  String get tripCenterOnMe => _tr('tripCenterOnMe');
+  String get tripMessageOptional => _tr('tripMessageOptional');
+  String tripHoursMinutes(Object h, Object m) =>
+      TranslationTemplate.format(_tr('tripHoursMinutes'), {'h': h, 'm': m});
+  String get tripOpenInMaps => _tr('tripOpenInMaps');
 }

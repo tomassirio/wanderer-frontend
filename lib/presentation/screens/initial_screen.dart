@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/storage/token_refresh_manager.dart';
 import 'package:wanderer_frontend/presentation/screens/dashboard_screen.dart';
-import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_shell.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_welcome_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
 import 'package:wanderer_frontend/presentation/screens/landing_screen.dart';
 
@@ -52,45 +53,15 @@ class _InitialScreenState extends ConsumerState<InitialScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isChecking && kIsWeb) {
+    if (_isChecking) {
       return const Scaffold(
         body: Center(child: WandererLogo(size: 64)),
       );
     }
-    if (_isChecking) {
-      return Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.secondary,
-              ],
-            ),
-          ),
-          child: const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.explore, size: 80, color: Colors.white),
-                SizedBox(height: 24),
-                CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
     if (kIsWeb) {
       return _isLoggedIn ? const DashboardScreen() : const LandingScreen();
     }
 
-    // Always show HomeScreen - it will handle showing public trips or user's trips
-    return const HomeScreen();
+    return _isLoggedIn ? const AndroidShell() : const AndroidWelcomeScreen();
   }
 }

@@ -471,7 +471,7 @@ class _WebAuthFormState extends State<WebAuthForm> {
               const SizedBox(height: 16),
               password,
               const SizedBox(height: 16),
-              _StrengthMeter(
+              PasswordStrengthMeter(
                 rules: passwordRules(l10n, widget.passwordController.text),
               ),
               const SizedBox(height: 16),
@@ -595,10 +595,10 @@ class _FocusRingState extends State<_FocusRing> {
   }
 }
 
-class _StrengthMeter extends StatelessWidget {
+class PasswordStrengthMeter extends StatelessWidget {
   final List<(String, bool)> rules;
 
-  const _StrengthMeter({required this.rules});
+  const PasswordStrengthMeter({super.key, required this.rules});
 
   @override
   Widget build(BuildContext context) {

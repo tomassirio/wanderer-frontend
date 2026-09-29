@@ -1,11 +1,15 @@
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, debugPrint, visibleForTesting;
 import 'package:flutter/services.dart' show MethodChannel;
 import 'package:flutter/widgets.dart' show WidgetsFlutterBinding;
 import 'package:geolocator_android/geolocator_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
+import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/services/notification_service.dart';
+import 'package:wanderer_frontend/data/models/requests/change_status_request.dart';
+import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/data/services/trip_update_service.dart';
 import 'package:wanderer_frontend/data/storage/token_refresh_manager.dart';
 import 'package:wanderer_frontend/data/storage/token_storage.dart';
@@ -232,6 +236,8 @@ class BackgroundUpdateManager {
       return;
     }
 
+    NotificationService.onTripAction = handleLiveTripAction;
+
     try {
       await Workmanager().initialize(
         callbackDispatcher,
@@ -409,6 +415,87 @@ class BackgroundUpdateManager {
     } catch (e) {
       debugPrint(
           'BackgroundUpdateManager: Failed to stop all auto updates: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Live trip notification
+  // ---------------------------------------------------------------------------
+
+  /// Last live notification content, reused after a notification action.
+  ({
+    String tripId,
+    String title,
+    String body,
+    String checkInLabel,
+    String pauseLabel
+  })? _live;
+
+  /// Shows the ongoing live-trip notification while [isLive], removes it
+  /// otherwise. Labels come from the caller (it has the l10n context).
+  Future<void> syncLiveNotification({
+    required String tripId,
+    required String tripName,
+    required bool isLive,
+    required String body,
+    required String checkInLabel,
+    required String pauseLabel,
+  }) async {
+    if (!_isSupported) return;
+    final notifications = NotificationService();
+    if (!isLive) {
+      _live = null;
+      await notifications.cancelLiveTrip();
+      return;
+    }
+    _live = (
+      tripId: tripId,
+      title: tripName,
+      body: body,
+      checkInLabel: checkInLabel,
+      pauseLabel: pauseLabel,
+    );
+    await _showLive();
+    // ponytail: the native tracking service may post its own notification
+    // (same ID) just after starting; post ours again once it has. Move the
+    // actions into TripTrackingService if this ever flickers.
+    Future.delayed(const Duration(seconds: 2), _showLive);
+  }
+
+  Future<void> _showLive() async {
+    final live = _live;
+    if (live == null) return;
+    await NotificationService().showLiveTrip(
+      tripId: live.tripId,
+      title: live.title,
+      body: live.body,
+      checkInLabel: live.checkInLabel,
+      pauseLabel: live.pauseLabel,
+    );
+  }
+
+  /// Runs a live-notification action (Check in / Pause) for [tripId].
+  @visibleForTesting
+  Future<void> handleLiveTripAction(String actionId, String tripId) async {
+    try {
+      if (actionId == NotificationService.actionCheckIn) {
+        final result = await TripUpdateService().sendUpdate(tripId: tripId);
+        if (!result.isSuccess) {
+          await NotificationService().showUpdateFailure(
+            tripName: _live?.title ?? 'Trip',
+            reason: result.userMessage,
+          );
+        }
+        await _showLive();
+      } else if (actionId == NotificationService.actionPause) {
+        await TripService().changeStatus(
+            tripId, ChangeStatusRequest(status: TripStatus.paused));
+        await stopAutoUpdates(tripId);
+        _live = null;
+        await NotificationService().cancelLiveTrip();
+      }
+    } catch (e) {
+      debugPrint('BackgroundUpdateManager: Live action $actionId failed: $e');
     }
   }
 

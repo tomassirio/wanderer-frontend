@@ -12,6 +12,8 @@ import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.da
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/widgets/achievements/achievement_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/achievements/web_achievements_layout.dart';
+import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_sheet.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/web_page_header.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
@@ -202,40 +204,6 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
     return ordered;
   }
 
-  IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case 'Getting Started':
-        return Icons.rocket_launch;
-      case 'Distance':
-        return Icons.directions_walk;
-      case 'Updates':
-        return Icons.edit_note;
-      case 'Duration':
-        return Icons.timer;
-      case 'Social':
-        return Icons.people;
-      default:
-        return Icons.emoji_events;
-    }
-  }
-
-  Color _getCategoryColor(String category) {
-    switch (category) {
-      case 'Getting Started':
-        return Colors.teal;
-      case 'Distance':
-        return Colors.blue;
-      case 'Updates':
-        return Colors.green;
-      case 'Duration':
-        return Colors.orange;
-      case 'Social':
-        return Colors.purple;
-      default:
-        return Colors.grey;
-    }
-  }
-
   String _localizeCategory(BuildContext context, String category) {
     final l10n = context.l10n;
     switch (category) {
@@ -302,6 +270,7 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!kIsWeb) return _buildAndroid();
     return WandererScaffold(
       hideAppBarWithSidebar: true,
       appBar: WandererAppBar(
@@ -325,7 +294,7 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
         onSettings: _handleSettings,
         isAdmin: _isAdmin,
       ),
-      body: kIsWeb ? _buildWebBody() : _buildBody(),
+      body: _buildWebBody(),
     );
   }
 
@@ -438,263 +407,249 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
     }
   }
 
-  Widget _buildBody() {
+  /// Android category tint (bg, fg) from the canvas.
+  (Color, Color) _androidCategoryColors(WandererColors c, String category) {
+    switch (category) {
+      case 'Getting Started':
+        return (c.forestBg, c.forestFg);
+      case 'Distance':
+        return (c.skyBg, c.skyFg);
+      case 'Updates':
+        return (c.trailSoftBg, c.accentText);
+      case 'Duration':
+        return (c.goldBg, c.goldFg);
+      case 'Social':
+        return (c.restingBg, c.restingFg);
+      default:
+        return (c.neutralBg, c.neutralFg);
+    }
+  }
+
+  /// Android (canvas "AndroidAchievements"): progress card with the next
+  /// goal, then a 3-column grid per category tinted in its colour.
+  Widget _buildAndroid() {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            Text(
-              _error!,
-              style: const TextStyle(fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _loadData,
-              child: Text(l10n.retry),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_allAchievements.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.emoji_events_outlined,
-                size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(
-              l10n.noAchievementsYet,
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final unlockedCount = _myAchievements.length;
-    final totalCount = _allAchievements.length;
     final groups = _groupByCategory();
+    Achievement? nextUp;
+    for (final list in groups.values) {
+      nextUp ??= list.where((a) => !_isUnlocked(a)).firstOrNull;
+    }
+    final total = _allAchievements.length;
+    final unlocked = _myAchievements.length;
 
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      child: ListView(
-        padding: const EdgeInsets.all(12),
-        children: [
-          // Summary header
-          if (_isLoggedIn) _buildSummaryCard(unlockedCount, totalCount),
-          if (_isLoggedIn) const SizedBox(height: 16),
-
-          // Achievement categories as grids
-          ...groups.entries.map((entry) => _buildCategorySection(
-                entry.key,
-                entry.value,
-              )),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard(int unlocked, int total) {
-    final l10n = context.l10n;
-    final progress = total > 0 ? unlocked / total : 0.0;
-
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.emoji_events, color: Colors.amber, size: 28),
-                const SizedBox(width: 12),
-                Text(
-                  l10n.achievementsProgress(unlocked, total),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
+    final Widget body;
+    if (_isLoading && _allAchievements.isEmpty) {
+      body = const Center(child: CircularProgressIndicator());
+    } else if (_error != null || _allAchievements.isEmpty) {
+      body = Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.emoji_events_outlined, size: 48, color: c.caption),
+          const SizedBox(height: 12),
+          Text(_error ?? l10n.noAchievementsYet,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: c.textMuted)),
+          if (_error != null) ...[
             const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 8,
-                backgroundColor:
-                    Theme.of(context).colorScheme.surfaceContainerHighest,
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.amber),
+            OutlinedButton(onPressed: _loadData, child: Text(l10n.retry)),
+          ],
+        ]),
+      );
+    } else {
+      body = RefreshIndicator(
+        onRefresh: _loadData,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+          children: [
+            if (_isLoggedIn) ...[
+              Container(
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                decoration: WandererTheme.cardDecoration(context),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(l10n.achievementsCountOf(unlocked, total),
+                            style: WandererTheme.display(24, color: c.text)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text.rich(
+                            nextUp == null
+                                ? TextSpan(text: l10n.achievementsAllUnlocked)
+                                : TextSpan(children: [
+                                    TextSpan(
+                                        text: '${l10n.achievementsNextUp} '),
+                                    TextSpan(
+                                      text: _formatThreshold(context, nextUp),
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: c.text),
+                                    ),
+                                  ]),
+                            textAlign: TextAlign.end,
+                            maxLines: 2,
+                            style: TextStyle(fontSize: 13, color: c.textMuted),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        value: total > 0 ? unlocked / total : 0,
+                        minHeight: 10,
+                        backgroundColor: c.lineSoft,
+                        valueColor:
+                            const AlwaysStoppedAnimation(WandererTheme.trail),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(height: 20),
+            ],
+            for (final entry in groups.entries) ...[
+              _androidSection(c, entry.key, entry.value),
+              const SizedBox(height: 20),
+            ],
           ],
         ),
-      ),
+      );
+    }
+    return Scaffold(
+      backgroundColor: c.ground,
+      appBar: AndroidTopBar(title: l10n.achievements),
+      body: body,
     );
   }
 
-  Widget _buildCategorySection(
-    String category,
-    List<Achievement> achievements,
-  ) {
-    final categoryColor = _getCategoryColor(category);
-    final categoryIcon = _getCategoryIcon(category);
-    final unlockedInCategory = achievements.where((a) => _isUnlocked(a)).length;
-
+  Widget _androidSection(
+      WandererColors c, String category, List<Achievement> achievements) {
+    final (bg, fg) = _androidCategoryColors(c, category);
+    final done = achievements.where(_isUnlocked).length;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            children: [
-              Icon(categoryIcon, color: categoryColor, size: 24),
-              const SizedBox(width: 8),
-              Text(
-                _localizeCategory(context, category),
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: categoryColor,
-                ),
-              ),
-              if (_isLoggedIn) ...[
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: categoryColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '$unlockedInCategory/${achievements.length}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: categoryColor,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        LayoutBuilder(builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 600;
-          final crossAxisCount = isMobile ? 4 : 7;
-          final aspectRatio = isMobile ? 0.75 : 0.85;
-          return GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 6,
-              mainAxisSpacing: 6,
-              childAspectRatio: aspectRatio,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(children: [
+            Expanded(
+              child: Text(_localizeCategory(context, category),
+                  style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: c.text)),
             ),
-            itemCount: achievements.length,
-            itemBuilder: (context, index) =>
-                _buildAchievementTile(context, achievements[index]),
-          );
-        }),
-        const SizedBox(height: 16),
+            if (_isLoggedIn)
+              Text('$done / ${achievements.length}',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: c.textMuted)),
+          ]),
+        ),
+        const SizedBox(height: 10),
+        GridView.count(
+          crossAxisCount: 3,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 0.95,
+          children: [
+            for (final a in achievements) _androidTile(c, a, bg, fg),
+          ],
+        ),
       ],
     );
   }
 
-  Widget _buildAchievementTile(BuildContext context, Achievement achievement) {
-    final unlocked = _isUnlocked(achievement);
-    final userAchievement = _getUnlockedAchievement(achievement);
-    final categoryColor = _getCategoryColor(achievement.type.category);
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return GestureDetector(
-      onTap: () => _showAchievementDetail(achievement, userAchievement),
-      child: Container(
-        decoration: BoxDecoration(
-          color: unlocked
-              ? categoryColor.withOpacity(0.1)
-              : colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color:
-                unlocked ? categoryColor : colorScheme.outline.withOpacity(0.5),
-            width: unlocked ? 2 : 1,
-          ),
-        ),
-        padding: const EdgeInsets.all(4),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Trophy icon
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: unlocked
-                    ? categoryColor
-                    : colorScheme.outline.withOpacity(0.4),
-                shape: BoxShape.circle,
+  Widget _androidTile(WandererColors c, Achievement a, Color bg, Color fg) {
+    final ua = _getUnlockedAchievement(a);
+    final unlocked = ua != null;
+    return Material(
+      color: unlocked ? bg : c.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: unlocked ? fg.withAlpha(64) : c.line),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _showAchievementDetail(a, ua),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(6, 12, 6, 8),
+          child: Column(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: unlocked ? c.surface : c.ground,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(unlocked ? Icons.emoji_events : Icons.lock_outline,
+                    size: 20, color: unlocked ? fg : c.caption),
               ),
-              child: Icon(
-                unlocked ? Icons.emoji_events : Icons.lock_outline,
-                color: unlocked
-                    ? Colors.white
-                    : colorScheme.onSurface.withOpacity(0.4),
-                size: 18,
-              ),
-            ),
-            const SizedBox(height: 3),
-            // Achievement name
-            Flexible(
-              child: Text(
-                context.l10n.achievementNameFor(achievement.type.toJson()),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: unlocked
-                      ? categoryColor
-                      : colorScheme.onSurface.withOpacity(0.6),
+              const SizedBox(height: 8),
+              Expanded(
+                child: Text(
+                  context.l10n.achievementNameFor(a.type.toJson()),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: unlocked ? fg : c.textMuted),
                 ),
               ),
-            ),
-            const SizedBox(height: 1),
-            // Threshold or achieved value
-            Text(
-              unlocked && userAchievement != null
-                  ? _formatValue(
-                      context, achievement, userAchievement.valueAchieved)
-                  : _formatThreshold(context, achievement),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 8,
-                color: unlocked
-                    ? categoryColor
-                    : colorScheme.onSurface.withOpacity(0.45),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  /// Android detail sheet for one achievement.
+  void _showAndroidDetail(Achievement achievement, UserAchievement? ua) {
+    final c = WandererTheme.of(context);
+    final l10n = context.l10n;
+    final (bg, fg) = _androidCategoryColors(c, achievement.type.category);
+    showWandererSheet(
+      context,
+      builder: (context) => Column(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+                color: ua != null ? bg : c.raised, shape: BoxShape.circle),
+            child: Icon(ua != null ? Icons.emoji_events : Icons.lock_outline,
+                size: 32, color: ua != null ? fg : c.caption),
+          ),
+          const SizedBox(height: 16),
+          Text(l10n.achievementNameFor(achievement.type.toJson()),
+              textAlign: TextAlign.center,
+              style: WandererTheme.display(22, color: c.text)),
+          const SizedBox(height: 8),
+          Text(l10n.achievementDescriptionFor(achievement.type.toJson()),
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 15, color: c.textMuted)),
+          const SizedBox(height: 12),
+          Text(
+            ua != null
+                ? '${l10n.achievedValue(_formatValue(context, achievement, ua.valueAchieved))} · '
+                    '${l10n.unlockedOn(_formatDate(ua.unlockedAt))}'
+                : l10n.goalValue(_formatThreshold(context, achievement)),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 14, fontWeight: FontWeight.w600, color: c.text),
+          ),
+        ],
       ),
     );
   }
@@ -708,92 +663,7 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
           unlocked: userAchievement, shareUsername: _username);
       return;
     }
-    final unlocked = userAchievement != null;
-    final categoryColor = _getCategoryColor(achievement.type.category);
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        final l10n = context.l10n;
-        final colorScheme = Theme.of(context).colorScheme;
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: unlocked
-                      ? categoryColor
-                      : colorScheme.outline.withOpacity(0.4),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  unlocked ? Icons.emoji_events : Icons.lock_outline,
-                  color: unlocked
-                      ? Colors.white
-                      : colorScheme.onSurface.withOpacity(0.4),
-                  size: 36,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.achievementNameFor(achievement.type.toJson()),
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: unlocked
-                      ? categoryColor
-                      : colorScheme.onSurface.withOpacity(0.6),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.achievementDescriptionFor(achievement.type.toJson()),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color:
-                      unlocked ? null : colorScheme.onSurface.withOpacity(0.5),
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (userAchievement != null) ...[
-                Text(
-                  l10n.achievedValue(_formatValue(
-                      context, achievement, userAchievement.valueAchieved)),
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: categoryColor,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  l10n.unlockedOn(_formatDate(userAchievement.unlockedAt)),
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: colorScheme.onSurface.withOpacity(0.6)),
-                ),
-              ] else ...[
-                Text(
-                  l10n.goalValue(_formatThreshold(context, achievement)),
-                  style: TextStyle(
-                      fontSize: 14,
-                      color: colorScheme.onSurface.withOpacity(0.5)),
-                ),
-              ],
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
-    );
+    _showAndroidDetail(achievement, userAchievement);
   }
 
   String _formatDate(DateTime date) {

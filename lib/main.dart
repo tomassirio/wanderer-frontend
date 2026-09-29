@@ -106,7 +106,7 @@ class MyApp extends StatelessWidget {
               // automatically rebuilds via context.l10n when locale changes.
               builder: (context, child) => L10nScope(
                 notifier: LocaleController().locale,
-                child: kIsWeb ? ToastHost(child: child!) : child!,
+                child: ToastHost(child: child!),
               ),
               navigatorKey: NavigationService().navigatorKey,
               navigatorObservers: [routeObserver],

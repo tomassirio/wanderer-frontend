@@ -46,6 +46,11 @@ import 'settings_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/web_trip_detail_layout.dart';
+import 'package:wanderer_frontend/presentation/widgets/android/trip_checkin_sheet.dart';
+import 'package:wanderer_frontend/presentation/widgets/android/trip_detail_android_layout.dart';
+import 'package:wanderer_frontend/presentation/widgets/android/trip_map_dots.dart';
+import 'package:wanderer_frontend/presentation/widgets/android/trip_state_controls.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 
 /// Trip detail screen showing trip info, map, and comments
 class TripDetailScreen extends ConsumerStatefulWidget {
@@ -171,6 +176,90 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
   /// Check if we're on Android (the only platform supporting background updates)
   bool get _isAndroid => !kIsWeb && Platform.isAndroid;
+
+  /// Web keeps its floating notifications; Android uses the toast stack.
+  void _showSuccess(String message) => kIsWeb
+      ? UiHelpers.showSuccessMessage(context, message)
+      : Toasts.show(ToastData(kind: ToastKind.success, title: message));
+  void _showError(String message) => kIsWeb
+      ? UiHelpers.showErrorMessage(context, message)
+      : Toasts.show(ToastData(kind: ToastKind.error, title: message));
+  void _showInfo(String message) => kIsWeb
+      ? UiHelpers.showInfoMessage(context, message)
+      : Toasts.show(ToastData(kind: ToastKind.info, title: message));
+
+  /// Android: state-change toast with Undo for 5 s (canvas "Trip controls").
+  /// [undo] is null when the change can't be undone (start, finish).
+  void _showStateToast(TripStatus status, {VoidCallback? undo}) {
+    final l10n = context.l10n;
+    final (title, body) = switch (status) {
+      TripStatus.inProgress => (
+          l10n.tripToastResumed,
+          l10n.tripToastResumedBody
+        ),
+      TripStatus.paused => (l10n.tripToastPaused, l10n.tripToastPausedBody),
+      TripStatus.resting => (l10n.tripToastResting, l10n.tripToastRestingBody),
+      TripStatus.finished => (
+          l10n.tripToastFinished,
+          l10n.tripToastFinishedBody
+        ),
+      TripStatus.created => (l10n.tripToastStarted, l10n.tripToastStartedBody),
+    };
+    Toasts.show(ToastData(
+      kind: status == TripStatus.paused ? ToastKind.info : ToastKind.success,
+      title: title,
+      body: body,
+      linkLabel: undo != null ? l10n.tripUndo : null,
+      onLink: undo,
+    ));
+  }
+
+  /// Android: keep the ongoing "live" notification in sync with the trip.
+  void _syncLiveNotification() {
+    if (!_isAndroid || _userId == null || _trip.userId != _userId) return;
+    final l10n = context.l10n;
+    final latest = _tripUpdates.isEmpty
+        ? null
+        : _tripUpdates
+            .map((u) => u.timestamp)
+            .reduce((a, b) => a.isAfter(b) ? a : b);
+    BackgroundUpdateManager().syncLiveNotification(
+      tripId: _trip.id,
+      tripName: _trip.name,
+      isLive: _trip.status == TripStatus.inProgress,
+      body: [
+        l10n.live,
+        if (latest != null)
+          l10n.tripLastCheckIn(
+              TimeOfDay.fromDateTime(latest.toLocal()).format(context)),
+      ].join(' · '),
+      checkInLabel: l10n.tripCheckIn,
+      pauseLabel: l10n.pause,
+    );
+  }
+
+  /// Android "Check in": optional message, then the regular manual update.
+  Future<void> _androidCheckIn() async {
+    final message = await showTripCheckInComposer(context);
+    if (message == null || !mounted) return;
+    await _sendManualUpdate(message.isEmpty ? null : message);
+  }
+
+  /// Android "Finish": the only change that asks first (bottom sheet).
+  Future<void> _androidFinish() async {
+    final l10n = context.l10n;
+    final km = (_trip.accruedDistanceKm ?? 0).toStringAsFixed(1);
+    final updates = _trip.updateCount ?? _tripUpdates.length;
+    final stats = [
+      if (_trip.startDate != null)
+        l10n.daysCount(DateTime.now().difference(_trip.startDate!).inDays + 1),
+      l10n.kmValue(km),
+      '$updates ${l10n.categoryUpdates.toLowerCase()}',
+    ].join(' · ');
+    final ok =
+        await showTripFinishSheet(context, tripName: _trip.name, stats: stats);
+    if (ok && mounted) await _changeTripStatus(TripStatus.finished);
+  }
 
   /// Check if trip update panel should be shown
   /// Only on Android, for trip owner, when trip is in progress
@@ -1157,6 +1246,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     });
 
     _maybeShowTripDetailTutorial();
+    _syncLiveNotification();
 
     // Now that userId is available, ensure we're subscribed to the
     // user topic for NOTIFICATION_CREATED events (achievements, etc.)
@@ -1185,7 +1275,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   ///   it's reachable only after expanding the Info bubble, so it's
   ///   explained as part of that step's copy instead of a separate target.
   Future<void> _maybeShowTripDetailTutorial() async {
-    if (_tutorialCheckDone || !mounted) return;
+    // Coach marks describe the floating-bubble layout, which Android dropped.
+    if (_tutorialCheckDone || !mounted || !kIsWeb) return;
     _tutorialCheckDone = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1340,7 +1431,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           await _loadTripUpdates(retryCount: retryCount + 1);
         }
       } else if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Error loading updates: $e');
+        _showError('Error loading updates: $e');
       }
     }
   }
@@ -1380,7 +1471,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     } catch (e) {
       setState(() => _isLoadingMoreUpdates = false);
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Error loading more updates: $e');
+        _showError('Error loading more updates: $e');
       }
     }
   }
@@ -1442,6 +1533,10 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         onPlannedMarkerTap: _onPlannedMarkerTapped,
         showPlannedWaypoints: _showPlannedWaypoints,
       );
+      if (!kIsWeb) {
+        _applyAndroidMapData(mapData);
+        return;
+      }
       setState(() {
         _markers = mapData.markers;
         _polylines = mapData.polylines;
@@ -1468,9 +1563,27 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   void _onMapMarkerTapped(TripLocation location) {
+    if (!kIsWeb) {
+      showTripCheckInDetail(context, location);
+      return;
+    }
     setState(() {
       _selectedMapLocation = location;
       _selectedPlannedWaypoint = null; // clear other selection
+    });
+  }
+
+  int _mapStyleRun = 0;
+
+  /// Android: small stop dots and state-coloured route (canvas).
+  Future<void> _applyAndroidMapData(MapData data) async {
+    final run = ++_mapStyleRun;
+    final styled =
+        await TripMapDots.restyle(data, _trip, WandererTheme.of(context));
+    if (!mounted || run != _mapStyleRun) return;
+    setState(() {
+      _markers = styled.markers;
+      _polylines = styled.polylines;
     });
   }
 
@@ -1509,7 +1622,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     } catch (e) {
       setState(() => _isLoadingComments = false);
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Error loading comments: $e');
+        _showError('Error loading comments: $e');
       }
     }
   }
@@ -1535,7 +1648,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     } catch (e) {
       setState(() => _isLoadingMoreComments = false);
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Error loading more comments: $e');
+        _showError('Error loading more comments: $e');
       }
     }
   }
@@ -1585,7 +1698,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       });
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Error loading replies: $e');
+        _showError('Error loading replies: $e');
       }
     }
   }
@@ -1686,11 +1799,11 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       }
 
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, 'Comment added!');
+        _showSuccess('Comment added!');
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Error adding comment: $e');
+        _showError('Error adding comment: $e');
       }
     } finally {
       setState(() => _isAddingComment = false);
@@ -1767,7 +1880,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
             'Removing reaction: commentId=$commentId, type=${type.toJson()}');
         await _repository.removeReaction(commentId, type);
         if (mounted) {
-          UiHelpers.showSuccessMessage(context, 'Reaction removed!');
+          _showSuccess('Reaction removed!');
         }
       } else if (currentReaction != null) {
         // User clicked a different reaction → backend will auto-replace
@@ -1775,7 +1888,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
             'Replacing reaction: commentId=$commentId, from=${currentReaction.toJson()} to=${type.toJson()}');
         await _repository.addReaction(commentId, type);
         if (mounted) {
-          UiHelpers.showSuccessMessage(context, 'Reaction changed!');
+          _showSuccess('Reaction changed!');
         }
       } else {
         // User has no reaction → add new one
@@ -1783,7 +1896,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
             'Adding new reaction: commentId=$commentId, type=${type.toJson()}');
         await _repository.addReaction(commentId, type);
         if (mounted) {
-          UiHelpers.showSuccessMessage(context, 'Reaction added!');
+          _showSuccess('Reaction added!');
         }
       }
     } catch (e) {
@@ -1799,18 +1912,17 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       final errorMessage = e.toString();
       if (errorMessage.contains('409') || errorMessage.contains('Conflict')) {
         if (mounted) {
-          UiHelpers.showInfoMessage(
-              context, 'You already have this reaction on the comment');
+          _showInfo('You already have this reaction on the comment');
         }
       } else if (errorMessage.contains('500')) {
         // Backend error during reaction replacement
         if (mounted) {
-          UiHelpers.showErrorMessage(context,
+          _showError(
               'Server error while changing reaction. This may be a backend issue.');
         }
       } else {
         if (mounted) {
-          UiHelpers.showErrorMessage(context, 'Error with reaction: $e');
+          _showError('Error with reaction: $e');
         }
       }
     }
@@ -1967,12 +2079,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     await _handleReactionClick(commentId, type);
   }
 
-  Future<void> _changeTripStatus(TripStatus newStatus) async {
+  Future<void> _changeTripStatus(TripStatus newStatus,
+      {bool undoable = true}) async {
     // Validate that user is the trip owner
     if (_userId == null || _trip.userId != _userId) {
       if (mounted) {
-        UiHelpers.showErrorMessage(
-            context, 'Only trip owner can change status');
+        _showError('Only trip owner can change status');
       }
       return;
     }
@@ -2066,7 +2178,16 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         await _centerMapOnCurrentLocation();
       }
 
-      if (mounted) {
+      if (mounted && !kIsWeb) {
+        _syncLiveNotification();
+        final isStart = previousStatus == TripStatus.created;
+        _showStateToast(
+          isStart ? TripStatus.created : newStatus,
+          undo: undoable && !isStart && newStatus != TripStatus.finished
+              ? () => _changeTripStatus(previousStatus, undoable: false)
+              : null,
+        );
+      } else if (mounted) {
         String message;
         switch (newStatus) {
           case TripStatus.inProgress:
@@ -2085,12 +2206,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
             message = 'Trip status updated';
             break;
         }
-        UiHelpers.showSuccessMessage(context, message);
+        _showSuccess(message);
       }
     } catch (e) {
       setState(() => _isChangingStatus = false);
       if (mounted) {
-        UiHelpers.showErrorMessage(context, friendlyMessage(e));
+        _showError(friendlyMessage(e));
       }
     }
   }
@@ -2099,8 +2220,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     // Validate that user is the trip owner
     if (_userId == null || _trip.userId != _userId) {
       if (mounted) {
-        UiHelpers.showErrorMessage(
-            context, 'Only trip owner can change visibility');
+        _showError('Only trip owner can change visibility');
       }
       return;
     }
@@ -2114,14 +2234,13 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       });
 
       if (mounted) {
-        UiHelpers.showSuccessMessage(
-          context,
+        _showSuccess(
           'Visibility changed to ${newVisibility.toJson()}',
         );
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Error changing visibility: $e');
+        _showError('Error changing visibility: $e');
       }
     }
   }
@@ -2170,7 +2289,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     try {
       await _repository.deleteTrip(_trip.id);
       if (mounted) {
-        UiHelpers.showSuccessMessage(context, 'Trip deleted');
+        _showSuccess('Trip deleted');
         Navigator.of(context).pushAndRemoveUntil(
           PageTransitions.fade(const InitialScreen()),
           (route) => false,
@@ -2178,7 +2297,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Error deleting trip: $e');
+        _showError('Error deleting trip: $e');
       }
     }
   }
@@ -2187,35 +2306,39 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   /// Calls the backend toggle-day endpoint which handles the status transition.
   /// When finishing a day, shows a confirmation dialog first.
   /// Returns `true` when the action was completed (message field can be cleared).
-  Future<bool> _handleDayButtonTap(String? message) async {
+  Future<bool> _handleDayButtonTap(String? message,
+      {bool confirm = true}) async {
     final l10n = context.l10n;
     if (_trip.status == TripStatus.inProgress) {
       // --- Finish Day: confirmation → toggle day ---
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text('Finish Day $_currentDay'),
-          content: Text(
-            'Are you sure you want to finish Day $_currentDay? '
-            'Your trip status will change to resting.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(l10n.cancel),
-            ),
-            ElevatedButton(
-              key: const Key('confirm_finish_day_button'),
-              onPressed: () => Navigator.pop(dialogContext, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: WandererTheme.dayEndColor,
-                foregroundColor: Colors.white,
+      // Android rests instantly and offers Undo instead of asking.
+      final confirmed = !confirm
+          ? true
+          : await showDialog<bool>(
+              context: context,
+              builder: (dialogContext) => AlertDialog(
+                title: Text('Finish Day $_currentDay'),
+                content: Text(
+                  'Are you sure you want to finish Day $_currentDay? '
+                  'Your trip status will change to resting.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    child: Text(l10n.cancel),
+                  ),
+                  ElevatedButton(
+                    key: const Key('confirm_finish_day_button'),
+                    onPressed: () => Navigator.pop(dialogContext, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: WandererTheme.dayEndColor,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: Text(l10n.finishDay),
+                  ),
+                ],
               ),
-              child: Text(l10n.finishDay),
-            ),
-          ],
-        ),
-      );
+            );
 
       if (confirmed != true || !mounted) return false;
 
@@ -2250,15 +2373,21 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         }
 
         // Refresh timeline to show the day-end marker
-        if (mounted) {
-          UiHelpers.showSuccessMessage(context, 'Resting for the night');
+        if (mounted && !kIsWeb) {
+          _syncLiveNotification();
+          _showStateToast(TripStatus.resting,
+              undo: () =>
+                  _changeTripStatus(TripStatus.inProgress, undoable: false));
+          await _loadTripUpdates();
+        } else if (mounted) {
+          _showSuccess('Resting for the night');
           await _loadTripUpdates();
         }
         return true;
       } catch (e) {
         setState(() => _isChangingStatus = false);
         if (mounted) {
-          UiHelpers.showErrorMessage(context, 'Error ending day: $e');
+          _showError('Error ending day: $e');
         }
         return false;
       }
@@ -2306,15 +2435,26 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         }
 
         // Refresh timeline to show the day-start marker
-        if (mounted) {
-          UiHelpers.showSuccessMessage(context, 'Day $_currentDay started!');
+        if (mounted && !kIsWeb) {
+          _syncLiveNotification();
+          Toasts.show(ToastData(
+            kind: ToastKind.success,
+            title: l10n.tripToastDayStarted(_currentDay),
+            body: l10n.tripToastResumedBody,
+            linkLabel: l10n.tripUndo,
+            onLink: () =>
+                _changeTripStatus(TripStatus.resting, undoable: false),
+          ));
+          await _loadTripUpdates();
+        } else if (mounted) {
+          _showSuccess('Day $_currentDay started!');
           await _loadTripUpdates();
         }
         return true;
       } catch (e) {
         setState(() => _isChangingStatus = false);
         if (mounted) {
-          UiHelpers.showErrorMessage(context, 'Error starting day: $e');
+          _showError('Error starting day: $e');
         }
         return false;
       }
@@ -2327,8 +2467,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     // Only trip owner can change settings
     if (_userId == null || _trip.userId != _userId) {
       if (mounted) {
-        UiHelpers.showErrorMessage(
-            context, 'Only trip owner can change settings');
+        _showError('Only trip owner can change settings');
       }
       return;
     }
@@ -2378,13 +2517,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       }
 
       if (mounted) {
-        UiHelpers.showSuccessMessage(
-            context, 'Trip settings updated successfully');
+        _showSuccess('Trip settings updated successfully');
       }
     } catch (e) {
       setState(() => _isChangingSettings = false);
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Error updating settings: $e');
+        _showError('Error updating settings: $e');
       }
     }
   }
@@ -2394,8 +2532,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     final backgroundManager = BackgroundUpdateManager();
     await backgroundManager.triggerTestUpdate(_trip.id, tripName: _trip.name);
     if (mounted) {
-      UiHelpers.showSuccessMessage(
-        context,
+      _showSuccess(
         '🧪 Test background update triggered — check notifications',
       );
     }
@@ -2469,7 +2606,15 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
       if (mounted) {
         if (result.isSuccess) {
-          UiHelpers.showSuccessMessage(context, 'Update sent successfully!');
+          if (kIsWeb) {
+            _showSuccess('Update sent successfully!');
+          } else {
+            Toasts.show(ToastData(
+              kind: ToastKind.success,
+              title: context.l10n.tripToastCheckedIn,
+              body: context.l10n.tripToastCheckedInBody,
+            ));
+          }
           // Delay the timeline refresh so the CQRS query model has time to
           // propagate the new update. The WebSocket event handles the
           // immediate map / marker update; this is only for timeline
@@ -2490,12 +2635,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
             );
           }
         } else {
-          UiHelpers.showErrorMessage(context, result.userMessage);
+          _showError(result.userMessage);
         }
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, 'Error sending update: $e');
+        _showError('Error sending update: $e');
       }
     } finally {
       if (mounted) {
@@ -2514,8 +2659,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       {bool requireBackground = false}) async {
     if (!await Geolocator.isLocationServiceEnabled()) {
       if (mounted) {
-        UiHelpers.showErrorMessage(
-          context,
+        _showError(
           'Location services are disabled. '
           'Please enable GPS in your device settings.',
         );
@@ -2534,8 +2678,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
     if (permission == LocationPermission.denied) {
       if (mounted) {
-        UiHelpers.showErrorMessage(
-          context,
+        _showError(
           'Location permission is required to send updates.',
         );
       }
@@ -2544,8 +2687,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
     if (permission == LocationPermission.deniedForever) {
       if (mounted) {
-        UiHelpers.showErrorMessage(
-          context,
+        _showError(
           'Location permission is permanently denied. '
           'Please enable it in your device settings.',
         );
@@ -2565,8 +2707,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       final userConsented = await BackgroundLocationDisclosure.show(context);
       if (!userConsented) {
         if (mounted) {
-          UiHelpers.showErrorMessage(
-            context,
+          _showError(
             'Background location is required for automatic trip updates. '
             'You can still send manual updates.',
           );
@@ -2578,8 +2719,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       permission = await Geolocator.requestPermission();
       if (permission != LocationPermission.always) {
         if (mounted) {
-          UiHelpers.showErrorMessage(
-            context,
+          _showError(
             'Please select "Allow all the time" in your device settings '
             'to enable automatic trip updates.',
           );
@@ -2634,7 +2774,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else if (mounted) {
-      UiHelpers.showErrorMessage(context, 'Could not open donation link');
+      _showError('Could not open donation link');
     }
   }
 
@@ -2665,12 +2805,11 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           _isFollowingTripOwner = false;
         });
         if (mounted) {
-          UiHelpers.showSuccessMessage(
-              context, 'Unfollowed @${_trip.username}');
+          _showSuccess('Unfollowed @${_trip.username}');
         }
       } catch (e) {
         if (mounted) {
-          UiHelpers.showErrorMessage(context, 'Failed to unfollow user: $e');
+          _showError('Failed to unfollow user: $e');
         }
       }
     } else {
@@ -2680,12 +2819,11 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           _isFollowingTripOwner = true;
         });
         if (mounted) {
-          UiHelpers.showSuccessMessage(
-              context, 'You are now following @${_trip.username}');
+          _showSuccess('You are now following @${_trip.username}');
         }
       } catch (e) {
         if (mounted) {
-          UiHelpers.showErrorMessage(context, 'Failed to follow user: $e');
+          _showError('Failed to follow user: $e');
         }
       }
     }
@@ -2702,12 +2840,11 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           _isAlreadyFriends = false;
         });
         if (mounted) {
-          UiHelpers.showSuccessMessage(
-              context, 'You are no longer friends with @${_trip.username}');
+          _showSuccess('You are no longer friends with @${_trip.username}');
         }
       } catch (e) {
         if (mounted) {
-          UiHelpers.showErrorMessage(context, 'Failed to remove friend: $e');
+          _showError('Failed to remove friend: $e');
         }
       }
       return;
@@ -2722,12 +2859,11 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           _sentFriendRequestId = null;
         });
         if (mounted) {
-          UiHelpers.showSuccessMessage(context, 'Friend request cancelled');
+          _showSuccess('Friend request cancelled');
         }
       } catch (e) {
         if (mounted) {
-          UiHelpers.showErrorMessage(
-              context, 'Failed to cancel friend request: $e');
+          _showError('Failed to cancel friend request: $e');
         }
       }
       return;
@@ -2741,19 +2877,18 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         _sentFriendRequestId = requestId;
       });
       if (mounted) {
-        UiHelpers.showSuccessMessage(
-            context, 'Friend request sent to @${_trip.username}');
+        _showSuccess('Friend request sent to @${_trip.username}');
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(
-            context, 'Failed to send friend request: $e');
+        _showError('Failed to send friend request: $e');
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!kIsWeb) return _buildAndroid(context);
     final l10n = context.l10n;
     return WandererScaffold(
       collapsedSidebar: true,
@@ -2976,6 +3111,59 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  /// Android: full-screen map, round controls, draggable info sheet.
+  Widget _buildAndroid(BuildContext context) {
+    final isOwner = _userId != null && _trip.userId == _userId;
+    final height = MediaQuery.sizeOf(context).height;
+    final map = TripMapView(
+      initialLocation:
+          TripMapHelper.getInitialLocation(_trip, userLocation: _userLocation),
+      initialZoom:
+          TripMapHelper.getInitialZoom(_trip, userLocation: _userLocation),
+      markers: _markers,
+      polylines: _polylines,
+      onMapCreated: (controller) {
+        _mapController = controller;
+        if (!_mapControllerCompleter.isCompleted) {
+          _mapControllerCompleter.complete(controller);
+        }
+      },
+      isOwner: isOwner,
+      padding: EdgeInsets.only(
+          bottom: height * TripDetailAndroidLayout.initialSheet),
+    );
+    return Scaffold(
+      body: TripDetailAndroidLayout(
+        data: _createLayoutData(true),
+        map: map,
+        isMapLoading: _isMapLoading,
+        onLogin: _navigateToAuth,
+        onCenterOnMe: isOwner ? _centerMapOnCurrentLocation : null,
+        onCheckInTap: (u) {
+          _handleTimelineUpdateTap(u);
+          showTripCheckInDetail(context, u);
+        },
+        donationButton: _isPromoted && _donationLink != null
+            ? _buildDonationButton()
+            : null,
+        controls: isOwner && _trip.status != TripStatus.finished
+            ? TripStateControls(
+                status: _trip.status,
+                isMultiDay: _trip.tripModality == TripModality.multiDay,
+                isBusy: _isChangingStatus || _isSendingUpdate,
+                onStart: () => _changeTripStatus(TripStatus.inProgress),
+                onCheckIn: _androidCheckIn,
+                onPause: () => _changeTripStatus(TripStatus.paused),
+                onRest: () => _handleDayButtonTap(null, confirm: false),
+                onResume: () => _changeTripStatus(TripStatus.inProgress),
+                onContinue: () => _handleDayButtonTap(null),
+                onFinish: _androidFinish,
+              )
+            : null,
       ),
     );
   }

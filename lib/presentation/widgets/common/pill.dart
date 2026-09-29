@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart' show TripStatus;
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -12,6 +13,10 @@ enum PillTone {
   gold,
   neutral,
 
+  /// Trip states on Android (canvas "Trip controls & states").
+  paused,
+  resting,
+
   /// Pill over maps and images (white in light mode, Night in dark).
   onImage;
 
@@ -21,6 +26,8 @@ enum PillTone {
         PillTone.promoted => (c.trailSoftBg, c.trailSoftFg),
         PillTone.gold => (c.goldBg, c.goldFg),
         PillTone.neutral => (c.neutralBg, c.neutralFg),
+        PillTone.paused => (c.pausedBg, c.pausedFg),
+        PillTone.resting => (c.restingBg, c.restingFg),
         PillTone.onImage => (c.overlayPillBg, c.text),
       };
 }
@@ -47,10 +54,14 @@ class Pill extends StatelessWidget {
     final (label, tone, icon) = switch (status) {
       TripStatus.finished => (l10n.completed, PillTone.completed, Icons.check),
       TripStatus.inProgress => (l10n.live, PillTone.progress, null),
-      TripStatus.paused => (l10n.paused, PillTone.gold, Icons.pause),
+      TripStatus.paused => (
+          l10n.paused,
+          kIsWeb ? PillTone.gold : PillTone.paused,
+          Icons.pause
+        ),
       TripStatus.resting => (
           l10n.resting,
-          PillTone.neutral,
+          kIsWeb ? PillTone.neutral : PillTone.resting,
           Icons.nightlight_round
         ),
       TripStatus.created => (l10n.draft, PillTone.neutral, Icons.schedule),
@@ -95,3 +106,14 @@ class Pill extends StatelessWidget {
     );
   }
 }
+
+/// Android: one colour per trip state, shared by the pill, the map pin and
+/// the button that leads to that state (canvas "Trip controls & states").
+(Color bg, Color fg) tripStateColors(WandererColors c, TripStatus status) =>
+    switch (status) {
+      TripStatus.created => (c.neutralBg, c.textMuted),
+      TripStatus.inProgress => (c.skyBg, c.skyFg),
+      TripStatus.paused => (c.pausedBg, c.pausedFg),
+      TripStatus.resting => (c.restingBg, c.restingFg),
+      TripStatus.finished => (c.forestBg, c.forestFg),
+    };

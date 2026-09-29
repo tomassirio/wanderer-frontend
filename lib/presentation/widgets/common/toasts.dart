@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/services/navigation_service.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_notifications_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/notifications_dropdown.dart';
 
 /// Kinds from the canvas "Live notifications" pattern; the coloured icon
@@ -25,6 +27,9 @@ enum ToastKind {
 
   /// Connection lost or something failed; stays until closed.
   error,
+
+  /// A nudge or tip (e.g. the settings easter egg's "one more tap").
+  hint,
 }
 
 /// One live notification.
@@ -201,8 +206,14 @@ class _MoreChip extends StatelessWidget {
         onTap: () {
           final ctx = NavigationService().navigatorKey.currentContext;
           if (ctx == null) return;
-          final size = MediaQuery.sizeOf(ctx);
           Toasts.clear();
+          if (!kIsWeb) {
+            // Android: the notifications panel is a full screen.
+            Navigator.of(ctx).push(MaterialPageRoute(
+                builder: (_) => const AndroidNotificationsScreen()));
+            return;
+          }
+          final size = MediaQuery.sizeOf(ctx);
           showNotificationsDropdown(
             context: ctx,
             position: RelativeRect.fromLTRB(size.width - 420, 72, 24, 0),
@@ -282,7 +293,7 @@ class _ToastCardState extends State<_ToastCard> with TickerProviderStateMixin {
         ToastKind.success => (c.forestBg, c.forestFg),
         ToastKind.info => (c.skyBg, c.skyFg),
         ToastKind.social || ToastKind.request => (c.trailSoftBg, c.trailSoftFg),
-        ToastKind.achievement => (
+        ToastKind.achievement || ToastKind.hint => (
             c.goldBg,
             dark ? c.goldFg : WandererTheme.goldIcon
           ),
@@ -325,6 +336,7 @@ class _ToastCardState extends State<_ToastCard> with TickerProviderStateMixin {
         Icon(Icons.person_add_alt_1_outlined, size: 18, color: chipFg),
       ToastKind.error =>
         Icon(Icons.warning_amber_rounded, size: 18, color: chipFg),
+      ToastKind.hint => Icon(Icons.lightbulb_outline, size: 18, color: chipFg),
     };
 
     final card = Container(

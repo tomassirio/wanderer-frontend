@@ -23,7 +23,8 @@ import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/web_page_header.dart';
 import 'package:wanderer_frontend/presentation/widgets/friends/friends_web_widgets.dart';
-import 'package:wanderer_frontend/presentation/widgets/home/relationship_badge.dart';
+import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_sheet.dart';
 import 'search_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/search/search_overlay.dart';
 import 'auth_screen.dart';
@@ -40,13 +41,12 @@ class FriendsFollowersScreen extends ConsumerStatefulWidget {
       _FriendsFollowersScreenState();
 }
 
-class _FriendsFollowersScreenState extends ConsumerState<FriendsFollowersScreen>
-    with SingleTickerProviderStateMixin {
+class _FriendsFollowersScreenState
+    extends ConsumerState<FriendsFollowersScreen> {
   late final UserService _userService;
   late final AuthService _authService;
   late final WebSocketService _webSocketService;
 
-  late TabController _tabController;
   StreamSubscription<WebSocketEvent>? _wsSubscription;
   Timer? _pollTimer;
   Timer? _debounceTimer;
@@ -88,7 +88,6 @@ class _FriendsFollowersScreenState extends ConsumerState<FriendsFollowersScreen>
     _authService = ref.read(authServiceProvider);
     _webSocketService = ref.read(websocketServiceProvider);
 
-    _tabController = TabController(length: 3, vsync: this);
     _loadData();
 
     // Listen to the global WebSocket events stream immediately so events
@@ -215,7 +214,6 @@ class _FriendsFollowersScreenState extends ConsumerState<FriendsFollowersScreen>
     _wsSubscription?.cancel();
     _wsSubscription = null;
     _stopPolling();
-    _tabController.dispose();
     super.dispose();
   }
 
@@ -481,6 +479,7 @@ class _FriendsFollowersScreenState extends ConsumerState<FriendsFollowersScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (!kIsWeb) return _buildAndroid();
     return WandererScaffold(
       hideAppBarWithSidebar: true,
       appBar: WandererAppBar(
@@ -504,546 +503,392 @@ class _FriendsFollowersScreenState extends ConsumerState<FriendsFollowersScreen>
         onSettings: _handleSettings,
         isAdmin: _isAdmin,
       ),
-      body: kIsWeb ? _buildWebBody() : _buildBody(),
+      body: _buildWebBody(),
     );
   }
 
-  Widget _buildBody() {
+  // ---------------------------------------------------------------------
+  // Android layout (canvas "AndroidFriends"): Friends / Requests /
+  // Suggested tabs over a plain list; row actions live in a bottom sheet.
+  // ---------------------------------------------------------------------
+
+  Widget _buildAndroid() {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            Text(
-              _error!,
-              style: const TextStyle(fontSize: 16),
+    final Widget body;
+    if (_isLoading && _currentUser == null) {
+      body = const Center(child: CircularProgressIndicator());
+    } else if (_error != null && !_isLoggedIn) {
+      body = Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(_error!,
               textAlign: TextAlign.center,
-            ),
-            if (!_isLoggedIn) ...[
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _navigateToAuth,
-                child: Text(l10n.login),
-              ),
-            ],
-          ],
-        ),
+              style: TextStyle(color: c.textMuted)),
+          const SizedBox(height: 16),
+          OutlinedButton(onPressed: _navigateToAuth, child: Text(l10n.login)),
+        ]),
       );
-    }
-
-    final totalRequests = _receivedRequests.length + _sentRequests.length;
-
-    return Column(
-      children: [
-        Container(
-          color: Theme.of(context).primaryColor,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isNarrow = constraints.maxWidth < 500;
-              return TabBar(
-                controller: _tabController,
-                indicatorColor: Colors.white,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.white70,
-                isScrollable: false,
-                labelPadding: const EdgeInsets.symmetric(horizontal: 2),
-                tabs: [
-                  _buildTab(Icons.people, l10n.friends, _associatedUsers.length,
-                      isNarrow),
-                  _buildTab(Icons.explore, l10n.discover,
-                      _discoverableUsers.length, isNarrow),
-                  _buildTab(Icons.notifications, l10n.requestsTab,
-                      totalRequests, isNarrow),
-                ],
-              );
-            },
+    } else {
+      final rows = switch (_webTab) {
+        0 => [
+            for (final u in _associatedUsers)
+              _androidRow(
+                userId: u.id,
+                username: u.username,
+                displayName: u.displayName,
+                isFriend: u.isFriend,
+                isFollowing: u.isFollowing,
+                isFollowedBy: u.isFollowedBy,
+              ),
+          ],
+        1 => [
+            for (final r in [..._receivedRequests, ..._sentRequests])
+              _androidRequestRow(r),
+          ],
+        _ => [
+            for (final u in _discoverableUsers)
+              () {
+                final a =
+                    _associatedUsers.where((x) => x.id == u.id).firstOrNull;
+                return _androidRow(
+                  userId: u.id,
+                  username: u.username,
+                  displayName: u.displayName,
+                  isFriend: a?.isFriend ?? false,
+                  isFollowing: a?.isFollowing ?? false,
+                  isFollowedBy: a?.isFollowedBy ?? false,
+                );
+              }(),
+          ],
+      };
+      final (hasMore, loadingMore, loadMore) = switch (_webTab) {
+        0 => (
+            _hasMoreAssociated,
+            _isLoadingMoreAssociated,
+            _loadMoreAssociated
           ),
-        ),
+        2 => (_hasMoreDiscover, _isLoadingMoreDiscover, _loadMoreDiscover),
+        _ => (false, false, () async {}),
+      };
+      final empty = switch (_webTab) {
+        0 => FriendsEmptyState(
+            title: l10n.friendsEmptyTitle, body: l10n.friendsEmptyBody),
+        1 => FriendsEmptyState(
+            icon: Icons.inbox_outlined,
+            title: l10n.noFriendRequests,
+            body: l10n.sendFriendRequests),
+        _ => FriendsEmptyState(
+            icon: Icons.explore_outlined,
+            title: l10n.noUsersToDiscover,
+            body: l10n.addFriendsToDiscoverMore),
+      };
+      body = Column(children: [
+        _androidTabs(c),
         Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildPeopleTab(),
-              _buildDiscoverTab(),
-              _buildRequestsTab(),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTab(IconData icon, String label, int count, bool isNarrow) {
-    if (isNarrow) {
-      // Mobile: icon + count badge, no text label to save space
-      return Tab(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18),
-            const SizedBox(width: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                '$count',
-                style:
-                    const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+          child: ColoredBox(
+            color: c.surface,
+            child: RefreshIndicator(
+              onRefresh: _loadData,
+              child: ListView(
+                padding: const EdgeInsets.only(bottom: 24),
+                children: [
+                  if (rows.isEmpty)
+                    Padding(padding: const EdgeInsets.all(16), child: empty)
+                  else
+                    ...rows,
+                  if (hasMore)
+                    _buildLoadMoreButton(
+                        isLoading: loadingMore, onPressed: loadMore),
+                ],
               ),
             ),
-          ],
+          ),
         ),
-      );
+      ]);
     }
-    // Wide screen: icon + full label with count
-    return Tab(
-      text: '$label ($count)',
-      icon: Icon(icon),
+    return Scaffold(
+      backgroundColor: c.ground,
+      appBar: AndroidTopBar(
+        title: l10n.friends,
+        actions: [
+          IconButton(
+            tooltip: l10n.friendsSearchByUsername,
+            icon: const Icon(Icons.person_search_outlined),
+            onPressed: _openSearch,
+          ),
+        ],
+      ),
+      body: body,
     );
   }
 
-  /// Builds the merged People tab showing all associated users in a single
-  /// scrollable list. Each user appears once with relationship badges and
-  /// appropriate action buttons.
-  Widget _buildPeopleTab() {
+  Widget _androidTabs(WandererColors c) {
     final l10n = context.l10n;
-
-    if (_associatedUsers.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.people_outline, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(
-              l10n.noFriendsYet,
-              style: const TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.sendFriendRequests,
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _associatedUsers.length + (_hasMoreAssociated ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index >= _associatedUsers.length) {
-            return _buildLoadMoreButton(
-              isLoading: _isLoadingMoreAssociated,
-              onPressed: _loadMoreAssociated,
-            );
-          }
-          final user = _associatedUsers[index];
-          final hasPendingRequest =
-              _sentRequests.any((r) => r.receiverId == user.id);
-          final hasReceivedRequest = _receivedRequests.firstWhere(
-            (r) => r.senderId == user.id,
-            orElse: () => FriendRequest(
-                id: '',
-                senderId: '',
-                receiverId: '',
-                status: FriendRequestStatus.pending,
-                createdAt: DateTime.now(),
-                updatedAt: DateTime.now()),
-          );
-          final receivedRequestId =
-              hasReceivedRequest.id.isNotEmpty ? hasReceivedRequest.id : null;
-
-          return _buildAssociatedUserTile(
-            user,
-            hasPendingRequest: hasPendingRequest,
-            receivedRequestId: receivedRequestId,
-          );
-        },
+    final tabs = [
+      (l10n.friends, _associatedUsers.length, c.trailSoftBg, c.accentText),
+      (
+        l10n.requestsTab,
+        _receivedRequests.length + _sentRequests.length,
+        _receivedRequests.isNotEmpty ? WandererTheme.trail : c.neutralBg,
+        _receivedRequests.isNotEmpty ? Colors.white : c.neutralFg,
       ),
-    );
-  }
-
-  /// Builds a tile for an associated user showing all relationship badges and
-  /// contextual action buttons.
-  Widget _buildAssociatedUserTile(
-    UserRelationship user, {
-    required bool hasPendingRequest,
-    String? receivedRequestId,
-  }) {
-    // Build list of relationship badges
-    final badges = <Widget>[];
-    if (user.isFriend) {
-      badges.add(const RelationshipBadge(
-        type: RelationshipType.friend,
-        compact: true,
-      ));
-    }
-    if (user.isFollowedBy) {
-      badges.add(const RelationshipBadge(
-        type: RelationshipType.follower,
-        compact: true,
-      ));
-    }
-    if (user.isFollowing) {
-      badges.add(const RelationshipBadge(
-        type: RelationshipType.following,
-        compact: true,
-      ));
-    }
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: ListTile(
-          onTap: () => _navigateToUserProfile(user.id),
-          leading: UserAvatar(
-            avatarUrl: user.avatarUrl,
-            username: user.username,
-            displayName: user.displayName,
-            radius: 20,
-          ),
-          title: Text(user.username),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (user.displayName != null) Text(user.displayName!),
-              const SizedBox(height: 4),
-              Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: badges,
-              ),
-            ],
-          ),
-          trailing: _buildAssociatedUserActions(
-            user,
-            hasPendingRequest: hasPendingRequest,
-            receivedRequestId: receivedRequestId,
-          ),
-        ),
+      (
+        l10n.friendsSuggestionsTab,
+        _discoverableUsers.length,
+        c.neutralBg,
+        c.neutralFg
       ),
-    );
-  }
-
-  /// Builds contextual action buttons for an associated user.
-  Widget _buildAssociatedUserActions(
-    UserRelationship user, {
-    required bool hasPendingRequest,
-    String? receivedRequestId,
-  }) {
-    final actions = <Widget>[];
-
-    // Follow / Unfollow button
-    actions.add(
-      Container(
-        height: 32,
-        decoration: BoxDecoration(
-          color: user.isFollowing
-              ? Colors.blue.withOpacity(0.7)
-              : Colors.grey.withOpacity(0.3),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              if (user.isFollowing) {
-                _handleUnfollowUser(user.id);
-              } else {
-                _handleFollowUser(user.id);
-              }
-            },
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              child: Icon(
-                user.isFollowing ? Icons.person_remove : Icons.person_add,
-                size: 16,
-                color: user.isFollowing ? Colors.white : Colors.black54,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    // Friend request / accept / pending button
-    if (!user.isFriend) {
-      if (receivedRequestId != null) {
-        // Received a request from this user — show accept/decline
-        actions.add(
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.check, color: Colors.green),
-                onPressed: () => _handleAcceptFriendRequest(receivedRequestId),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                iconSize: 20,
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.red),
-                onPressed: () => _handleDeclineFriendRequest(receivedRequestId),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                iconSize: 20,
-              ),
-            ],
-          ),
-        );
-      } else {
-        // Send / pending friend request button
-        actions.add(
-          Container(
-            height: 32,
-            decoration: BoxDecoration(
-              color: hasPendingRequest
-                  ? Colors.orange.withOpacity(0.7)
-                  : Colors.green.withOpacity(0.7),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Material(
-              color: Colors.transparent,
+    ];
+    return Container(
+      decoration:
+          BoxDecoration(border: Border(bottom: BorderSide(color: c.line))),
+      child: Row(children: [
+        for (var i = 0; i < tabs.length; i++)
+          Expanded(
+            child: Semantics(
+              selected: _webTab == i,
+              button: true,
               child: InkWell(
-                onTap: hasPendingRequest
-                    ? null
-                    : () => _handleSendFriendRequest(user.id, user.username),
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  child: Icon(
-                    hasPendingRequest ? Icons.hourglass_top : Icons.people,
-                    size: 16,
-                    color: Colors.white,
+                onTap: () => setState(() => _webTab = i),
+                child: Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        width: 3,
+                        color: _webTab == i
+                            ? WandererTheme.trail
+                            : Colors.transparent,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text(tabs[i].$1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: _webTab == i
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                              color: _webTab == i ? c.accentText : c.textMuted,
+                            )),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 1),
+                        decoration: BoxDecoration(
+                            color: tabs[i].$3,
+                            borderRadius: BorderRadius.circular(999)),
+                        child: Text('${tabs[i].$2}',
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: tabs[i].$4)),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
           ),
-        );
-      }
-    }
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (int i = 0; i < actions.length; i++) ...[
-          if (i > 0) const SizedBox(width: 4),
-          actions[i],
-        ],
-      ],
+      ]),
     );
   }
 
-  /// Builds the Discover tab showing users you may know (friends of friends,
-  /// people followed by friends).
-  Widget _buildDiscoverTab() {
-    final l10n = context.l10n;
-
-    if (_discoverableUsers.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.explore_outlined, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(
-              l10n.noUsersToDiscover,
-              style: const TextStyle(fontSize: 18, color: Colors.grey),
+  Widget _androidTile({
+    required String userId,
+    required String username,
+    String? displayName,
+    required String subtitle,
+    required Widget trailing,
+  }) {
+    final c = WandererTheme.of(context);
+    return InkWell(
+      onTap: () => _navigateToUserProfile(userId),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 68),
+        padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+        decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: c.lineSoft))),
+        child: Row(children: [
+          UserAvatar(
+            userId: userId,
+            username: username,
+            displayName: displayName,
+            radius: 22,
+            backgroundColor: c.trailSoftBg,
+            textColor: c.accentText,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(displayName ?? username,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: c.text)),
+                if (subtitle.isNotEmpty)
+                  Text(subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 13, color: c.textMuted)),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.addFriendsToDiscoverMore,
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _discoverableUsers.length + (_hasMoreDiscover ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index >= _discoverableUsers.length) {
-            return _buildLoadMoreButton(
-              isLoading: _isLoadingMoreDiscover,
-              onPressed: _loadMoreDiscover,
-            );
-          }
-          final user = _discoverableUsers[index];
-
-          // Determine existing relationship from associated users
-          final associated = _associatedUsers
-              .cast<UserRelationship?>()
-              .firstWhere((a) => a!.id == user.id, orElse: () => null);
-          final isFriend = associated?.isFriend ?? false;
-          final isFollowing = associated?.isFollowing ?? false;
-          final hasPendingRequest =
-              _sentRequests.any((r) => r.receiverId == user.id);
-
-          return Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              onTap: () => _navigateToUserProfile(user.id),
-              leading: UserAvatar(
-                avatarUrl: user.avatarUrl,
-                username: user.username,
-                displayName: user.displayName,
-                radius: 20,
-              ),
-              title: Text(user.username),
-              subtitle:
-                  user.displayName != null ? Text(user.displayName!) : null,
-              trailing: _buildDiscoverActions(
-                user,
-                isFriend: isFriend,
-                isFollowing: isFollowing,
-                hasPendingRequest: hasPendingRequest,
-              ),
-            ),
-          );
-        },
+          ),
+          trailing,
+        ]),
       ),
     );
   }
 
-  /// Builds action buttons for a discoverable user based on existing
-  /// relationship status.
-  Widget _buildDiscoverActions(
-    UserProfile user, {
+  Widget _androidRow({
+    required String userId,
+    required String username,
+    String? displayName,
     required bool isFriend,
     required bool isFollowing,
-    required bool hasPendingRequest,
+    required bool isFollowedBy,
   }) {
     final l10n = context.l10n;
-
-    if (isFriend) {
-      // Already friends — show badge only
-      return const RelationshipBadge(
-        type: RelationshipType.friend,
-        compact: true,
-      );
-    }
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Follow / unfollow button
-        Container(
-          height: 32,
-          decoration: BoxDecoration(
-            color: isFollowing
-                ? Colors.blue.withOpacity(0.7)
-                : Colors.grey.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                if (isFollowing) {
-                  _handleUnfollowUser(user.id);
-                } else {
-                  _handleFollowUser(user.id);
-                }
-              },
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      isFollowing ? Icons.person_remove : Icons.person_add,
-                      size: 16,
-                      color: isFollowing ? Colors.white : Colors.black54,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      isFollowing ? l10n.unfollow : l10n.follow,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isFollowing ? Colors.white : Colors.black54,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+    final received = _receivedFrom(userId);
+    final sent = _sentTo(userId);
+    final subtitle = [
+      if (isFriend) l10n.friend,
+      if (!isFriend && received != null) l10n.friendsPillWantsToBeFriends,
+      if (!isFriend && sent != null) l10n.friendsPillRequestPending,
+      if (isFollowing) l10n.friendsPillYouFollow,
+      if (isFollowedBy) l10n.friendsPillFollowsYou,
+    ].join(' · ');
+    return _androidTile(
+      userId: userId,
+      username: username,
+      displayName: displayName,
+      subtitle: subtitle,
+      trailing: IconButton(
+        tooltip: l10n.youMoreOptions,
+        icon: Icon(Icons.more_vert, color: WandererTheme.of(context).textMuted),
+        onPressed: () => _androidActions(
+          userId: userId,
+          username: username,
+          isFriend: isFriend,
+          isFollowing: isFollowing,
+          received: received,
+          sent: sent,
         ),
-        const SizedBox(width: 6),
-        // Friend request button
-        Container(
-          height: 32,
-          decoration: BoxDecoration(
-            color: hasPendingRequest
-                ? Colors.orange.withOpacity(0.7)
-                : Colors.green.withOpacity(0.7),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: hasPendingRequest
-                  ? null
-                  : () => _handleSendFriendRequest(user.id, user.username),
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      hasPendingRequest ? Icons.hourglass_top : Icons.people,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      hasPendingRequest
-                          ? l10n.requestsTab
-                          : l10n.sendFriendRequest,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
+  }
+
+  Widget _androidRequestRow(FriendRequest request) {
+    final l10n = context.l10n;
+    final c = WandererTheme.of(context);
+    final received = _receivedRequests.contains(request);
+    final userId = received ? request.senderId : request.receiverId;
+    final profile = _userProfiles[userId];
+    final when = _formatDate(context, request.createdAt);
+    return _androidTile(
+      userId: userId,
+      username: profile?.username ?? l10n.unknownUser,
+      displayName: profile?.displayName,
+      subtitle: received
+          ? '${l10n.friendsPillWantsToBeFriends} · $when'
+          : '${l10n.friendsPillRequestPending} · $when',
+      trailing: received
+          ? Row(mainAxisSize: MainAxisSize.min, children: [
+              FilledButton(
+                onPressed: () => _handleAcceptFriendRequest(request.id),
+                style: FilledButton.styleFrom(
+                  backgroundColor: WandererTheme.trail,
+                  minimumSize: const Size(0, 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text(l10n.acceptRequest),
+              ),
+              IconButton(
+                tooltip: l10n.declineRequest,
+                icon: Icon(Icons.close, color: c.textMuted),
+                onPressed: () => _handleDeclineFriendRequest(request.id),
+              ),
+            ])
+          : TextButton(
+              onPressed: () => _handleCancelFriendRequest(request.id),
+              style: TextButton.styleFrom(foregroundColor: c.accentText),
+              child: Text(l10n.friendsCancelRequest),
+            ),
+    );
+  }
+
+  Future<void> _androidActions({
+    required String userId,
+    required String username,
+    required bool isFriend,
+    required bool isFollowing,
+    FriendRequest? received,
+    FriendRequest? sent,
+  }) {
+    final l10n = context.l10n;
+    Widget item(IconData icon, String label, Future<void> Function() onTap) =>
+        ListTile(
+          leading: Icon(icon),
+          title: Text(label),
+          onTap: () {
+            Navigator.pop(context);
+            onTap();
+          },
+        );
+    return showWandererSheet(
+      context,
+      title: username,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          item(Icons.person_outline, l10n.viewProfile,
+              () async => _navigateToUserProfile(userId)),
+          if (!isFriend && received != null) ...[
+            item(Icons.check, l10n.acceptRequest,
+                () => _handleAcceptFriendRequest(received.id)),
+            item(Icons.close, l10n.declineRequest,
+                () => _handleDeclineFriendRequest(received.id)),
+          ] else if (!isFriend && sent != null)
+            item(Icons.person_remove_outlined, l10n.friendsCancelRequest,
+                () => _handleCancelFriendRequest(sent.id))
+          else if (!isFriend)
+            item(Icons.person_add_alt, l10n.friendsAddFriend,
+                () => _handleSendFriendRequest(userId, username))
+          else
+            item(Icons.person_remove_outlined, l10n.unfriend,
+                () => _handleRemoveFriend(userId, username)),
+          isFollowing
+              ? item(Icons.remove_circle_outline, l10n.unfollow,
+                  () => _handleUnfollowUser(userId))
+              : item(Icons.add_circle_outline, l10n.follow,
+                  () => _handleFollowUser(userId)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleRemoveFriend(String userId, String username) async {
+    try {
+      await _userService.removeFriend(userId);
+      if (mounted) {
+        UiHelpers.showSuccessMessage(
+            context, context.l10n.noLongerFriendsWith(username));
+        await _loadData();
+      }
+    } catch (e) {
+      if (mounted) UiHelpers.showErrorMessage(context, e.toString());
+    }
   }
 
   /// Reusable load-more button for paginated lists.
@@ -1070,161 +915,8 @@ class _FriendsFollowersScreenState extends ConsumerState<FriendsFollowersScreen>
     );
   }
 
-  Widget _buildRequestsTab() {
-    final l10n = context.l10n;
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        children: [
-          TabBar(
-            labelColor: Colors.black,
-            tabs: [
-              Tab(text: l10n.receivedTab),
-              Tab(text: l10n.sentTab),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                _buildReceivedRequestsView(),
-                _buildSentRequestsView(),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReceivedRequestsView() {
-    final l10n = context.l10n;
-    if (_receivedRequests.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.inbox_outlined, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(
-              l10n.noFriendRequests,
-              style: const TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _receivedRequests.length,
-        itemBuilder: (context, index) {
-          final request = _receivedRequests[index];
-          final profile = _userProfiles[request.senderId];
-
-          return Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              onTap: () => _navigateToUserProfile(request.senderId),
-              leading: UserAvatar(
-                avatarUrl: profile?.avatarUrl,
-                username: profile?.username ?? l10n.unknownUser,
-                displayName: profile?.displayName,
-                radius: 20,
-              ),
-              title: Text(profile?.username ?? l10n.unknownUser),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (profile?.displayName != null) Text(profile!.displayName!),
-                  Text(
-                    l10n.sentDateLabel(_formatDate(context, request.createdAt)),
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.check, color: Colors.green),
-                    onPressed: () => _handleAcceptFriendRequest(request.id),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.red),
-                    onPressed: () => _handleDeclineFriendRequest(request.id),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildSentRequestsView() {
-    final l10n = context.l10n;
-    if (_sentRequests.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.send_outlined, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(
-              l10n.noSentRequests,
-              style: const TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _sentRequests.length,
-        itemBuilder: (context, index) {
-          final request = _sentRequests[index];
-          final profile = _userProfiles[request.receiverId];
-
-          return Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              onTap: () => _navigateToUserProfile(request.receiverId),
-              leading: UserAvatar(
-                avatarUrl: profile?.avatarUrl,
-                username: profile?.username ?? l10n.unknownUser,
-                displayName: profile?.displayName,
-                radius: 20,
-              ),
-              title: Text(profile?.username ?? l10n.unknownUser),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (profile?.displayName != null) Text(profile!.displayName!),
-                  Text(
-                    l10n.sentDateLabel(_formatDate(context, request.createdAt)),
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
-              ),
-              trailing: Chip(
-                label: Text(request.status.toJson()),
-                backgroundColor: _getStatusColor(request.status),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   // ---------------------------------------------------------------------
-  // Web layout (design board "Friends"). Mobile keeps [_buildBody].
+  // Web layout (design board "Friends"). Android: [_buildAndroid].
   // ---------------------------------------------------------------------
 
   FriendRequest? _receivedFrom(String userId) =>
@@ -1552,17 +1244,6 @@ class _FriendsFollowersScreenState extends ConsumerState<FriendsFollowersScreen>
       return l10n.minutesAgoShort(difference.inMinutes);
     } else {
       return l10n.justNow;
-    }
-  }
-
-  Color _getStatusColor(FriendRequestStatus status) {
-    switch (status) {
-      case FriendRequestStatus.pending:
-        return Colors.orange.withOpacity(0.3);
-      case FriendRequestStatus.accepted:
-        return Colors.green.withOpacity(0.3);
-      case FriendRequestStatus.declined:
-        return Colors.red.withOpacity(0.3);
     }
   }
 }
