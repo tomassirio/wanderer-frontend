@@ -91,11 +91,23 @@ enum TripSortOption {
   }
 }
 
+/// Sidebar section another user's profile was opened from; it stays
+/// highlighted while viewing them. Deep links and anything else: [explore].
+enum ProfileOrigin {
+  explore(AppSidebar.exploreIndex),
+  friends(AppSidebar.friendsIndex);
+
+  const ProfileOrigin(this.sidebarIndex);
+  final int sidebarIndex;
+}
+
 /// User profile screen showing user information, statistics, and trips
 class ProfileScreen extends ConsumerStatefulWidget {
   final String? userId;
+  final ProfileOrigin origin;
 
-  const ProfileScreen({super.key, this.userId});
+  const ProfileScreen(
+      {super.key, this.userId, this.origin = ProfileOrigin.explore});
 
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
@@ -124,7 +136,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String? _currentAvatarUrl; // Track the logged-in user's avatar URL
   Uint8List?
       _optimisticAvatarBytes; // Optimistic avatar while backend processes
-  final int _selectedSidebarIndex = 4; // Profile is index 4
+  /// My trips on your own profile, otherwise the section you came from.
+  int get _selectedSidebarIndex => _isViewingOwnProfile
+      ? AppSidebar.myTripsIndex
+      : widget.origin.sidebarIndex;
 
   // Actual counts loaded from API (for own profile)
   int _followersCount = 0;
