@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wanderer_frontend/data/services/admin_service.dart';
 import 'package:wanderer_frontend/data/client/clients.dart';
+import 'package:wanderer_frontend/data/models/admin_models.dart';
 
 void main() {
   group('AdminService', () {
@@ -178,6 +179,38 @@ void main() {
           );
         });
       });
+
+      group('regenerateMissingThumbnails', () {
+        test('returns the backfill result from the client', () async {
+          mockAdminCommandClient.thumbnailBackfillResult =
+              ThumbnailBackfillResult(
+            checked: 17,
+            missing: 9,
+            regenerated: 9,
+            failed: 0,
+          );
+
+          final result = await serviceWithAdmin.regenerateMissingThumbnails();
+
+          expect(
+              mockAdminCommandClient.regenerateMissingThumbnailsCalled, true);
+          expect(result.checked, 17);
+          expect(result.missing, 9);
+          expect(result.regenerated, 9);
+          expect(result.failed, 0);
+        });
+
+        test('passes through errors when regenerating thumbnails', () async {
+          mockAdminCommandClient.shouldThrowError = true;
+          mockAdminCommandClient.errorMessage = 'Backend unavailable';
+
+          expect(
+            () => serviceWithAdmin.regenerateMissingThumbnails(),
+            throwsA(
+                predicate((e) => e.toString().contains('Backend unavailable'))),
+          );
+        });
+      });
     });
 
     group('AdminService initialization', () {
@@ -235,10 +268,17 @@ class MockAdminCommandClient extends AdminCommandClient {
   bool demoteFromAdminCalled = false;
   bool deleteUserCalled = false;
   bool recomputePolylineCalled = false;
+  bool regenerateMissingThumbnailsCalled = false;
   String? lastUserId;
   String? lastTripId;
   bool shouldThrowError = false;
   String errorMessage = 'Admin command failed';
+  ThumbnailBackfillResult thumbnailBackfillResult = ThumbnailBackfillResult(
+    checked: 0,
+    missing: 0,
+    regenerated: 0,
+    failed: 0,
+  );
 
   @override
   Future<void> promoteToAdmin(String userId) async {
@@ -274,6 +314,15 @@ class MockAdminCommandClient extends AdminCommandClient {
     if (shouldThrowError) {
       throw Exception(errorMessage);
     }
+  }
+
+  @override
+  Future<ThumbnailBackfillResult> regenerateMissingThumbnails() async {
+    regenerateMissingThumbnailsCalled = true;
+    if (shouldThrowError) {
+      throw Exception(errorMessage);
+    }
+    return thumbnailBackfillResult;
   }
 }
 

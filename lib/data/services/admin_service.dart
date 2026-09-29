@@ -142,4 +142,9 @@ class AdminService {
   Future<TripMaintenanceStats> getTripStats() async {
     return await _adminQueryClient.getTripStats();
   }
+
+  /// Regenerate map thumbnails for trips missing one (admin only)
+  Future<ThumbnailBackfillResult> regenerateMissingThumbnails() async {
+    return await _adminCommandClient.regenerateMissingThumbnails();
+  }
 }

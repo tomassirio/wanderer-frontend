@@ -45,3 +45,36 @@ class TripMaintenanceStats {
     };
   }
 }
+
+/// Result of an admin-triggered backfill of missing trip thumbnails
+class ThumbnailBackfillResult {
+  final int checked;
+  final int missing;
+  final int regenerated;
+  final int failed;
+
+  ThumbnailBackfillResult({
+    required this.checked,
+    required this.missing,
+    required this.regenerated,
+    required this.failed,
+  });
+
+  factory ThumbnailBackfillResult.fromJson(Map<String, dynamic> json) {
+    return ThumbnailBackfillResult(
+      checked: json['checked'] as int? ?? 0,
+      missing: json['missing'] as int? ?? 0,
+      regenerated: json['regenerated'] as int? ?? 0,
+      failed: json['failed'] as int? ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'checked': checked,
+      'missing': missing,
+      'regenerated': regenerated,
+      'failed': failed,
+    };
+  }
+}

@@ -155,6 +155,8 @@ class ApiEndpoints {
   static String adminRecomputeGeocoding(String tripId) =>
       '/admin/trips/$tripId/recompute-geocoding';
   static const String adminTripStats = '/admin/trips/stats';
+  static const String adminRegenerateMissingThumbnails =
+      '/admin/trips/thumbnails/regenerate-missing';
 
   // Self-deletion endpoint (use commandBaseUrl, any authenticated user)
   static const String usersDeleteMe = '/users/me';

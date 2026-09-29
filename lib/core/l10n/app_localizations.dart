@@ -541,6 +541,17 @@ class AppLocalizations {
   String get recomputeGeocodingConfirm => _tr('recomputeGeocodingConfirm');
   String get loadMoreTrips3 => _tr('loadMoreTrips3');
   String get searchTrips2 => _tr('searchTrips2');
+  String get regenerateMissingThumbnails => _tr('regenerateMissingThumbnails');
+  String get regenerateMissingThumbnailsConfirmMessage =>
+      _tr('regenerateMissingThumbnailsConfirmMessage');
+  String regenerateMissingThumbnailsResult(
+          int checked, int missing, int regenerated, int failed) =>
+      TranslationTemplate.format(_tr('regenerateMissingThumbnailsResult'), {
+        'checked': checked,
+        'missing': missing,
+        'regenerated': regenerated,
+        'failed': failed,
+      });
 
   // --- Deep link screens ---
   String get loadingTripDeepLink => _tr('loadingTripDeepLink');

@@ -275,6 +275,58 @@ void main() {
       });
     });
 
+    group('regenerateMissingThumbnails', () {
+      test('parses successful backfill result', () async {
+        mockHttpClient.response = http.Response(
+          '{"checked":17,"missing":9,"regenerated":9,"failed":0}',
+          200,
+        );
+
+        final result = await adminCommandClient.regenerateMissingThumbnails();
+
+        expect(result.checked, 17);
+        expect(result.missing, 9);
+        expect(result.regenerated, 9);
+        expect(result.failed, 0);
+        expect(mockHttpClient.lastMethod, 'POST');
+        expect(
+          mockHttpClient.lastUri.toString(),
+          contains('/admin/trips/thumbnails/regenerate-missing'),
+        );
+        expect(
+          mockHttpClient.lastHeaders?['Authorization'],
+          'Bearer test-token',
+        );
+      });
+
+      test('regenerateMissingThumbnails uses command service base URL',
+          () async {
+        mockHttpClient.response = http.Response(
+          '{"checked":0,"missing":0,"regenerated":0,"failed":0}',
+          200,
+        );
+
+        await adminCommandClient.regenerateMissingThumbnails();
+
+        expect(
+          mockHttpClient.lastUri.toString(),
+          startsWith(ApiEndpoints.commandBaseUrl),
+        );
+      });
+
+      test('regenerateMissingThumbnails throws on error status', () async {
+        mockHttpClient.response = http.Response(
+          '{"message":"Forbidden"}',
+          403,
+        );
+
+        expect(
+          () => adminCommandClient.regenerateMissingThumbnails(),
+          throwsException,
+        );
+      });
+    });
+
     group('AdminCommandClient initialization', () {
       test('uses provided ApiClient', () {
         final customApiClient = ApiClient(
