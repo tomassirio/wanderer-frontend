@@ -2225,13 +2225,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           style: WandererTheme.display(24, color: c.text),
         ),
         const SizedBox(height: 6),
+        Text('@${_profile!.username}',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 14, color: c.textMuted)),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Flexible(
-              child: Text('@${_profile!.username}',
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 14, color: c.textMuted)),
+              child: SelectableText(
+                _profile!.id,
+                maxLines: 1,
+                style: TextStyle(
+                    fontSize: 12, color: c.caption, fontFamily: 'monospace'),
+              ),
             ),
             IconButton(
               tooltip: l10n.profileCopyUserId,
