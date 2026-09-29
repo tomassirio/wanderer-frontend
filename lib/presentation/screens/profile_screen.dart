@@ -35,6 +35,8 @@ import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/create_trip_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/web_page_header.dart';
 import 'package:wanderer_frontend/presentation/widgets/profile/web_profile_widgets.dart';
+import 'package:wanderer_frontend/presentation/widgets/profile/other_user_profile_header.dart';
+import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 
 /// Returns a localized label for a [TripStatus] using the current locale.
 String _localizedTripStatus(TripStatus status, AppLocalizations l10n) {
@@ -129,6 +131,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       false; // Track if friend request was sent locally
   bool _isAlreadyFriends = false; // Track if already friends with user
   bool _isFollowingUser = false; // Track if following this user
+  bool _followsYou = false; // Viewed user is in my followers
   String? _sentFriendRequestId; // Store the request ID for cancellation
   String? _currentUserId; // Track the logged-in user's ID
   String? _currentUsername; // Track the logged-in user's username
@@ -484,6 +487,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final isFollowing =
           followingPage.content.any((f) => f.followedId == userId);
 
+      // Check if they follow me (first page, like the checks around it)
+      final followersPage = await _userService.getFollowers(page: 0, size: 100);
+      final followsYou =
+          followersPage.content.any((f) => f.followerId == userId);
+
       // Check if already friends
       final friendsPage = await _userService.getFriends(page: 0, size: 100);
       final isAlreadyFriends =
@@ -503,6 +511,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (mounted) {
         setState(() {
           _isFollowingUser = isFollowing;
+          _followsYou = followsYou;
           _isAlreadyFriends = isAlreadyFriends;
           _hasSentFriendRequest = hasSentRequest;
           _sentFriendRequestId = requestId;
@@ -1172,26 +1181,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 2),
-                          GestureDetector(
-                            onTap: () {
-                              Clipboard.setData(
-                                  ClipboardData(text: _profile!.id));
-                              UiHelpers.showInfoMessage(
-                                  context, context.l10n.profileUserIdCopied);
-                            },
-                            child: Text(
-                              _profile!.id,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: primaryColor.withValues(alpha: 0.8),
-                                fontFamily: 'monospace',
-                                fontWeight: FontWeight.w500,
+                          if (_isViewingOwnProfile) ...[
+                            const SizedBox(height: 2),
+                            GestureDetector(
+                              onTap: () {
+                                Clipboard.setData(
+                                    ClipboardData(text: _profile!.id));
+                                UiHelpers.showInfoMessage(
+                                    context, context.l10n.profileUserIdCopied);
+                              },
+                              child: Text(
+                                _profile!.id,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: primaryColor.withValues(alpha: 0.8),
+                                  fontFamily: 'monospace',
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                       if (!isWide)
@@ -2085,25 +2096,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return ListView(
       padding: EdgeInsets.fromLTRB(gutter, 28, gutter, 40),
       children: [
-        WebPageHeader(
-          title: _isViewingOwnProfile
-              ? l10n.myTrips
-              : (_profile!.displayName ?? _profile!.username),
-          userId: _currentUserId,
-          isLoggedIn: _isLoggedIn,
-          primaryAction: _isViewingOwnProfile
-              ? ElevatedButton.icon(
-                  onPressed: () => Navigator.push(
-                    context,
-                    PageTransitions.slideFromRight(const CreateTripScreen()),
-                  ),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: Text(l10n.newTrip),
-                )
-              : null,
-        ),
-        const SizedBox(height: 24),
-        _buildWebProfileCard(),
+        if (_isViewingOwnProfile) ...[
+          WebPageHeader(
+            title: l10n.myTrips,
+            userId: _currentUserId,
+            isLoggedIn: _isLoggedIn,
+            primaryAction: ElevatedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                PageTransitions.slideFromRight(const CreateTripScreen()),
+              ),
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(l10n.newTrip),
+            ),
+          ),
+          const SizedBox(height: 24),
+          _buildWebProfileCard(),
+        ] else ...[
+          _buildOtherUserHeader(),
+          const SizedBox(height: 24),
+          Text(l10n.profilePublicTrips,
+              style: TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.w700, color: c.text)),
+        ],
         const SizedBox(height: 24),
         if (_userTrips.isNotEmpty) ...[
           Wrap(
@@ -2155,6 +2170,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ],
         if (_isLoadingTrips)
           const Center(child: CircularProgressIndicator())
+        else if (_userTrips.isEmpty && !_isViewingOwnProfile)
+          PublicTripsEmptyState(username: _profile!.username)
         else if (_userTrips.isEmpty || filtered.isEmpty)
           Padding(
             padding: const EdgeInsets.all(32),
@@ -2223,12 +2240,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  Widget _buildOtherUserHeader() {
+    final l10n = context.l10n;
+    final friends = widget.origin == ProfileOrigin.friends;
+    return OtherUserProfileHeader(
+      originLabel: friends ? l10n.friends : l10n.navExplore,
+      // Like the sidebar: section roots replace the stack.
+      onOriginTap: () => Navigator.of(context).pushAndRemoveUntil(
+        PageTransitions.fade(
+            friends ? const FriendsFollowersScreen() : const HomeScreen()),
+        (_) => false,
+      ),
+      avatar: _buildAvatarWidget(radius: 44),
+      displayName: _profile!.displayName ?? _profile!.username,
+      username: _profile!.username,
+      bio: _profile!.bio ?? '',
+      stats: [
+        ProfileStat(l10n.trips, _userTrips.length),
+        ProfileStat(l10n.followers, _followersCount),
+        ProfileStat(l10n.following, _followingCount),
+        ProfileStat(l10n.friends, _friendsCount),
+      ],
+      isFollowing: _isFollowingUser,
+      isFriend: _isAlreadyFriends,
+      hasSentRequest: _hasSentFriendRequest,
+      followsYou: _followsYou,
+      onFollow: _handleFollowUser,
+      onFriend: _handleSendFriendRequest,
+      isLoggedIn: _isLoggedIn,
+      currentUserId: _currentUserId,
+    );
+  }
+
+  /// Own profile card (other users: [OtherUserProfileHeader]).
   Widget _buildWebProfileCard() {
     final l10n = context.l10n;
     final c = WandererTheme.of(context);
     final bio = _profile!.bio ?? '';
-    final own = _isViewingOwnProfile;
-    final social = own ? _navigateToFriendsFollowers : null;
+    final social = _navigateToFriendsFollowers;
 
     final identity = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2271,7 +2320,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         if (bio.isNotEmpty) ...[
           const SizedBox(height: 4),
           Text(bio, style: TextStyle(fontSize: 14, color: c.text, height: 1.4)),
-        ] else if (own) ...[
+        ] else ...[
           const SizedBox(height: 4),
           TextButton.icon(
             onPressed: _showEditProfileDialog,
@@ -2301,45 +2350,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ProfileStat(l10n.friends, _friendsCount, social),
     ]);
 
-    final actions = own
-        ? [
-            OutlinedButton.icon(
-              onPressed: _showEditProfileDialog,
-              icon: const Icon(Icons.edit_outlined, size: 16),
-              label: Text(l10n.editProfile),
-            ),
-          ]
-        : [
-            OutlinedButton.icon(
-              onPressed: _handleFollowUser,
-              icon: Icon(
-                  _isFollowingUser ? Icons.person_remove : Icons.person_add,
-                  size: 16),
-              label: Text(_isFollowingUser ? l10n.unfollow : l10n.follow),
-            ),
-            OutlinedButton.icon(
-              onPressed: _handleSendFriendRequest,
-              icon: Icon(
-                  _isAlreadyFriends
-                      ? Icons.people
-                      : _hasSentFriendRequest
-                          ? Icons.person_add_disabled
-                          : Icons.person_add_alt,
-                  size: 16),
-              label: Text(_isAlreadyFriends
-                  ? l10n.unfriend
-                  : _hasSentFriendRequest
-                      ? l10n.cancelFriendRequest
-                      : l10n.sendFriendRequest),
-            ),
-          ];
+    final actions = [
+      OutlinedButton.icon(
+        onPressed: _showEditProfileDialog,
+        icon: const Icon(Icons.edit_outlined, size: 16),
+        label: Text(l10n.editProfile),
+      ),
+    ];
 
-    final avatar = own
-        ? Tooltip(
-            message: l10n.profileChangeAvatar,
-            child: _buildAvatarWidget(radius: 44),
-          )
-        : _buildAvatarWidget(radius: 44);
+    final avatar = Tooltip(
+      message: l10n.profileChangeAvatar,
+      child: _buildAvatarWidget(radius: 44),
+    );
 
     return Container(
       padding: const EdgeInsets.all(24),

@@ -913,6 +913,13 @@ class AppLocalizations {
       _tr('searchOverlayComments'), {'count': count});
   String get searchOverlayPrompt => _tr('searchOverlayPrompt');
   String get profileUserIdCopied => _tr('profileUserIdCopied');
+  String get profileNotConnected => _tr('profileNotConnected');
+  String get profileMoreOptions => _tr('profileMoreOptions');
+  String get profilePublicTrips => _tr('profilePublicTrips');
+  String profileNoPublicTripsTitle(String username) =>
+      TranslationTemplate.format(
+          _tr('profileNoPublicTripsTitle'), {'username': username});
+  String get profileNoPublicTripsBody => _tr('profileNoPublicTripsBody');
   String get achievementDialogLocked => _tr('achievementDialogLocked');
   String achievementDialogUnlocked(Object date) => TranslationTemplate.format(
       _tr('achievementDialogUnlocked'), {'date': date});
