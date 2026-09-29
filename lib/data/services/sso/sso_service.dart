@@ -13,7 +13,7 @@ class SsoService {
   final String? _webOrigin;
 
   SsoService({String? authBaseUrl, String? appBaseUrl, String? webOrigin})
-      : _authBaseUrl = authBaseUrl ?? ApiEndpoints.authBaseUrl,
+      : _authBaseUrl = authBaseUrl ?? ApiEndpoints.ssoAuthBaseUrl,
         _appBaseUrl = appBaseUrl ?? ApiEndpoints.appBaseUrl,
         _webOrigin = webOrigin;
 

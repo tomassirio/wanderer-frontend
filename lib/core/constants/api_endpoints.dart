@@ -12,6 +12,12 @@ class ApiEndpoints {
   static String get authBaseUrl =>
       getConfigValue('authBaseUrl', 'http://localhost:8083/api/1/auth');
 
+  /// Auth base for the SSO browser leg only (Google login in a Custom Tab).
+  /// Unset everywhere except local Android dev runs, where the API is plain
+  /// http but the SSO session cookie is Secure and needs https.
+  static String get ssoAuthBaseUrl =>
+      getConfigValue('ssoAuthBaseUrl', authBaseUrl);
+
   // Admin base URLs - admin operations now use command/query services (CQRS)
   // Write operations (promote, demote, delete) → command service
   // Read operations (get roles) → query service

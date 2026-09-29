@@ -92,6 +92,7 @@ run-android: ## Run on Android (usage: make run-android TARGET_ENV=dev)
 		--dart-define=COMMAND_BASE_URL=$${ANDROID_HTTP_PROTOCOL}://$${DOMAIN}$${API_PATH}/command \
 		--dart-define=QUERY_BASE_URL=$${ANDROID_HTTP_PROTOCOL}://$${DOMAIN}$${API_PATH}/query \
 		--dart-define=AUTH_BASE_URL=$${ANDROID_HTTP_PROTOCOL}://$${DOMAIN}$${API_PATH}/auth \
+		--dart-define=SSO_AUTH_BASE_URL=$${WEB_HTTP_PROTOCOL:-https}://$${DOMAIN}$${API_PATH}/auth \
 		--dart-define=WS_BASE_URL=$${ANDROID_WS_PROTOCOL}://$${DOMAIN} \
 		--dart-define=APP_BASE_URL=$${ANDROID_HTTP_PROTOCOL}://$${DOMAIN} \
 		--dart-define=GOOGLE_MAPS_API_KEY=$${GOOGLE_MAPS_API_KEY}
