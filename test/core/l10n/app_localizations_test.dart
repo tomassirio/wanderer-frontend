@@ -26,7 +26,7 @@ void main() {
       expect(l10n.guest, 'Guest');
       expect(l10n.myProfile, 'My Profile');
       expect(l10n.settings, 'Settings');
-      expect(l10n.tripPromotion, 'Trip Promotion');
+      expect(l10n.tripPromotion, 'Trips Management');
       expect(l10n.userManagement, 'User Management');
       expect(l10n.tripDataMaintenance, 'Trip Data Maintenance');
     });
@@ -141,7 +141,7 @@ void main() {
       expect(l10n.guest, 'Invitado');
       expect(l10n.myProfile, 'Mi Perfil');
       expect(l10n.settings, 'Configuración');
-      expect(l10n.tripPromotion, 'Promoción de Viajes');
+      expect(l10n.tripPromotion, 'Gestión de Viajes');
       expect(l10n.userManagement, 'Gestión de Usuarios');
       expect(l10n.tripDataMaintenance, 'Mantenimiento de Datos');
     });

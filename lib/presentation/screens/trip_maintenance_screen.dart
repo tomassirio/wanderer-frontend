@@ -67,6 +67,9 @@ class _TripMaintenanceScreenState extends ConsumerState<TripMaintenanceScreen> {
   /// Set of trip IDs that have had geocoding successfully recomputed in this session
   final Set<String> _recomputedGeocoding = {};
 
+  /// Whether the bulk "regenerate missing thumbnails" admin action is running
+  bool _isRegeneratingThumbnails = false;
+
   @override
   void initState() {
     super.initState();
@@ -460,6 +463,63 @@ class _TripMaintenanceScreenState extends ConsumerState<TripMaintenanceScreen> {
     }
   }
 
+  Future<void> _regenerateMissingThumbnails() async {
+    final l10n = context.l10n;
+    final confirmed = kIsWeb
+        ? await WandererDialog.confirm(
+            context,
+            title: l10n.regenerateMissingThumbnails,
+            message: l10n.regenerateMissingThumbnailsConfirmMessage,
+            confirmLabel: l10n.recompute,
+            icon: Icons.image_outlined,
+          )
+        : await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(l10n.regenerateMissingThumbnails),
+              content: Text(l10n.regenerateMissingThumbnailsConfirmMessage),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(l10n.recompute),
+                ),
+              ],
+            ),
+          );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isRegeneratingThumbnails = true);
+
+    try {
+      final result = await _adminService.regenerateMissingThumbnails();
+      if (mounted) {
+        setState(() => _isRegeneratingThumbnails = false);
+        UiHelpers.showSuccessMessage(
+          context,
+          l10n.regenerateMissingThumbnailsResult(
+            result.checked,
+            result.missing,
+            result.regenerated,
+            result.failed,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isRegeneratingThumbnails = false);
+        UiHelpers.showErrorMessage(
+          context,
+          'Failed to regenerate thumbnails: $e',
+        );
+      }
+    }
+  }
+
   Future<void> _navigateToTrip(String tripId) async {
     try {
       final trip = await _tripService.getTripById(tripId);
@@ -608,15 +668,25 @@ class _TripMaintenanceScreenState extends ConsumerState<TripMaintenanceScreen> {
               children: [
                 const Icon(Icons.analytics, color: Colors.blue),
                 const SizedBox(width: 8),
-                Text(
-                  l10n.tripDataOverview,
-                  style: TextStyle(
-                    fontSize: isMobile ? 18 : 20,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    l10n.tripDataOverview,
+                    style: TextStyle(
+                      fontSize: isMobile ? 18 : 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
+                if (!isMobile) _buildRegenerateThumbnailsButton(isMobile),
               ],
             ),
+            if (isMobile) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: _buildRegenerateThumbnailsButton(isMobile),
+              ),
+            ],
             const SizedBox(height: 16),
             // Polyline stats
             Text(
@@ -724,6 +794,25 @@ class _TripMaintenanceScreenState extends ConsumerState<TripMaintenanceScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildRegenerateThumbnailsButton(bool isMobile) {
+    final l10n = context.l10n;
+    return ElevatedButton.icon(
+      onPressed:
+          _isRegeneratingThumbnails ? null : _regenerateMissingThumbnails,
+      icon: _isRegeneratingThumbnails
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.image_outlined, size: 18),
+      label: Text(
+        l10n.regenerateMissingThumbnails,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }

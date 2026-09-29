@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
@@ -29,9 +30,6 @@ class LandingScreen extends ConsumerStatefulWidget {
 }
 
 class _LandingScreenState extends ConsumerState<LandingScreen> {
-  static const _playStoreUrl =
-      'https://play.google.com/store/apps/details?id=com.tomassirio.wanderer.wanderer_frontend';
-
   final _featuresKey = GlobalKey();
   final _exploreKey = GlobalKey();
   final _aboutKey = GlobalKey();
@@ -72,7 +70,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
 
   Future<void> _openPlayStore() async {
     try {
-      await launchUrl(Uri.parse(_playStoreUrl),
+      await launchUrl(Uri.parse(ApiEndpoints.playStoreUrl),
           mode: LaunchMode.externalApplication);
     } catch (e) {
       if (mounted) {

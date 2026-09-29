@@ -425,6 +425,62 @@ void main() {
       });
     });
 
+    group('exchangeSsoCode', () {
+      test('successful exchange returns AuthResponse', () async {
+        final request = SsoExchangeRequest(
+          code: 'auth-code',
+          codeVerifier: 'verifier-123',
+        );
+        final responseBody = {
+          'accessToken': 'sso-access-token',
+          'refreshToken': 'sso-refresh-token',
+          'tokenType': 'Bearer',
+          'expiresIn': 3600,
+        };
+        mockHttpClient.response = http.Response(jsonEncode(responseBody), 200);
+
+        final result = await authClient.exchangeSsoCode(request);
+
+        expect(result.accessToken, 'sso-access-token');
+        expect(result.refreshToken, 'sso-refresh-token');
+        expect(mockHttpClient.lastMethod, 'POST');
+        expect(
+          mockHttpClient.lastUri?.path,
+          endsWith(ApiEndpoints.authSsoExchange),
+        );
+        expect(mockHttpClient.lastBody, jsonEncode(request.toJson()));
+      });
+
+      test('exchangeSsoCode does not require authentication', () async {
+        final request = SsoExchangeRequest(
+          code: 'auth-code',
+          codeVerifier: 'verifier-123',
+        );
+        mockHttpClient.response = http.Response(
+          '{"accessToken":"token","refreshToken":"refresh","tokenType":"Bearer","expiresIn":3600}',
+          200,
+        );
+
+        await authClient.exchangeSsoCode(request);
+
+        expect(mockHttpClient.lastHeaders?['Authorization'], isNull);
+      });
+
+      test('exchangeSsoCode throws exception on invalid or expired code',
+          () async {
+        final request = SsoExchangeRequest(
+          code: 'bad-code',
+          codeVerifier: 'verifier-123',
+        );
+        mockHttpClient.response = http.Response(
+          '{"message":"Invalid or expired code"}',
+          400,
+        );
+
+        expect(() => authClient.exchangeSsoCode(request), throwsException);
+      });
+    });
+
     group('AuthClient initialization', () {
       test('uses provided ApiClient', () {
         final customApiClient = ApiClient(

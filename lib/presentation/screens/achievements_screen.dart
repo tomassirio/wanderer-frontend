@@ -152,6 +152,10 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
     }
   }
 
+  /// Distinct achievements unlocked. [_myAchievements] holds one entry per
+  /// unlock, and per-trip achievements are unlocked once per trip.
+  int get _unlockedCount => _allAchievements.where(_isUnlocked).length;
+
   /// Check if an achievement is unlocked by the current user
   bool _isUnlocked(Achievement achievement) {
     return _myAchievements.any((ua) => ua.achievement.id == achievement.id);
@@ -369,7 +373,7 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
         children: [
           if (_isLoggedIn) ...[
             AchievementsSummaryCard(
-              unlocked: _myAchievements.length,
+              unlocked: _unlockedCount,
               total: _allAchievements.length,
               nextUp: nextUp,
               onStartTrip: () => Navigator.push(
@@ -483,7 +487,7 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
       );
     }
 
-    final unlockedCount = _myAchievements.length;
+    final unlockedCount = _unlockedCount;
     final totalCount = _allAchievements.length;
     final groups = _groupByCategory();
 

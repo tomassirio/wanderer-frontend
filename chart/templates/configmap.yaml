@@ -10,6 +10,12 @@ data:
     resolver 10.43.0.10 valid=10s ipv6=off;
     resolver_timeout 5s;
 
+    # Preserve the scheme set by the TLS-terminating ingress; fall back to our own when absent (local).
+    map $http_x_forwarded_proto $fwd_proto {
+        default $http_x_forwarded_proto;
+        ""      $scheme;
+    }
+
     server {
         listen {{ .Values.application.port }};
         server_name localhost;
@@ -49,6 +55,17 @@ data:
         }
 
         # Auth Service - proxy /api/auth/* to wanderer-auth service /api/1/auth/*
+        # SSO handshake - path kept as-is (no /api/auth -> /api/1/auth rewrite) so the OAuth redirect_uri matches
+        location /api/1/auth/oauth2/ {
+            set $backend_auth wanderer-auth{{ .Values.nameSuffix }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.backend.authPort }};
+            proxy_pass http://$backend_auth;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $fwd_proto;
+            proxy_set_header X-Forwarded-Host $host;
+        }
+
         location /api/auth/ {
             set $backend_auth wanderer-auth{{ .Values.nameSuffix }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.backend.authPort }};
             rewrite ^/api/auth/(.*)$ /api/1/auth/$1 break;
@@ -56,7 +73,8 @@ data:
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Proto $fwd_proto;
+            proxy_set_header X-Forwarded-Host $host;
             proxy_connect_timeout 60s;
             proxy_send_timeout 60s;
             proxy_read_timeout 60s;

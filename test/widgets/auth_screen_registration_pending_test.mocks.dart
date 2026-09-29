@@ -110,4 +110,21 @@ class MockAuthRepository extends _i1.Mock implements _i3.AuthRepository {
         returnValue: _i4.Future<void>.value(),
         returnValueForMissingStub: _i4.Future<void>.value(),
       ) as _i4.Future<void>);
+
+  @override
+  _i4.Future<void> completeSsoLogin(
+    String? code,
+    String? codeVerifier,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #completeSsoLogin,
+          [
+            code,
+            codeVerifier,
+          ],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 }

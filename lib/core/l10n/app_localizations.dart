@@ -291,6 +291,13 @@ class AppLocalizations {
   String get enterVerificationToken => _tr('enterVerificationToken');
   String get accountNowActive => _tr('accountNowActive');
 
+  // --- SSO callback ---
+  String get ssoSigningIn => _tr('ssoSigningIn');
+  String get ssoFailed => _tr('ssoFailed');
+  String get ssoSessionExpired => _tr('ssoSessionExpired');
+  String get continueWithGoogle => _tr('continueWithGoogle');
+  String get orDivider => _tr('orDivider');
+
   // --- Settings screen ---
   String get appearance => _tr('appearance');
   String get darkMode => _tr('darkMode');
@@ -534,6 +541,17 @@ class AppLocalizations {
   String get recomputeGeocodingConfirm => _tr('recomputeGeocodingConfirm');
   String get loadMoreTrips3 => _tr('loadMoreTrips3');
   String get searchTrips2 => _tr('searchTrips2');
+  String get regenerateMissingThumbnails => _tr('regenerateMissingThumbnails');
+  String get regenerateMissingThumbnailsConfirmMessage =>
+      _tr('regenerateMissingThumbnailsConfirmMessage');
+  String regenerateMissingThumbnailsResult(
+          int checked, int missing, int regenerated, int failed) =>
+      TranslationTemplate.format(_tr('regenerateMissingThumbnailsResult'), {
+        'checked': checked,
+        'missing': missing,
+        'regenerated': regenerated,
+        'failed': failed,
+      });
 
   // --- Deep link screens ---
   String get loadingTripDeepLink => _tr('loadingTripDeepLink');
@@ -895,6 +913,13 @@ class AppLocalizations {
       _tr('searchOverlayComments'), {'count': count});
   String get searchOverlayPrompt => _tr('searchOverlayPrompt');
   String get profileUserIdCopied => _tr('profileUserIdCopied');
+  String get profileNotConnected => _tr('profileNotConnected');
+  String get profileMoreOptions => _tr('profileMoreOptions');
+  String get profilePublicTrips => _tr('profilePublicTrips');
+  String profileNoPublicTripsTitle(String username) =>
+      TranslationTemplate.format(
+          _tr('profileNoPublicTripsTitle'), {'username': username});
+  String get profileNoPublicTripsBody => _tr('profileNoPublicTripsBody');
   String get achievementDialogLocked => _tr('achievementDialogLocked');
   String achievementDialogUnlocked(Object date) => TranslationTemplate.format(
       _tr('achievementDialogUnlocked'), {'date': date});
@@ -914,6 +939,10 @@ class AppLocalizations {
       _tr('tripDetailDeleteMessage'), {'name': name});
   String get tripDetailDeleteAction => _tr('tripDetailDeleteAction');
   String get tripDetailKeepTrip => _tr('tripDetailKeepTrip');
+  String get adminDeleteTripTitle => _tr('adminDeleteTripTitle');
+  String adminDeleteTripMessage(Object name) =>
+      TranslationTemplate.format(_tr('adminDeleteTripMessage'), {'name': name});
+  String get adminDeleteTripAction => _tr('adminDeleteTripAction');
   String get settingsSubtitle => _tr('settingsSubtitle');
   String get settingsAccountSecurity => _tr('settingsAccountSecurity');
   String get settingsHelpLegal => _tr('settingsHelpLegal');
@@ -979,6 +1008,36 @@ class AppLocalizations {
   String newTripEvery(Object interval) =>
       TranslationTemplate.format(_tr('newTripEvery'), {'interval': interval});
   String get newTripOff => _tr('newTripOff');
+
+  // --- Draft trip (web, start on phone) ---
+  String draftTripCreated(Object when) =>
+      TranslationTemplate.format(_tr('draftTripCreated'), {'when': when});
+  String get draftTripMoreOptions => _tr('draftTripMoreOptions');
+  String get draftTripEdit => _tr('draftTripEdit');
+  String get draftTripNextStep => _tr('draftTripNextStep');
+  String get draftTripHide => _tr('draftTripHide');
+  String get draftTripTitle => _tr('draftTripTitle');
+  String get draftTripBody => _tr('draftTripBody');
+  String get draftTripStep1Bold => _tr('draftTripStep1Bold');
+  String draftTripStep1Rest(Object username) => TranslationTemplate.format(
+      _tr('draftTripStep1Rest'), {'username': username});
+  String get draftTripStep2Bold => _tr('draftTripStep2Bold');
+  String get draftTripStep2Rest => _tr('draftTripStep2Rest');
+  String get draftTripStep3Bold => _tr('draftTripStep3Bold');
+  String get draftTripStep3Rest => _tr('draftTripStep3Rest');
+  String get draftTripScan => _tr('draftTripScan');
+  String get draftTripQrLabel => _tr('draftTripQrLabel');
+  String get draftTripEmailMe => _tr('draftTripEmailMe');
+  String draftTripEmailSubject(Object name) =>
+      TranslationTemplate.format(_tr('draftTripEmailSubject'), {'name': name});
+  String draftTripEmailBody(Object link) =>
+      TranslationTemplate.format(_tr('draftTripEmailBody'), {'link': link});
+  String get draftTripAutoCheckIn => _tr('draftTripAutoCheckIn');
+  String get draftTripChangeSettings => _tr('draftTripChangeSettings');
+  String get draftTripInviteTitle => _tr('draftTripInviteTitle');
+  String get draftTripInviteBody => _tr('draftTripInviteBody');
+  String get draftTripCopyLink => _tr('draftTripCopyLink');
+  String get draftTripStartOnPhone => _tr('draftTripStartOnPhone');
   String get newTripCreate => _tr('newTripCreate');
   String get msgTripCreated => _tr('msgTripCreated');
   String msgTripCreateError(Object error) =>

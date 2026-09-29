@@ -27,42 +27,34 @@ class AuthService {
   /// Returns AuthResponse with tokens and logs the user in
   Future<AuthResponse> verifyEmail(VerifyEmailRequest request) async {
     final authResponse = await _authClient.verifyEmail(request);
-
-    // Save tokens first
-    await _tokenStorage.saveTokens(
-      accessToken: authResponse.accessToken,
-      refreshToken: authResponse.refreshToken,
-      tokenType: authResponse.tokenType,
-      expiresIn: authResponse.expiresIn,
-    );
-
-    // Fetch user profile to get userId and username
-    try {
-      final profile = await _userQueryClient.getCurrentUser();
-
-      // Update tokens with user info
-      await _tokenStorage.saveTokens(
-        accessToken: authResponse.accessToken,
-        refreshToken: authResponse.refreshToken,
-        tokenType: authResponse.tokenType,
-        expiresIn: authResponse.expiresIn,
-        userId: profile.id,
-        username: profile.username,
-        displayName: profile.displayName,
-      );
-      await _tokenStorage.saveAvatarUrl(profile.avatarUrl);
-    } catch (e) {
-      // If profile fetch fails, continue with just tokens
-      // Error is silently ignored in production
-    }
-
+    await _persistSession(authResponse);
     return authResponse;
   }
 
   /// Login with email and password
   Future<AuthResponse> login(LoginRequest request) async {
     final authResponse = await _authClient.login(request);
+    await _persistSession(authResponse);
+    return authResponse;
+  }
 
+  /// Exchange an SSO authorization code (+ PKCE verifier) for tokens
+  /// and log the user in
+  Future<AuthResponse> completeSsoLogin({
+    required String code,
+    required String codeVerifier,
+  }) async {
+    final authResponse = await _authClient.exchangeSsoCode(
+      SsoExchangeRequest(code: code, codeVerifier: codeVerifier),
+    );
+    await _persistSession(authResponse);
+    return authResponse;
+  }
+
+  /// Save tokens and fetch/persist the user profile (userId, username,
+  /// displayName, avatar). Shared by [login], [verifyEmail] and
+  /// [completeSsoLogin].
+  Future<void> _persistSession(AuthResponse authResponse) async {
     // Save tokens first
     await _tokenStorage.saveTokens(
       accessToken: authResponse.accessToken,
@@ -90,8 +82,6 @@ class AuthService {
       // If profile fetch fails, continue with just tokens
       // Error is silently ignored in production
     }
-
-    return authResponse;
   }
 
   /// Logout and invalidate token

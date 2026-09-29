@@ -45,6 +45,7 @@ import 'auth_screen.dart';
 import 'settings_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/web_draft_trip_view.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/web_trip_detail_layout.dart';
 
 /// Trip detail screen showing trip info, map, and comments
@@ -96,6 +97,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   String? _replyingToCommentId;
   CommentSortOption _sortOption = CommentSortOption.latest;
   final int _selectedSidebarIndex = -1; // Trip detail is not a main nav item
+  bool _draftHintDismissed = false;
   String? _username;
   String? _userId;
   String? _displayName;
@@ -201,6 +203,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     _webSocketService = ref.read(websocketServiceProvider);
 
     _trip = widget.trip;
+    WebDraftTripView.isDismissed(_trip.id).then((v) {
+      if (v && mounted) setState(() => _draftHintDismissed = true);
+    });
     // Default to showing the planned route when the trip has one
     _showPlannedWaypoints = _trip.hasPlannedRoute;
     // Don't call _updateMapData() here — it would use stale trip data.
@@ -2755,8 +2760,15 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    // Re-evaluated on every rebuild, so a WebSocket status change to live
+    // swaps the draft view out for the map view.
+    final showDraft = kIsWeb &&
+        WebDraftTripView.shouldShow(_trip, _userId, _tripUpdates,
+            dismissed: _draftHintDismissed);
     return WandererScaffold(
-      collapsedSidebar: true,
+      // The draft view lives in the My trips shell, as on the design board.
+      collapsedSidebar: !showDraft,
+      hideAppBarWithSidebar: showDraft,
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,
@@ -2773,7 +2785,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         userId: _userId,
         displayName: _displayName,
         avatarUrl: _avatarUrl,
-        selectedIndex: _selectedSidebarIndex,
+        selectedIndex:
+            showDraft ? AppSidebar.myTripsIndex : _selectedSidebarIndex,
+        onSameScreen: !showDraft,
         onLogout: _logout,
         onSettings: _handleSettings,
         isAdmin: _isAdmin,
@@ -2826,6 +2840,16 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
             onMapTap: _onInfoWindowClosed,
           );
 
+          if (showDraft) {
+            return WebDraftTripView(
+              data: layoutData,
+              onDismiss: () {
+                setState(() => _draftHintDismissed = true);
+                WebDraftTripView.setDismissed(_trip.id);
+              },
+            );
+          }
+
           if (kIsWeb && constraints.maxWidth >= WebTripDetailLayout.minWidth) {
             return WebTripDetailLayout(
               data: layoutData,
@@ -2834,6 +2858,13 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
               donationButton: _isPromoted && _donationLink != null
                   ? _buildDonationButton()
                   : null,
+              onStartOnPhone:
+                  WebDraftTripView.shouldShow(_trip, _userId, _tripUpdates)
+                      ? () {
+                          setState(() => _draftHintDismissed = false);
+                          WebDraftTripView.clearDismissed(_trip.id);
+                        }
+                      : null,
             );
           }
 

@@ -9,3 +9,5 @@ export 'responses/register_pending_response.dart';
 export 'requests/refresh_token_request.dart';
 export 'requests/password_reset_request.dart';
 export 'requests/password_change_request.dart';
+export 'requests/sso_exchange_request.dart';
+export 'sso_provider.dart';

@@ -6,7 +6,6 @@ import '../models/user_models.dart';
 
 /// Service for admin operations
 class AdminService {
-  final TripCommandClient _tripCommandClient;
   final PromotionCommandClient _promotionCommandClient;
   final PromotionQueryClient _promotionQueryClient;
   final TripQueryClient _tripQueryClient;
@@ -15,15 +14,13 @@ class AdminService {
   final AdminQueryClient _adminQueryClient;
 
   AdminService({
-    TripCommandClient? tripCommandClient,
     PromotionCommandClient? promotionCommandClient,
     PromotionQueryClient? promotionQueryClient,
     TripQueryClient? tripQueryClient,
     UserQueryClient? userQueryClient,
     AdminCommandClient? adminCommandClient,
     AdminQueryClient? adminQueryClient,
-  })  : _tripCommandClient = tripCommandClient ?? TripCommandClient(),
-        _promotionCommandClient =
+  })  : _promotionCommandClient =
             promotionCommandClient ?? PromotionCommandClient(),
         _promotionQueryClient = promotionQueryClient ?? PromotionQueryClient(),
         _tripQueryClient = tripQueryClient ?? TripQueryClient(),
@@ -31,9 +28,10 @@ class AdminService {
         _adminCommandClient = adminCommandClient ?? AdminCommandClient(),
         _adminQueryClient = adminQueryClient ?? AdminQueryClient();
 
-  /// Delete a trip (admin only)
+  /// Delete a trip permanently (admin only, works for any trip regardless
+  /// of owner — not the owner-scoped `DELETE /trips/{id}`)
   Future<void> deleteTrip(String tripId) async {
-    await _tripCommandClient.deleteTrip(tripId);
+    await _adminCommandClient.deleteTrip(tripId);
   }
 
   // Promotion operations
@@ -141,5 +139,10 @@ class AdminService {
   /// Get trip maintenance statistics (polyline and geocoding data)
   Future<TripMaintenanceStats> getTripStats() async {
     return await _adminQueryClient.getTripStats();
+  }
+
+  /// Regenerate map thumbnails for trips missing one (admin only)
+  Future<ThumbnailBackfillResult> regenerateMissingThumbnails() async {
+    return await _adminCommandClient.regenerateMissingThumbnails();
   }
 }
