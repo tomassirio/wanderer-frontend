@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_cropper/image_cropper.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -15,6 +13,7 @@ import 'package:wanderer_frontend/data/models/responses/page_response.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/achievements_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_admin_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_avatar_crop_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_shell.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_trips_tab.dart';
 import 'package:wanderer_frontend/presentation/screens/friends_followers_screen.dart';
@@ -270,61 +269,10 @@ class _ProfileAndroidViewState extends ConsumerState<ProfileAndroidView> {
     if (action == 'delete') {
       await _run(repo.deleteAvatar, l10n.profileUpdatedSuccessfully);
     } else if (action == 'change') {
-      final image = await ImagePicker().pickImage(source: ImageSource.gallery);
-      if (image == null) return;
       if (!mounted) return;
-      final c = WandererTheme.of(context);
-      final isDark = Theme.of(context).brightness == Brightness.dark;
-      final cropped = await ImageCropper().cropImage(
-        sourcePath: image.path,
-        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-        compressQuality: 85,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        uiSettings: [
-          // Circle crop bounds match the final CircleAvatar rendering, so
-          // the preview is a true WYSIWYG of the resulting avatar. Colours
-          // mirror the rest of the app: a neutral ground/surface toolbar
-          // (like AndroidTopBar) with the single trail-orange accent
-          // reserved for the active crop handles, not the whole bar.
-          AndroidUiSettings(
-            toolbarTitle: l10n.profileChangeAvatar,
-            toolbarColor: c.ground,
-            toolbarWidgetColor: c.text,
-            statusBarLight: !isDark,
-            navBarLight: !isDark,
-            backgroundColor: c.surface,
-            activeControlsWidgetColor: WandererTheme.trail,
-            cropFrameColor: WandererTheme.trail,
-            cropGridColor: c.line,
-            dimmedLayerColor: Colors.black.withOpacity(0.6),
-            lockAspectRatio: true,
-            // The native Scale/Rotate/Aspect-ratio tab bar can't be
-            // recoloured via this API and its fixed white background clashes
-            // with the app's themed cropper — hide it. Pinch-to-zoom and
-            // drag still work on the image without it, and aspect ratio is
-            // locked anyway.
-            hideBottomControls: true,
-            initAspectRatio: CropAspectRatioPreset.square,
-            showCropGrid: true,
-            cropStyle: CropStyle.circle,
-          ),
-          IOSUiSettings(
-            title: l10n.profileChangeAvatar,
-            aspectRatioLockEnabled: true,
-            resetAspectRatioEnabled: false,
-            aspectRatioPickerButtonHidden: true,
-            minimumAspectRatio: 1.0,
-            cropStyle: CropStyle.circle,
-          ),
-        ],
-      );
-      if (cropped == null) return;
-      final bytes = await cropped.readAsBytes();
-      final name = cropped.path.split('/').last;
-      await _run(
-          () =>
-              repo.uploadAvatar(bytes, name.contains('.') ? name : '$name.jpg'),
+      final bytes = await AndroidAvatarCropScreen.pickAndCrop(context);
+      if (bytes == null) return;
+      await _run(() => repo.uploadAvatar(bytes, 'avatar.png'),
           l10n.profileUpdatedSuccessfully);
       // The new picture is served under the same URL; drop the cached one.
       NetworkImage(ApiEndpoints.resolveThumbnailUrl(_profile!.avatarUrl))

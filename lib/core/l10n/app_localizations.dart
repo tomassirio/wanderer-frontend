@@ -1412,4 +1412,13 @@ class AppLocalizations {
   String get adminToolsTitle => _tr('adminToolsTitle');
   String get adminToolsSub => _tr('adminToolsSub');
   String get adminToolsNotice => _tr('adminToolsNotice');
+  String get avatarAdjustTitle => _tr('avatarAdjustTitle');
+  String get avatarAdjustHint => _tr('avatarAdjustHint');
+  String get avatarPreviewCaption => _tr('avatarPreviewCaption');
+  String get avatarRotate => _tr('avatarRotate');
+  String get avatarReset => _tr('avatarReset');
+  String get avatarChooseAnother => _tr('avatarChooseAnother');
+  String get avatarUseThis => _tr('avatarUseThis');
+  String get avatarZoomIn => _tr('avatarZoomIn');
+  String get avatarZoomOut => _tr('avatarZoomOut');
 }

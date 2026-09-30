@@ -1117,5 +1117,14 @@
   "youAdminMaintenanceSub": "Repair or clean up trip data and check-ins",
   "adminToolsTitle": "Admin tools",
   "adminToolsSub": "Trip promotion, users, trip data",
-  "adminToolsNotice": "Only admins see this. Changes here affect every user."
+  "adminToolsNotice": "Only admins see this. Changes here affect every user.",
+  "avatarAdjustTitle": "Adjust your photo",
+  "avatarAdjustHint": "Pinch to zoom · drag to move",
+  "avatarPreviewCaption": "How friends will see it",
+  "avatarRotate": "Rotate",
+  "avatarReset": "Reset",
+  "avatarChooseAnother": "Choose another",
+  "avatarUseThis": "Use this photo",
+  "avatarZoomIn": "Zoom in",
+  "avatarZoomOut": "Zoom out"
 }

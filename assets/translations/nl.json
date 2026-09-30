@@ -1117,5 +1117,14 @@
   "youAdminMaintenanceSub": "Herstel of schoon reisgegevens en check-ins op",
   "adminToolsTitle": "Beheertools",
   "adminToolsSub": "Reispromotie, gebruikers, reisgegevens",
-  "adminToolsNotice": "Alleen admins zien dit. Wijzigingen hier gelden voor alle gebruikers."
+  "adminToolsNotice": "Alleen admins zien dit. Wijzigingen hier gelden voor alle gebruikers.",
+  "avatarAdjustTitle": "Pas je foto aan",
+  "avatarAdjustHint": "Knijp om te zoomen · sleep om te verplaatsen",
+  "avatarPreviewCaption": "Zo zien vrienden het",
+  "avatarRotate": "Draaien",
+  "avatarReset": "Herstellen",
+  "avatarChooseAnother": "Andere kiezen",
+  "avatarUseThis": "Deze foto gebruiken",
+  "avatarZoomIn": "Inzoomen",
+  "avatarZoomOut": "Uitzoomen"
 }

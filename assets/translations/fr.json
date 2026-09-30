@@ -1117,5 +1117,14 @@
   "youAdminMaintenanceSub": "Réparez ou nettoyez les données des voyages et les check-ins",
   "adminToolsTitle": "Outils d'admin",
   "adminToolsSub": "Mise en avant, utilisateurs, données des voyages",
-  "adminToolsNotice": "Seuls les admins voient ceci. Les changements concernent tous les utilisateurs."
+  "adminToolsNotice": "Seuls les admins voient ceci. Les changements concernent tous les utilisateurs.",
+  "avatarAdjustTitle": "Ajustez votre photo",
+  "avatarAdjustHint": "Pincez pour zoomer · faites glisser pour déplacer",
+  "avatarPreviewCaption": "Ce que verront vos amis",
+  "avatarRotate": "Pivoter",
+  "avatarReset": "Réinitialiser",
+  "avatarChooseAnother": "Choisir une autre",
+  "avatarUseThis": "Utiliser cette photo",
+  "avatarZoomIn": "Zoom avant",
+  "avatarZoomOut": "Zoom arrière"
 }
