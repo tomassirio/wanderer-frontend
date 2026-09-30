@@ -226,14 +226,32 @@ void main() {
     await tester.tap(find.byKey(const Key('trip_guest_login')));
     expect(login, 1);
 
-    // Half by default; a tab opens the full sheet, "Show map" goes back.
+    // Nearest Opacity above a widget: 0 = hidden by the sheet position.
+    double opacityOf(Finder f) => tester
+        .widget<Opacity>(
+            find.ancestor(of: f, matching: find.byType(Opacity)).first)
+        .opacity;
+    // Hidden = not built, or built under a fully transparent Opacity.
+    bool hidden(Finder f) => f.evaluate().isEmpty || opacityOf(f) == 0;
+    final row = find.text('Santiago, Spain');
+    final title = find.text('Santiago de Compostela 2026');
+
+    // Half by default and no list row shows; a tab opens the full sheet
+    // with the timeline, "Show map" goes back.
     expect(find.byKey(const Key('trip_sheet_show_map')), findsNothing);
+    expect(hidden(row), isTrue);
     await tester.tap(find.textContaining('Timeline'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('trip_sheet_show_map')), findsOneWidget);
-    expect(find.text('Santiago, Spain'), findsOneWidget);
+    expect(opacityOf(row), 1);
     await tester.tap(find.byKey(const Key('trip_sheet_show_map')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('trip_sheet_show_map')), findsNothing);
+    expect(hidden(row), isTrue);
+
+    // Collapsed shows only the handle.
+    await tester.drag(title, const Offset(0, 600));
+    await tester.pumpAndSettle();
+    expect(hidden(title), isTrue);
   });
 }

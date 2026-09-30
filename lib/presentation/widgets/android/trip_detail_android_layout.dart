@@ -443,7 +443,17 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [handle, header, tabBar],
+        children: [
+          handle,
+          // Collapsed shows only the handle: the header fades in as the
+          // sheet leaves the collapsed height (layout kept for measuring).
+          _fadeAbove(_Detent.collapsed,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [header, tabBar],
+              )),
+        ],
       ),
     );
 
@@ -472,7 +482,11 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
       delegate: _SheetLayout(_onTopMeasured),
       children: [
         LayoutId(id: _SheetLayout.top, child: top),
-        LayoutId(id: _SheetLayout.list, child: list),
+        // Half shows no list items: the bottom inset below the tabs would
+        // otherwise reveal the first row.
+        LayoutId(
+            id: _SheetLayout.list,
+            child: _fadeAbove(_Detent.half, child: list)),
       ],
     );
 
@@ -513,6 +527,21 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
       child: content,
     );
   }
+
+  /// Invisible and untouchable while the sheet is at or below [detent]'s
+  /// height, fading in over the next 40px of drag.
+  Widget _fadeAbove(_Detent detent, {required Widget child}) => AnimatedBuilder(
+        animation: _sheet,
+        builder: (context, child) {
+          final t =
+              ((_sheet.value - _heightOf(detent) - 4) / 40).clamp(0.0, 1.0);
+          return IgnorePointer(
+            ignoring: t == 0,
+            child: Opacity(opacity: t, child: child),
+          );
+        },
+        child: child,
+      );
 
   Widget _buildPills(BuildContext context) {
     final l10n = context.l10n;
