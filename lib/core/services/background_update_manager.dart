@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/services/notification_service.dart';
-import 'package:wanderer_frontend/data/models/requests/change_status_request.dart';
+import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/data/services/trip_update_service.dart';
 import 'package:wanderer_frontend/data/storage/token_refresh_manager.dart';
@@ -68,6 +68,22 @@ Future<void> _scheduleNextChainedTask(SharedPreferences prefs) async {
     backoffPolicy: BackoffPolicy.linear,
     backoffPolicyDelay: const Duration(minutes: 1),
   );
+}
+
+/// Whether the chain should keep checking in: only while the backend says the
+/// trip is live. The check-in endpoint accepts any status, so without this a
+/// chain whose trip never went (or no longer is) IN_PROGRESS — a start the
+/// backend rejected after its 202, a pause/finish from another device, a
+/// deleted trip — posts "Automatic Update"s forever. A failed lookup keeps
+/// going (being offline must not end tracking).
+@visibleForTesting
+Future<bool> shouldKeepAutoUpdating(Future<Trip> Function() fetchTrip) async {
+  try {
+    return (await fetchTrip()).status == TripStatus.inProgress;
+  } catch (e) {
+    debugPrint('BG_UPDATE: trip status lookup failed ($e) — continuing');
+    return true;
+  }
 }
 
 /// Top-level callback dispatcher for WorkManager
@@ -131,6 +147,18 @@ void callbackDispatcher() {
             reason: 'Please open the app and log in again',
           );
           await _scheduleNextChainedTask(prefs);
+          return true;
+        }
+
+        if (!await shouldKeepAutoUpdating(
+            () => TripService().getTripById(tripId))) {
+          debugPrint('$tag: Trip $tripId is not IN_PROGRESS — ending chain');
+          // The foreground service can only be stopped from the UI isolate;
+          // initialize() does that on the next app start.
+          await prefs.setBool(_chainedUpdatesActiveKey, false);
+          await prefs.remove(_activeTripIdKey);
+          await prefs.remove(_activeTripNameKey);
+          await prefs.remove(_updateIntervalKey);
           return true;
         }
 
@@ -244,6 +272,12 @@ class BackgroundUpdateManager {
         isInDebugMode: false,
       );
       _isInitialized = true;
+      // A chain the background task ended (trip no longer live) leaves the
+      // tracking service running; stop it.
+      final prefs = await SharedPreferences.getInstance();
+      if (!(prefs.getBool(_chainedUpdatesActiveKey) ?? false)) {
+        await _stopForegroundService();
+      }
       debugPrint(
           'BackgroundUpdateManager: ✅ Initialized successfully (debug mode ON)');
     } catch (e) {
@@ -348,6 +382,16 @@ class BackgroundUpdateManager {
           'BackgroundUpdateManager: Stopped auto updates for trip $tripId');
     } catch (e) {
       debugPrint('BackgroundUpdateManager: Failed to stop auto updates: $e');
+    }
+  }
+
+  /// Stops the chain only if it belongs to [tripId]; another trip's chain is
+  /// left alone.
+  Future<void> stopAutoUpdatesFor(String tripId) async {
+    if (!_isSupported) return;
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString(_activeTripIdKey) == tripId) {
+      await stopAutoUpdates(tripId);
     }
   }
 

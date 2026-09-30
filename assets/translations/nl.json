@@ -1126,5 +1126,12 @@
   "avatarChooseAnother": "Andere kiezen",
   "avatarUseThis": "Deze foto gebruiken",
   "avatarZoomIn": "Inzoomen",
-  "avatarZoomOut": "Uitzoomen"
+  "avatarZoomOut": "Uitzoomen",
+  "tripStatCheckIns": "Check-ins",
+  "tripAutoCheckInLabel": "Automatische check-in",
+  "tripCheckInGroup": "{n} check-ins",
+  "tripShowMap": "Kaart tonen",
+  "tripSheetShowDetails": "Reisdetails tonen",
+  "tripSheetExpand": "Uitklappen",
+  "tripSheetCollapse": "Inklappen"
 }

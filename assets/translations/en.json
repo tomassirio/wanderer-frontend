@@ -1126,5 +1126,12 @@
   "avatarChooseAnother": "Choose another",
   "avatarUseThis": "Use this photo",
   "avatarZoomIn": "Zoom in",
-  "avatarZoomOut": "Zoom out"
+  "avatarZoomOut": "Zoom out",
+  "tripStatCheckIns": "Check-ins",
+  "tripAutoCheckInLabel": "Auto check-in",
+  "tripCheckInGroup": "{n} check-ins",
+  "tripShowMap": "Show map",
+  "tripSheetShowDetails": "Show trip details",
+  "tripSheetExpand": "Expand",
+  "tripSheetCollapse": "Collapse"
 }

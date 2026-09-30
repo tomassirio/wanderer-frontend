@@ -1421,4 +1421,12 @@ class AppLocalizations {
   String get avatarUseThis => _tr('avatarUseThis');
   String get avatarZoomIn => _tr('avatarZoomIn');
   String get avatarZoomOut => _tr('avatarZoomOut');
+  String get tripStatCheckIns => _tr('tripStatCheckIns');
+  String get tripAutoCheckInLabel => _tr('tripAutoCheckInLabel');
+  String tripCheckInGroup(Object n) =>
+      TranslationTemplate.format(_tr('tripCheckInGroup'), {'n': n});
+  String get tripShowMap => _tr('tripShowMap');
+  String get tripSheetShowDetails => _tr('tripSheetShowDetails');
+  String get tripSheetExpand => _tr('tripSheetExpand');
+  String get tripSheetCollapse => _tr('tripSheetCollapse');
 }

@@ -6,16 +6,57 @@ import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
+import 'package:wanderer_frontend/data/services/trip_update_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/weather_helpers.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/trip_state_controls.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_sheet.dart';
 
+/// Sent by the background schedule (it carries the placeholder message).
+bool isAutoCheckIn(TripLocation u) =>
+    u.updateType == TripUpdateType.regular &&
+    u.message == TripUpdateService.automaticUpdateMessage;
+
+/// The user's own message, never the automatic placeholder or event text.
+String? tripCheckInMessage(TripLocation u) =>
+    u.updateType == TripUpdateType.regular &&
+            !isAutoCheckIn(u) &&
+            (u.message?.trim().isNotEmpty ?? false)
+        ? u.message!.trim()
+        : null;
+
+/// Consecutive regular check-ins at the same place, each within [window] of
+/// the previous one, folded into one group (a lone check-in is a group of
+/// one). Check-ins with a user message and trip events always stand alone.
+/// Order is kept.
+List<List<TripLocation>> groupCheckIns(List<TripLocation> updates,
+    {Duration window = const Duration(minutes: 15)}) {
+  bool groupable(TripLocation u) =>
+      u.updateType == TripUpdateType.regular &&
+      tripCheckInMessage(u) == null &&
+      tripCheckInPlace(u).isNotEmpty;
+  final groups = <List<TripLocation>>[];
+  for (final u in updates) {
+    final prev = groups.isEmpty ? null : groups.last.last;
+    if (prev != null &&
+        groupable(u) &&
+        groupable(prev) &&
+        tripCheckInPlace(u) == tripCheckInPlace(prev) &&
+        prev.timestamp.difference(u.timestamp).abs() <= window) {
+      groups.last.add(u);
+    } else {
+      groups.add([u]);
+    }
+  }
+  return groups;
+}
+
 /// Label for a check-in's type (Check-in, Trip started, Day ended, …).
 String tripCheckInKind(AppLocalizations l10n, TripLocation u) =>
     switch (u.updateType) {
-      TripUpdateType.regular => l10n.tripCheckInLabel,
+      TripUpdateType.regular =>
+        isAutoCheckIn(u) ? l10n.tripAutoCheckInLabel : l10n.tripCheckInLabel,
       TripUpdateType.tripStarted => l10n.tripEventStarted,
       TripUpdateType.tripEnded => l10n.tripEventFinished,
       TripUpdateType.dayStart => l10n.tripEventDayStart,
@@ -140,11 +181,9 @@ Future<void> showTripCheckInDetail(BuildContext context, TripLocation u) {
             ),
           ],
         ),
-        if (u.message != null &&
-            u.message!.isNotEmpty &&
-            u.updateType == TripUpdateType.regular) ...[
+        if (tripCheckInMessage(u) case final message?) ...[
           const SizedBox(height: 16),
-          Text(u.message!,
+          Text(message,
               style: TextStyle(fontSize: 15, height: 1.45, color: c.text)),
         ],
         const SizedBox(height: 16),

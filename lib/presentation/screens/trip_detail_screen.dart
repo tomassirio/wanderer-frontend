@@ -519,6 +519,16 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       );
     });
 
+    // The backend says the trip left IN_PROGRESS (maybe from another
+    // device): this device must stop checking in for it.
+    if (_isAndroid &&
+        _userId != null &&
+        _trip.userId == _userId &&
+        event.newStatus != TripStatus.inProgress) {
+      BackgroundUpdateManager().stopAutoUpdatesFor(_trip.id);
+      _syncLiveNotification();
+    }
+
     // Reload timeline to pick up any lifecycle markers
     // (TRIP_STARTED, TRIP_ENDED, DAY_START, DAY_END)
     _loadTripUpdates();
@@ -3184,7 +3194,6 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   /// Android: full-screen map, round controls, draggable info sheet.
   Widget _buildAndroid(BuildContext context) {
     final isOwner = _userId != null && _trip.userId == _userId;
-    final height = MediaQuery.sizeOf(context).height;
     final map = TripMapView(
       initialLocation:
           TripMapHelper.getInitialLocation(_trip, userLocation: _userLocation),
@@ -3199,8 +3208,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         }
       },
       isOwner: isOwner,
-      padding: EdgeInsets.only(
-          bottom: height * TripDetailAndroidLayout.initialSheet),
+      padding: const EdgeInsets.only(
+          bottom: TripDetailAndroidLayout.mapBottomPadding),
     );
     return Scaffold(
       body: TripDetailAndroidLayout(

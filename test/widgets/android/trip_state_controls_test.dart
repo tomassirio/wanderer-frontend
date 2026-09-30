@@ -221,10 +221,19 @@ void main() {
       ),
     ));
     expect(find.text('Santiago de Compostela 2026'), findsOneWidget);
-    expect(find.text('Santiago, Spain'), findsOneWidget);
     expect(find.byType(TripStateControls), findsNothing);
-    await tester.ensureVisible(find.byKey(const Key('trip_guest_login')));
+    await tester.pump(); // half detent settles on the measured header
     await tester.tap(find.byKey(const Key('trip_guest_login')));
     expect(login, 1);
+
+    // Half by default; a tab opens the full sheet, "Show map" goes back.
+    expect(find.byKey(const Key('trip_sheet_show_map')), findsNothing);
+    await tester.tap(find.textContaining('Timeline'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('trip_sheet_show_map')), findsOneWidget);
+    expect(find.text('Santiago, Spain'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('trip_sheet_show_map')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('trip_sheet_show_map')), findsNothing);
   });
 }
