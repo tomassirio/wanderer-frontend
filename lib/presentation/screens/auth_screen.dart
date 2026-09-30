@@ -6,15 +6,16 @@ import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
-import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
-import 'package:wanderer_frontend/core/theme/theme_controller.dart';
-import 'package:wanderer_frontend/data/models/auth_models.dart';
+import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/repositories/auth_repository.dart';
+import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_auth_widgets.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
+import 'package:wanderer_frontend/data/models/auth_models.dart';
 import 'package:wanderer_frontend/data/services/sso/pkce.dart';
 import 'package:wanderer_frontend/data/services/sso/sso_service.dart';
 import 'package:wanderer_frontend/presentation/screens/verify_email_screen.dart';
-import 'package:wanderer_frontend/presentation/widgets/auth/auth_form.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/forgot_password_form.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/web_auth_layout.dart';
 
@@ -22,6 +23,10 @@ import 'package:wanderer_frontend/presentation/widgets/auth/web_auth_layout.dart
 class AuthScreen extends ConsumerStatefulWidget {
   final bool startInSignup;
   final String? initialUsername;
+
+  /// Android Welcome's "Continue with Google": start the Google flow as
+  /// soon as the screen opens (the sign-in form stays behind it).
+  final bool autoStartSso;
 
   /// Mobile SSO: opens the authorization [Uri] in a system browser session
   /// and returns the callback URL. Defaults to `flutter_web_auth_2`;
@@ -33,6 +38,7 @@ class AuthScreen extends ConsumerStatefulWidget {
     this.startInSignup = false,
     this.initialUsername,
     this.ssoAuthenticate,
+    this.autoStartSso = false,
   });
 
   static Future<String> _browserAuthenticate(Uri url) =>
@@ -68,6 +74,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     super.initState();
     _repository = ref.read(authRepositoryProvider);
     _prefillUsername();
+    if (widget.autoStartSso) {
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _startSso(SsoProvider.google));
+    }
   }
 
   void _prefillUsername() {
@@ -114,7 +124,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         );
 
         if (mounted) {
-          Navigator.of(context).pop(true);
+          if (kIsWeb) {
+            Navigator.of(context).pop(true);
+          } else {
+            // Android: land on the shell (InitialScreen routes there).
+            Navigator.of(context).pushAndRemoveUntil(
+                PageTransitions.fade(const InitialScreen()), (_) => false);
+          }
         }
       } else {
         await _repository.register(
@@ -178,7 +194,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       final code = SsoService.codeFromCallback(callback);
       if (code == null) throw Exception('SSO callback without code');
       await _repository.completeSsoLogin(code, pkce.verifier);
-      if (mounted) Navigator.of(context).pop(true);
+      // Mobile only (web returned above): land on the Android shell, like
+      // a password login.
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+            PageTransitions.fade(const InitialScreen()), (_) => false);
+      }
     } on PlatformException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -195,6 +216,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   void _forgotPassword() {
+    if (!kIsWeb) {
+      showAndroidForgotPasswordSheet(
+        context,
+        initialEmail: _usernameController.text.contains('@')
+            ? _usernameController.text.trim()
+            : '',
+        onSubmit: _repository.requestPasswordReset,
+      );
+      return;
+    }
     setState(() {
       _isForgotPassword = true;
       _errorMessage = null;
@@ -314,134 +345,37 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) return _buildWeb(context);
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
+    if (_registrationPending) {
+      final c = WandererTheme.of(context);
+      return Scaffold(
+        backgroundColor: c.ground,
+        appBar: AppBar(
+          backgroundColor: c.ground,
+          elevation: 0,
+          leading: BackButton(onPressed: _goBackOrHome),
         ),
-        actions: [
-          _buildLanguageToggle(),
-          _buildThemeToggle(),
-          const SizedBox(width: 4),
-        ],
-      ),
-      extendBodyBehindAppBar: true,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.secondary,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
+        body: Center(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 450),
-                child: _registrationPending
-                    ? _buildRegistrationPendingView()
-                    : _isForgotPassword
-                        ? _buildForgotPasswordForm()
-                        : AuthForm(
-                            formKey: _formKey,
-                            isLogin: _isLogin,
-                            isLoading: _isLoading,
-                            errorMessage: _errorMessage,
-                            usernameController: _usernameController,
-                            emailController: _emailController,
-                            passwordController: _passwordController,
-                            confirmPasswordController:
-                                _confirmPasswordController,
-                            onSubmit: _submit,
-                            onToggleMode: _toggleMode,
-                            onForgotPassword: _forgotPassword,
-                            onNeedVerificationToken:
-                                _navigateToManualVerification,
-                            onSsoPressed: () => _startSso(SsoProvider.google),
-                          ),
-              ),
-            ),
+            child: _buildRegistrationPendingView(),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildThemeToggle() {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: ThemeController().themeMode,
-      builder: (context, mode, _) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final l10n = context.l10n;
-        return IconButton(
-          icon: Icon(
-            isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-            color: Colors.white,
-            size: 20,
-          ),
-          tooltip: isDark ? l10n.switchToLightMode : l10n.switchToDarkMode,
-          onPressed: () => ThemeController().setDarkMode(!isDark),
-          visualDensity: VisualDensity.compact,
-        );
-      },
-    );
-  }
-
-  Widget _buildLanguageToggle() {
-    return ValueListenableBuilder<Locale>(
-      valueListenable: LocaleController().locale,
-      builder: (context, locale, _) {
-        final controller = LocaleController();
-        final currentCode = controller.languageCode;
-        final flag = LocaleController.localeFlags[currentCode] ?? '🌐';
-        final label = LocaleController.localeLabels[currentCode] ?? 'EN';
-        return PopupMenuButton<String>(
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-          tooltip: 'Change language',
-          onSelected: (code) => controller.setLocale(Locale(code)),
-          itemBuilder: (_) => LocaleController.supportedLocales.map((loc) {
-            final code = loc.languageCode;
-            final locFlag = LocaleController.localeFlags[code] ?? '🌐';
-            final locLabel = LocaleController.localeLabels[code] ?? code;
-            return PopupMenuItem<String>(
-              value: code,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(locFlag, style: const TextStyle(fontSize: 16)),
-                  const SizedBox(width: 8),
-                  Text(locLabel),
-                ],
-              ),
-            );
-          }).toList(),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(flag, style: const TextStyle(fontSize: 16)),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Icon(Icons.arrow_drop_down, color: Colors.white, size: 16),
-            ],
-          ),
-        );
-      },
+      );
+    }
+    return AndroidAuthForm(
+      formKey: _formKey,
+      isLogin: _isLogin,
+      isLoading: _isLoading,
+      errorMessage: _errorMessage,
+      usernameController: _usernameController,
+      emailController: _emailController,
+      passwordController: _passwordController,
+      onSubmit: _submit,
+      onToggleMode: _toggleMode,
+      onForgotPassword: _forgotPassword,
+      onNeedVerificationToken: _navigateToManualVerification,
+      onBack: _goBackOrHome,
+      onSsoPressed: () => _startSso(SsoProvider.google),
     );
   }
 

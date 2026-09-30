@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_shell.dart';
 import 'package:wanderer_frontend/data/storage/token_storage.dart';
 import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/profile_screen.dart';
@@ -82,12 +84,13 @@ class AuthNavigationHelper {
       return;
     }
 
-    if (context.mounted) {
-      Navigator.push(
-        context,
-        PageTransitions.slideRight(const ProfileScreen()),
-      );
-    }
+    if (!context.mounted) return;
+    // Android: your own profile is the You tab.
+    if (!kIsWeb && AndroidShell.selectTab(context, AndroidTab.you)) return;
+    Navigator.push(
+      context,
+      PageTransitions.slideRight(const ProfileScreen()),
+    );
   }
 
   /// Navigate to friends/followers screen.

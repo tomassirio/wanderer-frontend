@@ -1,11 +1,15 @@
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, debugPrint, visibleForTesting;
 import 'package:flutter/services.dart' show MethodChannel;
 import 'package:flutter/widgets.dart' show WidgetsFlutterBinding;
 import 'package:geolocator_android/geolocator_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
+import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/services/notification_service.dart';
+import 'package:wanderer_frontend/data/models/trip_models.dart';
+import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/data/services/trip_update_service.dart';
 import 'package:wanderer_frontend/data/storage/token_refresh_manager.dart';
 import 'package:wanderer_frontend/data/storage/token_storage.dart';
@@ -64,6 +68,22 @@ Future<void> _scheduleNextChainedTask(SharedPreferences prefs) async {
     backoffPolicy: BackoffPolicy.linear,
     backoffPolicyDelay: const Duration(minutes: 1),
   );
+}
+
+/// Whether the chain should keep checking in: only while the backend says the
+/// trip is live. The check-in endpoint accepts any status, so without this a
+/// chain whose trip never went (or no longer is) IN_PROGRESS — a start the
+/// backend rejected after its 202, a pause/finish from another device, a
+/// deleted trip — posts "Automatic Update"s forever. A failed lookup keeps
+/// going (being offline must not end tracking).
+@visibleForTesting
+Future<bool> shouldKeepAutoUpdating(Future<Trip> Function() fetchTrip) async {
+  try {
+    return (await fetchTrip()).status == TripStatus.inProgress;
+  } catch (e) {
+    debugPrint('BG_UPDATE: trip status lookup failed ($e) — continuing');
+    return true;
+  }
 }
 
 /// Top-level callback dispatcher for WorkManager
@@ -127,6 +147,18 @@ void callbackDispatcher() {
             reason: 'Please open the app and log in again',
           );
           await _scheduleNextChainedTask(prefs);
+          return true;
+        }
+
+        if (!await shouldKeepAutoUpdating(
+            () => TripService().getTripById(tripId))) {
+          debugPrint('$tag: Trip $tripId is not IN_PROGRESS — ending chain');
+          // The foreground service can only be stopped from the UI isolate;
+          // initialize() does that on the next app start.
+          await prefs.setBool(_chainedUpdatesActiveKey, false);
+          await prefs.remove(_activeTripIdKey);
+          await prefs.remove(_activeTripNameKey);
+          await prefs.remove(_updateIntervalKey);
           return true;
         }
 
@@ -232,12 +264,20 @@ class BackgroundUpdateManager {
       return;
     }
 
+    NotificationService.onTripAction = handleLiveTripAction;
+
     try {
       await Workmanager().initialize(
         callbackDispatcher,
         isInDebugMode: false,
       );
       _isInitialized = true;
+      // A chain the background task ended (trip no longer live) leaves the
+      // tracking service running; stop it.
+      final prefs = await SharedPreferences.getInstance();
+      if (!(prefs.getBool(_chainedUpdatesActiveKey) ?? false)) {
+        await _stopForegroundService();
+      }
       debugPrint(
           'BackgroundUpdateManager: ✅ Initialized successfully (debug mode ON)');
     } catch (e) {
@@ -345,6 +385,16 @@ class BackgroundUpdateManager {
     }
   }
 
+  /// Stops the chain only if it belongs to [tripId]; another trip's chain is
+  /// left alone.
+  Future<void> stopAutoUpdatesFor(String tripId) async {
+    if (!_isSupported) return;
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString(_activeTripIdKey) == tripId) {
+      await stopAutoUpdates(tripId);
+    }
+  }
+
   /// Trigger a single background update NOW for testing.
   /// Uses registerOneOffTask which fires almost immediately,
   /// bypassing the 15-minute minimum of periodic tasks.
@@ -409,6 +459,87 @@ class BackgroundUpdateManager {
     } catch (e) {
       debugPrint(
           'BackgroundUpdateManager: Failed to stop all auto updates: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Live trip notification
+  // ---------------------------------------------------------------------------
+
+  /// Last live notification content, reused after a notification action.
+  ({
+    String tripId,
+    String title,
+    String body,
+    String checkInLabel,
+    String pauseLabel
+  })? _live;
+
+  /// Shows the ongoing live-trip notification while [isLive], removes it
+  /// otherwise. Labels come from the caller (it has the l10n context).
+  Future<void> syncLiveNotification({
+    required String tripId,
+    required String tripName,
+    required bool isLive,
+    required String body,
+    required String checkInLabel,
+    required String pauseLabel,
+  }) async {
+    if (!_isSupported) return;
+    final notifications = NotificationService();
+    if (!isLive) {
+      _live = null;
+      await notifications.cancelLiveTrip();
+      return;
+    }
+    _live = (
+      tripId: tripId,
+      title: tripName,
+      body: body,
+      checkInLabel: checkInLabel,
+      pauseLabel: pauseLabel,
+    );
+    await _showLive();
+    // ponytail: the native tracking service may post its own notification
+    // (same ID) just after starting; post ours again once it has. Move the
+    // actions into TripTrackingService if this ever flickers.
+    Future.delayed(const Duration(seconds: 2), _showLive);
+  }
+
+  Future<void> _showLive() async {
+    final live = _live;
+    if (live == null) return;
+    await NotificationService().showLiveTrip(
+      tripId: live.tripId,
+      title: live.title,
+      body: live.body,
+      checkInLabel: live.checkInLabel,
+      pauseLabel: live.pauseLabel,
+    );
+  }
+
+  /// Runs a live-notification action (Check in / Pause) for [tripId].
+  @visibleForTesting
+  Future<void> handleLiveTripAction(String actionId, String tripId) async {
+    try {
+      if (actionId == NotificationService.actionCheckIn) {
+        final result = await TripUpdateService().sendUpdate(tripId: tripId);
+        if (!result.isSuccess) {
+          await NotificationService().showUpdateFailure(
+            tripName: _live?.title ?? 'Trip',
+            reason: result.userMessage,
+          );
+        }
+        await _showLive();
+      } else if (actionId == NotificationService.actionPause) {
+        await TripService().changeStatus(
+            tripId, ChangeStatusRequest(status: TripStatus.paused));
+        await stopAutoUpdates(tripId);
+        _live = null;
+        await NotificationService().cancelLiveTrip();
+      }
+    } catch (e) {
+      debugPrint('BackgroundUpdateManager: Live action $actionId failed: $e');
     }
   }
 

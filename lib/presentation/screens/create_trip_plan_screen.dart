@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,14 +12,17 @@ import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/presentation/helpers/dashed_polyline_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/location_permission_disclosure.dart';
-import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/web_marker_generator.dart';
 import 'package:wanderer_frontend/presentation/helpers/map_style_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
+import 'package:wanderer_frontend/presentation/widgets/android/plan_editor_layout.dart';
+import 'package:wanderer_frontend/presentation/widgets/android/plan_map_style.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_sheet.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/web_plan_editor_layout.dart';
@@ -68,17 +70,11 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
   DateTime? _endDate;
   bool _isLoading = false;
 
-  /// Controls whether the form sheet is expanded
-  bool _formExpanded = false;
-
-  /// Whether the desktop side panel is collapsed
-  bool _isPanelCollapsed = false;
-
   /// Which point type the next map tap will place
   _PlacementMode _placementMode = _PlacementMode.start;
 
-  /// Whether to show the floating waypoints reorder panel
-  bool _showWaypointsList = false;
+  /// Route shown on the Android map (road-snapped or straight fallback).
+  List<LatLng> _routePoints = const [];
 
   /// Flag to ignore the next map tap — set when a UI overlay is tapped on web
   /// to prevent the underlying platform view from also firing onTap.
@@ -232,6 +228,7 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
       setState(() {
         _polylines.clear();
         _encodedPolyline = null;
+        _routePoints = const [];
       });
       return;
     }
@@ -262,6 +259,7 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
             ),
           );
           _encodedPolyline = result.encodedPolyline;
+          _routePoints = result.routePoints;
           _isComputingRoute = false;
         });
       } else {
@@ -284,6 +282,7 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
   /// Shows a dashed straight-line polyline as an immediate visual fallback.
   void _showStraightLinePolyline(List<LatLng> points) {
     setState(() {
+      _routePoints = points;
       _polylines.clear();
       _polylines.addAll(
         DashedPolylineHelper.createDashedPolylines(
@@ -409,80 +408,47 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
       _showWebMarkerDialog(markerId);
       return;
     }
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        margin: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-              child: Row(
-                children: [
-                  Icon(
-                    _iconForMarkerId(markerId),
-                    color: _colorForMarkerId(markerId),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            ListTile(
-              leading: Icon(
-                Icons.my_location_rounded,
-                color: WandererTheme.primaryOrange,
-              ),
-              title: Text(context.l10n.rePlaceOnMap),
-              subtitle: Text(
-                context.l10n.tapMapToSetPosition,
-                style: TextStyle(
-                  fontSize: 12,
-                  color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
-                ),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                setState(() {
-                  if (markerId == 'start') {
-                    _placementMode = _PlacementMode.start;
-                  } else if (markerId == 'end') {
-                    _placementMode = _PlacementMode.end;
-                  } else {
-                    _placementMode = _PlacementMode.waypoint;
-                  }
-                });
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline, color: Colors.red),
-              title: Text(
-                context.l10n.remove,
-                style: const TextStyle(color: Colors.red),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                _deleteMarker(markerId);
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
+    final l10n = context.l10n;
+    final c = WandererTheme.of(context);
+    showWandererSheet<void>(
+      context,
+      title: markerId == 'start'
+          ? l10n.planEditorStart
+          : markerId == 'end'
+              ? l10n.planEditorFinish
+              : '${l10n.planEditorStop} ${markerId.split('_').last}',
+      builder: (sheetContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.my_location_rounded, color: c.accentText),
+            title: Text(l10n.rePlaceOnMap),
+            subtitle: Text(l10n.tapMapToSetPosition,
+                style: TextStyle(fontSize: 12, color: c.caption)),
+            onTap: () {
+              Navigator.pop(sheetContext);
+              setState(() {
+                _placementMode = markerId == 'start'
+                    ? _PlacementMode.start
+                    : markerId == 'end'
+                        ? _PlacementMode.end
+                        : _PlacementMode.waypoint;
+              });
+            },
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.delete_outline,
+                color: Theme.of(context).colorScheme.error),
+            title: Text(l10n.remove,
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            onTap: () {
+              Navigator.pop(sheetContext);
+              _deleteMarker(markerId);
+            },
+          ),
+        ],
       ),
     );
   }
@@ -573,46 +539,6 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
         WebMarkerGenerator.markerWithHue(240.0), // Blue
       );
     }
-    // Auto-close panel when no waypoints left
-    if (_waypoints.isEmpty) {
-      _showWaypointsList = false;
-    }
-  }
-
-  /// Reorders waypoints when the user drags items in the list
-  void _onReorderWaypoints(int oldIndex, int newIndex) {
-    setState(() {
-      if (newIndex > oldIndex) newIndex--;
-      final item = _waypoints.removeAt(oldIndex);
-      _waypoints.insert(newIndex, item);
-      _rebuildWaypointMarkers();
-    });
-    _computeRoutePolyline();
-  }
-
-  IconData _iconForMarkerId(String id) {
-    if (id == 'start') return Icons.trip_origin;
-    if (id == 'end') return Icons.place;
-    return Icons.more_horiz;
-  }
-
-  Color _colorForMarkerId(String id) {
-    if (id == 'start') return Colors.green;
-    if (id == 'end') return Colors.red;
-    return Colors.blue;
-  }
-
-  void _clearAllMarkers() {
-    setState(() {
-      _markers.clear();
-      _polylines.clear();
-      _waypoints.clear();
-      _startLocation = null;
-      _endLocation = null;
-      _encodedPolyline = null;
-      _placementMode = _PlacementMode.start;
-      _showWaypointsList = false;
-    });
   }
 
   void _removeLastWaypoint() {
@@ -673,24 +599,6 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
     }
   }
 
-  String _formatDate(DateTime date) {
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
-  }
-
   String? _validateName(String? value) {
     if (value == null || value.trim().isEmpty) {
       return context.l10n.createPlanNameRequired;
@@ -706,7 +614,7 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
     if (kIsWeb) {
       final nameError = _validateName(_nameController.text);
       if (nameError != null) {
-        UiHelpers.showErrorMessage(context, nameError);
+        planNotify(context, error: true, nameError);
         return;
       }
     } else if (!_formKey.currentState!.validate()) {
@@ -714,15 +622,16 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
     }
 
     if (_startLocation == null || _endLocation == null) {
-      UiHelpers.showErrorMessage(
+      planNotify(
         context,
+        error: true,
         context.l10n.createPlanSelectLocations,
       );
       return;
     }
 
     if (_startDate == null || _endDate == null) {
-      UiHelpers.showErrorMessage(context, context.l10n.createPlanSelectDates);
+      planNotify(context, error: true, context.l10n.createPlanSelectDates);
       return;
     }
 
@@ -757,7 +666,7 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
       await _tripPlanService.createTripPlanBackend(request);
 
       if (mounted) {
-        UiHelpers.showSuccessMessage(
+        planNotify(
           context,
           context.l10n.createPlanCreated,
         );
@@ -765,7 +674,7 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
       }
     } catch (e) {
       if (mounted) {
-        UiHelpers.showErrorMessage(context, context.l10n.createPlanError(e));
+        planNotify(context, error: true, context.l10n.createPlanError(e));
       }
     } finally {
       if (mounted) {
@@ -777,14 +686,91 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) return _buildWeb();
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 600;
-        if (isWide) {
-          return _buildDesktopLayout();
-        }
-        return _buildMobileLayout();
+    return _buildAndroid();
+  }
+
+  /// Android: full-screen map, floating controls, form in a bottom sheet
+  /// (canvas "New plan").
+  Widget _buildAndroid() {
+    final l10n = context.l10n;
+    final (step, hint) = _startLocation == null
+        ? (1, l10n.planStepStart)
+        : _endLocation == null
+            ? (2, l10n.planStepFinish)
+            : (3, l10n.planStepStops);
+    final ready = _startLocation != null &&
+        _endLocation != null &&
+        _startDate != null &&
+        _nameController.text.trim().isNotEmpty;
+    return PlanEditorLayout(
+      title: l10n.tripPlansNewPlan,
+      closeTooltip: l10n.close,
+      onClose: () => Navigator.maybePop(context),
+      onUndo: _startLocation == null ? null : _removeLastWaypoint,
+      onMyLocation: _isLoadingLocation ? null : _getCurrentLocation,
+      stopCount: _waypoints.length,
+      mode: switch (_placementMode) {
+        _PlacementMode.start => PlanPlacementMode.start,
+        _PlacementMode.end => PlanPlacementMode.finish,
+        _PlacementMode.waypoint => PlanPlacementMode.stop,
       },
+      onModeChanged: (mode) => setState(() {
+        _placementMode = switch (mode) {
+          PlanPlacementMode.start => _PlacementMode.start,
+          PlanPlacementMode.finish => _PlacementMode.end,
+          PlanPlacementMode.stop => _PlacementMode.waypoint,
+        };
+      }),
+      map: FutureBuilder(
+        future: PlanMapStyle.ensureLoaded(),
+        builder: (context, _) => GoogleMap(
+          style: MapStyleHelper.of(context),
+          initialCameraPosition:
+              CameraPosition(target: _initialCameraLocation, zoom: 12),
+          markers: PlanMapStyle.markers(
+            start: _startLocation,
+            stops: _waypoints,
+            finish: _endLocation,
+            draggable: true,
+            onTap: (id) => _onMarkerTapped(id, id),
+            onDragEnd: _onMarkerDragEnd,
+          ),
+          polylines: PlanMapStyle.route(_routePoints),
+          onMapCreated: _onMapCreated,
+          onTap: _onMapTapped,
+          padding: const EdgeInsets.only(top: 110),
+          myLocationEnabled: true,
+          myLocationButtonEnabled: false,
+          zoomControlsEnabled: false,
+          mapToolbarEnabled: false,
+        ),
+      ),
+      sheet: [
+        PlanStepHint(step: step, text: hint),
+        Form(
+          key: _formKey,
+          child: LabeledField(
+            label: l10n.planEditorName,
+            hint: l10n.planEditorNameHint,
+            controller: _nameController,
+            validator: _validateName,
+            textInputAction: TextInputAction.done,
+            onChanged: (_) => setState(() {}),
+          ),
+        ),
+        PlanTypeToggle(
+          multiDay: _planType == 'MULTI_DAY',
+          onChanged: (multi) =>
+              setState(() => _planType = multi ? 'MULTI_DAY' : 'SIMPLE'),
+        ),
+        PlanDateTiles(
+            start: _startDate, end: _endDate, onPick: _selectDateRange),
+        PlanPrimaryButton(
+          label: l10n.createPlanSave,
+          loading: _isLoading,
+          onPressed: ready ? _createTripPlan : null,
+        ),
+      ],
     );
   }
 
@@ -884,1341 +870,4 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
         zoomControlsEnabled: false,
         mapToolbarEnabled: false,
       );
-
-  /// Desktop/Web layout with floating glass side panel on the left
-  Widget _buildDesktopLayout() {
-    const double panelWidth = 400.0;
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: Text(context.l10n.newTripPlan),
-        backgroundColor: WandererTheme.primaryOrange.withOpacity(0.9),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          if (_markers.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.undo_rounded),
-              tooltip: context.l10n.removeLastMarker,
-              onPressed: _removeLastWaypoint,
-            ),
-          if (_markers.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.layers_clear_rounded),
-              tooltip: context.l10n.clearAllMarkers,
-              onPressed: _clearAllMarkers,
-            ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          // Full-screen map
-          Positioned.fill(
-            child: GoogleMap(
-              style: MapStyleHelper.of(context),
-              initialCameraPosition: CameraPosition(
-                target: _initialCameraLocation,
-                zoom: 12,
-              ),
-              markers: _markers,
-              polylines: _polylines,
-              onMapCreated: _onMapCreated,
-              onTap: _onMapTapped,
-              myLocationButtonEnabled: true,
-              myLocationEnabled: true,
-              zoomControlsEnabled: true,
-              mapToolbarEnabled: false,
-              padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + kToolbarHeight,
-                left: _isPanelCollapsed ? 88 : panelWidth,
-              ),
-            ),
-          ),
-          // Location status chips (offset to right of panel)
-          Positioned(
-            top: MediaQuery.of(context).padding.top + kToolbarHeight + 8,
-            left: (_isPanelCollapsed ? 88 : panelWidth) + 16,
-            right: 16,
-            child: Listener(
-              behavior: HitTestBehavior.opaque,
-              onPointerDown: (_) => _ignoreNextMapTap = true,
-              child: _buildLocationChips(),
-            ),
-          ),
-          // Loading indicator for location
-          if (_isLoadingLocation)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + kToolbarHeight + 44,
-              left: (_isPanelCollapsed ? 88 : panelWidth) + 16,
-              child: Listener(
-                behavior: HitTestBehavior.opaque,
-                onPointerDown: (_) => _ignoreNextMapTap = true,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: WandererTheme.primaryOrange,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        context.l10n.gettingLocation,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          // Route computing indicator
-          if (_isComputingRoute)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + kToolbarHeight + 44,
-              right: 16,
-              child: Listener(
-                behavior: HitTestBehavior.opaque,
-                onPointerDown: (_) => _ignoreNextMapTap = true,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        context.l10n.computingRoute,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          // Floating waypoints reorder panel (to the right of side panel)
-          if (_showWaypointsList && _waypoints.isNotEmpty)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + kToolbarHeight + 44,
-              left: (_isPanelCollapsed ? 88 : panelWidth) + 12,
-              right: 12,
-              bottom: 16,
-              child: Listener(
-                behavior: HitTestBehavior.opaque,
-                onPointerDown: (_) => _ignoreNextMapTap = true,
-                child: _buildWaypointsPanel(),
-              ),
-            ),
-          // Floating glass side panel
-          Positioned(
-            left: 0,
-            top: 0,
-            child: Listener(
-              behavior: HitTestBehavior.opaque,
-              onPointerDown: (_) => _ignoreNextMapTap = true,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                width: _isPanelCollapsed ? 88 : panelWidth,
-                child: _isPanelCollapsed
-                    ? _buildCollapsedPanelBubble()
-                    : _buildExpandedSidePanel(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Collapsed panel bubble (matching edit trip plan style)
-  Widget _buildCollapsedPanelBubble() {
-    return Align(
-      alignment: Alignment.bottomLeft,
-      child: Container(
-        margin: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: WandererTheme.floatingShadow,
-        ),
-        child: ClipOval(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: WandererTheme.glassBlurSigma,
-              sigmaY: WandererTheme.glassBlurSigma,
-            ),
-            child: Material(
-              color: WandererTheme.glassBackground,
-              shape: CircleBorder(
-                side: BorderSide(
-                  color: WandererTheme.glassBorderColor,
-                  width: 1,
-                ),
-              ),
-              child: InkWell(
-                onTap: () => setState(() => _isPanelCollapsed = false),
-                customBorder: const CircleBorder(),
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: const BoxDecoration(shape: BoxShape.circle),
-                  child: Icon(
-                    Icons.add_location_alt_outlined,
-                    size: 24,
-                    color: WandererTheme.primaryOrange,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Expanded glass side panel with the create form
-  Widget _buildExpandedSidePanel() {
-    final screenHeight = MediaQuery.of(context).size.height;
-    // topOffset = statusBar + appBar + panel top margin (8) + panel bottom margin (16)
-    final topOffset =
-        MediaQuery.of(context).padding.top + kToolbarHeight + 8 + 16;
-    final maxPanelHeight = screenHeight - topOffset - 16;
-    return Container(
-      margin: EdgeInsets.only(
-        left: 16,
-        top: MediaQuery.of(context).padding.top + kToolbarHeight + 8,
-        bottom: 16,
-      ),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(WandererTheme.glassRadius),
-        boxShadow: WandererTheme.floatingShadow,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(WandererTheme.glassRadius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: WandererTheme.glassBlurSigma,
-            sigmaY: WandererTheme.glassBlurSigma,
-          ),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: maxPanelHeight),
-            child: Container(
-              decoration: BoxDecoration(
-                color: WandererTheme.glassBackground,
-                borderRadius: BorderRadius.circular(WandererTheme.glassRadius),
-                border: Border.all(
-                  color: WandererTheme.glassBorderColor,
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Header
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .surface
-                          .withOpacity(0.4),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(WandererTheme.glassRadius),
-                        topRight: Radius.circular(WandererTheme.glassRadius),
-                      ),
-                      border: Border(
-                        bottom: BorderSide(
-                          color: WandererTheme.glassBorderColor,
-                          width: 0.5,
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.add_location_alt_outlined,
-                          size: 18,
-                          color: WandererTheme.primaryOrange,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            context.l10n.newTripPlan,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surface
-                                .withOpacity(0.5),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.remove,
-                              size: 18,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withOpacity(0.6),
-                            ),
-                            onPressed: () =>
-                                setState(() => _isPanelCollapsed = true),
-                            tooltip: context.l10n.minimize,
-                            constraints: const BoxConstraints(
-                              minWidth: 32,
-                              minHeight: 32,
-                            ),
-                            padding: EdgeInsets.zero,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Scrollable form content
-                  Flexible(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Plan Name
-                            _buildSectionLabel('Plan Name'),
-                            const SizedBox(height: 8),
-                            TextFormField(
-                              controller: _nameController,
-                              decoration: _inputDecoration(
-                                'e.g., Weekend Hiking Adventure',
-                              ),
-                              textCapitalization: TextCapitalization.words,
-                              textInputAction: TextInputAction.next,
-                              validator: _validateName,
-                            ),
-                            const SizedBox(height: 16),
-                            // Description
-                            _buildSectionLabel('Description'),
-                            const SizedBox(height: 8),
-                            TextFormField(
-                              controller: _descriptionController,
-                              decoration: _inputDecoration(
-                                'Tell us about this plan... (optional)',
-                              ),
-                              maxLines: 2,
-                              textCapitalization: TextCapitalization.sentences,
-                            ),
-                            const SizedBox(height: 20),
-                            // Plan Type
-                            _buildSectionLabel('Plan Type'),
-                            const SizedBox(height: 10),
-                            _buildPlanTypeSelector(),
-                            const SizedBox(height: 20),
-                            // Dates
-                            _buildSectionLabel('Dates'),
-                            const SizedBox(height: 10),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildDateButton(
-                                    label: 'Start',
-                                    date: _startDate,
-                                    onTap: _selectDateRange,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: _buildDateButton(
-                                    label: 'End',
-                                    date: _endDate,
-                                    onTap: _selectDateRange,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (_daysBetween != null) ...[
-                              const SizedBox(height: 10),
-                              _buildDaysInfoBadge(),
-                            ],
-                            const SizedBox(height: 24),
-                            // Create button
-                            SizedBox(
-                              width: double.infinity,
-                              height: 52,
-                              child: ElevatedButton(
-                                onPressed: _isLoading ? null : _createTripPlan,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: WandererTheme.primaryOrange,
-                                  foregroundColor: Colors.white,
-                                  disabledBackgroundColor: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withOpacity(0.12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  elevation: 0,
-                                ),
-                                child: _isLoading
-                                    ? const SizedBox(
-                                        width: 22,
-                                        height: 22,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          color: Colors.white,
-                                        ),
-                                      )
-                                    : const Text(
-                                        'Create Plan',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Mobile layout with bottom sheet form (original behavior)
-  Widget _buildMobileLayout() {
-    final expandedHeight = MediaQuery.of(context).size.height -
-        MediaQuery.of(context).padding.top -
-        kToolbarHeight;
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      extendBodyBehindAppBar: true,
-      resizeToAvoidBottomInset: false,
-      appBar: AppBar(
-        title: Text(context.l10n.newTripPlan),
-        backgroundColor: WandererTheme.primaryOrange.withOpacity(0.9),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          if (_markers.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.undo_rounded),
-              tooltip: context.l10n.removeLastMarker,
-              onPressed: _removeLastWaypoint,
-            ),
-          if (_markers.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.layers_clear_rounded),
-              tooltip: context.l10n.clearAllMarkers,
-              onPressed: _clearAllMarkers,
-            ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          // Full-screen map (disabled when form sheet is fully expanded)
-          Positioned.fill(
-            child: AbsorbPointer(
-              absorbing: _formExpanded,
-              child: GoogleMap(
-                style: MapStyleHelper.of(context),
-                initialCameraPosition: CameraPosition(
-                  target: _initialCameraLocation,
-                  zoom: 12,
-                ),
-                markers: _markers,
-                polylines: _polylines,
-                onMapCreated: _onMapCreated,
-                onTap: _onMapTapped,
-                myLocationButtonEnabled: true,
-                myLocationEnabled: true,
-                zoomControlsEnabled: false,
-                padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).padding.top + 56,
-                  bottom: _formExpanded ? expandedHeight : 180,
-                ),
-              ),
-            ),
-          ),
-          // Location status chips (floating over map)
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 64,
-            left: 16,
-            right: 16,
-            child: Listener(
-              behavior: HitTestBehavior.opaque,
-              onPointerDown: (_) => _ignoreNextMapTap = true,
-              child: _buildLocationChips(),
-            ),
-          ),
-          // Loading indicator for location
-          if (_isLoadingLocation)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 110,
-              left: 16,
-              child: Listener(
-                behavior: HitTestBehavior.opaque,
-                onPointerDown: (_) => _ignoreNextMapTap = true,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: WandererTheme.primaryOrange,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        context.l10n.gettingLocation,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          // Floating waypoints reorder panel
-          if (_showWaypointsList && _waypoints.isNotEmpty)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 100,
-              left: 12,
-              right: 12,
-              bottom: _formExpanded ? expandedHeight + 10 : 210,
-              child: Listener(
-                behavior: HitTestBehavior.opaque,
-                onPointerDown: (_) => _ignoreNextMapTap = true,
-                child: _buildWaypointsPanel(),
-              ),
-            ),
-          // Route computing indicator
-          if (_isComputingRoute)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 110,
-              right: 16,
-              child: Listener(
-                behavior: HitTestBehavior.opaque,
-                onPointerDown: (_) => _ignoreNextMapTap = true,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        context.l10n.computingRoute,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          // Bottom draggable form sheet
-          _buildFormSheet(),
-        ],
-      ),
-    );
-  }
-
-  /// Compact location status chips floating on the map — tappable to select
-  /// which point type to place next
-  Widget _buildLocationChips() {
-    return Row(
-      children: [
-        _buildStatusChip(
-          label: 'Start',
-          isSet: _startLocation != null,
-          isActive: _placementMode == _PlacementMode.start,
-          color: Colors.green,
-          icon: Icons.trip_origin,
-          onTap: () => setState(() => _placementMode = _PlacementMode.start),
-        ),
-        const SizedBox(width: 6),
-        _buildStatusChip(
-          label: 'End',
-          isSet: _endLocation != null,
-          isActive: _placementMode == _PlacementMode.end,
-          color: Colors.red,
-          icon: Icons.place,
-          onTap: () => setState(() => _placementMode = _PlacementMode.end),
-        ),
-        const SizedBox(width: 6),
-        _buildStatusChip(
-          label: _waypoints.isEmpty
-              ? 'Waypoints'
-              : 'Waypoints (${_waypoints.length})',
-          isSet: _waypoints.isNotEmpty,
-          isActive: _placementMode == _PlacementMode.waypoint,
-          color: Colors.blue,
-          icon: Icons.more_horiz,
-          onTap: () {
-            setState(() {
-              _placementMode = _PlacementMode.waypoint;
-              if (_waypoints.isNotEmpty) {
-                _showWaypointsList = !_showWaypointsList;
-              }
-            });
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatusChip({
-    required String label,
-    required bool isSet,
-    required bool isActive,
-    required Color color,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: isActive
-              ? color.withOpacity(0.25)
-              : isSet
-                  ? color.withOpacity(0.15)
-                  : Theme.of(context).colorScheme.surface.withOpacity(0.9),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isActive
-                ? color
-                : isSet
-                    ? color.withOpacity(0.4)
-                    : Theme.of(context).colorScheme.outline,
-            width: isActive ? 2 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 4,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isSet ? Icons.check_circle : icon,
-              size: 14,
-              color: isActive || isSet
-                  ? color
-                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive || isSet
-                    ? color
-                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Floating panel showing waypoints in a reorderable list
-  Widget _buildWaypointsPanel() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.12),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 8, 8),
-            child: Row(
-              children: [
-                const Icon(Icons.reorder_rounded, size: 18, color: Colors.blue),
-                const SizedBox(width: 8),
-                Text(
-                  'Waypoints (${_waypoints.length})',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  context.l10n.dragToReorder,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withOpacity(0.45),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: Icon(
-                    Icons.close_rounded,
-                    size: 20,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withOpacity(0.45),
-                  ),
-                  onPressed: () => setState(() => _showWaypointsList = false),
-                  padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(minWidth: 32, minHeight: 32),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          // Reorderable list
-          Flexible(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(16),
-              ),
-              child: ReorderableListView.builder(
-                shrinkWrap: true,
-                itemCount: _waypoints.length,
-                proxyDecorator: (child, index, animation) {
-                  return Material(
-                    elevation: 4,
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                    child: child,
-                  );
-                },
-                onReorder: _onReorderWaypoints,
-                itemBuilder: (context, index) {
-                  final waypoint = _waypoints[index];
-                  return _buildWaypointTile(index, waypoint);
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWaypointTile(int index, LatLng waypoint) {
-    final key =
-        ValueKey('wp_${waypoint.latitude}_${waypoint.longitude}_$index');
-    return Container(
-      key: key,
-      color: Theme.of(context).colorScheme.surface,
-      child: ListTile(
-        dense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-        leading: Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            '${index + 1}',
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: Colors.blue,
-            ),
-          ),
-        ),
-        title: Text(
-          'Waypoint ${index + 1}',
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-        ),
-        subtitle: Text(
-          '${waypoint.latitude.toStringAsFixed(4)}, ${waypoint.longitude.toStringAsFixed(4)}',
-          style: TextStyle(
-            fontSize: 11,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
-          ),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _waypoints.removeAt(index);
-                  _rebuildWaypointMarkers();
-                });
-              },
-              child: Icon(
-                Icons.remove_circle_outline,
-                size: 18,
-                color: Colors.red.shade300,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.drag_handle_rounded,
-              size: 20,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
-            ),
-          ],
-        ),
-        onTap: () {
-          // Center map on this waypoint
-          _mapController?.animateCamera(
-            CameraUpdate.newLatLng(waypoint),
-          );
-        },
-      ),
-    );
-  }
-
-  /// The bottom form sheet that slides up
-  Widget _buildFormSheet() {
-    final expandedHeight = MediaQuery.of(context).size.height -
-        MediaQuery.of(context).padding.top -
-        kToolbarHeight;
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: Listener(
-        behavior: HitTestBehavior.opaque,
-        onPointerDown: (_) => _ignoreNextMapTap = true,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onVerticalDragUpdate: (details) {
-            if (details.primaryDelta! < -4) {
-              setState(() => _formExpanded = true);
-            } else if (details.primaryDelta! > 4) {
-              setState(() => _formExpanded = false);
-            }
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            height: _formExpanded ? expandedHeight : 200,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                // Drag handle
-                GestureDetector(
-                  onTap: () => setState(() => _formExpanded = !_formExpanded),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.only(top: 12, bottom: 8),
-                    child: Center(
-                      child: Container(
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.outline,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                // Form content
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(
-                      20,
-                      0,
-                      20,
-                      MediaQuery.of(context).viewInsets.bottom,
-                    ),
-                    physics: _formExpanded
-                        ? const BouncingScrollPhysics()
-                        : const NeverScrollableScrollPhysics(),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Plan Name
-                          _buildSectionLabel('Plan Name'),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _nameController,
-                            decoration: _inputDecoration(
-                              'e.g., Weekend Hiking Adventure',
-                            ),
-                            textCapitalization: TextCapitalization.words,
-                            textInputAction: TextInputAction.next,
-                            onTap: () {
-                              if (!_formExpanded) {
-                                setState(() => _formExpanded = true);
-                              }
-                            },
-                            validator: _validateName,
-                          ),
-                          const SizedBox(height: 16),
-                          // Description
-                          _buildSectionLabel('Description'),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _descriptionController,
-                            decoration: _inputDecoration(
-                              'Tell us about this plan... (optional)',
-                            ),
-                            maxLines: 2,
-                            textCapitalization: TextCapitalization.sentences,
-                            onTap: () {
-                              if (!_formExpanded) {
-                                setState(() => _formExpanded = true);
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          // Plan Type toggle
-                          _buildSectionLabel('Plan Type'),
-                          const SizedBox(height: 10),
-                          _buildPlanTypeSelector(),
-                          const SizedBox(height: 20),
-                          // Dates
-                          _buildSectionLabel('Dates'),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildDateButton(
-                                  label: 'Start',
-                                  date: _startDate,
-                                  onTap: _selectDateRange,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _buildDateButton(
-                                  label: 'End',
-                                  date: _endDate,
-                                  onTap: _selectDateRange,
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (_daysBetween != null) ...[
-                            const SizedBox(height: 10),
-                            _buildDaysInfoBadge(),
-                          ],
-                          const SizedBox(height: 24),
-                          // Create button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 52,
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _createTripPlan,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: WandererTheme.primaryOrange,
-                                foregroundColor: Colors.white,
-                                disabledBackgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withOpacity(0.12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.5,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Text(
-                                      'Create Plan',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Segmented plan type selector
-  Widget _buildPlanTypeSelector() {
-    final types = [
-      {'value': 'SIMPLE', 'label': 'Simple', 'icon': Icons.wb_sunny_outlined},
-      {
-        'value': 'MULTI_DAY',
-        'label': 'Multi-Day',
-        'icon': Icons.luggage_outlined,
-      },
-    ];
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
-        ),
-      ),
-      padding: const EdgeInsets.all(4),
-      child: Row(
-        children: types.map((type) {
-          final isSelected = _planType == type['value'];
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => _planType = type['value'] as String),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? WandererTheme.primaryOrange.withOpacity(0.1)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isSelected
-                        ? WandererTheme.primaryOrange
-                        : Colors.transparent,
-                    width: 1.5,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      type['icon'] as IconData,
-                      size: 20,
-                      color: isSelected
-                          ? WandererTheme.primaryOrange
-                          : Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.45),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      type['label'] as String,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected
-                            ? WandererTheme.primaryOrange
-                            : Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.6),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  /// Date button styled as a card
-  Widget _buildDateButton({
-    required String label,
-    required DateTime? date,
-    required VoidCallback onTap,
-  }) {
-    final hasDate = date != null;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: hasDate
-                ? WandererTheme.primaryOrange.withOpacity(0.5)
-                : Theme.of(context).colorScheme.outline.withOpacity(0.3),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.calendar_today_rounded,
-              size: 18,
-              color: hasDate
-                  ? WandererTheme.primaryOrange
-                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withOpacity(0.45),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    hasDate ? _formatDate(date) : 'Select',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: hasDate ? FontWeight.w600 : FontWeight.w400,
-                      color: hasDate
-                          ? Theme.of(context).colorScheme.onSurface
-                          : Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.45),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Info badge showing the auto-calculated number of days between dates
-  Widget _buildDaysInfoBadge() {
-    final days = _daysBetween!;
-    final isMultiDay = _planType == 'MULTI_DAY';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: isMultiDay
-            ? WandererTheme.primaryOrange.withOpacity(0.06)
-            : Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isMultiDay
-              ? WandererTheme.primaryOrange.withOpacity(0.2)
-              : Theme.of(context).colorScheme.outline.withOpacity(0.3),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.date_range_rounded,
-            size: 16,
-            color: isMultiDay
-                ? WandererTheme.primaryOrange
-                : Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            days == 1 ? '1 day' : '$days days',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: isMultiDay
-                  ? WandererTheme.primaryOrange
-                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-            ),
-          ),
-          if (isMultiDay && days > 1) ...[
-            const SizedBox(width: 6),
-            Text(
-              context.l10n.multiDayTrip,
-              style: TextStyle(
-                fontSize: 12,
-                color: WandererTheme.primaryOrange.withOpacity(0.7),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionLabel(String text) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: Theme.of(context).colorScheme.onSurface,
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(
-        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-      ),
-      filled: true,
-      fillColor: Theme.of(context).colorScheme.surface,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
-        ),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(
-          color: WandererTheme.primaryOrange,
-          width: 1.5,
-        ),
-      ),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 14,
-      ),
-    );
-  }
 }

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 /// Google Maps styling for the web dark theme, so the map doesn't glow.
@@ -8,8 +7,9 @@ class MapStyleHelper {
   MapStyleHelper._();
 
   /// JSON style for [GoogleMap.style], or null for the default look.
+  /// Android uses the same night style in Dusk (dark) mode.
   static String? of(BuildContext context) =>
-      kIsWeb && Theme.of(context).brightness == Brightness.dark ? night : null;
+      Theme.of(context).brightness == Brightness.dark ? night : null;
 
   static const String night = '''
 [

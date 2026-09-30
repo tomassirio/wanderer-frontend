@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_sheet.dart';
 
 /// One row of [DialogHelper.showWebOptions].
 class DialogOption<T> {
@@ -105,22 +106,41 @@ class DialogHelper {
         destructive: true,
       );
     }
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Logout'),
-          ),
-        ],
-      ),
+    // Android: bottom sheet instead of a centered popup (canvas rule).
+    final l10n = context.l10n;
+    final result = await showWandererSheet<bool>(
+      context,
+      title: l10n.dialogLogoutTitle,
+      builder: (context) {
+        final c = WandererTheme.of(context);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.dialogLogoutMessage,
+                style: TextStyle(fontSize: 15, color: c.textMuted)),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+                foregroundColor: Theme.of(context).colorScheme.onError,
+                minimumSize: const Size.fromHeight(56),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+              ),
+              child: Text(l10n.dialogLogoutAction),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              style: TextButton.styleFrom(
+                  foregroundColor: c.text,
+                  minimumSize: const Size.fromHeight(48)),
+              child: Text(l10n.cancel),
+            ),
+          ],
+        );
+      },
     );
     return result ?? false;
   }

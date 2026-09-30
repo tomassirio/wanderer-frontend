@@ -8,6 +8,7 @@ import 'package:mockito/mockito.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/services/sso/pkce.dart';
 import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 
 // Reuses the generated MockAuthRepository (already includes completeSsoLogin).
 import 'auth_screen_registration_pending_test.mocks.dart';
@@ -55,7 +56,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('exchanges the code with the in-memory verifier and pops true',
+  testWidgets('exchanges the code with the in-memory verifier and lands home',
       (tester) async {
     Uri? launched;
     when(repository.completeSsoLogin(any, any)).thenAnswer((_) async {});
@@ -73,7 +74,11 @@ void main() {
         .captured
         .single as String;
     expect(PkcePair.challengeFor(verifier), challenge);
-    expect(results, [true]);
+    // Android: a successful login replaces the stack with InitialScreen
+    // (the shell), like a password login, instead of popping back.
+    expect(results, isNot(contains(true)));
+    expect(find.byType(AuthScreen), findsNothing);
+    expect(find.byType(InitialScreen), findsOneWidget);
   });
 
   testWidgets('shows ssoFailed when the callback carries an error',

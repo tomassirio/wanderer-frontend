@@ -15,7 +15,6 @@ import 'package:wanderer_frontend/data/repositories/profile_repository.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/presentation/screens/profile_screen.dart';
-import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 
 const _meId = '11111111-aaaa-bbbb-cccc-000000000001';
 const _otherId = '22222222-aaaa-bbbb-cccc-000000000002';
@@ -125,44 +124,11 @@ void main() {
     }
   }
 
-  Future<int> sidebarIndex(WidgetTester tester) async {
-    tester.firstState<ScaffoldState>(find.byType(Scaffold)).openDrawer();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
-    return tester.widget<AppSidebar>(find.byType(AppSidebar)).selectedIndex;
-  }
-
-  testWidgets('own profile keeps the user ID, Edit profile and My trips',
-      (tester) async {
-    await pumpProfile(tester, const ProfileScreen());
-    expect(find.text(_meId), findsOneWidget);
-    expect(find.byTooltip('Edit Profile'), findsOneWidget);
-    expect(await sidebarIndex(tester), AppSidebar.myTripsIndex);
-  });
-
   testWidgets('other profile hides the user ID and Edit profile',
       (tester) async {
     await pumpProfile(tester, const ProfileScreen(userId: _otherId));
     expect(find.text('@other'), findsOneWidget);
     expect(find.text(_otherId), findsNothing);
     expect(find.byTooltip('Edit Profile'), findsNothing);
-  });
-
-  testWidgets('opened from Explore highlights Explore', (tester) async {
-    await pumpProfile(tester,
-        const ProfileScreen(userId: _otherId, origin: ProfileOrigin.explore));
-    expect(await sidebarIndex(tester), AppSidebar.exploreIndex);
-  });
-
-  testWidgets('opened from Friends highlights Friends', (tester) async {
-    await pumpProfile(tester,
-        const ProfileScreen(userId: _otherId, origin: ProfileOrigin.friends));
-    expect(await sidebarIndex(tester), AppSidebar.friendsIndex);
-  });
-
-  testWidgets('deep link (no origin) defaults to Explore', (tester) async {
-    // UserDeepLinkScreen builds ProfileScreen(userId: ...) without an origin.
-    await pumpProfile(tester, const ProfileScreen(userId: _otherId));
-    expect(await sidebarIndex(tester), AppSidebar.exploreIndex);
   });
 }

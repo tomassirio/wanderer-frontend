@@ -41,6 +41,9 @@ class TripMapView extends StatefulWidget {
   /// Callback when the map background is tapped (not a marker).
   final VoidCallback? onMapTap;
 
+  /// Android: keeps the Google logo above the bottom sheet.
+  final EdgeInsets padding;
+
   const TripMapView({
     super.key,
     required this.initialLocation,
@@ -55,6 +58,7 @@ class TripMapView extends StatefulWidget {
     this.selectedPlannedWaypoint,
     this.onPlannedInfoWindowClosed,
     this.onMapTap,
+    this.padding = EdgeInsets.zero,
   });
 
   @override
@@ -276,10 +280,12 @@ class _TripMapViewState extends State<TripMapView> {
               _updatePlannedMarkerScreenPosition();
             }
           },
-          myLocationButtonEnabled: widget.isOwner,
+          padding: widget.padding,
+          // Android floats its own round map controls (canvas).
+          myLocationButtonEnabled: kIsWeb && widget.isOwner,
           myLocationEnabled: widget.isOwner,
           mapToolbarEnabled: false,
-          zoomControlsEnabled: true,
+          zoomControlsEnabled: kIsWeb,
           scrollGesturesEnabled: widget.gesturesEnabled,
           zoomGesturesEnabled: widget.gesturesEnabled,
           tiltGesturesEnabled: widget.gesturesEnabled,

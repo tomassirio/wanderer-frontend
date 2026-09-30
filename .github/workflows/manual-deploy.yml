@@ -20,7 +20,16 @@ on:
         default: 'latest'
 
 jobs:
+  # Prod deploys wait for the same web approval as merge.yml's release
+  # (the `prod` environment itself has no reviewers; it only holds secrets).
+  approve:
+    runs-on: ubuntu-latest
+    environment: ${{ (github.event_name == 'release' || inputs.environment == 'prod') && 'release-web' || 'dev' }}
+    steps:
+      - run: echo "✅ Deploy approved"
+
   deploy:
+    needs: approve
     uses: ./.github/workflows/helm-deploy.yml
     with:
       environment: ${{ github.event_name == 'release' && 'prod' || inputs.environment }}

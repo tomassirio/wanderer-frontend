@@ -52,7 +52,9 @@ class WandererScaffold extends StatelessWidget {
     final persistent = drawer != null && hasPersistentSidebar(context);
     final scaffold = Scaffold(
       appBar: persistent && hideAppBarWithSidebar ? null : appBar,
-      drawer: persistent ? null : drawer,
+      // Android has no ☰ drawer (bottom nav instead), so pushed screens get
+      // a back arrow.
+      drawer: persistent || !kIsWeb ? null : drawer,
       body: body,
       floatingActionButton: floatingActionButton,
       floatingActionButtonLocation: floatingActionButtonLocation,

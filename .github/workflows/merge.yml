@@ -144,6 +144,30 @@ jobs:
           echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
           echo "coverage-color=${COVERAGE_COLOR}" >> $GITHUB_OUTPUT
 
+  # Release gates: approve web and Android separately. Each gate has its
+  # own GitHub environment with required reviewers; the real jobs still use
+  # `prod` only for its secrets (prod itself needs no reviewers). Rejecting
+  # or ignoring one gate ships the other alone.
+  approve-web:
+    needs:
+      - prepare-release
+      - test-and-coverage
+    if: needs.prepare-release.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    environment: release-web
+    steps:
+      - run: echo "✅ Web release v${{ needs.prepare-release.outputs.base-version }} approved"
+
+  approve-android:
+    needs:
+      - prepare-release
+      - test-and-coverage
+    if: needs.prepare-release.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    environment: release-android
+    steps:
+      - run: echo "✅ Android release v${{ needs.prepare-release.outputs.base-version }} approved"
+
   build-web-app:
     needs: prepare-release
     if: needs.prepare-release.outputs.skip != 'true'
@@ -177,6 +201,7 @@ jobs:
   build-apk:
     needs:
       - prepare-release
+      - approve-android
       - create-release
       - finalize-release
     if: needs.prepare-release.outputs.skip != 'true'
@@ -241,6 +266,7 @@ jobs:
   build-bundle:
     needs:
       - prepare-release
+      - approve-android
       - create-release
       - finalize-release
     if: needs.prepare-release.outputs.skip != 'true'
@@ -388,6 +414,7 @@ jobs:
   deploy-to-production:
     needs:
       - prepare-release
+      - approve-web
       - build-release-docker-images
       - test-and-coverage
     if: needs.prepare-release.outputs.skip != 'true'

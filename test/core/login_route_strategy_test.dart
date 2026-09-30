@@ -110,7 +110,7 @@ void main() {
       expect(textFormField.controller?.text, '');
     });
 
-    testWidgets('shows forgot password form when Forgot Password is tapped',
+    testWidgets('opens the forgot password sheet when Forgot? is tapped',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
@@ -126,14 +126,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Forgot Password?'));
+      await tester.tap(find.text('Forgot?'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Reset Password'), findsOneWidget);
+      expect(find.text('Forgot your password?'), findsOneWidget);
       expect(find.text('Send Reset Link'), findsOneWidget);
     });
 
-    testWidgets('returns to login form when Back to Login is tapped',
+    testWidgets('returns to login form when the sheet is cancelled',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
@@ -149,19 +149,20 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Forgot Password?'));
+      await tester.tap(find.text('Forgot?'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Reset Password'), findsOneWidget);
+      expect(find.text('Forgot your password?'), findsOneWidget);
 
-      await tester.tap(find.text('Back to Login'));
+      await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Welcome Back!'), findsOneWidget);
+      expect(find.text('Forgot your password?'), findsNothing);
+      expect(find.text('Welcome back'), findsOneWidget);
     });
 
     testWidgets(
-        'navigates to VerifyEmailScreen when "Have a verification token?" is tapped',
+        'navigates to VerifyEmailScreen when "I have a verification code" is tapped',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
@@ -177,7 +178,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Have a verification token?'));
+      await tester.tap(find.text('I have a verification code'));
       await tester.pumpAndSettle();
 
       expect(find.byType(VerifyEmailScreen), findsOneWidget);

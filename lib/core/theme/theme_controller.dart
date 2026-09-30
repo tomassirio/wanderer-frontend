@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -34,10 +33,9 @@ class ThemeController {
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
     final isDark = prefs.getBool(_darkModeKey);
-    // Until the user picks a side, web follows the device setting (dark
-    // style guide); mobile keeps its light default.
+    // Until the user picks a side, follow the device setting.
     themeMode.value = isDark == null
-        ? (kIsWeb ? ThemeMode.system : ThemeMode.light)
+        ? ThemeMode.system
         : (isDark ? ThemeMode.dark : ThemeMode.light);
   }
 
@@ -49,8 +47,7 @@ class ThemeController {
   }
 
   /// Set light, dark or "follow the device" and persist it. System clears the
-  /// saved choice, which on web means following the device (mobile never
-  /// offers it and keeps its light default).
+  /// saved choice, so the app follows the device again.
   Future<void> setThemeMode(ThemeMode mode) async {
     if (mode != ThemeMode.system) return setDarkMode(mode == ThemeMode.dark);
     themeMode.value = ThemeMode.system;

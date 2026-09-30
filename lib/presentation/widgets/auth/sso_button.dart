@@ -32,7 +32,8 @@ class SsoButton extends StatelessWidget {
               children: [
                 const GoogleLogo(size: 18),
                 const SizedBox(width: 10),
-                Text(label),
+                // Shrinks instead of overflowing on narrow phones / big fonts.
+                Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
               ],
             )
           : Text(label),

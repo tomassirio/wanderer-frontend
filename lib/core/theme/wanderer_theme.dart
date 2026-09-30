@@ -1,13 +1,11 @@
 import 'dart:ui';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 /// Wanderer App Theme Configuration
 ///
-/// Web uses the "sand" redesign (docs/design-system.md): warm sand ground,
-/// white cards with thin borders, one trail-orange accent, green for
-/// completed. Mobile keeps the original palette until it is redesigned.
-/// [kIsWeb] is a compile-time constant, so every token below stays `const`.
+/// Web and Android use the "sand" redesign (docs/design-system.md): warm
+/// sand ground, white cards with thin borders, one trail-orange accent,
+/// green for completed.
 class WandererTheme {
   // ========================================
   // WEB REDESIGN PALETTE (style guide board)
@@ -47,7 +45,7 @@ class WandererTheme {
 
   /// Headline style in the display face (web), falls back to bold body.
   static TextStyle display(double size, {Color? color}) => TextStyle(
-        fontFamily: kIsWeb ? displayFont : null,
+        fontFamily: displayFont,
         fontWeight: FontWeight.w700,
         fontSize: size,
         letterSpacing: size >= 28 ? -0.02 * size : 0,
@@ -74,30 +72,26 @@ class WandererTheme {
   }
 
   // Primary Colors
-  static const Color primaryOrange =
-      kIsWeb ? trail : Color(0xFFE07830); // Main orange
+  static const Color primaryOrange = trail; // Main orange
   static const Color primaryOrangeLight =
       Color(0xFFF5A623); // Light orange/amber
   static const Color primaryOrangeDark = Color(0xFFD35400); // Dark orange
 
   // Background Colors
-  static const Color backgroundLight =
-      kIsWeb ? sand : Color(0xFFFAF9F7); // Warm off-white
+  static const Color backgroundLight = sand;
   static const Color backgroundCard = Color(0xFFFFFFFF); // Pure white for cards
   static const Color backgroundDark = Color(0xFF2C2C2C); // Dark mode background
 
   // Text Colors
-  static const Color textPrimary = kIsWeb ? ink : Color(0xFF1A1A1A);
-  static const Color textSecondary = kIsWeb ? stone : Color(0xFF666666);
-  static const Color textTertiary = kIsWeb ? stoneLabel : Color(0xFF999999);
+  static const Color textPrimary = ink;
+  static const Color textSecondary = stone;
+  static const Color textTertiary = stoneLabel;
   static const Color textOnPrimary = Color(0xFFFFFFFF); // White text on orange
 
   // Status Colors
   static const Color statusCreated = Color(0xFF4CAF50); // Green
-  static const Color statusInProgress =
-      kIsWeb ? sky : Color(0xFFFF9800); // Orange
-  static const Color statusCompleted =
-      kIsWeb ? forest : Color(0xFF2196F3); // Blue
+  static const Color statusInProgress = sky;
+  static const Color statusCompleted = forest;
   static const Color statusCancelled = Color(0xFFF44336); // Red
   static const Color statusResting = Color(0xFF5C6BC0); // Indigo
 
@@ -134,18 +128,12 @@ class WandererTheme {
   /// Returns glass panel background color adaptive to the current theme.
   /// On web, panels are solid cards (no frosted glass) per the style guide.
   static Color glassBackgroundFor(BuildContext context) {
-    if (kIsWeb) return Theme.of(context).colorScheme.surface;
-    return Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF1E1E1E).withOpacity(0.9)
-        : glassBackground;
+    return Theme.of(context).colorScheme.surface;
   }
 
   /// Returns glass panel border color adaptive to the current theme.
   static Color glassBorderColorFor(BuildContext context) {
-    if (kIsWeb) return Theme.of(context).colorScheme.outline;
-    return Theme.of(context).brightness == Brightness.dark
-        ? Colors.white.withOpacity(0.12)
-        : glassBorderColor;
+    return Theme.of(context).colorScheme.outline;
   }
 
   // Glass Blur Amount
@@ -153,7 +141,7 @@ class WandererTheme {
   static const double glassBlurSigmaLight = 12.0;
 
   // Glass Border Radius
-  static const double glassRadius = kIsWeb ? radiusPanel : 16.0;
+  static const double glassRadius = radiusPanel;
   static const double glassRadiusSmall = 12.0;
   static const double glassRadiusLarge = 20.0;
 
@@ -175,25 +163,9 @@ class WandererTheme {
   ];
 
   // Floating Shadow - More diffused for glassmorphism floating effect
-  static List<BoxShadow> floatingShadow = kIsWeb
-      ? const [
-          BoxShadow(
-              color: Color(0x141B1A17), blurRadius: 16, offset: Offset(0, 4)),
-        ]
-      : [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 24,
-            spreadRadius: 0,
-            offset: const Offset(0, 8),
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 48,
-            spreadRadius: 0,
-            offset: const Offset(0, 16),
-          ),
-        ];
+  static List<BoxShadow> floatingShadow = const [
+    BoxShadow(color: Color(0x141B1A17), blurRadius: 16, offset: Offset(0, 4)),
+  ];
 
   // Glass panel shadow - subtle all-around glow
   static List<BoxShadow> glassShadow = [
@@ -284,8 +256,7 @@ class WandererTheme {
 
   /// Get the light theme
   static ThemeData lightTheme() {
-    if (kIsWeb) return _webTheme(_mobileLightTheme(), dark: false);
-    return _mobileLightTheme();
+    return _webTheme(_mobileLightTheme(), dark: false);
   }
 
   static ThemeData _mobileLightTheme() {
@@ -384,8 +355,7 @@ class WandererTheme {
 
   /// Get the dark theme
   static ThemeData darkTheme() {
-    if (kIsWeb) return _webTheme(_mobileDarkTheme(), dark: true);
-    return _mobileDarkTheme();
+    return _webTheme(_mobileDarkTheme(), dark: true);
   }
 
   /// Layers the web redesign (fonts, sand surfaces, 12px controls, thin
@@ -738,6 +708,10 @@ class WandererColors extends ThemeExtension<WandererColors> {
   final Color neutralFg;
   final Color neutralButtonBg; // dark "neutral" button in light mode
   final Color neutralButtonFg;
+  final Color pausedBg; // paused trip state
+  final Color pausedFg;
+  final Color restingBg; // resting trip state (Android)
+  final Color restingFg;
   final Color mapGround;
   final Color overlayPillBg; // pills over maps and images
 
@@ -765,6 +739,10 @@ class WandererColors extends ThemeExtension<WandererColors> {
     required this.neutralFg,
     required this.neutralButtonBg,
     required this.neutralButtonFg,
+    required this.pausedBg,
+    required this.pausedFg,
+    required this.restingBg,
+    required this.restingFg,
     required this.mapGround,
     required this.overlayPillBg,
   });
@@ -793,6 +771,10 @@ class WandererColors extends ThemeExtension<WandererColors> {
     neutralFg: WandererTheme.neutralText,
     neutralButtonBg: WandererTheme.ink,
     neutralButtonFg: Colors.white,
+    pausedBg: WandererTheme.goldSoft,
+    pausedFg: WandererTheme.goldIcon,
+    restingBg: Color(0xFFEEE9F7),
+    restingFg: Color(0xFF5B4B8A),
     mapGround: WandererTheme.mapGround,
     overlayPillBg: Colors.white,
   );
@@ -823,6 +805,10 @@ class WandererColors extends ThemeExtension<WandererColors> {
     neutralFg: Color(0xFFD9D1C7),
     neutralButtonBg: Color(0xFFF6F1EA),
     neutralButtonFg: Color(0xFF24201C),
+    pausedBg: Color(0xFF4A3918),
+    pausedFg: Color(0xFFF7CF7A),
+    restingBg: Color(0xFF342C47),
+    restingFg: Color(0xFFCBBDF2),
     // Empty map areas use Raised so they don't read as holes.
     mapGround: Color(0xFF39332D),
     overlayPillBg: Color(0xFF24201C),

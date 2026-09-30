@@ -58,6 +58,16 @@ class TripDetailRepository {
     return await _tripService.getTripById(tripId);
   }
 
+  /// Whether the current user has another trip (not [excludeTripId]) that is
+  /// currently IN_PROGRESS. Used to block starting/resuming a second trip,
+  /// since the backend only allows one trip in progress at a time.
+  Future<bool> hasOtherActiveTrip(String excludeTripId) async {
+    final myTrips = await _tripService.getMyTrips(size: 50);
+    return myTrips.content.any(
+      (t) => t.id != excludeTripId && t.status == TripStatus.inProgress,
+    );
+  }
+
   /// Loads replies for a specific comment via API
   Future<List<Comment>> loadReplies(String commentId) async {
     return await _commentService.getRepliesByCommentId(commentId);

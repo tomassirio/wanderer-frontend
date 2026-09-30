@@ -8,7 +8,7 @@ import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/web_page_header.dart';
 
 /// Web layout of the Trip plans page: header, 3-column plan cards grid and a
-/// dashed "Plan a new trip" tile. Mobile keeps [TripPlansContent].
+/// dashed "Plan a new trip" tile. Android uses AndroidPlansList.
 class WebTripPlansLayout extends StatelessWidget {
   final bool isLoading;
   final String? error;

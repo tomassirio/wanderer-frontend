@@ -11,6 +11,9 @@ const String _commandBaseUrl = String.fromEnvironment('COMMAND_BASE_URL');
 const String _queryBaseUrl = String.fromEnvironment('QUERY_BASE_URL');
 const String _authBaseUrl = String.fromEnvironment('AUTH_BASE_URL');
 
+// Only the SSO browser leg; see ApiEndpoints.ssoAuthBaseUrl.
+const String _ssoAuthBaseUrl = String.fromEnvironment('SSO_AUTH_BASE_URL');
+
 // Google Maps API key can be overridden at build time:
 // flutter build apk --dart-define=GOOGLE_MAPS_API_KEY=your_key
 const String _googleMapsApiKey = String.fromEnvironment(
@@ -27,6 +30,8 @@ String getConfigValue(String key, String defaultValue) {
       return _queryBaseUrl.isNotEmpty ? _queryBaseUrl : defaultValue;
     case 'authBaseUrl':
       return _authBaseUrl.isNotEmpty ? _authBaseUrl : defaultValue;
+    case 'ssoAuthBaseUrl':
+      return _ssoAuthBaseUrl.isNotEmpty ? _ssoAuthBaseUrl : defaultValue;
     case 'googleMapsApiKey':
       return _googleMapsApiKey.isNotEmpty ? _googleMapsApiKey : defaultValue;
     default:
