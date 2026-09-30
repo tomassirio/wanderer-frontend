@@ -40,7 +40,8 @@ class AvatarCropMath {
   }
 }
 
-/// Android "Adjust your photo" (canvas: AndroidAvatar). Always Dusk-dark.
+/// Android "Adjust your photo" (canvas: AndroidAvatar). Follows the app's
+/// light / dark theme.
 /// Pops with the cropped square PNG bytes, or null on cancel.
 class AndroidAvatarCropScreen extends StatefulWidget {
   final XFile initial;
@@ -64,7 +65,7 @@ class AndroidAvatarCropScreen extends StatefulWidget {
 }
 
 class _AndroidAvatarCropScreenState extends State<AndroidAvatarCropScreen> {
-  static const _c = WandererColors.dark;
+  WandererColors get _c => WandererTheme.of(context);
   static const _sliderAccent = Color(0xFFE8702A);
   static const _outputSize = 768;
 
@@ -173,7 +174,9 @@ class _AndroidAvatarCropScreenState extends State<AndroidAvatarCropScreen> {
     final l10n = context.l10n;
     final body = TextStyle(fontFamily: WandererTheme.bodyFont, color: _c.text);
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: Theme.of(context).brightness == Brightness.dark
+          ? SystemUiOverlayStyle.light
+          : SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: _c.ground,
         body: SafeArea(
@@ -318,6 +321,7 @@ class _AndroidAvatarCropScreenState extends State<AndroidAvatarCropScreen> {
                           onPressed: _saving ? null : _chooseAnother,
                           style: OutlinedButton.styleFrom(
                             foregroundColor: _c.text,
+                            backgroundColor: Colors.transparent,
                             side: BorderSide(color: _c.line),
                             padding: const EdgeInsets.symmetric(horizontal: 18),
                             shape: RoundedRectangleBorder(
