@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.2-blue" alt="Version" />
+  <img src="https://img.shields.io/badge/version-2.0.3-blue" alt="Version" />
   <img src="https://img.shields.io/badge/coverage-30%25-red" alt="Coverage" />
   <img src="https://img.shields.io/badge/Flutter-3.41.5-02569B?logo=flutter" alt="Flutter" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
