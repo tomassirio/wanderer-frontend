@@ -23,13 +23,14 @@ import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
       chevron: c.label,
     );
   }
+  // Light: a soft trail tint that sits with the other You rows.
   return (
-    bg: WandererTheme.ink,
-    chip: const Color(0xFF39332D),
-    icon: const Color(0xFFF6A56A),
-    title: const Color(0xFFF6F1EA),
-    sub: const Color(0xFFC4BBB1),
-    chevron: const Color(0xFF9E958B),
+    bg: c.trailSoftBg,
+    chip: c.surface,
+    icon: WandererTheme.trail,
+    title: c.text,
+    sub: c.textMuted,
+    chevron: c.label,
   );
 }
 

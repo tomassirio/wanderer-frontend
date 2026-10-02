@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:wanderer_frontend/presentation/helpers/android_app_links.dart';
 import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -556,14 +555,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   const SizedBox(height: 14),
                 ],
                 SettingsGroup(label: l10n.settingsHelp, children: [
-                  // Browsers: the app is where trips get tracked.
-                  if (kIsWeb)
-                    SettingsRow(
-                      key: const Key('settings_get_app'),
-                      title: l10n.mobileWebTrackTitle,
-                      subtitle: l10n.landingInstallCta,
-                      onTap: () => AndroidAppLinks.open(context, install: true),
-                    ),
                   SettingsRow(
                     title: l10n.settingsAndroidContactSupport,
                     onTap: _handleContactSupport,

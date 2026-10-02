@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,7 @@ import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
+import 'package:wanderer_frontend/presentation/helpers/android_app_links.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/achievements_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_admin_screen.dart';
@@ -570,6 +572,16 @@ class _ProfileAndroidViewState extends ConsumerState<ProfileAndroidView> {
         l10n.buyMeACoffee,
         _supportWanderer,
       ),
+      // Browsers: tracking happens in the app.
+      if (kIsWeb)
+        (
+          Icons.get_app_outlined,
+          c.neutralBg,
+          c.text,
+          l10n.mobileWebTrackTitle,
+          l10n.landingInstallCta,
+          () => AndroidAppLinks.open(context, install: true),
+        ),
     ];
     return _linkCard(c, rows);
   }
