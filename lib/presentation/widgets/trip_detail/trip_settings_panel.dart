@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
@@ -195,7 +196,7 @@ class _TripSettingsPanelState extends State<TripSettingsPanel> {
   /// Prompts the user to confirm switching to multi-day, then auto-saves.
   Future<void> _confirmAndSwitchToMultiDay() async {
     final l10n = context.l10n;
-    final confirmed = kIsWeb
+    final confirmed = AdaptiveLayout.usesDesktopLayout(context)
         ? await WandererDialog.confirm(
             context,
             title: l10n.switchToMultiDay,

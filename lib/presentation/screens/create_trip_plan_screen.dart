@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -404,7 +405,7 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
   /// Shows a bottom sheet when a marker is tapped, allowing the user to
   /// delete the point or re-place it.
   void _onMarkerTapped(String markerId, String title) {
-    if (kIsWeb) {
+    if (AdaptiveLayout.usesDesktopLayout(context)) {
       _showWebMarkerDialog(markerId);
       return;
     }
@@ -611,7 +612,7 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
 
   Future<void> _createTripPlan() async {
     // The web editor has no Form; validate the name directly there.
-    if (kIsWeb) {
+    if (AdaptiveLayout.usesDesktopLayout(context)) {
       final nameError = _validateName(_nameController.text);
       if (nameError != null) {
         planNotify(context, error: true, nameError);
@@ -685,7 +686,7 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) return _buildWeb();
+    if (AdaptiveLayout.usesDesktopLayout(context)) return _buildWeb();
     return _buildAndroid();
   }
 

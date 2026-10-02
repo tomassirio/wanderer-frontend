@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -151,7 +151,7 @@ class ToastHost extends StatelessWidget {
           valueListenable: Toasts._entries,
           builder: (context, entries, _) {
             if (entries.isEmpty) return const SizedBox.shrink();
-            final phone = MediaQuery.sizeOf(context).width < 600;
+            final phone = !AdaptiveLayout.usesDesktopLayout(context);
             final visible = entries.take(Toasts.maxVisible).toList();
             final hidden = entries.length - visible.length;
             final column = Column(
@@ -207,7 +207,7 @@ class _MoreChip extends StatelessWidget {
           final ctx = NavigationService().navigatorKey.currentContext;
           if (ctx == null) return;
           Toasts.clear();
-          if (!kIsWeb) {
+          if (!AdaptiveLayout.usesDesktopLayout(ctx)) {
             // Android: the notifications panel is a full screen.
             Navigator.of(ctx).push(MaterialPageRoute(
                 builder: (_) => const AndroidNotificationsScreen()));

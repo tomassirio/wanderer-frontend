@@ -1,3 +1,4 @@
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,7 +12,8 @@ import 'package:wanderer_frontend/presentation/screens/landing_screen.dart';
 
 /// Initial screen that checks auth state and shows appropriate content
 class InitialScreen extends ConsumerStatefulWidget {
-  const InitialScreen({super.key});
+  final AndroidTab initialTab;
+  const InitialScreen({super.key, this.initialTab = AndroidTab.home});
 
   @override
   ConsumerState<InitialScreen> createState() => _InitialScreenState();
@@ -58,10 +60,13 @@ class _InitialScreenState extends ConsumerState<InitialScreen> {
         body: Center(child: WandererLogo(size: 64)),
       );
     }
-    if (kIsWeb) {
-      return _isLoggedIn ? const DashboardScreen() : const LandingScreen();
+    if (kIsWeb && !_isLoggedIn) return const LandingScreen();
+    if (AdaptiveLayout.usesDesktopLayout(context)) {
+      return const DashboardScreen();
     }
 
-    return _isLoggedIn ? const AndroidShell() : const AndroidWelcomeScreen();
+    return _isLoggedIn
+        ? AndroidShell(initialTab: widget.initialTab)
+        : const AndroidWelcomeScreen();
   }
 }

@@ -161,8 +161,12 @@ class _AndroidExploreTabState extends ConsumerState<AndroidExploreTab> {
                       child: Row(children: [
                         Icon(Icons.search, size: 20, color: c.caption),
                         const SizedBox(width: 10),
-                        Text(l10n.searchOverlayHint,
-                            style: TextStyle(fontSize: 15, color: c.caption)),
+                        Expanded(
+                          child: Text(l10n.searchOverlayHint,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 15, color: c.caption)),
+                        ),
                       ]),
                     ),
                   ),

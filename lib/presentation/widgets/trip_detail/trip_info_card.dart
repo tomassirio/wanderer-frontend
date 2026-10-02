@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
@@ -507,7 +507,7 @@ class TripInfoCard extends StatelessWidget {
     final description = context.l10n
         .achievementDescriptionFor(userAchievement.achievement.type.toJson());
 
-    if (kIsWeb) {
+    if (AdaptiveLayout.usesDesktopLayout(context)) {
       return Tooltip(
         message: description,
         preferBelow: true,
@@ -540,7 +540,7 @@ class TripInfoCard extends StatelessWidget {
     BuildContext context,
     UserAchievement userAchievement,
   ) {
-    if (kIsWeb) {
+    if (AdaptiveLayout.usesDesktopLayout(context)) {
       showAchievementDialog(context, userAchievement.achievement,
           unlocked: userAchievement);
       return;
@@ -631,7 +631,7 @@ class TripInfoCard extends StatelessWidget {
 
   void _showVisibilityPicker(BuildContext context) {
     final l10n = context.l10n;
-    final picker = kIsWeb
+    final picker = AdaptiveLayout.usesDesktopLayout(context)
         ? DialogHelper.showWebOptions<Visibility>(
             context,
             title: l10n.changeVisibility,

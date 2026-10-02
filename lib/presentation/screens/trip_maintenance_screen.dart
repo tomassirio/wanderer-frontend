@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
@@ -189,7 +189,7 @@ class _TripMaintenanceScreenState extends ConsumerState<TripMaintenanceScreen> {
 
   Future<void> _recomputePolyline(Trip trip) async {
     final l10n = context.l10n;
-    final confirmed = kIsWeb
+    final confirmed = AdaptiveLayout.usesDesktopLayout(context)
         ? await WandererDialog.confirm(
             context,
             title: l10n.recomputePolyline,
@@ -284,7 +284,7 @@ class _TripMaintenanceScreenState extends ConsumerState<TripMaintenanceScreen> {
 
   Future<void> _recomputeGeocoding(Trip trip) async {
     final l10n = context.l10n;
-    final confirmed = kIsWeb
+    final confirmed = AdaptiveLayout.usesDesktopLayout(context)
         ? await WandererDialog.confirm(
             context,
             title: l10n.recomputeGeocoding,
@@ -381,7 +381,7 @@ class _TripMaintenanceScreenState extends ConsumerState<TripMaintenanceScreen> {
       return;
     }
 
-    final confirmed = kIsWeb
+    final confirmed = AdaptiveLayout.usesDesktopLayout(context)
         ? await WandererDialog.confirm(
             context,
             title: l10n.recomputeAllPolylines,
@@ -465,7 +465,7 @@ class _TripMaintenanceScreenState extends ConsumerState<TripMaintenanceScreen> {
 
   Future<void> _regenerateMissingThumbnails() async {
     final l10n = context.l10n;
-    final confirmed = kIsWeb
+    final confirmed = AdaptiveLayout.usesDesktopLayout(context)
         ? await WandererDialog.confirm(
             context,
             title: l10n.regenerateMissingThumbnails,

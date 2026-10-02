@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart' show TripStatus;
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -56,12 +56,16 @@ class Pill extends StatelessWidget {
       TripStatus.inProgress => (l10n.live, PillTone.progress, null),
       TripStatus.paused => (
           l10n.paused,
-          kIsWeb ? PillTone.gold : PillTone.paused,
+          AdaptiveLayout.usesDesktopLayout(context)
+              ? PillTone.gold
+              : PillTone.paused,
           Icons.pause
         ),
       TripStatus.resting => (
           l10n.resting,
-          kIsWeb ? PillTone.neutral : PillTone.resting,
+          AdaptiveLayout.usesDesktopLayout(context)
+              ? PillTone.neutral
+              : PillTone.resting,
           Icons.nightlight_round
         ),
       TripStatus.created => (l10n.draft, PillTone.neutral, Icons.schedule),

@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_explore_tab.dart';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
@@ -40,14 +42,24 @@ import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 
 /// Redesigned Home screen with personalized feed, visibility badges, and prioritization
-class HomeScreen extends ConsumerStatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+  Widget build(BuildContext context) =>
+      kIsWeb && !AdaptiveLayout.usesDesktopLayout(context)
+          ? const AndroidExploreTab()
+          : const _HomeScreenContent();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen>
+class _HomeScreenContent extends ConsumerStatefulWidget {
+  const _HomeScreenContent();
+
+  @override
+  ConsumerState<_HomeScreenContent> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<_HomeScreenContent>
     with SingleTickerProviderStateMixin, RouteAware {
   late final HomeRepository _repository;
   late final TripService _tripService;

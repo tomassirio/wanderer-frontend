@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -209,8 +210,10 @@ class NewTripForm extends StatelessWidget {
                 ),
             ]),
           ),
-          const SizedBox(height: 18),
-          KeyedSubtree(key: autoUpdatesKey, child: _autoCheckIn(context)),
+          if (!kIsWeb) ...[
+            const SizedBox(height: 18),
+            KeyedSubtree(key: autoUpdatesKey, child: _autoCheckIn(context)),
+          ],
         ],
       ),
     );

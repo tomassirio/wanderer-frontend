@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
@@ -47,6 +48,9 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
   List<TripPlan> _tripPlans = [];
   bool _createFromPlan = false;
   bool _automaticUpdates = true;
+  bool get _useAutomaticUpdates =>
+      _automaticUpdates &&
+      (!kIsWeb || AdaptiveLayout.usesDesktopLayout(context));
   final _intervalController = TextEditingController(text: '15');
   static const int _minIntervalMinutes = 15;
   late final TripPlanService _tripPlanService;
@@ -120,14 +124,15 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
           shape: ShapeLightFocus.RRect,
           radius: 12,
         ),
-        TutorialStep(
-          key: _tutorialAutoUpdatesKey,
-          title: l10n.tutorialAutoUpdatesTitle,
-          description: l10n.tutorialAutoUpdatesDescription,
-          shape: ShapeLightFocus.RRect,
-          radius: 12,
-          align: ContentAlign.top,
-        ),
+        if (!kIsWeb || AdaptiveLayout.usesDesktopLayout(context))
+          TutorialStep(
+            key: _tutorialAutoUpdatesKey,
+            title: l10n.tutorialAutoUpdatesTitle,
+            description: l10n.tutorialAutoUpdatesDescription,
+            shape: ShapeLightFocus.RRect,
+            radius: 12,
+            align: ContentAlign.top,
+          ),
         TutorialStep(
           key: _tutorialCreateButtonKey,
           title: l10n.tutorialCreateButtonTitle,
@@ -177,8 +182,8 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
             : _descriptionController.text.trim(),
         visibility: _selectedVisibility,
         tripModality: _selectedModality,
-        automaticUpdates: _automaticUpdates ? true : null,
-        updateRefresh: _automaticUpdates
+        automaticUpdates: _useAutomaticUpdates ? true : null,
+        updateRefresh: _useAutomaticUpdates
             ? (int.tryParse(_intervalController.text) ?? _minIntervalMinutes) *
                 60
             : null,
@@ -188,7 +193,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
 
       // Apply creation settings that the backend may not have propagated yet
       // into the query model (e.g. automaticUpdates / updateRefresh).
-      final effectiveTrip = _automaticUpdates
+      final effectiveTrip = _useAutomaticUpdates
           ? trip.copyWith(
               automaticUpdates: true,
               updateRefresh: (int.tryParse(_intervalController.text) ??
@@ -234,7 +239,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
       final trip = await _tripService.getTripById(tripId);
 
       if (mounted) {
-        _showSuccess(kIsWeb
+        _showSuccess(AdaptiveLayout.usesDesktopLayout(context)
             ? 'Trip created from plan successfully!'
             : context.l10n.msgTripCreatedFromPlan);
         Navigator.pushReplacement(
@@ -358,7 +363,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) return _buildWeb(context);
+    if (AdaptiveLayout.usesDesktopLayout(context)) return _buildWeb(context);
     final c = WandererTheme.of(context);
     return Scaffold(
       backgroundColor: c.ground,
@@ -394,12 +399,16 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
 
   /// Web keeps its floating notifications; Android uses the canvas toasts.
   void _showSuccess(String message) {
-    if (kIsWeb) return UiHelpers.showSuccessMessage(context, message);
+    if (AdaptiveLayout.usesDesktopLayout(context)) {
+      return UiHelpers.showSuccessMessage(context, message);
+    }
     Toasts.show(ToastData(kind: ToastKind.success, title: message));
   }
 
   void _showError(String message) {
-    if (kIsWeb) return UiHelpers.showErrorMessage(context, message);
+    if (AdaptiveLayout.usesDesktopLayout(context)) {
+      return UiHelpers.showErrorMessage(context, message);
+    }
     Toasts.show(ToastData(kind: ToastKind.error, title: message));
   }
 }

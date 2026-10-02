@@ -54,6 +54,46 @@ class AppLocalizations {
   /// Look up a key, falling back to English if missing.
   String _tr(String key) => _loader.string(_lang, key);
 
+  String get mobileWebAppTitle => _tr('mobileWebAppTitle');
+  String get welcomeTryGuest => _tr('welcomeTryGuest');
+  String get mobileWebAppSubtitle => _tr('mobileWebAppSubtitle');
+  String get mobileWebGet => _tr('mobileWebGet');
+  String get mobileWebOpenApp => _tr('mobileWebOpenApp');
+  String get mobileWebContinue => _tr('mobileWebContinue');
+  String get mobileWebHeadline => _tr('mobileWebHeadline');
+  String get mobileWebHeadlineHighlight => _tr('mobileWebHeadlineHighlight');
+  String get mobileWebResetError => _tr('mobileWebResetError');
+  String get mobileWebResetMissingToken => _tr('mobileWebResetMissingToken');
+  String get mobileWebVerificationError => _tr('mobileWebVerificationError');
+  String get mobileWebIntro => _tr('mobileWebIntro');
+  String get mobileWebStepPlan => _tr('mobileWebStepPlan');
+  String get mobileWebStepStart => _tr('mobileWebStepStart');
+  String get mobileWebStepShare => _tr('mobileWebStepShare');
+  String get mobileWebTrackTitle => _tr('mobileWebTrackTitle');
+  String get mobileWebTrackingNeedsApp => _tr('mobileWebTrackingNeedsApp');
+  String get mobileWebTrackingRunning => _tr('mobileWebTrackingRunning');
+  String get mobileWebHaveApp => _tr('mobileWebHaveApp');
+  String get mobileWebStartApp => _tr('mobileWebStartApp');
+  String get mobileWebStartInApp => _tr('mobileWebStartInApp');
+  String get mobileWebDays => _tr('mobileWebDays');
+  String get mobileWebDraftBody => _tr('mobileWebDraftBody');
+  String get mobileWebOpenTrip => _tr('mobileWebOpenTrip');
+  String get mobileWebPlansHint => _tr('mobileWebPlansHint');
+  String get mobileWebViewPlan => _tr('mobileWebViewPlan');
+  String get mobileWebFollowLive => _tr('mobileWebFollowLive');
+  String get mobileWebFollowSubtitle => _tr('mobileWebFollowSubtitle');
+  String get mobileWebLatestTrip => _tr('mobileWebLatestTrip');
+  String get mobileWebFeaturedTrip => _tr('mobileWebFeaturedTrip');
+  String get mobileWebLinkError => _tr('mobileWebLinkError');
+  String get mobileWebEmailConfirmed => _tr('mobileWebEmailConfirmed');
+  String get mobileWebEmailConfirmedBody => _tr('mobileWebEmailConfirmedBody');
+  String get mobileWebTripUnavailable => _tr('mobileWebTripUnavailable');
+  String get mobileWebTripUnavailableBody =>
+      _tr('mobileWebTripUnavailableBody');
+  String get mobileWebTripRestricted => _tr('mobileWebTripRestricted');
+  String get mobileWebTripRestrictedBody => _tr('mobileWebTripRestrictedBody');
+  String get mobileWebExplore => _tr('mobileWebExplore');
+
   // --- Sidebar navigation ---
   String get trips => _tr('trips');
   String get tripPlans => _tr('tripPlans');

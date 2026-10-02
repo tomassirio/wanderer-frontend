@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -76,7 +76,7 @@ class _WandererAppBarState extends ConsumerState<WandererAppBar> {
       // Sand ground on web and Android alike (redesign).
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       scrolledUnderElevation: 0,
-      centerTitle: isDesktop && !kIsWeb,
+      centerTitle: isDesktop && !AdaptiveLayout.usesDesktopLayout(context),
       titleSpacing: isDesktop ? null : 0,
       leading: widget.leading ??
           (widget.menuButtonKey != null && !sidebarShown
@@ -110,7 +110,7 @@ class _WandererAppBarState extends ConsumerState<WandererAppBar> {
             ),
       actions: [
         // Dark mode toggle — logged-in users, and everyone on web
-        if (widget.isLoggedIn || kIsWeb)
+        if (widget.isLoggedIn || AdaptiveLayout.usesDesktopLayout(context))
           ValueListenableBuilder<ThemeMode>(
             valueListenable: ThemeController().themeMode,
             builder: (context, mode, _) {
@@ -131,8 +131,9 @@ class _WandererAppBarState extends ConsumerState<WandererAppBar> {
             key: widget.searchButtonKey,
             icon: const Icon(Icons.search),
             tooltip: l10n.search,
-            onPressed:
-                kIsWeb ? () => showSearchOverlay(context) : _navigateToSearch,
+            onPressed: AdaptiveLayout.usesDesktopLayout(context)
+                ? () => showSearchOverlay(context)
+                : _navigateToSearch,
           ),
         // Notifications icon with badge (only for logged in users)
         if (widget.isLoggedIn)

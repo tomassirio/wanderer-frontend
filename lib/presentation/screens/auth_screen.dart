@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
@@ -23,6 +24,7 @@ import 'package:wanderer_frontend/presentation/widgets/auth/web_auth_layout.dart
 class AuthScreen extends ConsumerStatefulWidget {
   final bool startInSignup;
   final String? initialUsername;
+  final bool returnToCaller;
 
   /// Android Welcome's "Continue with Google": start the Google flow as
   /// soon as the screen opens (the sign-in form stays behind it).
@@ -37,6 +39,7 @@ class AuthScreen extends ConsumerStatefulWidget {
     super.key,
     this.startInSignup = false,
     this.initialUsername,
+    this.returnToCaller = false,
     this.ssoAuthenticate,
     this.autoStartSso = false,
   });
@@ -124,10 +127,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         );
 
         if (mounted) {
-          if (kIsWeb) {
+          if ((widget.returnToCaller ||
+                  AdaptiveLayout.usesDesktopLayout(context)) &&
+              Navigator.of(context).canPop()) {
             Navigator.of(context).pop(true);
           } else {
-            // Android: land on the shell (InitialScreen routes there).
+            // Mobile and direct login URLs land on the responsive home.
             Navigator.of(context).pushAndRemoveUntil(
                 PageTransitions.fade(const InitialScreen()), (_) => false);
           }
@@ -197,6 +202,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       // Mobile only (web returned above): land on the Android shell, like
       // a password login.
       if (mounted) {
+        if (widget.returnToCaller && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(true);
+          return;
+        }
         Navigator.of(context).pushAndRemoveUntil(
             PageTransitions.fade(const InitialScreen()), (_) => false);
       }
@@ -216,7 +225,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   void _forgotPassword() {
-    if (!kIsWeb) {
+    if (!AdaptiveLayout.usesDesktopLayout(context)) {
       showAndroidForgotPasswordSheet(
         context,
         initialEmail: _usernameController.text.contains('@')
@@ -344,7 +353,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) return _buildWeb(context);
+    if (AdaptiveLayout.usesDesktopLayout(context)) return _buildWeb(context);
     if (_registrationPending) {
       final c = WandererTheme.of(context);
       return Scaffold(

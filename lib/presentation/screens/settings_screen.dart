@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -152,7 +153,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   /// Web keeps its floating notifications; Android shows toasts.
   void _notify(String message, {bool error = false}) {
-    if (kIsWeb) {
+    if (AdaptiveLayout.usesDesktopLayout(context)) {
       error
           ? UiHelpers.showErrorMessage(context, message)
           : UiHelpers.showSuccessMessage(context, message);
@@ -165,7 +166,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // --- Account Actions ---
 
   Future<void> _handleChangePassword() async {
-    if (!kIsWeb) {
+    if (!AdaptiveLayout.usesDesktopLayout(context)) {
       final result = await showSettingsChangePasswordSheet(context);
       if (result == null || !mounted) return;
       return _submitPasswordChange(result.$1, result.$2);
@@ -233,7 +234,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _handleResetPassword() async {
-    if (!kIsWeb) {
+    if (!AdaptiveLayout.usesDesktopLayout(context)) {
       final email = await showSettingsResetPasswordSheet(context);
       if (email == null || !mounted) return;
       return _submitPasswordReset(email);
@@ -262,7 +263,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     try {
       await _authService.requestPasswordReset(email);
       if (mounted) {
-        _notify(kIsWeb
+        _notify(AdaptiveLayout.usesDesktopLayout(context)
             ? 'Password reset link sent to $email'
             : context.l10n.passwordResetEmailSent(email));
       }
@@ -309,7 +310,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // --- Danger Zone ---
 
   Future<void> _handleCloseAccount() async {
-    if (!kIsWeb) {
+    if (!AdaptiveLayout.usesDesktopLayout(context)) {
       final confirmed =
           await showSettingsCloseAccountSheet(context, username: _username);
       if (!confirmed || !mounted) return;
@@ -377,7 +378,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final remaining = 10 - _easterEggTapCount;
     final l10n = context.l10n;
 
-    if (!kIsWeb && _easterEggTapCount >= 8 && _easterEggTapCount < 10) {
+    if (!AdaptiveLayout.usesDesktopLayout(context) &&
+        _easterEggTapCount >= 8 &&
+        _easterEggTapCount < 10) {
       Toasts.show(ToastData(
         kind: ToastKind.hint,
         title: l10n.settingsAndroidEggHintTitle,
@@ -385,7 +388,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ? l10n.settingsAndroidEggOneMore
             : l10n.settingsAndroidEggMore(remaining),
       ));
-    } else if (!kIsWeb && _easterEggTapCount == 10) {
+    } else if (!AdaptiveLayout.usesDesktopLayout(context) &&
+        _easterEggTapCount == 10) {
       Toasts.show(ToastData(
         kind: ToastKind.achievement,
         title: l10n.easterEggFound,
@@ -441,7 +445,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       title: Text(l10n.settings),
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
     );
-    if (kIsWeb) return _buildWeb(appBar);
+    if (AdaptiveLayout.usesDesktopLayout(context)) return _buildWeb(appBar);
     return _buildAndroid();
   }
 
@@ -535,19 +539,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ]),
                 const SizedBox(height: 14),
-                SettingsGroup(label: l10n.notificationsSection, children: [
-                  SettingsRow(
-                    title: l10n.settingsAndroidPush,
-                    subtitle: l10n.settingsAndroidPushCaption,
-                    onTap: () => _togglePushNotifications(!_pushEnabled),
-                    trailing: Switch(
-                      value: _pushEnabled,
-                      onChanged: _togglePushNotifications,
-                      activeTrackColor: WandererTheme.trail,
+                if (!kIsWeb) ...[
+                  SettingsGroup(label: l10n.notificationsSection, children: [
+                    SettingsRow(
+                      title: l10n.settingsAndroidPush,
+                      subtitle: l10n.settingsAndroidPushCaption,
+                      onTap: () => _togglePushNotifications(!_pushEnabled),
+                      trailing: Switch(
+                        value: _pushEnabled,
+                        onChanged: _togglePushNotifications,
+                        activeTrackColor: WandererTheme.trail,
+                      ),
                     ),
-                  ),
-                ]),
-                const SizedBox(height: 14),
+                  ]),
+                  const SizedBox(height: 14),
+                ],
                 SettingsGroup(label: l10n.settingsHelp, children: [
                   SettingsRow(
                     title: l10n.settingsAndroidContactSupport,

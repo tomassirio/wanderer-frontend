@@ -103,6 +103,10 @@ class AuthService {
     await _authClient.initiatePasswordReset(request);
   }
 
+  Future<void> completePasswordReset(String token, String newPassword) =>
+      _authClient.completePasswordReset(
+          PasswordResetConfirmRequest(token: token, newPassword: newPassword));
+
   /// Change password (when logged in)
   Future<void> changePassword(PasswordChangeRequest request) async {
     await _authClient.changePassword(request);

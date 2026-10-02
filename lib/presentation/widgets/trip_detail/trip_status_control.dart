@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
@@ -142,7 +143,7 @@ class TripStatusControl extends StatelessWidget {
 
   Future<void> _showFinishConfirmation(BuildContext context) async {
     final l10n = context.l10n;
-    final confirmed = kIsWeb
+    final confirmed = AdaptiveLayout.usesDesktopLayout(context)
         ? await WandererDialog.confirm(
             context,
             title: l10n.dialogsFinishTripTitle,

@@ -1,3 +1,7 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
+import 'package:wanderer_frontend/presentation/widgets/mobile_web/app_handoff.dart';
+import 'package:wanderer_frontend/presentation/widgets/mobile_web/mobile_web_trip_card.dart';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -129,7 +133,8 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
       // The service does not ask for permission (UI concern): show the
       // disclosure first. Other failures come back as a userMessage.
       if (await Geolocator.checkPermission() == LocationPermission.denied) {
-        if (!mounted || !await LocationPermissionDisclosure.show(context)) {
+        if (!mounted ||
+            (!kIsWeb && !await LocationPermissionDisclosure.show(context))) {
           return;
         }
         await Geolocator.requestPermission();
@@ -145,7 +150,7 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
       Toasts.show(ToastData(
           kind: ToastKind.success, title: l10n.homeCheckedIn, body: trip.name));
       // Same as trip detail: a check-in restarts the automatic schedule.
-      if (trip.automaticUpdates) {
+      if (!kIsWeb && trip.automaticUpdates) {
         await BackgroundUpdateManager()
             .startAutoUpdates(trip.id, trip.name, trip.effectiveUpdateRefresh);
       }
@@ -255,7 +260,10 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
             ],
           ),
         ),
-        if (live != null) ...[
+        if (AdaptiveLayout.isMobileWeb(context)) ...[
+          const SizedBox(height: 18),
+          const MobileWebTrackingCard(),
+        ] else if (live != null) ...[
           const SizedBox(height: 18),
           HomeLiveTripCard(
             trip: live,
@@ -268,45 +276,70 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
         Row(children: [
           _Stat('${_trips.length}', l10n.trips),
           const SizedBox(width: 10),
-          _Stat('${drafts.length}', l10n.homeDrafts),
+          _Stat(
+              AdaptiveLayout.isMobileWeb(context)
+                  ? '$_badges'
+                  : '${drafts.length}',
+              AdaptiveLayout.isMobileWeb(context)
+                  ? l10n.homeBadges
+                  : l10n.homeDrafts),
           const SizedBox(width: 10),
-          _Stat('$_badges', l10n.homeBadges),
+          _Stat(
+              AdaptiveLayout.isMobileWeb(context)
+                  ? '${_friendIds.length}'
+                  : '$_badges',
+              AdaptiveLayout.isMobileWeb(context)
+                  ? l10n.friends
+                  : l10n.homeBadges),
         ]),
-        if (drafts.isNotEmpty) ...[
+        if (AdaptiveLayout.isMobileWeb(context)) ...[
           const SizedBox(height: 18),
-          ExploreSectionTitle(
-            l10n.homePickUp,
-            action: l10n.exploreFilterAll,
-            onAction: () => AndroidShell.selectTab(context, AndroidTab.trips),
-          ),
-          for (final d in drafts.take(3)) ...[
-            const SizedBox(height: 10),
-            _DraftRow(trip: d, onTap: () => _push(TripDetailScreen(trip: d))),
-          ],
-        ],
-        const SizedBox(height: 18),
-        ExploreSectionTitle(l10n.homeFriendsOnRoad),
-        const SizedBox(height: 10),
-        if (_friendTrips.isEmpty)
-          _FriendsEmpty(
-              _friendIds.isEmpty ? l10n.homeNoFriends : l10n.homeNoFriendsLive)
-        else
-          for (final t in _friendTrips) ...[
-            ExploreTripRow(
-              thumbnailUrl: t.thumbnailUrl,
-              thumbSize: 52,
-              title: Text(t.name),
-              subtitle: Row(children: [
-                Pill.status(context, t.status),
-                const SizedBox(width: 8),
-                Flexible(
-                    child: Text('@${t.username}',
-                        overflow: TextOverflow.ellipsis)),
-              ]),
-              onTap: () => _push(TripDetailScreen(trip: t)),
+          ExploreSectionTitle(l10n.mobileWebLatestTrip,
+              action: l10n.exploreFilterAll,
+              onAction: () =>
+                  AndroidShell.selectTab(context, AndroidTab.trips)),
+          if (_trips.isNotEmpty)
+            MobileWebTripCard(
+                trip: _trips.first,
+                onTap: () => _push(TripDetailScreen(trip: _trips.first))),
+        ] else ...[
+          if (drafts.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            ExploreSectionTitle(
+              l10n.homePickUp,
+              action: l10n.exploreFilterAll,
+              onAction: () => AndroidShell.selectTab(context, AndroidTab.trips),
             ),
-            const SizedBox(height: 10),
+            for (final d in drafts.take(3)) ...[
+              const SizedBox(height: 10),
+              _DraftRow(trip: d, onTap: () => _push(TripDetailScreen(trip: d))),
+            ],
           ],
+          const SizedBox(height: 18),
+          ExploreSectionTitle(l10n.homeFriendsOnRoad),
+          const SizedBox(height: 10),
+          if (_friendTrips.isEmpty)
+            _FriendsEmpty(_friendIds.isEmpty
+                ? l10n.homeNoFriends
+                : l10n.homeNoFriendsLive)
+          else
+            for (final t in _friendTrips) ...[
+              ExploreTripRow(
+                thumbnailUrl: t.thumbnailUrl,
+                thumbSize: 52,
+                title: Text(t.name),
+                subtitle: Row(children: [
+                  Pill.status(context, t.status),
+                  const SizedBox(width: 8),
+                  Flexible(
+                      child: Text('@${t.username}',
+                          overflow: TextOverflow.ellipsis)),
+                ]),
+                onTap: () => _push(TripDetailScreen(trip: t)),
+              ),
+              const SizedBox(height: 10),
+            ],
+        ],
       ],
     );
   }

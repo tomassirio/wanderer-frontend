@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter/services.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
@@ -30,7 +31,7 @@ class TripFromPlanDialog extends StatefulWidget {
   }) {
     Widget builder(BuildContext context) =>
         TripFromPlanDialog(planName: planName, planType: planType);
-    return kIsWeb
+    return AdaptiveLayout.usesDesktopLayout(context)
         ? WandererDialog.show<TripFromPlanRequest>(context,
             width: WandererDialog.formWidth, builder: builder)
         : showWandererSheet<TripFromPlanRequest>(context,
@@ -325,59 +326,61 @@ class _AndroidStartPlanSheetState extends State<_AndroidStartPlanSheet> {
             ],
           ),
         ),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-          decoration: BoxDecoration(
-              border: Border.fromBorderSide(border),
-              borderRadius: BorderRadius.circular(16)),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(l10n.newTripAutoCheckIn,
-                            style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: c.text)),
-                        Text(l10n.planAutoCheckInCaption,
-                            style: TextStyle(fontSize: 13, color: c.caption)),
-                      ],
-                    ),
-                  ),
-                  Switch(
-                    value: _auto,
-                    activeTrackColor: WandererTheme.trail,
-                    onChanged: (v) => setState(() => _auto = v),
-                  ),
-                ],
-              ),
-              if (_auto) ...[
-                const SizedBox(height: 12),
+        if (!kIsWeb) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+            decoration: BoxDecoration(
+                border: Border.fromBorderSide(border),
+                borderRadius: BorderRadius.circular(16)),
+            child: Column(
+              children: [
                 Row(
                   children: [
-                    for (final (i, m) in _intervals.indexed) ...[
-                      if (i > 0) const SizedBox(width: 8),
-                      Expanded(
-                        child: _IntervalChip(
-                          label: m < 60
-                              ? l10n.newTripMinutes(m)
-                              : l10n.newTripHours(m ~/ 60),
-                          selected: _every == m,
-                          onTap: () => setState(() => _every = m),
-                        ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(l10n.newTripAutoCheckIn,
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: c.text)),
+                          Text(l10n.planAutoCheckInCaption,
+                              style: TextStyle(fontSize: 13, color: c.caption)),
+                        ],
                       ),
-                    ],
+                    ),
+                    Switch(
+                      value: _auto,
+                      activeTrackColor: WandererTheme.trail,
+                      onChanged: (v) => setState(() => _auto = v),
+                    ),
                   ],
                 ),
+                if (_auto) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      for (final (i, m) in _intervals.indexed) ...[
+                        if (i > 0) const SizedBox(width: 8),
+                        Expanded(
+                          child: _IntervalChip(
+                            label: m < 60
+                                ? l10n.newTripMinutes(m)
+                                : l10n.newTripHours(m ~/ 60),
+                            selected: _every == m,
+                            onTap: () => setState(() => _every = m),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
+        ],
         const SizedBox(height: 16),
         PlanPrimaryButton(
           label: l10n.planStartNow,

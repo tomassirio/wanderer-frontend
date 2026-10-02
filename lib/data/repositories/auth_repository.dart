@@ -37,6 +37,9 @@ class AuthRepository {
     await _authService.requestPasswordReset(email);
   }
 
+  Future<void> completePasswordReset(String token, String newPassword) =>
+      _authService.completePasswordReset(token, newPassword);
+
   /// Completes an SSO login by exchanging the authorization code
   /// (+ PKCE verifier) for tokens
   Future<void> completeSsoLogin(String code, String codeVerifier) async {

@@ -85,7 +85,8 @@ class AuthClient {
 
   /// Complete password reset with token
   /// No authentication required
-  Future<void> completePasswordReset(PasswordResetRequest request) async {
+  Future<void> completePasswordReset(
+      PasswordResetConfirmRequest request) async {
     final response = await _apiClient.put(
       ApiEndpoints.authPasswordReset,
       body: request.toJson(),

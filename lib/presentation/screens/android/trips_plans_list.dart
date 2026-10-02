@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
+import 'package:wanderer_frontend/presentation/helpers/android_app_links.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
@@ -60,6 +62,10 @@ class _AndroidPlansListState extends ConsumerState<AndroidPlansList>
   }
 
   Future<void> _start(TripPlan plan) async {
+    if (AdaptiveLayout.isMobileWeb(context)) {
+      await AndroidAppLinks.open(context, planId: plan.id);
+      return;
+    }
     final request = await TripFromPlanDialog.show(context,
         planName: plan.name, planType: plan.planType);
     if (request == null || !mounted) return;
@@ -149,7 +155,10 @@ class _AndroidPlansListState extends ConsumerState<AndroidPlansList>
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: c.line, width: 2),
             ),
-            child: Text(l10n.plansEmptyHint,
+            child: Text(
+                AdaptiveLayout.isMobileWeb(context)
+                    ? l10n.mobileWebPlansHint
+                    : l10n.plansEmptyHint,
                 textAlign: TextAlign.center,
                 style:
                     TextStyle(fontSize: 14, height: 1.5, color: c.textMuted)),
@@ -267,7 +276,9 @@ class _PlanCard extends StatelessWidget {
                         child: SizedBox(
                           height: 48,
                           child: FilledButton.icon(
-                            onPressed: onStart,
+                            onPressed: AdaptiveLayout.isMobileWeb(context)
+                                ? onOpen
+                                : onStart,
                             style: FilledButton.styleFrom(
                               backgroundColor: c.neutralButtonBg,
                               foregroundColor: c.neutralButtonFg,
@@ -276,9 +287,15 @@ class _PlanCard extends StatelessWidget {
                               textStyle: const TextStyle(
                                   fontSize: 15, fontWeight: FontWeight.w700),
                             ),
-                            icon:
-                                const Icon(Icons.play_arrow_rounded, size: 20),
-                            label: Text(l10n.planDetailStartTrip,
+                            icon: Icon(
+                                AdaptiveLayout.isMobileWeb(context)
+                                    ? Icons.map_outlined
+                                    : Icons.play_arrow_rounded,
+                                size: 20),
+                            label: Text(
+                                AdaptiveLayout.isMobileWeb(context)
+                                    ? l10n.mobileWebViewPlan
+                                    : l10n.planDetailStartTrip,
                                 overflow: TextOverflow.ellipsis),
                           ),
                         ),
@@ -287,7 +304,9 @@ class _PlanCard extends StatelessWidget {
                       SizedBox(
                         height: 48,
                         child: OutlinedButton(
-                          onPressed: onEdit,
+                          onPressed: AdaptiveLayout.isMobileWeb(context)
+                              ? onStart
+                              : onEdit,
                           style: OutlinedButton.styleFrom(
                             foregroundColor: c.text,
                             side: BorderSide(color: c.line),
@@ -297,7 +316,9 @@ class _PlanCard extends StatelessWidget {
                             textStyle: const TextStyle(
                                 fontSize: 15, fontWeight: FontWeight.w700),
                           ),
-                          child: Text(l10n.edit),
+                          child: Text(AdaptiveLayout.isMobileWeb(context)
+                              ? l10n.mobileWebStartInApp
+                              : l10n.edit),
                         ),
                       ),
                     ],

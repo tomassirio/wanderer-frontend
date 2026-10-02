@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
+import 'package:wanderer_frontend/presentation/widgets/mobile_web/app_handoff.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
@@ -262,6 +264,7 @@ class _AndroidAuthFormState extends State<AndroidAuthForm> {
     final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final isLogin = widget.isLogin;
+    final mobileWeb = AdaptiveLayout.isMobileWeb(context);
     final busy = widget.isLoading;
     void submit() => busy ? null : widget.onSubmit();
 
@@ -284,7 +287,7 @@ class _AndroidAuthFormState extends State<AndroidAuthForm> {
         textInputAction: TextInputAction.done,
         onFieldSubmitted: (_) => submit(),
       ),
-      trailing: isLogin
+      trailing: isLogin && !mobileWeb
           ? InkWell(
               onTap: busy ? null : widget.onForgotPassword,
               child: Padding(
@@ -309,7 +312,12 @@ class _AndroidAuthFormState extends State<AndroidAuthForm> {
 
     final fields = isLogin
         ? [
-            const WandererLogo(size: 48),
+            if (mobileWeb)
+              const Align(
+                  alignment: Alignment.centerLeft,
+                  child: WandererLogo(size: 48))
+            else
+              const WandererLogo(size: 48),
             const SizedBox(height: 12),
             Text(l10n.authWebWelcomeBack,
                 style: WandererTheme.display(32, color: c.text)),
@@ -318,17 +326,27 @@ class _AndroidAuthFormState extends State<AndroidAuthForm> {
             username,
             const SizedBox(height: 18),
             password,
-            const SizedBox(height: 26),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: InkWell(
-                onTap: busy ? null : widget.onNeedVerificationToken,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text(l10n.authWebHaveCode, style: _link(c)),
+            if (mobileWeb)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                    onPressed: busy ? null : widget.onForgotPassword,
+                    child:
+                        Text(l10n.authWebForgotPassword, style: _link(c, 13))),
+              ),
+            if (!mobileWeb) ...[
+              const SizedBox(height: 26),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: InkWell(
+                  onTap: busy ? null : widget.onNeedVerificationToken,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text(l10n.authWebHaveCode, style: _link(c)),
+                  ),
                 ),
               ),
-            ),
+            ],
           ]
         : [
             Text(l10n.authWebCreateTitle,
@@ -352,28 +370,62 @@ class _AndroidAuthFormState extends State<AndroidAuthForm> {
                 rules: passwordRules(l10n, widget.passwordController.text)),
           ];
 
+    final actions = Padding(
+      padding:
+          EdgeInsets.fromLTRB(mobileWeb ? 0 : 24, 14, mobileWeb ? 0 : 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          androidPrimaryButton(
+            isLogin ? l10n.signIn : l10n.createAccount,
+            onPressed: widget.onSubmit,
+            busy: busy,
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                  isLogin ? l10n.authWebNewToWanderer : l10n.alreadyHaveAccount,
+                  style: TextStyle(fontSize: 14, color: c.textMuted)),
+              TextButton(
+                onPressed: busy ? null : widget.onToggleMode,
+                style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 6)),
+                child: Text(isLogin ? l10n.authWebCreateAnAccount : l10n.signIn,
+                    style: _link(c)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
     return Scaffold(
       backgroundColor: c.ground,
-      appBar: AppBar(
-        toolbarHeight: 64,
-        backgroundColor: c.ground,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: BackButton(onPressed: widget.onBack),
-        actions: isLogin
-            ? const [AndroidAuthHeaderActions(), SizedBox(width: 8)]
-            : null,
-      ),
+      appBar: mobileWeb
+          ? null
+          : AppBar(
+              toolbarHeight: 64,
+              backgroundColor: c.ground,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              leading: BackButton(onPressed: widget.onBack),
+              actions: isLogin
+                  ? const [AndroidAuthHeaderActions(), SizedBox(width: 8)]
+                  : null,
+            ),
       body: SafeArea(
-        top: false,
+        top: mobileWeb,
         child: AutofillGroup(
           child: Form(
             key: widget.formKey,
             child: Column(children: [
               Expanded(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(24, isLogin ? 12 : 0, 24, 12),
+                  padding: EdgeInsets.fromLTRB(
+                      24, mobileWeb ? 28 : (isLogin ? 12 : 0), 24, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -382,46 +434,12 @@ class _AndroidAuthFormState extends State<AndroidAuthForm> {
                         const SizedBox(height: 16),
                         ErrorMessage(message: widget.errorMessage!),
                       ],
+                      if (mobileWeb) actions,
                     ],
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 14, 24, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    androidPrimaryButton(
-                      isLogin ? l10n.signIn : l10n.createAccount,
-                      onPressed: widget.onSubmit,
-                      busy: busy,
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(
-                          isLogin
-                              ? l10n.authWebNewToWanderer
-                              : l10n.alreadyHaveAccount,
-                          style: TextStyle(fontSize: 14, color: c.textMuted),
-                        ),
-                        TextButton(
-                          onPressed: busy ? null : widget.onToggleMode,
-                          style: TextButton.styleFrom(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 6)),
-                          child: Text(
-                            isLogin ? l10n.authWebCreateAnAccount : l10n.signIn,
-                            style: _link(c),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              if (mobileWeb) const MobileWebAppFooter() else actions,
             ]),
           ),
         ),

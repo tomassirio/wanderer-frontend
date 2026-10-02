@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
@@ -282,10 +283,11 @@ class _TripMapViewState extends State<TripMapView> {
           },
           padding: widget.padding,
           // Android floats its own round map controls (canvas).
-          myLocationButtonEnabled: kIsWeb && widget.isOwner,
+          myLocationButtonEnabled:
+              AdaptiveLayout.usesDesktopLayout(context) && widget.isOwner,
           myLocationEnabled: widget.isOwner,
           mapToolbarEnabled: false,
-          zoomControlsEnabled: kIsWeb,
+          zoomControlsEnabled: AdaptiveLayout.usesDesktopLayout(context),
           scrollGesturesEnabled: widget.gesturesEnabled,
           zoomGesturesEnabled: widget.gesturesEnabled,
           tiltGesturesEnabled: widget.gesturesEnabled,

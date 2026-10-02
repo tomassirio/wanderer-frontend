@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -5,17 +7,19 @@ import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
+import 'package:wanderer_frontend/presentation/helpers/live_toast_bridge.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_explore_tab.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_home_tab.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_trips_tab.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_you_tab.dart';
 import 'package:wanderer_frontend/presentation/screens/create_trip_plan_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/create_trip_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 
 /// Android tabs, in bottom-nav order.
 enum AndroidTab { home, trips, explore, you }
 
-/// Logged-in Android home: bottom nav (Home, Trips, Explore, You) and the
+/// Logged-in mobile home (native and web): bottom nav and the
 /// + create button on Home and Trips. Tab roots live here; everything else
 /// is pushed full screen on top and Back returns to the same tab.
 ///
@@ -27,9 +31,22 @@ class AndroidShell extends ConsumerStatefulWidget {
 
   static AndroidShellState? _current;
 
+  static Widget navigationBar(BuildContext context, AndroidTab selected) =>
+      _BottomNav(
+          tab: selected,
+          onSelect: (tab) {
+            if (!selectTab(context, tab)) {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(
+                    builder: (_) => InitialScreen(initialTab: tab)),
+                (_) => false,
+              );
+            }
+          });
+
   /// Switch tab from anywhere, including screens pushed over the shell:
   /// those are popped so the tab shows. Returns false when no shell is up
-  /// (logged out, web).
+  /// (logged out, desktop web).
   static bool selectTab(BuildContext context, AndroidTab tab) {
     final shell = _current;
     if (shell == null || !shell.mounted) return false;
@@ -64,13 +81,17 @@ class AndroidShellState extends ConsumerState<AndroidShell> {
     final ws = ref.read(websocketServiceProvider);
     PushNotificationManager().start(userId);
     await ws.connect();
-    if (mounted) ws.subscribeToUser(userId);
+    if (mounted) {
+      ws.subscribeToUser(userId);
+      if (kIsWeb) LiveToastBridge().start(userId);
+    }
   }
 
   @override
   void dispose() {
     if (AndroidShell._current == this) AndroidShell._current = null;
     PushNotificationManager().stop();
+    if (kIsWeb) LiveToastBridge().stop();
     super.dispose();
   }
 
@@ -85,7 +106,8 @@ class AndroidShellState extends ConsumerState<AndroidShell> {
 
   @override
   Widget build(BuildContext context) {
-    final showCreate = _tab == AndroidTab.home || _tab == AndroidTab.trips;
+    final showCreate = _tab == AndroidTab.trips ||
+        (_tab == AndroidTab.home && !AdaptiveLayout.isMobileWeb(context));
     return PopScope(
       canPop: !_createOpen && _tab == AndroidTab.home,
       onPopInvokedWithResult: (didPop, _) {

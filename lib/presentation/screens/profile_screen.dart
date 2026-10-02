@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb, setEquals;
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -105,7 +106,7 @@ enum ProfileOrigin {
 }
 
 /// User profile screen showing user information, statistics, and trips
-class ProfileScreen extends ConsumerStatefulWidget {
+class ProfileScreen extends StatelessWidget {
   final String? userId;
   final ProfileOrigin origin;
 
@@ -113,10 +114,23 @@ class ProfileScreen extends ConsumerStatefulWidget {
       {super.key, this.userId, this.origin = ProfileOrigin.explore});
 
   @override
-  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+  Widget build(BuildContext context) =>
+      AdaptiveLayout.usesDesktopLayout(context)
+          ? _DesktopProfileScreen(userId: userId, origin: origin)
+          : ProfileAndroidView(userId: userId);
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+class _DesktopProfileScreen extends ConsumerStatefulWidget {
+  final String? userId;
+  final ProfileOrigin origin;
+
+  const _DesktopProfileScreen({this.userId, required this.origin});
+
+  @override
+  ConsumerState<_DesktopProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<_DesktopProfileScreen> {
   late final ProfileRepository _repository;
   late final UserService _userService;
   late final WebSocketService _webSocketService;
@@ -160,8 +174,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // Android renders ProfileAndroidView, which loads its own data.
-    if (!kIsWeb) return;
     _repository = ref.read(profileRepositoryProvider);
     _userService = ref.read(userServiceProvider);
     _webSocketService = ref.read(websocketServiceProvider);
@@ -1058,7 +1070,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb) return ProfileAndroidView(userId: widget.userId);
     return WandererScaffold(
       hideAppBarWithSidebar: true,
       appBar: WandererAppBar(

@@ -10,6 +10,7 @@ import 'package:wanderer_frontend/presentation/strategies/trip_detail_layout_str
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/web_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_settings_panel.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_share_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_timeline.dart';
@@ -75,8 +76,11 @@ class WebTripDetailLayout extends StatefulWidget {
     this.onStartOnPhone,
   });
 
-  /// Below this width the floating-panel layout is used instead.
+  /// Minimum content width, excluding the navigation rail.
   static const double minWidth = 960;
+
+  static bool fitsViewport(double width) =>
+      width >= minWidth + WebSidebar.railWidth;
 
   @override
   State<WebTripDetailLayout> createState() => _WebTripDetailLayoutState();

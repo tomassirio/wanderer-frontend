@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 
@@ -22,10 +23,13 @@ class CommentInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final mobileWeb = AdaptiveLayout.isMobileWeb(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
+        color: mobileWeb
+            ? WandererTheme.of(context).surface
+            : Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
         border: Border(
           top: BorderSide(
             color: WandererTheme.glassBorderColorFor(context),
@@ -121,7 +125,8 @@ class CommentInput extends StatelessWidget {
                       vertical: 8,
                     ),
                   ),
-                  maxLines: null,
+                  minLines: mobileWeb ? 1 : null,
+                  maxLines: mobileWeb ? 4 : null,
                   textCapitalization: TextCapitalization.sentences,
                   textInputAction: TextInputAction.send,
                   onSubmitted: (_) => onSend(),

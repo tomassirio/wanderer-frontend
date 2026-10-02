@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -19,7 +19,7 @@ const _shadow = [
 /// Success / error feedback: floating notification on web (unchanged),
 /// canvas toast on Android.
 void planNotify(BuildContext context, String message, {bool error = false}) {
-  if (kIsWeb) {
+  if (AdaptiveLayout.usesDesktopLayout(context)) {
     error
         ? UiHelpers.showErrorMessage(context, message)
         : UiHelpers.showSuccessMessage(context, message);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:wanderer_frontend/presentation/widgets/mobile_web/app_handoff.dart';
 import 'package:intl/intl.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -24,6 +25,7 @@ class TripDetailAndroidLayout extends StatefulWidget {
   final TripDetailLayoutData data;
   final Widget map;
   final bool isMapLoading;
+  final bool mobileWeb;
 
   /// State buttons (owner only), built by the screen.
   final Widget? controls;
@@ -35,6 +37,12 @@ class TripDetailAndroidLayout extends StatefulWidget {
   /// Map bottom padding: roughly the half sheet (canvas: 356).
   static const double mapBottomPadding = 360;
 
+  static double mobileSheetFraction(
+          {required bool isOwner, required TripStatus status}) =>
+      isOwner && status != TripStatus.created && status != TripStatus.finished
+          ? 0.72
+          : 0.58;
+
   const TripDetailAndroidLayout({
     super.key,
     required this.data,
@@ -42,6 +50,7 @@ class TripDetailAndroidLayout extends StatefulWidget {
     required this.onLogin,
     required this.onCheckInTap,
     this.isMapLoading = false,
+    this.mobileWeb = false,
     this.controls,
     this.onCenterOnMe,
     this.donationButton,
@@ -62,8 +71,7 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
   _Detent _detent = _Detent.half;
 
   /// Sheet height in px (animated between the three detents).
-  late final _sheet = AnimationController.unbounded(
-      vsync: this, value: TripDetailAndroidLayout.mapBottomPadding);
+  late final AnimationController _sheet;
 
   /// Height of the fixed top (handle → tabs) in the half layout; the half
   /// detent is exactly that, so no list item peeks in.
@@ -74,13 +82,23 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
 
   TripDetailLayoutData get _d => widget.data;
   Trip get _trip => _d.trip;
+  bool get _mobileWeb => widget.mobileWeb;
   bool get _isOwner =>
       _d.currentUserId != null && _trip.userId == _d.currentUserId;
   bool get _hasSettings =>
       _trip.hasPlannedRoute ||
-      (_isOwner &&
+      (_mobileWeb && _isOwner) ||
+      (!_mobileWeb &&
+          _isOwner &&
           (_trip.status == TripStatus.created ||
               _trip.status == TripStatus.inProgress));
+
+  @override
+  void initState() {
+    super.initState();
+    _sheet = AnimationController.unbounded(
+        vsync: this, value: TripDetailAndroidLayout.mapBottomPadding);
+  }
 
   @override
   void dispose() {
@@ -154,10 +172,10 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
       builder: (ctx) {
         final p = MobileLayoutStrategy().createTripSettingsPanel(_d,
             onClose: () => Navigator.of(ctx).pop());
-        return TripSettingsPanel(
+        final panel = TripSettingsPanel(
           isCollapsed: false,
           onToggleCollapse: () => Navigator.of(ctx).pop(),
-          isOwner: p.isOwner,
+          isOwner: p.isOwner && !_mobileWeb,
           tripHasPlannedRoute: p.tripHasPlannedRoute,
           showPlannedWaypoints: p.showPlannedWaypoints,
           onTogglePlannedWaypoints: p.onTogglePlannedWaypoints,
@@ -171,6 +189,32 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
           onTestBackgroundUpdate: p.onTestBackgroundUpdate,
           onDeleteTrip: p.onDeleteTrip,
           embedded: true,
+        );
+        if (!_mobileWeb) return panel;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_isOwner &&
+                _trip.status != TripStatus.created &&
+                _trip.status != TripStatus.finished) ...[
+              MobileWebTrackingCard(
+                tripId: _trip.id,
+                tracking: _trip.status == TripStatus.inProgress,
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (_trip.hasPlannedRoute) panel,
+            if (_isOwner && _d.onDeleteTrip != null)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.delete_outline),
+                title: Text(context.l10n.tripDetailDeleteTitle),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _d.onDeleteTrip!.call();
+                },
+              ),
+          ],
         );
       },
     );
@@ -213,6 +257,8 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
     final l10n = context.l10n;
     final top = MediaQuery.paddingOf(context).top + 8;
 
+    if (_mobileWeb && _tab == 1) return _mobileComments(context);
+
     return PopScope(
       canPop: _detent != _Detent.full,
       onPopInvokedWithResult: (didPop, _) {
@@ -248,7 +294,7 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
                     icon: Icons.share_outlined,
                     label: l10n.shareTrip,
                     onTap: () => TripShareDialog.show(context,
-                        tripId: _trip.id, tripName: _trip.name),
+                        tripId: _trip.id, tripName: _trip.name, compact: true),
                   ),
                   if (_hasSettings) ...[
                     const SizedBox(width: 10),
@@ -281,10 +327,167 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
                     color: c.skyFg,
                   ),
                 ),
-              _buildSheet(context),
+              if (_mobileWeb) _mobileSheet(context) else _buildSheet(context),
             ],
           );
         }),
+      ),
+    );
+  }
+
+  Widget _mobileComments(BuildContext context) {
+    final c = WandererTheme.of(context);
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) setState(() => _tab = 0);
+      },
+      child: Material(
+        color: c.surface,
+        child: SafeArea(
+            child: Column(children: [
+          AppBar(
+            primary: false,
+            backgroundColor: c.surface,
+            leading: BackButton(onPressed: () => setState(() => _tab = 0)),
+            title:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(context.l10n.commentsTab(_trip.commentsCount)),
+              Text(_trip.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: c.caption)),
+            ]),
+          ),
+          Expanded(
+              child: ListView(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            children: _commentItems(context, includeInput: false),
+          )),
+          if (_d.isLoggedIn)
+            _commentInput()
+          else
+            Padding(
+                padding: const EdgeInsets.all(16),
+                child: _buildGuestCta(context)),
+        ])),
+      ),
+    );
+  }
+
+  Widget _mobileSheet(BuildContext context) {
+    final c = WandererTheme.of(context);
+    final l10n = context.l10n;
+    final active = _trip.status != TripStatus.finished &&
+        _trip.status != TripStatus.created;
+    final initialSize = TripDetailAndroidLayout.mobileSheetFraction(
+        isOwner: _isOwner, status: _trip.status);
+    return DraggableScrollableSheet(
+      initialChildSize: initialSize,
+      minChildSize: 0.12,
+      maxChildSize: 1,
+      snap: true,
+      snapSizes: [initialSize],
+      builder: (context, controller) => Material(
+        color: c.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        clipBehavior: Clip.antiAlias,
+        elevation: 8,
+        child: ListView(
+          controller: controller,
+          padding: EdgeInsets.only(bottom: _bottomInset + 24),
+          children: [
+            Center(
+                child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: c.line, borderRadius: BorderRadius.circular(8)),
+            )),
+            Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildPills(context),
+                    const SizedBox(height: 10),
+                    Text(_trip.name,
+                        style: WandererTheme.display(24, color: c.text)),
+                    ..._buildMeta(context),
+                    const SizedBox(height: 14),
+                    _buildStats(context),
+                    const SizedBox(height: 14),
+                    if (_isOwner && active)
+                      MobileWebTrackingCard(
+                          tripId: _trip.id,
+                          tracking: _trip.status == TripStatus.inProgress),
+                    if (!_isOwner)
+                      Row(children: [
+                        Expanded(
+                            child: FilledButton(
+                          onPressed: _d.isLoggedIn
+                              ? _d.onFollowTripOwner
+                              : widget.onLogin,
+                          style: FilledButton.styleFrom(
+                              backgroundColor: WandererTheme.trail,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(0, 48)),
+                          child: Text(
+                              '${_d.isFollowingTripOwner ? l10n.unfollow : l10n.follow} @${_trip.username}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                        )),
+                        const SizedBox(width: 10),
+                        SizedBox(
+                            height: 48,
+                            width: 48,
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                  padding: EdgeInsets.zero),
+                              onPressed: () => TripShareDialog.show(context,
+                                  tripId: _trip.id,
+                                  tripName: _trip.name,
+                                  compact: true),
+                              child: Icon(Icons.share_outlined, color: c.text),
+                            )),
+                      ]),
+                  ],
+                )),
+            const SizedBox(height: 12),
+            if (widget.donationButton != null)
+              Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: widget.donationButton!),
+            Row(children: [
+              for (final (i, label) in [
+                l10n.tripTimelineTab(
+                    '${_trip.updateCount ?? _d.tripUpdates.length}'),
+                l10n.commentsTab(_trip.commentsCount),
+              ].indexed)
+                Expanded(
+                    child: InkWell(
+                  onTap: () => setState(() => _tab = i),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                        border: Border(
+                            bottom: BorderSide(
+                                color:
+                                    i == 0 ? WandererTheme.trail : c.lineSoft,
+                                width: i == 0 ? 3 : 1))),
+                    child: Text(label,
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: i == 0 ? c.accentText : c.textMuted)),
+                  ),
+                )),
+            ]),
+            ..._timelineItems(context),
+          ],
+        ),
       ),
     );
   }
@@ -547,10 +750,19 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
     final l10n = context.l10n;
     final (icon, label) = _visibility(l10n, _trip.visibility);
     final visibility = Pill(label, icon: icon);
+    final combinedDay = _mobileWeb &&
+        _trip.status == TripStatus.inProgress &&
+        _trip.tripModality == TripModality.multiDay &&
+        _trip.currentDay != null;
     return Wrap(spacing: 6, runSpacing: 6, children: [
-      Pill.status(context, _trip.status),
+      if (combinedDay)
+        Pill('${l10n.live} · ${l10n.dayNumber(_trip.currentDay!)}',
+            tone: PillTone.progress)
+      else
+        Pill.status(context, _trip.status),
       if (_d.isPromoted) Pill(l10n.promoted, tone: PillTone.promoted),
-      if (_trip.tripModality == TripModality.multiDay &&
+      if (!combinedDay &&
+          _trip.tripModality == TripModality.multiDay &&
           _trip.currentDay != null &&
           _trip.status != TripStatus.finished)
         Pill(l10n.dayNumber(_trip.currentDay!)),
@@ -571,6 +783,7 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
     final meta = TextStyle(fontSize: 13, height: 1.45, color: c.textMuted);
     final locale = Localizations.localeOf(context).toString();
 
+    if (_isOwner && _mobileWeb) return const [];
     if (_isOwner) {
       // "Last check-in 22:45 · Nieuwegein" (the auto interval is in the
       // strip below).
@@ -622,8 +835,9 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
             ),
         ]),
       ),
-      if (_d.onFollowTripOwner != null ||
-          _d.onSendFriendRequestToTripOwner != null) ...[
+      if (!_mobileWeb &&
+          (_d.onFollowTripOwner != null ||
+              _d.onSendFriendRequestToTripOwner != null)) ...[
         const SizedBox(height: 10),
         Row(children: [
           if (_d.onFollowTripOwner != null)
@@ -693,9 +907,18 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
       l10n.tripStatCheckIns,
       '${_trip.updateCount ?? _d.tripUpdates.length}${_d.hasMoreUpdates ? '+' : ''}'
     );
-    final stats = _trip.status == TripStatus.inProgress
-        ? [time, distance, updates]
-        : [distance, time, updates];
+    final stats = _mobileWeb && _isOwner && _trip.status != TripStatus.finished
+        ? [
+            distance,
+            (
+              l10n.mobileWebDays,
+              '${_trip.currentDay ?? (span == null ? 0 : span.inDays + 1)}'
+            ),
+            (l10n.comments, '${_trip.commentsCount}')
+          ]
+        : _trip.status == TripStatus.inProgress
+            ? [time, distance, updates]
+            : [distance, time, updates];
 
     return Row(children: [
       for (var i = 0; i < stats.length; i++) ...[
@@ -796,7 +1019,20 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(tripCheckInTitle(l10n, u),
+                      if (_mobileWeb) ...[
+                        Text(tripCheckInKind(l10n, u),
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: tripCheckInColor(c, u))),
+                        const SizedBox(height: 3),
+                      ],
+                      Text(
+                          _mobileWeb
+                              ? (tripCheckInPlace(u).isEmpty
+                                  ? u.displayLocation
+                                  : tripCheckInPlace(u))
+                              : tripCheckInTitle(l10n, u),
                           style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -805,12 +1041,13 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
                       Text(
                         [
                           when(u.timestamp),
-                          if (u.temperatureCelsius != null)
+                          if (!_mobileWeb && u.temperatureCelsius != null)
                             WeatherHelpers.formatTemperature(
                                 u.temperatureCelsius!),
-                          if ((u.distanceSoFarKm ?? 0) > 0)
+                          if (!_mobileWeb && (u.distanceSoFarKm ?? 0) > 0)
                             l10n.kmValue(u.distanceSoFarKm!.toStringAsFixed(1)),
-                          if (u.updateType == TripUpdateType.regular)
+                          if (!_mobileWeb &&
+                              u.updateType == TripUpdateType.regular)
                             tripCheckInKind(l10n, u),
                         ].join(' · '),
                         style: TextStyle(fontSize: 13, color: c.textMuted),
@@ -825,7 +1062,7 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
                     ],
                   ),
                 ),
-                if (u.battery != null) _battery(c, u.battery!),
+                if (!_mobileWeb && u.battery != null) _battery(c, u.battery!),
               ],
             ),
           ),
@@ -888,7 +1125,9 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
     }
 
     final divider = Divider(height: 1, thickness: 1, color: c.lineSoft);
-    final groups = groupCheckIns(_d.tripUpdates);
+    final groups = _mobileWeb
+        ? _d.tripUpdates.map((u) => [u]).toList()
+        : groupCheckIns(_d.tripUpdates);
     return [
       for (var i = 0; i < groups.length; i++) ...[
         if (i > 0) divider,
@@ -907,7 +1146,7 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
     ];
   }
 
-  List<Widget> _commentItems(BuildContext context) {
+  List<Widget> _commentItems(BuildContext context, {bool includeInput = true}) {
     final c = WandererTheme.of(context);
     final l10n = context.l10n;
     return [
@@ -948,16 +1187,17 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
                   onPressed: _d.onLoadMoreComments,
                   child: Text(l10n.loadMoreComments)),
         ),
-      if (_d.isLoggedIn)
-        CommentInput(
-          controller: _d.commentController,
-          isAddingComment: _d.isAddingComment,
-          isReplyMode: _d.replyingToCommentId != null,
-          onSend: _d.onSendComment,
-          onCancelReply: _d.onCancelReply,
-        ),
+      if (_d.isLoggedIn && includeInput) _commentInput(),
     ];
   }
+
+  Widget _commentInput() => CommentInput(
+        controller: _d.commentController,
+        isAddingComment: _d.isAddingComment,
+        isReplyMode: _d.replyingToCommentId != null,
+        onSend: _d.onSendComment,
+        onCancelReply: _d.onCancelReply,
+      );
 
   Widget _dot(Color color) => Container(
         width: 10,

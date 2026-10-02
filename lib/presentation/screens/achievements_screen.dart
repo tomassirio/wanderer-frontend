@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -274,7 +274,7 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb) return _buildAndroid();
+    if (!AdaptiveLayout.usesDesktopLayout(context)) return _buildAndroid();
     return WandererScaffold(
       hideAppBarWithSidebar: true,
       appBar: WandererAppBar(
@@ -662,7 +662,7 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
     Achievement achievement,
     UserAchievement? userAchievement,
   ) {
-    if (kIsWeb) {
+    if (AdaptiveLayout.usesDesktopLayout(context)) {
       showAchievementDialog(context, achievement,
           unlocked: userAchievement, shareUsername: _username);
       return;

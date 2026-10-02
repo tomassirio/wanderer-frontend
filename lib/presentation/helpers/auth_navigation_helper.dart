@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_shell.dart';
 import 'package:wanderer_frontend/data/storage/token_storage.dart';
@@ -85,8 +85,10 @@ class AuthNavigationHelper {
     }
 
     if (!context.mounted) return;
-    // Android: your own profile is the You tab.
-    if (!kIsWeb && AndroidShell.selectTab(context, AndroidTab.you)) return;
+    if (!AdaptiveLayout.usesDesktopLayout(context) &&
+        AndroidShell.selectTab(context, AndroidTab.you)) {
+      return;
+    }
     Navigator.push(
       context,
       PageTransitions.slideRight(const ProfileScreen()),

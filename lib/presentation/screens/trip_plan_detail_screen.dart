@@ -32,7 +32,7 @@ import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 import 'package:wanderer_frontend/presentation/helpers/map_style_helper.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 
 /// The type of point the user wants to place next on the map in edit mode
 enum _EditPlacementMode { start, end, waypoint }
@@ -516,7 +516,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
         _updateMapData();
         planNotify(
             context,
-            kIsWeb
+            AdaptiveLayout.usesDesktopLayout(context)
                 ? 'Trip plan updated successfully'
                 : context.l10n.planUpdated);
       }
@@ -530,7 +530,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
 
   Future<void> _deleteTripPlan() async {
     final l10n = context.l10n;
-    final confirm = kIsWeb
+    final confirm = AdaptiveLayout.usesDesktopLayout(context)
         ? await WandererDialog.confirm(
             context,
             title: l10n.tripPlansDeleteTitle,
@@ -549,7 +549,11 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
     try {
       await _tripPlanService.deleteTripPlan(_tripPlan.id);
       if (mounted) {
-        planNotify(context, kIsWeb ? 'Trip plan deleted' : l10n.planDeleted);
+        planNotify(
+            context,
+            AdaptiveLayout.usesDesktopLayout(context)
+                ? 'Trip plan deleted'
+                : l10n.planDeleted);
         Navigator.pop(context, true); // Return true to indicate deletion
       }
     } catch (e) {
@@ -600,10 +604,12 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   Widget build(BuildContext context) {
     // When editing, show the edit form
     if (_isEditing) {
-      return kIsWeb ? _buildEditScreenWeb() : _buildEditScreenAndroid();
+      return AdaptiveLayout.usesDesktopLayout(context)
+          ? _buildEditScreenWeb()
+          : _buildEditScreenAndroid();
     }
 
-    if (kIsWeb) return _buildWebView();
+    if (AdaptiveLayout.usesDesktopLayout(context)) return _buildWebView();
 
     return _buildAndroidView();
   }
@@ -618,6 +624,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   Widget _buildAndroidView() {
     final route = _pointsOf(_polylines);
     return AndroidPlanDetailView(
+      mobileWeb: AdaptiveLayout.isMobileWeb(context),
       plan: _tripPlan,
       route: route,
       onBack: () => Navigator.pop(context),

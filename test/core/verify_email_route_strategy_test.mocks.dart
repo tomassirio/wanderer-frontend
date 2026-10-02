@@ -3,7 +3,6 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-
 import 'dart:async' as _i4;
 
 import 'package:mockito/mockito.dart' as _i1;
@@ -106,6 +105,23 @@ class MockAuthRepository extends _i1.Mock implements _i3.AuthRepository {
         Invocation.method(
           #requestPasswordReset,
           [email],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+
+  @override
+  _i4.Future<void> completePasswordReset(
+    String? token,
+    String? newPassword,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #completePasswordReset,
+          [
+            token,
+            newPassword,
+          ],
         ),
         returnValue: _i4.Future<void>.value(),
         returnValueForMissingStub: _i4.Future<void>.value(),
