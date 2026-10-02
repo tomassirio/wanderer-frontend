@@ -15,6 +15,7 @@ import 'package:wanderer_frontend/core/services/background_update_manager.dart';
 import 'package:wanderer_frontend/core/services/navigation_service.dart';
 import 'package:wanderer_frontend/core/services/notification_service.dart';
 import 'package:wanderer_frontend/data/storage/token_refresh_manager.dart';
+import 'package:wanderer_frontend/presentation/helpers/update_markers.dart';
 import 'package:wanderer_frontend/presentation/helpers/web_marker_generator.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 import 'package:wanderer_frontend/presentation/widgets/search/search_overlay.dart';
@@ -40,6 +41,9 @@ void main() async {
 
   // Pre-generate coloured map markers for the web platform
   await WebMarkerGenerator.init();
+
+  // Trip update markers (start, days, check-ins, finish) for every platform
+  await UpdateMarkers.init();
 
   // Initialize Android-only services
   if (!kIsWeb && Platform.isAndroid) {

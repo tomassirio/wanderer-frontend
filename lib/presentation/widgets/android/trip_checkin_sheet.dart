@@ -6,17 +6,15 @@ import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
-import 'package:wanderer_frontend/data/services/trip_update_service.dart';
+import 'package:wanderer_frontend/presentation/helpers/update_markers.dart';
+
+export 'package:wanderer_frontend/presentation/helpers/update_markers.dart'
+    show isAutoCheckIn;
 import 'package:wanderer_frontend/presentation/helpers/weather_helpers.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/trip_state_controls.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_sheet.dart';
-
-/// Sent by the background schedule (it carries the placeholder message).
-bool isAutoCheckIn(TripLocation u) =>
-    u.updateType == TripUpdateType.regular &&
-    u.message == TripUpdateService.automaticUpdateMessage;
 
 /// The user's own message, never the automatic placeholder or event text.
 String? tripCheckInMessage(TripLocation u) =>
@@ -83,7 +81,10 @@ Color tripCheckInColor(WandererColors c, TripLocation u) =>
     switch (u.updateType) {
       TripUpdateType.regular => c.skyFg,
       TripUpdateType.tripStarted => c.forestFg,
-      TripUpdateType.tripEnded => WandererTheme.trail,
+      TripUpdateType.tripEnded =>
+        ThemeData.estimateBrightnessForColor(c.surface) == Brightness.dark
+            ? const Color(0xFFF97066)
+            : UpdateKind.tripFinished.color,
       TripUpdateType.dayStart => c.goldFg,
       TripUpdateType.dayEnd => c.restingFg,
     };

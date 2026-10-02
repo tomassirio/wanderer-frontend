@@ -145,7 +145,7 @@ void main() {
 
       // Lifecycle label should be shown
       expect(find.text('Day Start'), findsOneWidget);
-      expect(find.byIcon(Icons.wb_sunny_rounded), findsAtLeastNWidgets(1));
+      expect(find.byIcon(Icons.wb_sunny_outlined), findsAtLeastNWidgets(1));
       // Location should still show
       expect(find.text('León, Spain'), findsOneWidget);
     });
@@ -179,7 +179,7 @@ void main() {
       // Message replaces the generic label at the top
       expect(find.text('Good night!'), findsOneWidget);
       expect(find.text('Day End'), findsNothing);
-      expect(find.byIcon(Icons.nightlight_round), findsAtLeastNWidgets(1));
+      expect(find.byIcon(Icons.dark_mode_outlined), findsAtLeastNWidgets(1));
     });
 
     testWidgets('renders mixed regular and day marker entries', (
@@ -292,7 +292,7 @@ void main() {
       );
 
       expect(find.text('Trip Started'), findsOneWidget);
-      expect(find.byIcon(Icons.flag_rounded), findsAtLeastNWidgets(1));
+      expect(find.byIcon(Icons.flag_outlined), findsAtLeastNWidgets(1));
       expect(find.text('Madrid, Spain'), findsOneWidget);
     });
 
@@ -325,7 +325,7 @@ void main() {
       // Message replaces the generic label at the top
       expect(find.text('What a journey!'), findsOneWidget);
       expect(find.text('Trip Ended'), findsNothing);
-      expect(find.byIcon(Icons.sports_score_rounded), findsAtLeastNWidgets(1));
+      expect(find.byIcon(Icons.sports_score), findsAtLeastNWidgets(1));
     });
   });
 }

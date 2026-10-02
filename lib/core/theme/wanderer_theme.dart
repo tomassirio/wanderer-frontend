@@ -107,12 +107,12 @@ class WandererTheme {
   static const Color timelineNodeCompleted = Color(0xFF4CAF50);
 
   // Day Marker Colors (multi-day trip timeline)
-  static const Color dayStartColor = Color(0xFFFFCA28); // Yellow/golden
-  static const Color dayEndColor = Color(0xFF7E57C2); // Violet/purple
+  static const Color dayStartColor = Color(0xFFD19A12); // Yellow, sun
+  static const Color dayEndColor = Color(0xFF5B4B8A); // Violet, moon
 
   // Trip Lifecycle Marker Colors (timeline)
-  static const Color tripStartedColor = Color(0xFF81C784); // Pastel green
-  static const Color tripEndedColor = Color(0xFFE57373); // Pastel red
+  static const Color tripStartedColor = Color(0xFF2F6B4F); // Green, flag
+  static const Color tripEndedColor = Color(0xFFB42318); // Red, checkered
 
   // ========================================
   // GLASSMORPHISM DESIGN SYSTEM

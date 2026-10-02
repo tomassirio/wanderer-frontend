@@ -6,11 +6,12 @@ import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_map_helper.dart';
+import 'package:wanderer_frontend/presentation/helpers/update_markers.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
 
-/// Android trip map look (canvas AndroidLive / AndroidTripView): small white
-/// stop dots ringed in the route colour, a bigger filled dot for the start
-/// and the latest spot, and the tracked route solid in the trip's colour.
+/// Android trip map look (canvas AndroidLive / "Map markers"): update
+/// markers by kind ([UpdateMarkers]), a haloed dot on the latest spot while
+/// live, and the tracked route solid in the trip's colour.
 /// Planned routes keep their dashed pattern from [TripMapHelper].
 class TripMapDots {
   TripMapDots._();
@@ -28,31 +29,35 @@ class TripMapDots {
   static Future<MapData> restyle(
       MapData data, Trip trip, WandererColors c) async {
     final route = routeColor(c, trip.status);
-    final locations = [...?trip.locations]
-      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
-    final firstId = locations.isEmpty ? null : locations.first.id;
-    final lastId = locations.isEmpty ? null : locations.last.id;
+    final byId = {
+      for (final l in [...?trip.locations]) l.id: l
+    };
+    final latestLocation = byId.values.isEmpty
+        ? null
+        : byId.values
+            .reduce((a, b) => a.timestamp.isAfter(b.timestamp) ? a : b);
+    final live = trip.status == TripStatus.inProgress;
 
-    final stop = await _dot(fill: Colors.white, ring: route, radius: 5);
     final planned =
         await _dot(fill: Colors.white, ring: c.restingFg, radius: 4.5);
-    final start = await _dot(fill: c.forestFg, ring: Colors.white, radius: 8);
     final latest =
         await _dot(fill: route, ring: Colors.white, radius: 10, halo: route);
 
     final markers = data.markers.map((m) {
       final id = m.markerId.value;
-      final icon = id.startsWith('planned_')
-          ? planned
-          : id == lastId
-              ? latest
-              : id == firstId
-                  ? start
-                  : stop;
+      if (id.startsWith('planned_')) {
+        return m.copyWith(
+            iconParam: planned, anchorParam: const Offset(0.5, 0.5));
+      }
+      final location = byId[id];
+      if (location == null) return m;
+      final kind = updateKind(location);
+      // While live, the latest check-in is the "you are here" dot.
+      final here = live && location == latestLocation && !kind.isKeyMoment;
       return m.copyWith(
-        iconParam: icon,
+        iconParam: here ? latest : UpdateMarkers.icon(kind),
         anchorParam: const Offset(0.5, 0.5),
-        zIndexIntParam: id == lastId ? 2 : 1,
+        zIndexIntParam: here ? 2 : (kind.isKeyMoment ? 1 : 0),
       );
     }).toSet();
 
