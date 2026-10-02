@@ -1223,5 +1223,9 @@
   "tripNextUpdate": "Volgende update",
   "searchActiveTravelers": "Actieve reizigers",
   "planEditorDate": "Datum",
-  "homeChecklistHide": "Lijst verbergen"
+  "homeChecklistHide": "Lijst verbergen",
+  "dashboardRecentTripsOf": "Recente reizen · {pos} van {count}",
+  "dashboardPreviousTrip": "Vorige reis",
+  "dashboardNextTrip": "Volgende reis",
+  "dashboardShowTrip": "Toon {name}"
 }

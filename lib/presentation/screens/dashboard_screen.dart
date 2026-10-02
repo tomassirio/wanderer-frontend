@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_duration.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
@@ -208,10 +209,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       style: TextStyle(color: c.textMuted)),
                 ),
               )
-            : _LatestTripCard(
-                trip: data.latestTrip!,
-                achievements: data.latestTripAchievements,
-                onOpen: () => _push(TripDetailScreen(trip: data.latestTrip!)),
+            : _RecentTripsCard(
+                trips: data.trips.take(5).toList(),
+                achievementsOn: data.achievementsOn,
+                onOpen: (t) => _push(TripDetailScreen(trip: t)),
               );
         final activity =
             _ActivityCard(comments: data.recentComments, data: data);
@@ -281,13 +282,6 @@ String _km(BuildContext context, double km, {int decimals = 0}) {
     decimalDigits: decimals,
   );
   return context.l10n.kmValue(format.format(km));
-}
-
-int? _tripDays(Trip trip) {
-  final start = trip.startDate;
-  if (start == null) return null;
-  final end = trip.endDate ?? DateTime.now();
-  return end.difference(start).inDays + 1;
 }
 
 class _Header extends StatelessWidget {
@@ -487,22 +481,37 @@ class _Panel extends StatelessWidget {
   }
 }
 
-class _LatestTripCard extends StatelessWidget {
-  final Trip trip;
-  final int achievements;
-  final VoidCallback onOpen;
+/// Featured trip card (canvas "Home dashboard"): the latest trip, with
+/// ‹ › and dots on the map to cycle through the recent ones.
+class _RecentTripsCard extends StatefulWidget {
+  final List<Trip> trips;
+  final int Function(Trip) achievementsOn;
+  final ValueChanged<Trip> onOpen;
 
-  const _LatestTripCard({
-    required this.trip,
-    required this.achievements,
+  const _RecentTripsCard({
+    required this.trips,
+    required this.achievementsOn,
     required this.onOpen,
   });
+
+  @override
+  State<_RecentTripsCard> createState() => _RecentTripsCardState();
+}
+
+class _RecentTripsCardState extends State<_RecentTripsCard> {
+  int _i = 0;
+
+  void _go(int i) =>
+      setState(() => _i = (i + widget.trips.length) % widget.trips.length);
 
   @override
   Widget build(BuildContext context) {
     final c = WandererTheme.of(context);
     final l10n = context.l10n;
-    final days = _tripDays(trip);
+    final trips = widget.trips;
+    final trip = trips[_i.clamp(0, trips.length - 1)];
+    final achievements = widget.achievementsOn(trip);
+    final many = trips.length > 1;
     final visibility = switch (trip.visibility) {
       Visibility.public => (Icons.public, l10n.publicVisibility),
       Visibility.protected => (Icons.group_outlined, l10n.protectedVisibility),
@@ -513,7 +522,12 @@ class _LatestTripCard extends StatelessWidget {
         l10n.categoryDistance,
         _km(context, trip.accruedDistanceKm ?? 0, decimals: 1)
       ),
-      (l10n.categoryDuration, days == null ? '—' : l10n.daysCount(days)),
+      (
+        trip.tripModality == TripModality.multiDay
+            ? l10n.categoryDuration
+            : l10n.tripStatTime,
+        tripDurationLabel(l10n, trip, const [])
+      ),
       (l10n.comments, '${trip.commentsCount}'),
       (l10n.achievements, l10n.achievementsEarnedCount(achievements)),
     ];
@@ -549,22 +563,76 @@ class _LatestTripCard extends StatelessWidget {
                   ]),
                 ),
                 Positioned(
-                  top: 16,
-                  right: 16,
+                  top: 12,
+                  right: 12,
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: many ? 4 : 12, vertical: many ? 4 : 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xC71B1A17),
+                      color: const Color(0xD11B1A17),
                       borderRadius: BorderRadius.circular(999),
                     ),
-                    child: Text(l10n.latestTrip,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600)),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      if (many)
+                        _arrow(Icons.chevron_left, l10n.dashboardPreviousTrip,
+                            () => _go(_i - 1)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Text(
+                            many
+                                ? l10n.dashboardRecentTripsOf(
+                                    _i + 1, trips.length)
+                                : l10n.latestTrip,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                      if (many)
+                        _arrow(Icons.chevron_right, l10n.dashboardNextTrip,
+                            () => _go(_i + 1)),
+                    ]),
                   ),
                 ),
+                if (many)
+                  Positioned(
+                    bottom: 12,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xB81B1A17),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          for (var k = 0; k < trips.length; k++)
+                            Semantics(
+                              button: true,
+                              label: l10n.dashboardShowTrip(trips[k].name),
+                              child: GestureDetector(
+                                onTap: () => _go(k),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  margin:
+                                      const EdgeInsets.symmetric(horizontal: 3),
+                                  width: k == _i ? 22 : 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: k == _i
+                                        ? Colors.white
+                                        : Colors.white.withValues(alpha: 0.55),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ]),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -594,7 +662,7 @@ class _LatestTripCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     OutlinedButton.icon(
-                      onPressed: onOpen,
+                      onPressed: () => widget.onOpen(trip),
                       iconAlignment: IconAlignment.end,
                       icon: const Icon(Icons.arrow_forward, size: 16),
                       label: Text(l10n.viewTrip),
@@ -642,6 +710,19 @@ class _LatestTripCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _arrow(IconData icon, String label, VoidCallback onTap) => SizedBox(
+        width: 32,
+        height: 32,
+        child: IconButton(
+          tooltip: label,
+          onPressed: onTap,
+          padding: EdgeInsets.zero,
+          style: IconButton.styleFrom(
+              backgroundColor: Colors.white.withValues(alpha: 0.14)),
+          icon: Icon(icon, size: 18, color: Colors.white),
+        ),
+      );
 }
 
 class _Initials extends StatelessWidget {

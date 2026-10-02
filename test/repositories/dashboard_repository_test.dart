@@ -80,7 +80,6 @@ void main() {
           friendRequests: const [],
           friendRequestCount: 0,
           recentComments: const [],
-          latestTripAchievements: 0,
         );
 
     test('counts an achievement unlocked on several trips once', () {

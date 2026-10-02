@@ -1223,5 +1223,9 @@
   "tripNextUpdate": "Next update",
   "searchActiveTravelers": "Active travelers",
   "planEditorDate": "Date",
-  "homeChecklistHide": "Hide checklist"
+  "homeChecklistHide": "Hide checklist",
+  "dashboardRecentTripsOf": "Recent trips · {pos} of {count}",
+  "dashboardPreviousTrip": "Previous trip",
+  "dashboardNextTrip": "Next trip",
+  "dashboardShowTrip": "Show {name}"
 }

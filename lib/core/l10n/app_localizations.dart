@@ -1446,6 +1446,13 @@ class AppLocalizations {
   String get welcomeSubtitle => _tr('welcomeSubtitle');
   String get welcomeSignUpEmail => _tr('welcomeSignUpEmail');
   String get welcomeLookAround => _tr('welcomeLookAround');
+  String dashboardRecentTripsOf(Object pos, Object count) =>
+      TranslationTemplate.format(
+          _tr('dashboardRecentTripsOf'), {'pos': pos, 'count': count});
+  String get dashboardPreviousTrip => _tr('dashboardPreviousTrip');
+  String get dashboardNextTrip => _tr('dashboardNextTrip');
+  String dashboardShowTrip(Object name) =>
+      TranslationTemplate.format(_tr('dashboardShowTrip'), {'name': name});
   String get planEditorDate => _tr('planEditorDate');
   String get homeChecklistHide => _tr('homeChecklistHide');
   String get searchActiveTravelers => _tr('searchActiveTravelers');
