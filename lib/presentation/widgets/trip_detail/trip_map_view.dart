@@ -253,7 +253,9 @@ class _TripMapViewState extends State<TripMapView> {
     return Stack(
       children: [
         GoogleMap(
-          // The web map ignores a new style after creation: rebuild it when
+          // Google's web camera pad ignores the theme; pan/zoom by gesture.
+          webCameraControlEnabled: false,
+// The web map ignores a new style after creation: rebuild it when
           // the theme flips so light / dark follows the app.
           key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
           style: MapStyleHelper.of(context),
@@ -299,12 +301,38 @@ class _TripMapViewState extends State<TripMapView> {
               AdaptiveLayout.usesDesktopLayout(context) && widget.isOwner,
           myLocationEnabled: widget.isOwner,
           mapToolbarEnabled: false,
-          zoomControlsEnabled: AdaptiveLayout.usesDesktopLayout(context),
+          // Google's zoom buttons stay white in dark mode: ours are below.
+          zoomControlsEnabled: false,
           scrollGesturesEnabled: gestures,
           zoomGesturesEnabled: gestures,
           tiltGesturesEnabled: gestures,
           rotateGesturesEnabled: gestures,
         ),
+        if (AdaptiveLayout.usesDesktopLayout(context) && _isMapReady)
+          Positioned(
+            right: 16,
+            bottom: 24,
+            child: PointerInterceptor(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ZoomButton(
+                    icon: Icons.add,
+                    label: 'Zoom in',
+                    onTap: () =>
+                        _controller?.animateCamera(CameraUpdate.zoomIn()),
+                  ),
+                  const SizedBox(height: 8),
+                  _ZoomButton(
+                    icon: Icons.remove,
+                    label: 'Zoom out',
+                    onTap: () =>
+                        _controller?.animateCamera(CameraUpdate.zoomOut()),
+                  ),
+                ],
+              ),
+            ),
+          ),
         // Loading indicator while map initializes
         if (!_isMapReady && !_hasError)
           Container(
@@ -395,6 +423,42 @@ class _TripMapViewState extends State<TripMapView> {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Themed round map button, matching the Android layout's `_RoundButton`.
+class _ZoomButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _ZoomButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
+    return Tooltip(
+      message: label,
+      child: Material(
+        color: c.surface,
+        shape: CircleBorder(side: BorderSide(color: c.line)),
+        elevation: 4,
+        shadowColor: const Color(0x261B1A17),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: SizedBox(
+            width: 40,
+            height: 40,
+            child: Icon(icon, color: c.text, size: 22),
+          ),
+        ),
+      ),
     );
   }
 }

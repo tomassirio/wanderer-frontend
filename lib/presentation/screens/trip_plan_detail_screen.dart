@@ -637,6 +637,8 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
       map: FutureBuilder(
         future: PlanMapStyle.ensureLoaded(),
         builder: (context, _) => GoogleMap(
+          // Google's web camera pad ignores the theme; pan/zoom by gesture.
+          webCameraControlEnabled: false,
           key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
           style: MapStyleHelper.of(context),
           initialCameraPosition: CameraPosition(
@@ -751,6 +753,8 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
         map: FutureBuilder(
           future: PlanMapStyle.ensureLoaded(),
           builder: (context, _) => GoogleMap(
+            // Google's web camera pad ignores the theme; pan/zoom by gesture.
+            webCameraControlEnabled: false,
             key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
             style: MapStyleHelper.of(context),
             initialCameraPosition: CameraPosition(
@@ -881,6 +885,8 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
         onFitRoute: _markers.length >= 2 ? _fitBounds : null,
         map: hasMapData
             ? GoogleMap(
+                // Google's web camera pad ignores the theme; pan/zoom by gesture.
+                webCameraControlEnabled: false,
                 key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
                 style: MapStyleHelper.of(context),
                 initialCameraPosition: CameraPosition(
@@ -977,6 +983,8 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
           fit: StackFit.expand,
           children: [
             GoogleMap(
+              // Google's web camera pad ignores the theme; pan/zoom by gesture.
+              webCameraControlEnabled: false,
               key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
               style: MapStyleHelper.of(context),
               initialCameraPosition: CameraPosition(

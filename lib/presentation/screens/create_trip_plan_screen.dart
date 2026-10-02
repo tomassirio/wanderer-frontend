@@ -743,6 +743,8 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
       map: FutureBuilder(
         future: PlanMapStyle.ensureLoaded(),
         builder: (context, _) => GoogleMap(
+          // Google's web camera pad ignores the theme; pan/zoom by gesture.
+          webCameraControlEnabled: false,
           key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
           style: MapStyleHelper.of(context),
           initialCameraPosition:
@@ -877,6 +879,8 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
   }
 
   Widget _buildWebMap() => GoogleMap(
+        // Google's web camera pad ignores the theme; pan/zoom by gesture.
+        webCameraControlEnabled: false,
         key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
         style: MapStyleHelper.of(context),
         initialCameraPosition: CameraPosition(
