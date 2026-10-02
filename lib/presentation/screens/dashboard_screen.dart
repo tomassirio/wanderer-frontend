@@ -562,39 +562,48 @@ class _RecentTripsCardState extends State<_RecentTripsCard> {
                           foregroundTone: PillTone.promoted),
                   ]),
                 ),
+                // Counter in the theme's surface colours, top right.
                 Positioned(
-                  top: 12,
-                  right: 12,
+                  top: 16,
+                  right: 16,
                   child: Container(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: many ? 4 : 12, vertical: many ? 4 : 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xD11B1A17),
+                      color: c.surface,
                       borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: c.line),
                     ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      if (many)
-                        _arrow(Icons.chevron_left, l10n.dashboardPreviousTrip,
-                            () => _go(_i - 1)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                        child: Text(
-                            many
-                                ? l10n.dashboardRecentTripsOf(
-                                    _i + 1, trips.length)
-                                : l10n.latestTrip,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700)),
-                      ),
-                      if (many)
-                        _arrow(Icons.chevron_right, l10n.dashboardNextTrip,
-                            () => _go(_i + 1)),
-                    ]),
+                    child: Text(
+                        many
+                            ? l10n.dashboardRecentTripsOf(_i + 1, trips.length)
+                            : l10n.latestTrip,
+                        style: TextStyle(
+                            color: c.text,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700)),
                   ),
                 ),
-                if (many)
+                // ‹ › on the map's left and right edges.
+                if (many) ...[
+                  Positioned(
+                    left: 12,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: _arrow(c, Icons.chevron_left,
+                          l10n.dashboardPreviousTrip, () => _go(_i - 1)),
+                    ),
+                  ),
+                  Positioned(
+                    right: 12,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: _arrow(c, Icons.chevron_right,
+                          l10n.dashboardNextTrip, () => _go(_i + 1)),
+                    ),
+                  ),
                   Positioned(
                     bottom: 12,
                     left: 0,
@@ -604,8 +613,9 @@ class _RecentTripsCardState extends State<_RecentTripsCard> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xB81B1A17),
+                          color: c.surface,
                           borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: c.line),
                         ),
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
                           for (var k = 0; k < trips.length; k++)
@@ -621,9 +631,7 @@ class _RecentTripsCardState extends State<_RecentTripsCard> {
                                   width: k == _i ? 22 : 8,
                                   height: 8,
                                   decoration: BoxDecoration(
-                                    color: k == _i
-                                        ? Colors.white
-                                        : Colors.white.withValues(alpha: 0.55),
+                                    color: k == _i ? c.text : c.line,
                                     borderRadius: BorderRadius.circular(999),
                                   ),
                                 ),
@@ -633,6 +641,7 @@ class _RecentTripsCardState extends State<_RecentTripsCard> {
                       ),
                     ),
                   ),
+                ],
               ],
             ),
           ),
@@ -711,16 +720,18 @@ class _RecentTripsCardState extends State<_RecentTripsCard> {
     );
   }
 
-  Widget _arrow(IconData icon, String label, VoidCallback onTap) => SizedBox(
-        width: 32,
-        height: 32,
+  Widget _arrow(
+          WandererColors c, IconData icon, String label, VoidCallback onTap) =>
+      Material(
+        color: c.surface,
+        shape: CircleBorder(side: BorderSide(color: c.line)),
+        elevation: 3,
+        shadowColor: const Color(0x331B1A17),
         child: IconButton(
           tooltip: label,
           onPressed: onTap,
-          padding: EdgeInsets.zero,
-          style: IconButton.styleFrom(
-              backgroundColor: Colors.white.withValues(alpha: 0.14)),
-          icon: Icon(icon, size: 18, color: Colors.white),
+          constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+          icon: Icon(icon, size: 24, color: c.text),
         ),
       );
 }
