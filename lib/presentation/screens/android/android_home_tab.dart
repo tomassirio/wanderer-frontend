@@ -385,9 +385,11 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
           HomeSectionTitle(l10n.homeFriendsOnRoad),
           const SizedBox(height: 4),
           if (_friendTrips.isEmpty)
-            _FriendsEmpty(_friendIds.isEmpty
-                ? l10n.homeNoFriends
-                : l10n.homeNoFriendsLive)
+            _FriendsEmpty(
+                _friendIds.isEmpty
+                    ? l10n.homeNoFriends
+                    : l10n.homeNoFriendsLive,
+                onTap: _findFriends)
           else
             for (final t in _friendTrips) ...[
               ExploreTripRow(
@@ -425,9 +427,11 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
             onAction: () => _push(const AndroidNotificationsScreen())),
         const SizedBox(height: 4),
         if (_activity.isEmpty)
-          _FriendsEmpty(_friendIds.isEmpty
-              ? l10n.homeNoFriends
-              : l10n.homeNoFriendsActivity)
+          _FriendsEmpty(
+              _friendIds.isEmpty
+                  ? l10n.homeNoFriends
+                  : l10n.homeNoFriendsActivity,
+              onTap: _findFriends)
         else
           HomeFriendsActivity(items: _activity, onTap: _openActivity),
         if (next != null) ...[
@@ -751,6 +755,9 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
         : const AndroidNotificationsScreen());
   }
 
+  /// Empty friend cards lead to search, which suggests active travelers.
+  void _findFriends() => _push(const AndroidSearchScreen());
+
   Future<void> _openBadges() async {
     await AuthNavigationHelper.navigateToAchievements(context);
     if (mounted) _load();
@@ -827,28 +834,43 @@ class _DraftRow extends StatelessWidget {
 
 class _FriendsEmpty extends StatelessWidget {
   final String text;
-  const _FriendsEmpty(this.text);
+  final VoidCallback onTap;
+  const _FriendsEmpty(this.text, {required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final c = WandererTheme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: WandererTheme.cardDecoration(context, radius: 16),
-      child: Row(children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(color: c.forestBg, shape: BoxShape.circle),
-          child:
-              Icon(Icons.person_add_alt_outlined, size: 20, color: c.forestFg),
+    return Material(
+      color: c.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: c.line),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const Key('home_find_friends'),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration:
+                  BoxDecoration(color: c.forestBg, shape: BoxShape.circle),
+              child: Icon(Icons.person_add_alt_outlined,
+                  size: 20, color: c.forestFg),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(text,
+                  style:
+                      TextStyle(fontSize: 14, color: c.textMuted, height: 1.4)),
+            ),
+            Icon(Icons.chevron_right, size: 18, color: c.label),
+          ]),
         ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Text(text,
-              style: TextStyle(fontSize: 14, color: c.textMuted, height: 1.4)),
-        ),
-      ]),
+      ),
     );
   }
 }
