@@ -7,6 +7,7 @@ import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/achievement_models.dart';
+import 'package:wanderer_frontend/data/models/domain/user_follow.dart';
 import 'package:wanderer_frontend/data/models/domain/user_profile.dart';
 import 'package:wanderer_frontend/data/models/notification_models.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
@@ -55,6 +56,10 @@ class _Home extends Fake implements HomeRepository {
 }
 
 class _Users extends Fake implements UserService {
+  @override
+  Future<PageResponse<UserFollow>> getFollowing(
+          {int page = 0, int size = 20}) async =>
+      _page(const <UserFollow>[]);
   @override
   Future<UserProfile> getMyProfile() async => UserProfile(
       id: 'me',

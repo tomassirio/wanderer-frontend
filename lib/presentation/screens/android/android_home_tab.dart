@@ -80,6 +80,7 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
   List<Trip> _publicTrips = const [];
   List<NotificationDto> _activity = const [];
   bool _notificationsOn = true;
+  bool _followsSomeone = false;
   int _unread = 0;
   Object? _error;
   bool _checkingIn = false;
@@ -113,6 +114,9 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
       final activityF = _optional(notifications.getMyNotifications(size: 20));
       final allBadgesF =
           _optional(ref.read(achievementServiceProvider).getAllAchievements());
+      // The profile carries no following count: ask for one follow.
+      final followingF =
+          _optional(ref.read(userServiceProvider).getFollowing(size: 1));
       final notificationsOnF =
           kIsWeb ? Future.value(true) : NotificationService().areEnabled();
 
@@ -127,6 +131,7 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
       final unread = await unreadF;
       final activity = (await activityF)?.content ?? const <NotificationDto>[];
       final notificationsOn = await notificationsOnF;
+      final following = await followingF;
       if (!mounted) return;
       setState(() {
         _profile = profile;
@@ -149,6 +154,8 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
               .compareTo(a.status == TripStatus.inProgress ? 1 : 0));
         _activity = activity.where(HomeFriendsActivity.shows).take(3).toList();
         _notificationsOn = notificationsOn;
+        _followsSomeone = (following?.content.isNotEmpty ?? false) ||
+            (following?.totalElements ?? 0) > 0;
         if (unread != null) _unread = unread;
         _error = null;
       });
@@ -438,7 +445,9 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
       HomeChecklistStep(l10n.homeStepFirstTrip,
           done: false, onTap: () => _push(const CreateTripScreen())),
       HomeChecklistStep(l10n.homeStepFriend,
-          done: _friendIds.isNotEmpty || profile.followingCount > 0,
+          done: _friendIds.isNotEmpty ||
+              _followsSomeone ||
+              profile.followingCount > 0,
           onTap: () => _push(const AndroidSearchScreen())),
       if (!kIsWeb)
         HomeChecklistStep(l10n.homeStepNotifications, done: _notificationsOn,
