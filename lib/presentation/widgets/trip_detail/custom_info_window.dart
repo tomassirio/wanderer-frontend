@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/domain/trip_location.dart';
+import 'package:wanderer_frontend/presentation/helpers/battery_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/update_markers.dart';
 import 'package:wanderer_frontend/presentation/helpers/weather_helpers.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/trip_checkin_sheet.dart';
@@ -244,7 +245,13 @@ class CustomInfoWindow extends StatelessWidget {
                                   ? (dark
                                       ? const Color(0xFFF4A39A)
                                       : const Color(0xFFB42318))
-                                  : c.forestFg),
+                                  : c.forestFg,
+                          icon: battery == null
+                              ? null
+                              : BatteryHelpers.getBatteryIcon(battery),
+                          iconColor: battery == null
+                              ? null
+                              : BatteryHelpers.getBatteryColor(battery)),
                     ],
                   ),
                 ),
