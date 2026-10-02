@@ -79,4 +79,20 @@ void main() {
     expect(spans[0].style?.color, Colors.orange);
     expect(spans[1].style, isNull);
   });
+
+  test('active travelers: public, not me or known, live first, one per user',
+      () {
+    final trips = [
+      _trip('t1', user: 'ana', status: TripStatus.finished),
+      _trip('t2', user: 'ana'),
+      _trip('t3', user: 'me'),
+      _trip('t4', user: 'friend'),
+      _trip('t5', user: 'leo', vis: Visibility.private),
+      _trip('t6', user: 'sam', status: TripStatus.finished),
+      _trip('t7', user: 'kai', status: TripStatus.created),
+    ];
+    final r = activeTravelers(trips, me: 'me', known: {'friend'});
+    expect(r.map((e) => e.$1.username), ['ana', 'sam']);
+    expect(r.first.$2.id, 't2');
+  });
 }

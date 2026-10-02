@@ -1,18 +1,52 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wanderer_frontend/core/constants/enums.dart' show TripStatus;
+import 'package:wanderer_frontend/core/constants/enums.dart'
+    show TripStatus, Visibility;
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/domain/search_result.dart';
+import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/explore_widgets.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
 
 enum _Filter { all, people, trips }
+
+/// People to suggest before any search: owners of recent public trips that
+/// aren't [me] or already followed / friends, on-the-road ones first, each
+/// with the trip that makes them active.
+@visibleForTesting
+List<(UserSearchResult, Trip)> activeTravelers(Iterable<Trip> trips,
+    {String? me, Set<String> known = const {}}) {
+  bool live(Trip t) => t.status == TripStatus.inProgress;
+  final sorted = trips
+      .where((t) =>
+          t.visibility == Visibility.public &&
+          t.status != TripStatus.created &&
+          t.userId != me &&
+          !known.contains(t.userId))
+      .toList()
+    ..sort((a, b) => live(a) != live(b)
+        ? (live(b) ? 1 : -1)
+        : b.updatedAt.compareTo(a.updatedAt));
+  final seen = <String>{};
+  return [
+    for (final t in sorted)
+      if (seen.add(t.userId))
+        (
+          UserSearchResult(
+              id: t.userId,
+              username: t.username,
+              displayName: '',
+              avatarUrl: t.avatarUrl ?? ''),
+          t
+        ),
+  ].take(8).toList();
+}
 
 /// [text] with every case-insensitive occurrence of [query] in orange.
 @visibleForTesting
@@ -58,10 +92,12 @@ class _AndroidSearchScreenState extends ConsumerState<AndroidSearchScreen> {
   bool _error = false;
   _Filter _filter = _Filter.all;
   List<String> _recent = [];
+  List<(UserSearchResult, Trip)> _suggested = const [];
 
   @override
   void initState() {
     super.initState();
+    _loadSuggestions();
     SharedPreferences.getInstance().then((p) {
       if (mounted) setState(() => _recent = p.getStringList(_recentKey) ?? []);
     });
@@ -72,6 +108,26 @@ class _AndroidSearchScreenState extends ConsumerState<AndroidSearchScreen> {
     _debounce?.cancel();
     _controller.dispose();
     super.dispose();
+  }
+
+  // ponytail: derived from recent public trips; a backend "suggested
+  // people" endpoint would also cover users without a public trip.
+  Future<void> _loadSuggestions() async {
+    final home = ref.read(homeRepositoryProvider);
+    try {
+      final tripsF = home.loadTrips(size: 50);
+      final me = await home.getCurrentUserId();
+      final known = me == null
+          ? <String>{}
+          : await home.getFriendsIds().catchError((_) => <String>{});
+      final trips = (await tripsF).content;
+      if (mounted) {
+        setState(
+            () => _suggested = activeTravelers(trips, me: me, known: known));
+      }
+    } catch (_) {
+      // Suggestions are optional; the prompt stays.
+    }
   }
 
   Future<void> _saveRecent() async {
@@ -270,8 +326,24 @@ class _AndroidSearchScreenState extends ConsumerState<AndroidSearchScreen> {
           ]),
         ),
       if (!hasQuery) ...[
-        if (_recent.isEmpty) message(l10n.searchOverlayPrompt),
+        if (_recent.isEmpty && _suggested.isEmpty)
+          message(l10n.searchOverlayPrompt),
         ...recent,
+        if (_suggested.isNotEmpty) ...[
+          label(l10n.searchActiveTravelers, top: _recent.isEmpty ? 8 : 24),
+          for (final (u, t) in _suggested) ...[
+            _PersonRow(
+              user: u,
+              query: '',
+              subtitle: t.status == TripStatus.inProgress
+                  ? '${l10n.live} · ${t.name}'
+                  : t.name,
+              onTap: () =>
+                  AuthNavigationHelper.navigateToUserProfile(context, u.id),
+            ),
+            const SizedBox(height: 6),
+          ],
+        ],
       ] else if (_loading && r == null)
         const Padding(
           padding: EdgeInsets.all(32),
@@ -307,8 +379,14 @@ class _PersonRow extends StatelessWidget {
   final UserSearchResult user;
   final String query;
   final VoidCallback onTap;
+
+  /// Replaces the @handle line (suggestions: the trip they're on).
+  final String? subtitle;
   const _PersonRow(
-      {required this.user, required this.query, required this.onTap});
+      {required this.user,
+      required this.query,
+      required this.onTap,
+      this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -355,9 +433,14 @@ class _PersonRow extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                           color: c.text),
                     ),
+                    if (subtitle != null)
+                      Text(subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 13, color: c.caption))
                     // Search results carry no relationship info: show the
                     // handle.
-                    if (hasName)
+                    else if (hasName)
                       Text.rich(
                         TextSpan(children: [
                           const TextSpan(text: '@'),

@@ -1220,5 +1220,6 @@
   "homeInviteCopied": "Lien de l'app copié. Envoyez-le à un ami.",
   "tripWholeRoute": "Tout l'itinéraire",
   "tripPreviousUpdate": "Mise à jour précédente",
-  "tripNextUpdate": "Mise à jour suivante"
+  "tripNextUpdate": "Mise à jour suivante",
+  "searchActiveTravelers": "Voyageurs actifs"
 }

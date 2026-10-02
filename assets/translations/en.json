@@ -1220,5 +1220,6 @@
   "homeInviteCopied": "App link copied. Send it to a friend.",
   "tripWholeRoute": "Whole route",
   "tripPreviousUpdate": "Previous update",
-  "tripNextUpdate": "Next update"
+  "tripNextUpdate": "Next update",
+  "searchActiveTravelers": "Active travelers"
 }
