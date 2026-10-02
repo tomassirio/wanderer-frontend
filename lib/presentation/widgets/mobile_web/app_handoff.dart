@@ -76,28 +76,24 @@ class _MobileWebAppBannerState extends State<MobileWebAppBanner> {
   }
 }
 
+/// The official "Get it on Google Play" badge as the button: no extra pill
+/// around it (the badge carries its own black shape and border).
 class MobileWebPlayButton extends StatelessWidget {
-  final bool light;
-  const MobileWebPlayButton({super.key, this.light = false});
+  const MobileWebPlayButton({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final c = WandererTheme.of(context);
-    return SizedBox(
-      height: 54,
-      child: FilledButton(
-        onPressed: () => AndroidAppLinks.open(context, install: true),
-        style: FilledButton.styleFrom(
-          backgroundColor: light ? c.ground : c.neutralButtonBg,
-          foregroundColor: light ? c.text : c.neutralButtonFg,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+  Widget build(BuildContext context) => Center(
+        child: Semantics(
+          button: true,
+          label: context.l10n.landingInstallCta,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => AndroidAppLinks.open(context, install: true),
+            child: Image.asset('assets/images/google-play-badge.png',
+                height: 54, excludeFromSemantics: true),
+          ),
         ),
-        child: Image.asset('assets/images/google-play-badge.png',
-            height: 46, semanticLabel: context.l10n.landingInstallCta),
-      ),
-    );
-  }
+      );
 }
 
 class MobileWebTrackingCard extends StatelessWidget {
@@ -131,8 +127,7 @@ class MobileWebTrackingCard extends StatelessWidget {
     }
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-          color: c.neutralButtonBg, borderRadius: BorderRadius.circular(18)),
+      decoration: WandererTheme.cardDecoration(context, radius: 18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
           const WandererLogo(size: 40),
@@ -145,13 +140,13 @@ class MobileWebTrackingCard extends StatelessWidget {
                     style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: c.neutralButtonFg)),
+                        color: c.text)),
                 Text(l10n.mobileWebTrackingNeedsApp,
-                    style: TextStyle(fontSize: 13, color: c.neutralButtonFg)),
+                    style: TextStyle(fontSize: 13, color: c.textMuted)),
               ])),
         ]),
         const SizedBox(height: 12),
-        const MobileWebPlayButton(light: true),
+        const MobileWebPlayButton(),
       ]),
     );
   }
