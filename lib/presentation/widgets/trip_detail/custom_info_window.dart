@@ -66,26 +66,50 @@ class CustomInfoWindow extends StatelessWidget {
         'https://www.google.com/maps/search/?api=1&query=${u.latitude},${u.longitude}';
     final battery = u.battery;
 
-    Widget tile(String caption, String value, {Color? valueColor}) => Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-                color: c.raised, borderRadius: BorderRadius.circular(10)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(caption,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11, color: c.caption)),
-                Text(value,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: valueColor ?? c.text)),
-              ],
+    Widget tile(String caption, String value,
+            {Color? valueColor,
+            IconData? icon,
+            Color? iconColor,
+            String? sub}) =>
+        Expanded(
+          child: Tooltip(
+            message: sub ?? '',
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                  color: c.raised, borderRadius: BorderRadius.circular(10)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(caption,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 11, color: c.caption)),
+                  Row(children: [
+                    if (icon != null) ...[
+                      Icon(icon, size: 15, color: iconColor),
+                      const SizedBox(width: 4),
+                    ],
+                    Flexible(
+                      child: Text(value,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: valueColor ?? c.text)),
+                    ),
+                  ]),
+                  // Long conditions ("Partly cloudy") wrap on their own line
+                  // instead of being cut off in the caption.
+                  if (sub != null)
+                    Text(sub,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 11, height: 1.25, color: c.caption)),
+                ],
+              ),
             ),
           ),
         );
@@ -193,14 +217,24 @@ class CustomInfoWindow extends StatelessWidget {
                                   u.distanceSoFarKm!.toStringAsFixed(1))),
                       const SizedBox(width: 6),
                       tile(
-                          u.weatherCondition == null
-                              ? l10n.tripWeather
-                              : WeatherHelpers.getWeatherLabel(
-                                  u.weatherCondition!),
-                          u.temperatureCelsius == null
-                              ? '—'
-                              : WeatherHelpers.formatTemperature(
-                                  u.temperatureCelsius!)),
+                        l10n.tripWeather,
+                        u.temperatureCelsius == null
+                            ? '—'
+                            : WeatherHelpers.formatTemperature(
+                                u.temperatureCelsius!),
+                        icon: u.weatherCondition == null
+                            ? null
+                            : WeatherHelpers.getWeatherIcon(
+                                u.weatherCondition!),
+                        iconColor: u.weatherCondition == null
+                            ? null
+                            : WeatherHelpers.getWeatherColor(
+                                u.weatherCondition!),
+                        sub: u.weatherCondition == null
+                            ? null
+                            : WeatherHelpers.getWeatherLabel(
+                                u.weatherCondition!),
+                      ),
                       const SizedBox(width: 6),
                       tile(
                           l10n.tripBattery, battery == null ? '—' : '$battery%',
