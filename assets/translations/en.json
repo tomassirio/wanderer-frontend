@@ -1207,8 +1207,8 @@
   "homeGetStarted": "Get started",
   "homeStepsOf": "{done} of {total}",
   "homeStepAccount": "Create your account",
-  "homeStepProfile": "Complete your profile",
-  "homeStepFirstTrip": "Plan or start your first trip",
+  "homeStepProfile": "Add a profile photo",
+  "homeStepFirstTrip": "Start your first trip",
   "homeStepFriend": "Find a friend to follow",
   "homeStepNotifications": "Turn on notifications",
   "homeStartFirstTrip": "Start your first trip",
@@ -1221,5 +1221,7 @@
   "tripWholeRoute": "Whole route",
   "tripPreviousUpdate": "Previous update",
   "tripNextUpdate": "Next update",
-  "searchActiveTravelers": "Active travelers"
+  "searchActiveTravelers": "Active travelers",
+  "planEditorDate": "Date",
+  "homeChecklistHide": "Hide checklist"
 }

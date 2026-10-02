@@ -425,19 +425,12 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
 
   Future<void> _selectDateRange() async {
     setState(() => _isPickerOpen = true);
-    DateTimeRange? picked;
+    ({DateTime start, DateTime end, bool multiDay})? picked;
     try {
-      picked = await showDateRangePicker(
-        context: context,
-        initialDateRange: _startDate != null
-            ? DateTimeRange(
-                start: _startDate!,
-                end: _endDate ?? _startDate!,
-              )
-            : null,
-        firstDate: DateTime.now(),
-        lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-      );
+      picked = await pickPlanDates(context,
+          multiDay: _selectedPlanType == 'MULTI_DAY',
+          start: _startDate,
+          end: _endDate);
     } finally {
       if (mounted) {
         setState(() {
@@ -448,13 +441,20 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
         });
       }
     }
-    if (picked != null && mounted) {
+    if (picked case final p? when mounted) {
       setState(() {
-        _startDate = picked!.start;
-        _endDate = picked.end;
+        _startDate = p.start;
+        _endDate = p.end;
+        _selectedPlanType = p.multiDay ? 'MULTI_DAY' : 'SIMPLE';
       });
     }
   }
+
+  /// Single-day plans end the day they start.
+  void _setMultiDay(bool multi) => setState(() {
+        _selectedPlanType = multi ? 'MULTI_DAY' : 'SIMPLE';
+        if (!multi && _startDate != null) _endDate = _startDate;
+      });
 
   Future<void> _saveChanges() async {
     if (_nameController.text.trim().isEmpty) {
@@ -796,11 +796,13 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
           ),
           PlanTypeToggle(
             multiDay: _selectedPlanType == 'MULTI_DAY',
-            onChanged: (multi) => setState(
-                () => _selectedPlanType = multi ? 'MULTI_DAY' : 'SIMPLE'),
+            onChanged: _setMultiDay,
           ),
           PlanDateTiles(
-              start: _startDate, end: _endDate, onPick: _selectDateRange),
+              start: _startDate,
+              end: _endDate,
+              singleDay: _selectedPlanType != 'MULTI_DAY',
+              onPick: _selectDateRange),
           Text(summary,
               style: TextStyle(
                   fontSize: 13, color: WandererTheme.of(context).textMuted)),
@@ -946,8 +948,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
         isSaving: _isLoading,
         nameController: _nameController,
         multiDay: _selectedPlanType == 'MULTI_DAY',
-        onMultiDayChanged: (multi) =>
-            setState(() => _selectedPlanType = multi ? 'MULTI_DAY' : 'SIMPLE'),
+        onMultiDayChanged: _setMultiDay,
         startDate: _startDate,
         endDate: _endDate,
         onPickStartDate: _selectDateRange,

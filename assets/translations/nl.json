@@ -1207,8 +1207,8 @@
   "homeGetStarted": "Aan de slag",
   "homeStepsOf": "{done} van {total}",
   "homeStepAccount": "Maak je account aan",
-  "homeStepProfile": "Maak je profiel compleet",
-  "homeStepFirstTrip": "Plan of start je eerste reis",
+  "homeStepProfile": "Voeg een profielfoto toe",
+  "homeStepFirstTrip": "Start je eerste reis",
   "homeStepFriend": "Zoek een vriend om te volgen",
   "homeStepNotifications": "Zet meldingen aan",
   "homeStartFirstTrip": "Start je eerste reis",
@@ -1221,5 +1221,7 @@
   "tripWholeRoute": "Hele route",
   "tripPreviousUpdate": "Vorige update",
   "tripNextUpdate": "Volgende update",
-  "searchActiveTravelers": "Actieve reizigers"
+  "searchActiveTravelers": "Actieve reizigers",
+  "planEditorDate": "Datum",
+  "homeChecklistHide": "Lijst verbergen"
 }

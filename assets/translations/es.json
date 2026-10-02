@@ -1207,8 +1207,8 @@
   "homeGetStarted": "Primeros pasos",
   "homeStepsOf": "{done} de {total}",
   "homeStepAccount": "Crea tu cuenta",
-  "homeStepProfile": "Completa tu perfil",
-  "homeStepFirstTrip": "Planea o empieza tu primer viaje",
+  "homeStepProfile": "Añade una foto de perfil",
+  "homeStepFirstTrip": "Empieza tu primer viaje",
   "homeStepFriend": "Encuentra a un amigo para seguir",
   "homeStepNotifications": "Activa las notificaciones",
   "homeStartFirstTrip": "Empieza tu primer viaje",
@@ -1221,5 +1221,7 @@
   "tripWholeRoute": "Ruta completa",
   "tripPreviousUpdate": "Actualización anterior",
   "tripNextUpdate": "Siguiente actualización",
-  "searchActiveTravelers": "Viajeros activos"
+  "searchActiveTravelers": "Viajeros activos",
+  "planEditorDate": "Fecha",
+  "homeChecklistHide": "Ocultar lista"
 }

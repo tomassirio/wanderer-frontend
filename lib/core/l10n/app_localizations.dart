@@ -1446,6 +1446,8 @@ class AppLocalizations {
   String get welcomeSubtitle => _tr('welcomeSubtitle');
   String get welcomeSignUpEmail => _tr('welcomeSignUpEmail');
   String get welcomeLookAround => _tr('welcomeLookAround');
+  String get planEditorDate => _tr('planEditorDate');
+  String get homeChecklistHide => _tr('homeChecklistHide');
   String get searchActiveTravelers => _tr('searchActiveTravelers');
   String get tripWholeRoute => _tr('tripWholeRoute');
   String get tripPreviousUpdate => _tr('tripPreviousUpdate');
