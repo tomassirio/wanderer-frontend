@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
+import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
@@ -298,6 +299,14 @@ class _ProfileAndroidViewState extends ConsumerState<ProfileAndroidView> {
       icon: const Icon(Icons.settings_outlined),
       onPressed: () => _push(const SettingsScreen()),
     );
+    // Sun in dark mode, moon in light: flips the theme in place.
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final themeToggle = IconButton(
+      key: const Key('you_theme_toggle'),
+      tooltip: dark ? l10n.switchToLightMode : l10n.switchToDarkMode,
+      icon: Icon(dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+      onPressed: () => ThemeController().setDarkMode(!dark),
+    );
     final PreferredSizeWidget appBar = widget.isTab
         ? AppBar(
             toolbarHeight: 64,
@@ -308,11 +317,11 @@ class _ProfileAndroidViewState extends ConsumerState<ProfileAndroidView> {
             titleSpacing: 20,
             title:
                 Text(l10n.you, style: WandererTheme.display(24, color: c.text)),
-            actions: [gear, const SizedBox(width: 4)],
+            actions: [themeToggle, gear, const SizedBox(width: 4)],
           )
         : AndroidTopBar(
             title: _own ? l10n.you : (_profile?.username ?? ''),
-            actions: _own ? [gear] : null,
+            actions: _own ? [themeToggle, gear] : null,
           );
 
     Widget body;
