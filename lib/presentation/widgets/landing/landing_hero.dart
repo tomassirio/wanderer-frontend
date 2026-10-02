@@ -74,7 +74,10 @@ class LandingProductPreview extends StatelessWidget {
       aspectRatio: 1.25,
       child: LayoutBuilder(builder: (context, box) {
         final c = WandererTheme.of(context);
+        final dark = Theme.of(context).brightness == Brightness.dark;
         final phoneW = box.maxWidth * 0.36;
+        // Shadows read on cream; on the dark ground they need to be deeper.
+        final shadow = dark ? const Color(0x80000000) : const Color(0x1F3C2814);
         return Stack(children: [
           Positioned(
             left: 0,
@@ -87,11 +90,11 @@ class LandingProductPreview extends StatelessWidget {
                 color: c.surface,
                 borderRadius: BorderRadius.circular(WandererTheme.radiusPanel),
                 border: Border.all(color: c.line),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                      color: Color(0x1F3C2814),
+                      color: shadow,
                       blurRadius: 60,
-                      offset: Offset(0, 24)),
+                      offset: const Offset(0, 24)),
                 ],
               ),
               child: Column(
@@ -137,13 +140,18 @@ class LandingProductPreview extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: c.text,
+                // A phone bezel is dark in both themes; in dark mode an
+                // outline keeps it from melting into the page.
+                color: dark ? const Color(0xFF0E0D0B) : WandererTheme.ink,
                 borderRadius: BorderRadius.circular(phoneW * 0.15),
-                boxShadow: const [
+                border: dark ? Border.all(color: c.line, width: 1.5) : null,
+                boxShadow: [
                   BoxShadow(
-                      color: Color(0x401B1A17),
+                      color: dark
+                          ? const Color(0x99000000)
+                          : const Color(0x401B1A17),
                       blurRadius: 60,
-                      offset: Offset(0, 24)),
+                      offset: const Offset(0, 24)),
                 ],
               ),
               child: ClipRRect(
