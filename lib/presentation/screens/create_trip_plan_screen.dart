@@ -9,7 +9,9 @@ import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/client/google_directions_api_client.dart';
 import 'package:wanderer_frontend/data/client/polyline_codec.dart';
 import 'package:wanderer_frontend/data/models/requests/create_trip_plan_backend_request.dart';
+import 'package:wanderer_frontend/data/models/domain/trip_plan.dart';
 import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
+import 'package:wanderer_frontend/presentation/screens/trip_plan_detail_screen.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/presentation/helpers/dashed_polyline_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/location_permission_disclosure.dart';
@@ -664,14 +666,32 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
         plannedPolyline: _encodedPolyline,
       );
 
-      await _tripPlanService.createTripPlanBackend(request);
+      final planId = await _tripPlanService.createTripPlanBackend(request);
 
       if (mounted) {
         planNotify(
           context,
           context.l10n.createPlanCreated,
         );
+      }
+      // Open the new plan. Writes return only the id and the read side
+      // catches up shortly after, so retry the fetch a few times.
+      TripPlan? plan;
+      for (var i = 0; i < 4 && plan == null && planId.isNotEmpty; i++) {
+        try {
+          plan = await _tripPlanService.getTripPlanById(planId);
+        } catch (_) {
+          await Future.delayed(Duration(milliseconds: 500 * (i + 1)));
+        }
+      }
+      if (!mounted) return;
+      if (plan == null) {
         Navigator.pop(context, true);
+      } else {
+        Navigator.of(context).pushReplacement(
+            PageTransitions.slideFromRight(
+                TripPlanDetailScreen(tripPlan: plan)),
+            result: true);
       }
     } catch (e) {
       if (mounted) {
