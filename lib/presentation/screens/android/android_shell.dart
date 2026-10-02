@@ -232,22 +232,30 @@ class _CreateMenu extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               if (open) ...[
-                _CreateItem(
-                  icon: Icons.calendar_month_outlined,
-                  bg: c.skyBg,
-                  fg: c.skyFg,
-                  title: l10n.tripPlan,
-                  subtitle: l10n.createMenuPlanSubtitle,
-                  onTap: onPlan,
-                ),
-                const SizedBox(height: 12),
-                _CreateItem(
-                  icon: Icons.place_outlined,
-                  bg: c.trailSoftBg,
-                  fg: WandererTheme.trail,
-                  title: l10n.trip,
-                  subtitle: l10n.createMenuTripSubtitle,
-                  onTap: onTrip,
+                // Trip first: plans are the secondary entity. Same width.
+                IntrinsicWidth(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _CreateItem(
+                        icon: Icons.place_outlined,
+                        bg: c.trailSoftBg,
+                        fg: WandererTheme.trail,
+                        title: l10n.trip,
+                        subtitle: l10n.createMenuTripSubtitle,
+                        onTap: onTrip,
+                      ),
+                      const SizedBox(height: 12),
+                      _CreateItem(
+                        icon: Icons.calendar_month_outlined,
+                        bg: c.skyBg,
+                        fg: c.skyFg,
+                        title: l10n.tripPlan,
+                        subtitle: l10n.createMenuPlanSubtitle,
+                        onTap: onPlan,
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],
