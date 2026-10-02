@@ -72,6 +72,9 @@ class _TripMapViewState extends State<TripMapView> {
   bool _isMapReady = false;
   GoogleMapController? _controller;
 
+  /// Last camera, so a map rebuilt for a theme flip opens where it was.
+  CameraPosition? _camera;
+
   /// Screen position of the selected marker (relative to the map widget).
   Offset? _markerScreenPosition;
 
@@ -250,10 +253,11 @@ class _TripMapViewState extends State<TripMapView> {
           // the theme flips so light / dark follows the app.
           key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
           style: MapStyleHelper.of(context),
-          initialCameraPosition: CameraPosition(
-            target: widget.initialLocation,
-            zoom: widget.initialZoom,
-          ),
+          initialCameraPosition: _camera ??
+              CameraPosition(
+                target: widget.initialLocation,
+                zoom: widget.initialZoom,
+              ),
           markers: widget.markers,
           polylines: widget.polylines,
           onMapCreated: (controller) {
@@ -275,7 +279,8 @@ class _TripMapViewState extends State<TripMapView> {
             // Dismiss info window when tapping on the map background.
             widget.onMapTap?.call();
           },
-          onCameraMove: (_) {
+          onCameraMove: (position) {
+            _camera = position;
             // Update bubble position when the camera moves so it tracks.
             if (widget.selectedLocation != null) {
               _updateMarkerScreenPosition();
