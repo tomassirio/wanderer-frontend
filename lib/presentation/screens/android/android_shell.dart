@@ -31,6 +31,9 @@ class AndroidShell extends ConsumerStatefulWidget {
 
   static AndroidShellState? _current;
 
+  /// Ticks each time the Home tab is shown again.
+  static final homeShown = ValueNotifier<int>(0);
+
   static Widget navigationBar(BuildContext context, AndroidTab selected) =>
       _BottomNav(
           tab: selected,
@@ -63,10 +66,17 @@ class AndroidShellState extends ConsumerState<AndroidShell> {
   late AndroidTab _tab = widget.initialTab;
   bool _createOpen = false;
 
-  void selectTab(AndroidTab tab) => setState(() {
-        _tab = tab;
-        _createOpen = false;
-      });
+  void selectTab(AndroidTab tab) {
+    // Home refreshes when you come back to it (friends, badges, trips may
+    // have changed on other tabs).
+    if (tab == AndroidTab.home && _tab != AndroidTab.home) {
+      AndroidShell.homeShown.value++;
+    }
+    setState(() {
+      _tab = tab;
+      _createOpen = false;
+    });
+  }
 
   @override
   void initState() {

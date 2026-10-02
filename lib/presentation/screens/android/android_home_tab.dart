@@ -95,7 +95,14 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
   @override
   void initState() {
     super.initState();
+    AndroidShell.homeShown.addListener(_load);
     _load();
+  }
+
+  @override
+  void dispose() {
+    AndroidShell.homeShown.removeListener(_load);
+    super.dispose();
   }
 
   static Future<T?> _optional<T>(Future<T> f) async {
