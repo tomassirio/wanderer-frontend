@@ -5,6 +5,7 @@ import 'package:wanderer_frontend/presentation/widgets/mobile_web/mobile_web_tri
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -81,6 +82,12 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
   List<NotificationDto> _activity = const [];
   bool _notificationsOn = true;
   bool _followsSomeone = false;
+  bool _hasPhoto = false;
+  bool _hasPlans = false;
+  bool _checklistDismissed = false;
+
+  static String _dismissKey(String userId) =>
+      'home_checklist_dismissed_$userId';
   int _unread = 0;
   Object? _error;
   bool _checkingIn = false;
@@ -117,6 +124,10 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
       // The profile carries no following count: ask for one follow.
       final followingF =
           _optional(ref.read(userServiceProvider).getFollowing(size: 1));
+      final photoF = _optional(profileF
+          .then((p) => ref.read(userServiceProvider).hasProfilePhoto(p.id)));
+      final plansF =
+          _optional(ref.read(tripPlanServiceProvider).getUserTripPlans());
       final notificationsOnF =
           kIsWeb ? Future.value(true) : NotificationService().areEnabled();
 
@@ -132,6 +143,11 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
       final activity = (await activityF)?.content ?? const <NotificationDto>[];
       final notificationsOn = await notificationsOnF;
       final following = await followingF;
+      final hasPhoto = await photoF ?? false;
+      final plans = await plansF;
+      final dismissed = await _optional(SharedPreferences.getInstance()
+              .then((p) => p.getBool(_dismissKey(profile.id)))) ??
+          false;
       if (!mounted) return;
       setState(() {
         _profile = profile;
@@ -154,6 +170,9 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
               .compareTo(a.status == TripStatus.inProgress ? 1 : 0));
         _activity = activity.where(HomeFriendsActivity.shows).take(3).toList();
         _notificationsOn = notificationsOn;
+        _hasPhoto = hasPhoto;
+        _hasPlans = plans?.isNotEmpty ?? false;
+        _checklistDismissed = dismissed;
         _followsSomeone = (following?.content.isNotEmpty ?? false) ||
             (following?.totalElements ?? 0) > 0;
         if (unread != null) _unread = unread;
@@ -306,6 +325,7 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
         _greeting(c, homeGreeting(l10n, DateTime.now().hour, name),
             live != null ? l10n.homeSubtitleLive : l10n.homeSubtitleIdle),
         gap,
+        if (_checklist(profile) case final card?) ...[card, gap],
         if (live != null) ...[
           HomeLiveTripCard(
             trip: live,
@@ -429,21 +449,17 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
     );
   }
 
-  /// Brand-new user (no trips yet): checklist, first-trip CTA, other
-  /// people's trips for inspiration, the first badge and an invite.
-  Widget _newUserBody(BuildContext context, String name, UserProfile profile) {
-    final c = WandererTheme.of(context);
+  /// "Get started" steps; a first trip or a first plan both count.
+  List<HomeChecklistStep> _steps(UserProfile profile) {
     final l10n = context.l10n;
-    const gap = SizedBox(height: 20);
-    bool unlocked(AchievementType type) =>
-        _allBadges.any((a) => a.type == type && _unlockedIds.contains(a.id));
-    final steps = [
+    return [
       HomeChecklistStep(l10n.homeStepAccount, done: true, onTap: () {}),
       HomeChecklistStep(l10n.homeStepProfile,
-          done: unlocked(AchievementType.profileCompleted),
+          done: _hasPhoto,
           onTap: () => AndroidShell.selectTab(context, AndroidTab.you)),
       HomeChecklistStep(l10n.homeStepFirstTrip,
-          done: false, onTap: () => _push(const CreateTripScreen())),
+          done: _trips.isNotEmpty || _hasPlans,
+          onTap: () => _push(const CreateTripScreen())),
       HomeChecklistStep(l10n.homeStepFriend,
           done: _friendIds.isNotEmpty ||
               _followsSomeone ||
@@ -456,13 +472,41 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
           _load();
         }),
     ];
+  }
+
+  /// The checklist card while it has open steps, until the user closes it.
+  /// Shown to new accounts (no trips yet, or under 30 days old).
+  Widget? _checklist(UserProfile profile) {
+    final steps = _steps(profile);
+    final isNew = _trips.isEmpty ||
+        DateTime.now().difference(profile.createdAt).inDays < 30;
+    if (_checklistDismissed || !isNew || steps.every((s) => s.done)) {
+      return null;
+    }
+    return HomeGetStarted(
+      steps: steps,
+      onDismiss: () async {
+        setState(() => _checklistDismissed = true);
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool(_dismissKey(profile.id), true);
+        } catch (_) {}
+      },
+    );
+  }
+
+  /// Brand-new user (no trips yet): checklist, first-trip CTA, other
+  /// people's trips for inspiration, the first badge and an invite.
+  Widget _newUserBody(BuildContext context, String name, UserProfile profile) {
+    final c = WandererTheme.of(context);
+    final l10n = context.l10n;
+    const gap = SizedBox(height: 20);
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 130),
       children: [
         _greeting(c, l10n.homeWelcomeNew(name), l10n.homeSubtitleNew),
         gap,
-        HomeGetStarted(steps: steps),
-        gap,
+        if (_checklist(profile) case final card?) ...[card, gap],
         _bigButton(
           key: const Key('home_first_trip'),
           icon: Icons.play_arrow_rounded,

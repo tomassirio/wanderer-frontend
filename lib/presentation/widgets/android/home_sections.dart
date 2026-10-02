@@ -482,7 +482,10 @@ class HomeChecklistStep {
 /// Brand-new user checklist card with a progress bar (canvas: AndroidHomeNew).
 class HomeGetStarted extends StatelessWidget {
   final List<HomeChecklistStep> steps;
-  const HomeGetStarted({super.key, required this.steps});
+
+  /// The ✕ in the header hides the checklist for good.
+  final VoidCallback? onDismiss;
+  const HomeGetStarted({super.key, required this.steps, this.onDismiss});
 
   @override
   Widget build(BuildContext context) {
@@ -513,6 +516,14 @@ class HomeGetStarted extends StatelessWidget {
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: c.caption)),
+                  if (onDismiss != null)
+                    IconButton(
+                      key: const Key('home_checklist_close'),
+                      tooltip: l10n.homeChecklistHide,
+                      onPressed: onDismiss,
+                      visualDensity: VisualDensity.compact,
+                      icon: Icon(Icons.close, size: 20, color: c.caption),
+                    ),
                 ]),
                 const SizedBox(height: 10),
                 ClipRRect(

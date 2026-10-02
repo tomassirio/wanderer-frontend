@@ -57,6 +57,8 @@ class _Home extends Fake implements HomeRepository {
 
 class _Users extends Fake implements UserService {
   @override
+  Future<bool> hasProfilePhoto(String userId) async => true;
+  @override
   Future<PageResponse<UserFollow>> getFollowing(
           {int page = 0, int size = 20}) async =>
       _page(const <UserFollow>[]);
@@ -69,7 +71,7 @@ class _Users extends Fake implements UserService {
       followersCount: 0,
       followingCount: 0,
       tripsCount: 0,
-      createdAt: DateTime(2026));
+      createdAt: DateTime.now());
 }
 
 class _Badges extends Fake implements AchievementService {
@@ -170,4 +172,16 @@ void main() {
     await scrollTo(tester, en.homeFriendsLately);
     await scrollTo(tester, en.homeNextBadge);
   });
+
+  testWidgets('new account with a trip keeps the checklist, ticked; X hides',
+      (tester) async {
+    await pump(tester, [_trip('t1', TripStatus.finished, km: 10)]);
+    expect(find.text(en.homeGetStarted), findsOneWidget);
+    // Account, photo, first trip and friend done; notifications off.
+    expect(find.text(en.homeStepsOf(4, 5)), findsOneWidget);
+    await tester.tap(find.byKey(const Key('home_checklist_close')));
+    await tester.pumpAndSettle();
+    expect(find.text(en.homeGetStarted), findsNothing);
+  });
+
 }
