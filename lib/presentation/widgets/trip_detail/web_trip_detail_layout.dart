@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:intl/intl.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_duration.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
@@ -399,14 +400,15 @@ class _WebTripDetailLayoutState extends State<WebTripDetailLayout> {
     final km =
         NumberFormat.decimalPatternDigits(locale: locale, decimalDigits: 1)
             .format(_trip.accruedDistanceKm ?? 0);
-    final start = _trip.startDate;
-    final days = start == null
-        ? null
-        : (_trip.endDate ?? DateTime.now()).difference(start).inDays + 1;
     final updates = _trip.updateCount ?? _d.tripUpdates.length;
-    final stats = [
+    final stats = <(String, Object)>[
       (l10n.categoryDistance, l10n.kmValue(km)),
-      (l10n.categoryDuration, days == null ? '—' : l10n.daysCount(days)),
+      (
+        _trip.tripModality == TripModality.multiDay
+            ? l10n.categoryDuration
+            : l10n.tripStatTime,
+        TripDurationText(trip: _trip, updates: _d.tripUpdates)
+      ),
       (l10n.categoryUpdates, '$updates${_d.hasMoreUpdates ? '+' : ''}'),
       (l10n.comments, '${_trip.commentsCount}'),
     ];
@@ -425,10 +427,14 @@ class _WebTripDetailLayoutState extends State<WebTripDetailLayout> {
                   Text(stats[i].$1,
                       style: TextStyle(fontSize: 12, color: c.caption)),
                   const SizedBox(height: 2),
-                  Text(stats[i].$2,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: WandererTheme.display(22)),
+                  DefaultTextStyle.merge(
+                    style: WandererTheme.display(22),
+                    child: switch (stats[i].$2) {
+                      final Widget w => w,
+                      final v => Text('$v',
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                    },
+                  ),
                 ],
               ),
             ),
