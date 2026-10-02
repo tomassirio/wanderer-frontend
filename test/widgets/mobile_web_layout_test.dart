@@ -120,8 +120,8 @@ void main() {
       (tester) async {
     await pump(tester, const InitialScreen(), size: const Size(320, 480));
     expect(tester.takeException(), isNull);
-    await tester.ensureVisible(find.text('Log In'));
-    await tester.tap(find.text('Log In'));
+    await tester.ensureVisible(find.byKey(const Key('welcome_login')));
+    await tester.tap(find.byKey(const Key('welcome_login')));
     await tester.pumpAndSettle();
     expect(find.byType(AndroidAuthForm), findsOneWidget);
   });
@@ -142,12 +142,11 @@ void main() {
   testWidgets('guest exploration uses the Android explore screen',
       (tester) async {
     await pump(tester, const InitialScreen());
-    await tester.ensureVisible(find.text(kIsWeb
-        ? AppLocalizations('en').explorePublicTrips
-        : 'Try without logging in'));
-    await tester.tap(find.text(kIsWeb
-        ? AppLocalizations('en').explorePublicTrips
-        : 'Try without logging in'));
+    final guest = kIsWeb
+        ? find.text(AppLocalizations('en').explorePublicTrips)
+        : find.byKey(const Key('welcome_guest'));
+    await tester.ensureVisible(guest);
+    await tester.tap(guest);
     await tester.pumpAndSettle();
     expect(find.byType(AndroidExploreTab), findsOneWidget);
   });
@@ -155,8 +154,8 @@ void main() {
   testWidgets('phone login replaces welcome with four-tab shell',
       (tester) async {
     await pump(tester, const InitialScreen());
-    await tester.ensureVisible(find.text('Log In'));
-    await tester.tap(find.text('Log In'));
+    await tester.ensureVisible(find.byKey(const Key('welcome_login')));
+    await tester.tap(find.byKey(const Key('welcome_login')));
     await tester.pumpAndSettle();
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(0), 'traveler');

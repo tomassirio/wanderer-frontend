@@ -1446,6 +1446,58 @@ class AppLocalizations {
   String get welcomeSubtitle => _tr('welcomeSubtitle');
   String get welcomeSignUpEmail => _tr('welcomeSignUpEmail');
   String get welcomeLookAround => _tr('welcomeLookAround');
+  String get welcomeSlideLiveBody => _tr('welcomeSlideLiveBody');
+  String get welcomeSlideFriendsTitle => _tr('welcomeSlideFriendsTitle');
+  String get welcomeSlideFriendsBody => _tr('welcomeSlideFriendsBody');
+  String get welcomeSlideBadgesTitle => _tr('welcomeSlideBadgesTitle');
+  String get welcomeSlideBadgesBody => _tr('welcomeSlideBadgesBody');
+  String welcomeSlideN(Object n) =>
+      TranslationTemplate.format(_tr('welcomeSlideN'), {'n': n});
+  String get welcomeHaveAccount => _tr('welcomeHaveAccount');
+  String get welcomeArtLive => _tr('welcomeArtLive');
+  String get welcomeArtCheckedIn => _tr('welcomeArtCheckedIn');
+  String get welcomeArtCommentTitle => _tr('welcomeArtCommentTitle');
+  String get welcomeArtCommentBody => _tr('welcomeArtCommentBody');
+  String get welcomeArtCheckInTitle => _tr('welcomeArtCheckInTitle');
+  String get welcomeArtCheckInBody => _tr('welcomeArtCheckInBody');
+  String get welcomeArtFollowTitle => _tr('welcomeArtFollowTitle');
+  String get welcomeArtFollowBody => _tr('welcomeArtFollowBody');
+  String get welcomeArtFirstTrip => _tr('welcomeArtFirstTrip');
+  String get welcomeArtUnlocked => _tr('welcomeArtUnlocked');
+  String get homeStartTrip => _tr('homeStartTrip');
+  String get homePlanOne => _tr('homePlanOne');
+  String get homeRecentTrips => _tr('homeRecentTrips');
+  String homeAllN(Object n) =>
+      TranslationTemplate.format(_tr('homeAllN'), {'n': n});
+  String get homeFriendsLately => _tr('homeFriendsLately');
+  String get homeSeeAll => _tr('homeSeeAll');
+  String get homeNoFriendsActivity => _tr('homeNoFriendsActivity');
+  String get homeNextBadge => _tr('homeNextBadge');
+  String homeToGo(Object v) =>
+      TranslationTemplate.format(_tr('homeToGo'), {'v': v});
+  String homeYourYear(Object year) =>
+      TranslationTemplate.format(_tr('homeYourYear'), {'year': year});
+  String get homeTraveled => _tr('homeTraveled');
+  String get homeDaysOut => _tr('homeDaysOut');
+  String get homeTrending => _tr('homeTrending');
+  String homeWelcomeNew(Object name) =>
+      TranslationTemplate.format(_tr('homeWelcomeNew'), {'name': name});
+  String get homeSubtitleNew => _tr('homeSubtitleNew');
+  String get homeGetStarted => _tr('homeGetStarted');
+  String homeStepsOf(Object done, Object total) => TranslationTemplate.format(
+      _tr('homeStepsOf'), {'done': done, 'total': total});
+  String get homeStepAccount => _tr('homeStepAccount');
+  String get homeStepProfile => _tr('homeStepProfile');
+  String get homeStepFirstTrip => _tr('homeStepFirstTrip');
+  String get homeStepFriend => _tr('homeStepFriend');
+  String get homeStepNotifications => _tr('homeStepNotifications');
+  String get homeStartFirstTrip => _tr('homeStartFirstTrip');
+  String get homeGetInspired => _tr('homeGetInspired');
+  String get homeFirstBadge => _tr('homeFirstBadge');
+  String get homeFirstBadgeBody => _tr('homeFirstBadgeBody');
+  String get homeInvite => _tr('homeInvite');
+  String get homeInviteBody => _tr('homeInviteBody');
+  String get homeInviteCopied => _tr('homeInviteCopied');
   String get youAdminPromotionSub => _tr('youAdminPromotionSub');
   String get youAdminUsersSub => _tr('youAdminUsersSub');
   String get youAdminMaintenanceSub => _tr('youAdminMaintenanceSub');
