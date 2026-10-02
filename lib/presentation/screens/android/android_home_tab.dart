@@ -84,6 +84,8 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
   bool _hasPhoto = false;
   bool _hasPlans = false;
   bool _checklistDismissed = false;
+  bool _appCardDismissed = false;
+  static const _appCardKey = 'home_app_card_dismissed';
 
   static String _dismissKey(String userId) =>
       'home_checklist_dismissed_$userId';
@@ -151,6 +153,9 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
       final following = await followingF;
       final hasPhoto = await photoF ?? false;
       final plans = await plansF;
+      final appCardDismissed = await _optional(SharedPreferences.getInstance()
+              .then((p) => p.getBool(_appCardKey))) ??
+          false;
       final dismissed = await _optional(SharedPreferences.getInstance()
               .then((p) => p.getBool(_dismissKey(profile.id)))) ??
           false;
@@ -179,6 +184,7 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
         _hasPhoto = hasPhoto;
         _hasPlans = plans?.isNotEmpty ?? false;
         _checklistDismissed = dismissed;
+        _appCardDismissed = appCardDismissed;
         _followsSomeone = (following?.content.isNotEmpty ?? false) ||
             (following?.totalElements ?? 0) > 0;
         if (unread != null) _unread = unread;
@@ -328,6 +334,7 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
         _greeting(c, homeGreeting(l10n, DateTime.now().hour, name),
             live != null ? l10n.homeSubtitleLive : l10n.homeSubtitleIdle),
         gap,
+        if (_appCard() case final card?) ...[card, gap],
         if (_checklist(profile) case final card?) ...[card, gap],
         if (live != null) ...[
           HomeLiveTripCard(
@@ -348,10 +355,6 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
             HomeStat('$_badges', l10n.homeBadges),
           ]),
         ] else ...[
-          if (AdaptiveLayout.isMobileWeb(context)) ...[
-            const MobileWebTrackingCard(),
-            const SizedBox(height: 18),
-          ],
           Row(children: [
             Expanded(
               child: _bigButton(
@@ -521,10 +524,7 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
       children: [
         _greeting(c, l10n.homeWelcomeNew(name), l10n.homeSubtitleNew),
         gap,
-        if (AdaptiveLayout.isMobileWeb(context)) ...[
-          const MobileWebTrackingCard(),
-          gap,
-        ],
+        if (_appCard() case final card?) ...[card, gap],
         if (_checklist(profile) case final card?) ...[card, gap],
         _bigButton(
           key: const Key('home_first_trip'),
@@ -726,6 +726,18 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
             tripId: rid,
             focusLatestUpdate: n.type == NotificationType.tripUpdatePosted)
         : const AndroidNotificationsScreen());
+  }
+
+  /// Mobile web: "Track trips with the app" until the ✕ hides it for good.
+  Widget? _appCard() {
+    if (!AdaptiveLayout.isMobileWeb(context) || _appCardDismissed) return null;
+    return MobileWebTrackingCard(onClose: () async {
+      setState(() => _appCardDismissed = true);
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool(_appCardKey, true);
+      } catch (_) {}
+    });
   }
 
   /// Empty friend cards lead to search, which suggests active travelers.

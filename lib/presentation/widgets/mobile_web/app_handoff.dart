@@ -99,7 +99,11 @@ class MobileWebPlayButton extends StatelessWidget {
 class MobileWebTrackingCard extends StatelessWidget {
   final String? tripId;
   final bool tracking;
-  const MobileWebTrackingCard({super.key, this.tripId, this.tracking = true});
+
+  /// Shows a ✕ in the corner of the "get the app" card.
+  final VoidCallback? onClose;
+  const MobileWebTrackingCard(
+      {super.key, this.tripId, this.tracking = true, this.onClose});
 
   @override
   Widget build(BuildContext context) {
@@ -144,6 +148,14 @@ class MobileWebTrackingCard extends StatelessWidget {
                 Text(l10n.mobileWebTrackingNeedsApp,
                     style: TextStyle(fontSize: 13, color: c.textMuted)),
               ])),
+          if (onClose != null)
+            IconButton(
+              key: const Key('app_card_close'),
+              tooltip: MaterialLocalizations.of(context).closeButtonLabel,
+              onPressed: onClose,
+              visualDensity: VisualDensity.compact,
+              icon: Icon(Icons.close, size: 18, color: c.caption),
+            ),
         ]),
         const SizedBox(height: 12),
         const MobileWebPlayButton(),
