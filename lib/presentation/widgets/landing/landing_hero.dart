@@ -149,7 +149,7 @@ class LandingProductPreview extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(phoneW * 0.12),
                 child: Image.asset(
-                  'assets/images/inApp/in_map.jpeg',
+                  'assets/images/inApp/in_map.png',
                   fit: BoxFit.cover,
                   excludeFromSemantics: true,
                 ),

@@ -42,13 +42,13 @@ actions always visible.
 
 ### Screenshots
 
-| Home | Trip Detail | Trip Map |
-|:----:|:-----------:|:--------:|
-| ![Home](assets/images/inApp/home.jpeg) | ![Trip Detail](assets/images/inApp/trip_details.jpeg) | ![Trip Map](assets/images/inApp/in_map.jpeg) |
+|                 Home                  | Trip Detail | Trip Map |
+|:-------------------------------------:|:-----------:|:--------:|
+| ![Home](assets/images/inApp/home.png) | ![Trip Detail](assets/images/inApp/trip_details.png) | ![Trip Map](assets/images/inApp/in_map.png) |
 
-| Create Trip | Profile | Trip Planning |
-|:-----------:|:-------:|:-------------:|
-| ![Create Trip](assets/images/inApp/trip_create.jpeg) | ![Profile](assets/images/inApp/profile.jpeg) | ![Trip Planning](assets/images/inApp/trip_plan_create.jpeg) |
+|                     Create Trip                     | Profile | Trip Planning |
+|:---------------------------------------------------:|:-------:|:-------------:|
+| ![Create Trip](assets/images/inApp/trip_create.png) | ![Profile](assets/images/inApp/profile.png) | ![Trip Planning](assets/images/inApp/trip_plan_create.png) |
 
 ## Architecture
 
