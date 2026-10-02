@@ -636,13 +636,13 @@ class _HomeScreenState extends ConsumerState<_HomeScreenContent>
           trip.status == TripStatus.paused;
       final isPromoted = trip.isPromoted;
 
-      // Rule 1 & 2: Public + active trips (promoted or not)
-      if (isPublic && isActive) {
+      // Rule 1 & 2: Public trips that started (live or completed)
+      if (isPublic && (isActive || trip.status == TripStatus.finished)) {
         discoverTrips.add(trip);
         continue;
       }
 
-      // Rule 3: Promoted + completed
+      // Rule 3: Promoted + completed (promotion works on any visibility)
       if (isPromoted && trip.status == TripStatus.finished) {
         discoverTrips.add(trip);
         continue;
@@ -671,10 +671,8 @@ class _HomeScreenState extends ConsumerState<_HomeScreenContent>
     final feedTrips = <Trip>[];
 
     for (final trip in _allTrips) {
-      final isActive = trip.status == TripStatus.inProgress ||
-          trip.status == TripStatus.resting ||
-          trip.status == TripStatus.paused;
-      if (!isActive) continue;
+      // Drafts stay out; live and completed trips both belong in the feed.
+      if (trip.status == TripStatus.created) continue;
 
       final isOwnTrip = trip.userId == _userId;
       final isPublic = trip.visibility == Visibility.public;

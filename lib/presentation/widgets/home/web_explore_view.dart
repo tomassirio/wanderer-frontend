@@ -176,10 +176,6 @@ class _WebExploreViewState extends State<WebExploreView> {
       return InkWell(
         onTap: () => setState(() {
           _feed = feed;
-          // The feed only holds active trips.
-          if (feed && _status == _StatusFilter.completed) {
-            _status = _StatusFilter.all;
-          }
         }),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 10),
@@ -287,10 +283,8 @@ class _WebExploreViewState extends State<WebExploreView> {
                       segment(l10n.exploreFilterAll, _StatusFilter.all),
                       const SizedBox(width: 4),
                       segment(l10n.live, _StatusFilter.live),
-                      if (!(_feed && widget.isLoggedIn)) ...[
-                        const SizedBox(width: 4),
-                        segment(l10n.completed, _StatusFilter.completed),
-                      ],
+                      const SizedBox(width: 4),
+                      segment(l10n.completed, _StatusFilter.completed),
                     ],
                   ),
                 ),
