@@ -1219,7 +1219,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final desktop = _usesDesktopLayout;
-    if (_desktopMapLayout != null && _desktopMapLayout != desktop) {
+    // Route and marker colours follow the theme: restyle on a flip.
+    final brightness = Theme.of(context).brightness;
+    final themeFlipped = _mapBrightness != null && _mapBrightness != brightness;
+    _mapBrightness = brightness;
+    if (themeFlipped ||
+        (_desktopMapLayout != null && _desktopMapLayout != desktop)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _updateMapData();
       });
@@ -1637,6 +1642,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   int _mapStyleRun = 0;
+  Brightness? _mapBrightness;
 
   /// Canvas map look on every layout: update markers by kind, hollow
   /// planned stops and a state-coloured route.
@@ -3124,12 +3130,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
               selectedPlannedWaypoint: _selectedPlannedWaypoint,
               onPlannedInfoWindowClosed: _onInfoWindowClosed,
               onMapTap: _onInfoWindowClosed,
-              padding: EdgeInsets.only(
-                  bottom: mobileWeb
-                      ? constraints.maxHeight *
-                          TripDetailAndroidLayout.mobileSheetFraction(
-                              isOwner: isOwner, status: _trip.status)
-                      : TripDetailAndroidLayout.mapBottomPadding),
+              padding: const EdgeInsets.only(
+                  bottom: TripDetailAndroidLayout.mapBottomPadding),
             ));
     return Scaffold(
       body: Column(children: [

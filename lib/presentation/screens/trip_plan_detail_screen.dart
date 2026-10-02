@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -636,6 +637,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
       map: FutureBuilder(
         future: PlanMapStyle.ensureLoaded(),
         builder: (context, _) => GoogleMap(
+          key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
           style: MapStyleHelper.of(context),
           initialCameraPosition: CameraPosition(
             target: TripPlanMapHelper.getInitialLocation(_tripPlan),
@@ -749,6 +751,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
         map: FutureBuilder(
           future: PlanMapStyle.ensureLoaded(),
           builder: (context, _) => GoogleMap(
+            key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
             style: MapStyleHelper.of(context),
             initialCameraPosition: CameraPosition(
               target: _editStartLocation ??
@@ -878,6 +881,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
         onFitRoute: _markers.length >= 2 ? _fitBounds : null,
         map: hasMapData
             ? GoogleMap(
+                key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
                 style: MapStyleHelper.of(context),
                 initialCameraPosition: CameraPosition(
                   target: TripPlanMapHelper.getInitialLocation(_tripPlan),
@@ -973,6 +977,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
           fit: StackFit.expand,
           children: [
             GoogleMap(
+              key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
               style: MapStyleHelper.of(context),
               initialCameraPosition: CameraPosition(
                 target: _editStartLocation ?? const LatLng(40.7128, -74.0060),

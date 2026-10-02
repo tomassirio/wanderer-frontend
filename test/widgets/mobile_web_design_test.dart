@@ -200,6 +200,9 @@ void main() {
         ),
         size: const Size(412, 915));
     expect(find.byKey(const Key('trip_focus_card')), findsNothing);
+    // Same sheet as Android: the Timeline tab opens the list.
+    await tester.tap(find.text('Timeline · 1'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Utrecht, Netherlands').first);
     await tester.pumpAndSettle();
     expect(focused?.id, 'update');
@@ -223,7 +226,6 @@ void main() {
   for (final width in [390.0, 720.0, 960.0, 1024.0, 1031.0]) {
     testWidgets('compact trip menus stay usable at ${width}px', (tester) async {
       await pump(tester, detail(data(planned: true)), size: Size(width, 1000));
-      expect(find.byType(DraggableScrollableSheet), findsOneWidget);
       expect(find.text('Coastal walk').hitTestable(), findsOneWidget);
       expect(find.text('native lifecycle controls'), findsNothing);
       await tester.tap(find.byIcon(Icons.tune));
@@ -345,6 +347,8 @@ void main() {
     expect(find.byType(MobileWebTrackingCard), findsOneWidget);
     expect(find.text('Days'), findsOneWidget);
     expect(find.text('Comments'), findsOneWidget);
+    await tester.tap(find.text('Timeline · 1'));
+    await tester.pumpAndSettle();
     expect(find.text('Utrecht, Netherlands').hitTestable(), findsOneWidget);
     expect(find.text('Change'), findsNothing);
     expect(tester.takeException(), isNull);

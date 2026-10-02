@@ -246,6 +246,9 @@ class _TripMapViewState extends State<TripMapView> {
     return Stack(
       children: [
         GoogleMap(
+          // The web map ignores a new style after creation: rebuild it when
+          // the theme flips so light / dark follows the app.
+          key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
           style: MapStyleHelper.of(context),
           initialCameraPosition: CameraPosition(
             target: widget.initialLocation,

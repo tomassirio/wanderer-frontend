@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:wanderer_frontend/presentation/widgets/mobile_web/app_handoff.dart';
 import 'package:intl/intl.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
@@ -45,12 +46,6 @@ class TripDetailAndroidLayout extends StatefulWidget {
   /// Map bottom padding: roughly the half sheet (canvas: 356).
   static const double mapBottomPadding = 360;
 
-  static double mobileSheetFraction(
-          {required bool isOwner, required TripStatus status}) =>
-      isOwner && status != TripStatus.created && status != TripStatus.finished
-          ? 0.72
-          : 0.58;
-
   const TripDetailAndroidLayout({
     super.key,
     required this.data,
@@ -90,7 +85,6 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
   double _maxHeight = 0;
   bool _dragging = false;
   final _expandedGroups = <String>{};
-  final _mobileSheetCtl = DraggableScrollableController();
 
   TripDetailLayoutData get _d => widget.data;
   Trip get _trip => _d.trip;
@@ -115,7 +109,6 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
   @override
   void dispose() {
     _sheet.dispose();
-    _mobileSheetCtl.dispose();
     super.dispose();
   }
 
@@ -125,13 +118,7 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
     final f = widget.focusedUpdate;
     if (f == null || f.id == old.focusedUpdate?.id) return;
     // The sheet drops so the map is visible.
-    if (!_mobileWeb) {
-      _snapTo(_Detent.collapsed);
-    } else if (_mobileSheetCtl.isAttached) {
-      _mobileSheetCtl.animateTo(0.12,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOutCubic);
-    }
+    _snapTo(_Detent.collapsed);
   }
 
   /// Timeline row / marker tap: centre the map there, else open the detail.
@@ -263,6 +250,8 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
 
   void _openTab(int i) {
     setState(() => _tab = i);
+    // Mobile web: comments open full screen (composer above the keyboard).
+    if (_mobileWeb && i == 1) return;
     if (_detent != _Detent.full) _snapTo(_Detent.full);
   }
 
@@ -461,7 +450,7 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
                     color: c.skyFg,
                   ),
                 ),
-              if (_mobileWeb) _mobileSheet(context) else _buildSheet(context),
+              _buildSheet(context),
             ],
           );
         }),
@@ -509,122 +498,34 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
     );
   }
 
-  Widget _mobileSheet(BuildContext context) {
+  /// Mobile web visitors: follow the owner and share.
+  Widget _followRow(BuildContext context) {
     final c = WandererTheme.of(context);
     final l10n = context.l10n;
-    final active = _trip.status != TripStatus.finished &&
-        _trip.status != TripStatus.created;
-    final initialSize = TripDetailAndroidLayout.mobileSheetFraction(
-        isOwner: _isOwner, status: _trip.status);
-    return DraggableScrollableSheet(
-      controller: _mobileSheetCtl,
-      initialChildSize: initialSize,
-      minChildSize: 0.12,
-      maxChildSize: 1,
-      snap: true,
-      snapSizes: [initialSize],
-      builder: (context, controller) => Material(
-        color: c.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        clipBehavior: Clip.antiAlias,
-        elevation: 8,
-        child: ListView(
-          controller: controller,
-          padding: EdgeInsets.only(bottom: _bottomInset + 24),
-          children: [
-            Center(
-                child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                  color: c.line, borderRadius: BorderRadius.circular(8)),
-            )),
-            Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildPills(context),
-                    const SizedBox(height: 10),
-                    Text(_trip.name,
-                        style: WandererTheme.display(24, color: c.text)),
-                    ..._buildMeta(context),
-                    const SizedBox(height: 14),
-                    _buildStats(context),
-                    const SizedBox(height: 14),
-                    if (_isOwner && active)
-                      MobileWebTrackingCard(
-                          tripId: _trip.id,
-                          tracking: _trip.status == TripStatus.inProgress),
-                    if (!_isOwner)
-                      Row(children: [
-                        Expanded(
-                            child: FilledButton(
-                          onPressed: _d.isLoggedIn
-                              ? _d.onFollowTripOwner
-                              : widget.onLogin,
-                          style: FilledButton.styleFrom(
-                              backgroundColor: WandererTheme.trail,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(0, 48)),
-                          child: Text(
-                              '${_d.isFollowingTripOwner ? l10n.unfollow : l10n.follow} @${_trip.username}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis),
-                        )),
-                        const SizedBox(width: 10),
-                        SizedBox(
-                            height: 48,
-                            width: 48,
-                            child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                  padding: EdgeInsets.zero),
-                              onPressed: () => TripShareDialog.show(context,
-                                  tripId: _trip.id,
-                                  tripName: _trip.name,
-                                  compact: true),
-                              child: Icon(Icons.share_outlined, color: c.text),
-                            )),
-                      ]),
-                  ],
-                )),
-            const SizedBox(height: 12),
-            if (widget.donationButton != null)
-              Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: widget.donationButton!),
-            Row(children: [
-              for (final (i, label) in [
-                l10n.tripTimelineTab(
-                    '${_trip.updateCount ?? _d.tripUpdates.length}'),
-                l10n.commentsTab(_trip.commentsCount),
-              ].indexed)
-                Expanded(
-                    child: InkWell(
-                  onTap: () => setState(() => _tab = i),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                        border: Border(
-                            bottom: BorderSide(
-                                color:
-                                    i == 0 ? WandererTheme.trail : c.lineSoft,
-                                width: i == 0 ? 3 : 1))),
-                    child: Text(label,
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: i == 0 ? c.accentText : c.textMuted)),
-                  ),
-                )),
-            ]),
-            ..._timelineItems(context),
-          ],
-        ),
-      ),
-    );
+    return Row(children: [
+      Expanded(
+          child: FilledButton(
+        onPressed: _d.isLoggedIn ? _d.onFollowTripOwner : widget.onLogin,
+        style: FilledButton.styleFrom(
+            backgroundColor: WandererTheme.trail,
+            foregroundColor: Colors.white,
+            minimumSize: const Size(0, 48)),
+        child: Text(
+            '${_d.isFollowingTripOwner ? l10n.unfollow : l10n.follow} @${_trip.username}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis),
+      )),
+      const SizedBox(width: 10),
+      SizedBox(
+          height: 48,
+          width: 48,
+          child: OutlinedButton(
+            style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
+            onPressed: () => TripShareDialog.show(context,
+                tripId: _trip.id, tripName: _trip.name, compact: true),
+            child: Icon(Icons.share_outlined, color: c.text),
+          )),
+    ]);
   }
 
   /// Three detents; the header (handle → tabs) is fixed and drags the
@@ -708,9 +609,24 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
           ..._buildMeta(context),
           const SizedBox(height: 12),
           _buildStats(context),
-          if (widget.controls != null) ...[
+          // Lifecycle buttons are native only; the browser hands off.
+          if (widget.controls != null && !_mobileWeb) ...[
             const SizedBox(height: 12),
             KeyedSubtree(key: _d.updatePanelKey, child: widget.controls!),
+          ],
+          // Mobile web: tracking lives in the app; visitors can follow.
+          if (_mobileWeb &&
+              _isOwner &&
+              _trip.status != TripStatus.finished &&
+              _trip.status != TripStatus.created) ...[
+            const SizedBox(height: 12),
+            MobileWebTrackingCard(
+                tripId: _trip.id,
+                tracking: _trip.status == TripStatus.inProgress),
+          ],
+          if (_mobileWeb && !_isOwner && _d.isLoggedIn) ...[
+            const SizedBox(height: 12),
+            _followRow(context),
           ],
           // Guests: the log-in call to action sits where the controls go.
           if (!_d.isLoggedIn) ...[
@@ -718,6 +634,7 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
             _buildGuestCta(context),
           ],
           if (_isOwner &&
+              !_mobileWeb &&
               _trip.status == TripStatus.inProgress &&
               _trip.automaticUpdates) ...[
             const SizedBox(height: 12),
@@ -844,7 +761,10 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
           right: 0,
           bottom: 0,
           height: h,
-          child: Container(
+          // Web: the map is an HTML element under the canvas; keep drags
+          // on the sheet from reaching it.
+          child: PointerInterceptor(
+              child: Container(
             clipBehavior: Clip.antiAlias,
             padding: EdgeInsets.only(top: statusBar * inset),
             decoration: BoxDecoration(
@@ -859,7 +779,7 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
               ],
             ),
             child: child,
-          ),
+          )),
         );
       },
       child: content,
