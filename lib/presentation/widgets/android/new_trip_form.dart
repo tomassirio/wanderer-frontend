@@ -169,7 +169,10 @@ class NewTripForm extends StatelessWidget {
           const SizedBox(height: 8),
           KeyedSubtree(
             key: tripTypeKey,
-            child: Row(
+            // Both cards take the taller one's height.
+            child: IntrinsicHeight(
+                child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 for (final (m, name, desc) in [
                   (
@@ -193,7 +196,7 @@ class NewTripForm extends StatelessWidget {
                   ),
                 ],
               ],
-            ),
+            )),
           ),
           const SizedBox(height: 18),
           Text(l10n.newTripWhoCanSee, style: _label(c)),
