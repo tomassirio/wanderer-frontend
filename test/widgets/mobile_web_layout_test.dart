@@ -1,11 +1,12 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wanderer_frontend/core/constants/enums.dart' show TripStatus;
+import 'package:wanderer_frontend/core/constants/enums.dart'
+    show TripStatus, Visibility;
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
@@ -33,6 +34,7 @@ import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
 import 'package:wanderer_frontend/presentation/widgets/landing/landing_hero.dart';
+import 'package:wanderer_frontend/presentation/widgets/profile/web_profile_widgets.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
 
 void main() {
@@ -297,6 +299,38 @@ void main() {
     final pills = tester.widgetList<Pill>(find.byType(Pill)).toList();
     expect(pills[0].tone, PillTone.paused);
     expect(pills[1].tone, PillTone.resting);
+  });
+
+  testWidgets('profile trip card wraps long names on phones', (tester) async {
+    const name = 'Santiago de Compostela via the Camino Portugues';
+    await pump(
+        tester,
+        Scaffold(
+          body: ListView(children: [
+            WebProfileTripCard(
+              trip: Trip(
+                id: 't1',
+                userId: 'u1',
+                name: name,
+                username: 'u',
+                visibility: Visibility.public,
+                status: TripStatus.inProgress,
+                commentsCount: 2,
+                createdAt: DateTime(2026),
+                updatedAt: DateTime(2026),
+              ),
+              onTap: () {},
+            ),
+          ]),
+        ),
+        size: const Size(360, 800));
+    expect(tester.takeException(), isNull);
+    expect(tester.widget<Text>(find.text(name)).maxLines, 3);
+    expect(tester.getSize(find.text(name)).height,
+        greaterThan(tester.getSize(find.text('Live')).height));
+    // Status pill sits on the thumbnail, not in the name row.
+    expect(tester.getTopLeft(find.text('Live')).dx,
+        lessThan(tester.getTopLeft(find.text(name)).dx));
   });
 }
 
