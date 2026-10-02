@@ -24,6 +24,18 @@ import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 
 /// Screen displaying all achievements and user's unlocked achievements
+/// "100 km", "45 days", "10 updates"… for an achievement's threshold.
+String achievementThresholdLabel(AppLocalizations l10n, Achievement a) {
+  final type = a.type.toJson();
+  final v = a.thresholdValue;
+  if (type.startsWith('DISTANCE_')) return l10n.achievementKm(v.toDouble());
+  if (type.startsWith('DURATION_')) return l10n.achievementDays(v);
+  if (type.startsWith('UPDATES_')) return l10n.achievementUpdatesCount(v);
+  if (type.startsWith('FOLLOWERS_')) return l10n.achievementFollowers(v);
+  if (type.startsWith('FRIENDS_')) return l10n.achievementFriends(v);
+  return '$v';
+}
+
 class AchievementsScreen extends ConsumerStatefulWidget {
   const AchievementsScreen({super.key});
 
@@ -251,26 +263,8 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
     return cappedValue.toInt().toString();
   }
 
-  String _formatThreshold(BuildContext context, Achievement achievement) {
-    final l10n = context.l10n;
-    final type = achievement.type.toJson();
-    if (type.startsWith('DISTANCE_')) {
-      return l10n.achievementKm(achievement.thresholdValue.toDouble());
-    }
-    if (type.startsWith('DURATION_')) {
-      return l10n.achievementDays(achievement.thresholdValue.toInt());
-    }
-    if (type.startsWith('UPDATES_')) {
-      return l10n.achievementUpdatesCount(achievement.thresholdValue.toInt());
-    }
-    if (type.startsWith('FOLLOWERS_')) {
-      return l10n.achievementFollowers(achievement.thresholdValue.toInt());
-    }
-    if (type.startsWith('FRIENDS_')) {
-      return l10n.achievementFriends(achievement.thresholdValue.toInt());
-    }
-    return '${achievement.thresholdValue}';
-  }
+  String _formatThreshold(BuildContext context, Achievement achievement) =>
+      achievementThresholdLabel(context.l10n, achievement);
 
   @override
   Widget build(BuildContext context) {

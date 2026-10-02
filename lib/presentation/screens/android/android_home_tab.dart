@@ -3,23 +3,33 @@ import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:wanderer_frontend/presentation/widgets/mobile_web/app_handoff.dart';
 import 'package:wanderer_frontend/presentation/widgets/mobile_web/mobile_web_trip_card.dart';
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/services/background_update_manager.dart';
+import 'package:wanderer_frontend/core/services/notification_service.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/data/models/achievement_models.dart';
 import 'package:wanderer_frontend/data/models/domain/user_profile.dart';
+import 'package:wanderer_frontend/data/models/notification_models.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
+import 'package:wanderer_frontend/presentation/helpers/android_app_links.dart';
+import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/location_permission_disclosure.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_notifications_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_search_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_shell.dart';
+import 'package:wanderer_frontend/presentation/screens/create_trip_plan_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/create_trip_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/trip_deep_link_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/explore_widgets.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/home_live_trip_card.dart';
+import 'package:wanderer_frontend/presentation/widgets/android/home_sections.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
@@ -63,8 +73,13 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
   UserProfile? _profile;
   List<Trip> _trips = const [];
   int _badges = 0;
+  Set<String> _unlockedIds = const {};
+  List<Achievement> _allBadges = const [];
   Set<String> _friendIds = const {};
   List<Trip> _friendTrips = const [];
+  List<Trip> _publicTrips = const [];
+  List<NotificationDto> _activity = const [];
+  bool _notificationsOn = true;
   int _unread = 0;
   Object? _error;
   bool _checkingIn = false;
@@ -93,23 +108,47 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
           _optional(ref.read(achievementServiceProvider).getMyAchievements());
       final friendsF = home.getFriendsIds();
       final availableF = _optional(home.loadTrips(size: 50));
-      final unreadF =
-          _optional(ref.read(notificationApiServiceProvider).getUnreadCount());
+      final notifications = ref.read(notificationApiServiceProvider);
+      final unreadF = _optional(notifications.getUnreadCount());
+      final activityF = _optional(notifications.getMyNotifications(size: 20));
+      final allBadgesF =
+          _optional(ref.read(achievementServiceProvider).getAllAchievements());
+      final notificationsOnF =
+          kIsWeb ? Future.value(true) : NotificationService().areEnabled();
 
       final profile = await profileF;
       final trips = [...(await tripsF).content]
         ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       final friendIds = await friendsF;
       final available = (await availableF)?.content ?? const <Trip>[];
-      final badges = (await badgesF)?.length ?? 0;
+      final myBadges = await badgesF ?? const <UserAchievement>[];
+      final allBadges = await allBadgesF ?? const <Achievement>[];
+      final unlockedIds = {for (final b in myBadges) b.achievement.id};
       final unread = await unreadF;
+      final activity = (await activityF)?.content ?? const <NotificationDto>[];
+      final notificationsOn = await notificationsOnF;
       if (!mounted) return;
       setState(() {
         _profile = profile;
         _trips = trips;
-        _badges = badges;
+        // Distinct badges: per-trip ones unlock once per trip.
+        _badges = allBadges.isEmpty
+            ? unlockedIds.length
+            : allBadges.where((a) => unlockedIds.contains(a.id)).length;
+        _unlockedIds = unlockedIds;
+        _allBadges = allBadges;
         _friendIds = friendIds;
         _friendTrips = friendsOnTheRoad(available, friendIds);
+        _publicTrips = available
+            .where((t) =>
+                t.userId != profile.id &&
+                t.visibility == Visibility.public &&
+                t.status != TripStatus.created)
+            .toList()
+          ..sort((a, b) => (b.status == TripStatus.inProgress ? 1 : 0)
+              .compareTo(a.status == TripStatus.inProgress ? 1 : 0));
+        _activity = activity.where(HomeFriendsActivity.shows).take(3).toList();
+        _notificationsOn = notificationsOn;
         if (unread != null) _unread = unread;
         _error = null;
       });
@@ -234,90 +273,83 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
     final name = (profile.displayName?.isNotEmpty ?? false)
         ? profile.displayName!.split(' ').first
         : profile.username;
+    if (AdaptiveLayout.isMobileWeb(context)) {
+      return _mobileWebBody(context, name);
+    }
     final live =
         _trips.where((t) => t.status == TripStatus.inProgress).firstOrNull;
+    if (_trips.isEmpty) return _newUserBody(context, name, profile);
+
     final drafts = _trips.where((t) => t.status == TripStatus.created).toList();
-    final subtitle = live != null
-        ? l10n.homeSubtitleLive
-        : _trips.isEmpty
-            ? l10n.dashboardSubtitleEmpty
-            : l10n.homeSubtitleIdle;
+    final finished =
+        _trips.where((t) => t.status == TripStatus.finished).toList();
+    final next = nextBadge(_allBadges, _unlockedIds, _trips,
+        followers: profile.followersCount,
+        friends: profile.friendsCount > 0
+            ? profile.friendsCount
+            : _friendIds.length);
+    final tripCount =
+        profile.tripsCount > _trips.length ? profile.tripsCount : _trips.length;
+    const gap = SizedBox(height: 20);
 
     return ListView(
       // Bottom room for the shell's + button.
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 130),
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(homeGreeting(l10n, DateTime.now().hour, name),
-                  style: WandererTheme.display(28, color: c.text)),
-              const SizedBox(height: 4),
-              Text(subtitle,
-                  style: TextStyle(fontSize: 15, color: c.textMuted)),
-            ],
-          ),
-        ),
-        if (AdaptiveLayout.isMobileWeb(context)) ...[
-          const SizedBox(height: 18),
-          const MobileWebTrackingCard(),
-        ] else if (live != null) ...[
-          const SizedBox(height: 18),
+        _greeting(c, homeGreeting(l10n, DateTime.now().hour, name),
+            live != null ? l10n.homeSubtitleLive : l10n.homeSubtitleIdle),
+        gap,
+        if (live != null) ...[
           HomeLiveTripCard(
             trip: live,
             checkingIn: _checkingIn,
             onCheckIn: () => _checkIn(live),
             onOpen: () => _push(TripDetailScreen(trip: live)),
           ),
-        ],
-        const SizedBox(height: 18),
-        Row(children: [
-          _Stat('${_trips.length}', l10n.trips),
-          const SizedBox(width: 10),
-          _Stat(
-              AdaptiveLayout.isMobileWeb(context)
-                  ? '$_badges'
-                  : '${drafts.length}',
-              AdaptiveLayout.isMobileWeb(context)
-                  ? l10n.homeBadges
-                  : l10n.homeDrafts),
-          const SizedBox(width: 10),
-          _Stat(
-              AdaptiveLayout.isMobileWeb(context)
-                  ? '${_friendIds.length}'
-                  : '$_badges',
-              AdaptiveLayout.isMobileWeb(context)
-                  ? l10n.friends
-                  : l10n.homeBadges),
-        ]),
-        if (AdaptiveLayout.isMobileWeb(context)) ...[
           const SizedBox(height: 18),
-          ExploreSectionTitle(l10n.mobileWebLatestTrip,
+          Row(children: [
+            HomeStat('$tripCount', l10n.trips),
+            const SizedBox(width: 10),
+            HomeStat('${drafts.length}', l10n.homeDrafts),
+            const SizedBox(width: 10),
+            HomeStat('$_badges', l10n.homeBadges),
+          ]),
+        ] else
+          Row(children: [
+            Expanded(
+              child: _bigButton(
+                key: const Key('home_start_trip'),
+                icon: Icons.play_arrow_rounded,
+                label: l10n.homeStartTrip,
+                primary: true,
+                onTap: () => _push(const CreateTripScreen()),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _bigButton(
+                key: const Key('home_plan_trip'),
+                icon: Icons.map_outlined,
+                label: l10n.homePlanOne,
+                onTap: () => _push(const CreateTripPlanScreen()),
+              ),
+            ),
+          ]),
+        if (drafts.isNotEmpty) ...[
+          gap,
+          HomeSectionTitle(l10n.homePickUp,
               action: l10n.exploreFilterAll,
               onAction: () =>
                   AndroidShell.selectTab(context, AndroidTab.trips)),
-          if (_trips.isNotEmpty)
-            MobileWebTripCard(
-                trip: _trips.first,
-                onTap: () => _push(TripDetailScreen(trip: _trips.first))),
-        ] else ...[
-          if (drafts.isNotEmpty) ...[
-            const SizedBox(height: 18),
-            ExploreSectionTitle(
-              l10n.homePickUp,
-              action: l10n.exploreFilterAll,
-              onAction: () => AndroidShell.selectTab(context, AndroidTab.trips),
-            ),
-            for (final d in drafts.take(3)) ...[
-              const SizedBox(height: 10),
-              _DraftRow(trip: d, onTap: () => _push(TripDetailScreen(trip: d))),
-            ],
+          for (final d in drafts.take(3)) ...[
+            const SizedBox(height: 10),
+            _DraftRow(trip: d, onTap: () => _push(TripDetailScreen(trip: d))),
           ],
-          const SizedBox(height: 18),
-          ExploreSectionTitle(l10n.homeFriendsOnRoad),
-          const SizedBox(height: 10),
+        ],
+        if (live != null || _friendTrips.isNotEmpty) ...[
+          gap,
+          HomeSectionTitle(l10n.homeFriendsOnRoad),
+          const SizedBox(height: 4),
           if (_friendTrips.isEmpty)
             _FriendsEmpty(_friendIds.isEmpty
                 ? l10n.homeNoFriends
@@ -340,32 +372,335 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
               const SizedBox(height: 10),
             ],
         ],
+        if (finished.isNotEmpty) ...[
+          gap,
+          HomeSectionTitle(l10n.homeRecentTrips,
+              action: l10n.homeAllN(tripCount),
+              onAction: () =>
+                  AndroidShell.selectTab(context, AndroidTab.trips)),
+          const SizedBox(height: 4),
+          HomeTripCarousel(
+            trips: finished.take(8).toList(),
+            subtitle: (t) => _tripLine(l10n, t),
+            onTap: (t) => _push(TripDetailScreen(trip: t)),
+          ),
+        ],
+        gap,
+        HomeSectionTitle(l10n.homeFriendsLately,
+            action: _activity.isEmpty ? null : l10n.homeSeeAll,
+            onAction: () => _push(const AndroidNotificationsScreen())),
+        const SizedBox(height: 4),
+        if (_activity.isEmpty)
+          _FriendsEmpty(_friendIds.isEmpty
+              ? l10n.homeNoFriends
+              : l10n.homeNoFriendsActivity)
+        else
+          HomeFriendsActivity(items: _activity, onTap: _openActivity),
+        if (next != null) ...[
+          gap,
+          HomeSectionTitle(l10n.homeNextBadge,
+              action:
+                  _allBadges.isEmpty ? null : l10n.homeAllN(_allBadges.length),
+              onAction: _openBadges),
+          const SizedBox(height: 4),
+          HomeNextBadge(
+              achievement: next.achievement,
+              value: next.value,
+              onTap: _openBadges),
+        ],
+        if (live == null) ..._yearSection(c, l10n),
+        if (live == null && _publicTrips.isNotEmpty) ...[
+          gap,
+          HomeSectionTitle(l10n.homeTrending,
+              action: l10n.explore,
+              onAction: () =>
+                  AndroidShell.selectTab(context, AndroidTab.explore)),
+          const SizedBox(height: 4),
+          _publicRow(_publicTrips.first),
+        ],
       ],
     );
   }
-}
 
-class _Stat extends StatelessWidget {
-  final String value;
-  final String label;
-  const _Stat(this.value, this.label);
-
-  @override
-  Widget build(BuildContext context) {
+  /// Brand-new user (no trips yet): checklist, first-trip CTA, other
+  /// people's trips for inspiration, the first badge and an invite.
+  Widget _newUserBody(BuildContext context, String name, UserProfile profile) {
     final c = WandererTheme.of(context);
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: WandererTheme.cardDecoration(context, radius: 16),
+    final l10n = context.l10n;
+    const gap = SizedBox(height: 20);
+    bool unlocked(AchievementType type) =>
+        _allBadges.any((a) => a.type == type && _unlockedIds.contains(a.id));
+    final steps = [
+      HomeChecklistStep(l10n.homeStepAccount, done: true, onTap: () {}),
+      HomeChecklistStep(l10n.homeStepProfile,
+          done: unlocked(AchievementType.profileCompleted),
+          onTap: () => AndroidShell.selectTab(context, AndroidTab.you)),
+      HomeChecklistStep(l10n.homeStepFirstTrip,
+          done: false, onTap: () => _push(const CreateTripScreen())),
+      HomeChecklistStep(l10n.homeStepFriend,
+          done: _friendIds.isNotEmpty || profile.followingCount > 0,
+          onTap: () => _push(const AndroidSearchScreen())),
+      if (!kIsWeb)
+        HomeChecklistStep(l10n.homeStepNotifications, done: _notificationsOn,
+            onTap: () async {
+          await NotificationService().requestPermission();
+          _load();
+        }),
+    ];
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 130),
+      children: [
+        _greeting(c, l10n.homeWelcomeNew(name), l10n.homeSubtitleNew),
+        gap,
+        HomeGetStarted(steps: steps),
+        gap,
+        _bigButton(
+          key: const Key('home_first_trip'),
+          icon: Icons.play_arrow_rounded,
+          label: l10n.homeStartFirstTrip,
+          primary: true,
+          onTap: () => _push(const CreateTripScreen()),
+        ),
+        if (_publicTrips.isNotEmpty) ...[
+          gap,
+          HomeSectionTitle(l10n.homeGetInspired,
+              action: l10n.explore,
+              onAction: () =>
+                  AndroidShell.selectTab(context, AndroidTab.explore)),
+          const SizedBox(height: 4),
+          HomeTripCarousel(
+            trips: _publicTrips.take(8).toList(),
+            subtitle: (t) => ['@${t.username}', _tripLine(l10n, t)]
+                .where((s) => s.isNotEmpty)
+                .join(' · '),
+            onTap: (t) => _push(TripDetailScreen(trip: t)),
+          ),
+        ],
+        gap,
+        HomeSectionTitle(l10n.homeFirstBadge),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: WandererTheme.cardDecoration(context, radius: 18),
+          child: Row(children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: c.raised,
+                shape: BoxShape.circle,
+                border: Border.all(color: c.line, width: 2),
+              ),
+              child: Icon(Icons.lock_outline, size: 22, color: c.caption),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.welcomeArtFirstTrip,
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: c.text)),
+                  const SizedBox(height: 2),
+                  Text(l10n.homeFirstBadgeBody,
+                      style: TextStyle(fontSize: 13, color: c.caption)),
+                ],
+              ),
+            ),
+          ]),
+        ),
+        gap,
+        Material(
+          color: c.forestBg,
+          borderRadius: BorderRadius.circular(18),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            key: const Key('home_invite'),
+            onTap: _invite,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(children: [
+                Icon(Icons.group_add_outlined, color: c.forestFg),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(l10n.homeInviteBody,
+                      style: TextStyle(
+                          fontSize: 14, height: 1.4, color: c.forestFg)),
+                ),
+                const SizedBox(width: 8),
+                Text(l10n.homeInvite,
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: c.forestFg)),
+              ]),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Mobile web keeps its own Home: tracking happens in the app.
+  Widget _mobileWebBody(BuildContext context, String name) {
+    final c = WandererTheme.of(context);
+    final l10n = context.l10n;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
+      children: [
+        _greeting(
+            c,
+            homeGreeting(l10n, DateTime.now().hour, name),
+            _trips.isEmpty
+                ? l10n.dashboardSubtitleEmpty
+                : l10n.homeSubtitleIdle),
+        const SizedBox(height: 18),
+        const MobileWebTrackingCard(),
+        const SizedBox(height: 18),
+        Row(children: [
+          HomeStat('${_trips.length}', l10n.trips),
+          const SizedBox(width: 10),
+          HomeStat('$_badges', l10n.homeBadges),
+          const SizedBox(width: 10),
+          HomeStat('${_friendIds.length}', l10n.friends),
+        ]),
+        const SizedBox(height: 18),
+        ExploreSectionTitle(l10n.mobileWebLatestTrip,
+            action: l10n.exploreFilterAll,
+            onAction: () => AndroidShell.selectTab(context, AndroidTab.trips)),
+        if (_trips.isNotEmpty)
+          MobileWebTripCard(
+              trip: _trips.first,
+              onTap: () => _push(TripDetailScreen(trip: _trips.first))),
+      ],
+    );
+  }
+
+  Widget _greeting(WandererColors c, String title, String subtitle) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(value, style: WandererTheme.display(22, color: c.text)),
-            Text(label, style: TextStyle(fontSize: 12, color: c.caption)),
+            Text(title, style: WandererTheme.display(28, color: c.text)),
+            const SizedBox(height: 4),
+            Text(subtitle, style: TextStyle(fontSize: 15, color: c.textMuted)),
           ],
         ),
-      ),
+      );
+
+  Widget _bigButton(
+      {required Key key,
+      required IconData icon,
+      required String label,
+      required VoidCallback onTap,
+      bool primary = false}) {
+    final c = WandererTheme.of(context);
+    final shape =
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
+    final child = Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(icon, size: 20),
+      const SizedBox(width: 8),
+      Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
+    ]);
+    const text = TextStyle(fontSize: 15, fontWeight: FontWeight.w700);
+    return SizedBox(
+      height: 52,
+      child: primary
+          ? FilledButton(
+              key: key,
+              onPressed: onTap,
+              style: FilledButton.styleFrom(
+                  backgroundColor: WandererTheme.trail,
+                  foregroundColor: Colors.white,
+                  textStyle: text,
+                  shape: shape),
+              child: child)
+          : OutlinedButton(
+              key: key,
+              onPressed: onTap,
+              style: OutlinedButton.styleFrom(
+                  backgroundColor: c.surface,
+                  foregroundColor: c.text,
+                  side: BorderSide(color: c.line),
+                  textStyle: text,
+                  shape: shape),
+              child: child),
     );
+  }
+
+  /// "2115 km · 45 days · 97 comments", skipping what is zero.
+  String _tripLine(AppLocalizations l10n, Trip t) {
+    final km = t.accruedDistanceKm ?? 0;
+    final days = tripDaysOut(t);
+    return [
+      if (km > 0) l10n.achievementKm(km.roundToDouble()),
+      if (days > 0) l10n.achievementDays(days),
+      if (t.commentsCount > 0) l10n.commentsCount(t.commentsCount),
+    ].join(' · ');
+  }
+
+  /// "Your 2026": trips started this year, distance and days out.
+  List<Widget> _yearSection(WandererColors c, AppLocalizations l10n) {
+    final year = DateTime.now().year;
+    final trips = _trips
+        .where((t) =>
+            t.status != TripStatus.created &&
+            (t.startDate ?? t.createdAt).year == year)
+        .toList();
+    if (trips.isEmpty) return const [];
+    final km = trips.fold(0.0, (s, t) => s + (t.accruedDistanceKm ?? 0));
+    final days = trips.fold(0, (s, t) => s + tripDaysOut(t));
+    return [
+      const SizedBox(height: 20),
+      HomeSectionTitle(l10n.homeYourYear(year)),
+      const SizedBox(height: 4),
+      Row(children: [
+        HomeStat('${trips.length}', l10n.trips),
+        const SizedBox(width: 10),
+        HomeStat(l10n.achievementKm(km.roundToDouble()), l10n.homeTraveled),
+        const SizedBox(width: 10),
+        HomeStat('$days', l10n.homeDaysOut),
+      ]),
+    ];
+  }
+
+  Widget _publicRow(Trip t) => ExploreTripRow(
+        thumbnailUrl: t.thumbnailUrl,
+        title: Text(t.name),
+        subtitle: Row(children: [
+          Pill.status(context, t.status),
+          const SizedBox(width: 8),
+          Flexible(
+              child: Text('@${t.username}', overflow: TextOverflow.ellipsis)),
+        ]),
+        onTap: () => _push(TripDetailScreen(trip: t)),
+      );
+
+  void _openActivity(NotificationDto n) {
+    final rid = n.referenceId;
+    final trip = rid != null &&
+        (n.type == NotificationType.commentOnTrip ||
+            n.type == NotificationType.tripStatusChanged ||
+            n.type == NotificationType.tripUpdatePosted);
+    _push(trip
+        ? TripDeepLinkScreen(tripId: rid)
+        : const AndroidNotificationsScreen());
+  }
+
+  Future<void> _openBadges() async {
+    await AuthNavigationHelper.navigateToAchievements(context);
+    if (mounted) _load();
+  }
+
+  Future<void> _invite() async {
+    final l10n = context.l10n;
+    await Clipboard.setData(ClipboardData(
+        text: 'https://play.google.com/store/apps/details?id='
+            '${AndroidAppLinks.packageName}'));
+    Toasts.show(
+        ToastData(kind: ToastKind.success, title: l10n.homeInviteCopied));
   }
 }
 
