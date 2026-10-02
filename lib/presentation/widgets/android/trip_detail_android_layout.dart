@@ -11,6 +11,7 @@ import 'package:wanderer_frontend/presentation/helpers/weather_helpers.dart';
 import 'package:wanderer_frontend/presentation/strategies/mobile_layout_strategy.dart';
 import 'package:wanderer_frontend/presentation/strategies/trip_detail_layout_strategy.dart';
 import 'package:wanderer_frontend/presentation/helpers/update_markers.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_info_window.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_duration.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/trip_checkin_sheet.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
@@ -43,6 +44,9 @@ class TripDetailAndroidLayout extends StatefulWidget {
   final ValueChanged<TripLocation>? onFocusUpdate;
   final VoidCallback? onWholeRoute;
 
+  /// Closes the focused update's details (✕), keeping the map where it is.
+  final VoidCallback? onClearFocus;
+
   /// Map bottom padding: roughly the half sheet (canvas: 356).
   static const double mapBottomPadding = 360;
 
@@ -60,6 +64,7 @@ class TripDetailAndroidLayout extends StatefulWidget {
     this.focusedUpdate,
     this.onFocusUpdate,
     this.onWholeRoute,
+    this.onClearFocus,
   });
 
   @override
@@ -156,8 +161,9 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
       shadowColor: const Color(0x261B1A17),
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
+      // Details already show below; the card only steps.
       child: InkWell(
-        onTap: () => widget.onCheckInTap(u),
+        onTap: null,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
           child: Row(children: [
@@ -452,6 +458,35 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
                   ),
                 ),
               _buildSheet(context),
+              // The focused update's details sit over the dropped sheet, so
+              // switching points (‹ ›, rows, markers) updates them at once.
+              if (widget.focusedUpdate case final f?)
+                if (_detent != _Detent.full)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: PointerInterceptor(
+                      child: Material(
+                        key: const Key('trip_focus_details'),
+                        color: c.surface,
+                        elevation: 12,
+                        shadowColor: const Color(0x401B1A17),
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(28)),
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                              20, 16, 12, 16 + _bottomInset),
+                          child: UpdateDetails(
+                            key: ValueKey(f.id),
+                            location: f,
+                            large: true,
+                            onClose: widget.onClearFocus,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
             ],
           );
         }),

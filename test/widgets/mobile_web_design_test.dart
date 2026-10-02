@@ -207,6 +207,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(focused?.id, 'update');
     expect(find.byKey(const Key('trip_focus_card')), findsOneWidget);
+    // Its details show right away, no extra tap.
+    expect(find.byKey(const Key('trip_focus_details')), findsOneWidget);
     await tester.tap(find.byKey(const Key('trip_whole_route')));
     await tester.pumpAndSettle();
     expect(whole, 1);

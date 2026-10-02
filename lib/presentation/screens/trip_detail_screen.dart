@@ -1632,9 +1632,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
   void _onMapMarkerTapped(TripLocation location) {
     if (!_usesDesktopLayout) {
-      // Centre on it and open its details (the web popover's twin).
+      // Centre on it; the layout shows its details below.
       _focusUpdate(location);
-      showTripCheckInDetail(context, location);
       return;
     }
     setState(() {
@@ -3118,7 +3117,6 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
                       icon: UpdateMarkers.ring,
                       anchor: const Offset(0.5, 0.5),
                       zIndexInt: 3,
-                      consumeTapEvents: true,
                     ),
               },
               polylines: _polylines,
@@ -3151,6 +3149,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           focusedUpdate: _focusedUpdate,
           onFocusUpdate: _focusUpdate,
           onWholeRoute: _showWholeRoute,
+          onClearFocus: () => setState(() => _focusedUpdate = null),
           donationButton: _isPromoted && _donationLink != null
               ? _buildDonationButton()
               : null,
