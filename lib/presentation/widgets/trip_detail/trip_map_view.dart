@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/domain/trip_location.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_info_window.dart';
@@ -342,28 +342,28 @@ class _TripMapViewState extends State<TripMapView> {
             widget.onInfoWindowClosed != null &&
             _markerScreenPosition != null)
           Positioned(
-            // Place the bubble so its bottom-center is above the marker pin.
-            // Offset upward by ~48px to clear the marker icon.
-            left: _markerScreenPosition!.dx - 130,
-            top: _markerScreenPosition!.dy - 48,
-            child: Transform.translate(
-              offset: const Offset(0, -100),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CustomInfoWindow(
-                    location: widget.selectedLocation!,
-                    onClose: widget.onInfoWindowClosed!,
-                  ),
-                  // Small triangle/arrow pointing down
-                  CustomPaint(
-                    size: const Size(16, 8),
-                    painter: _TrianglePainter(
-                      color: _triangleColorForLocation(
-                          widget.selectedLocation!, context),
+            // Bottom-centre of the popover (its arrow) just above the
+            // marker, whatever the card's height.
+            left: _markerScreenPosition!.dx,
+            top: _markerScreenPosition!.dy - 22,
+            child: FractionalTranslation(
+              translation: const Offset(-0.5, -1),
+              child: PointerInterceptor(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CustomInfoWindow(
+                      location: widget.selectedLocation!,
+                      onClose: widget.onInfoWindowClosed!,
                     ),
-                  ),
-                ],
+                    // Arrow in the card colour, pointing at the marker.
+                    CustomPaint(
+                      size: const Size(16, 8),
+                      painter: _TrianglePainter(
+                          color: WandererTheme.of(context).surface),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -396,26 +396,6 @@ class _TripMapViewState extends State<TripMapView> {
           ),
       ],
     );
-  }
-
-  /// Returns the triangle arrow color matching the lifecycle marker accent,
-  /// or the info window background color for regular updates.
-  static Color _triangleColorForLocation(
-      TripLocation location, BuildContext context) {
-    switch (location.updateType) {
-      case TripUpdateType.tripStarted:
-        return WandererTheme.tripStartedColor;
-      case TripUpdateType.tripEnded:
-        return WandererTheme.tripEndedColor;
-      case TripUpdateType.dayStart:
-        return WandererTheme.dayStartColor;
-      case TripUpdateType.dayEnd:
-        return WandererTheme.dayEndColor;
-      default:
-        return Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF2C2C2C)
-            : Colors.white;
-    }
   }
 }
 
