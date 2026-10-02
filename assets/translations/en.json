@@ -1217,5 +1217,8 @@
   "homeFirstBadgeBody": "Start any trip to unlock it, even a walk around the block.",
   "homeInvite": "Invite",
   "homeInviteBody": "Trips are better with company. Invite a friend to follow along.",
-  "homeInviteCopied": "App link copied. Send it to a friend."
+  "homeInviteCopied": "App link copied. Send it to a friend.",
+  "tripWholeRoute": "Whole route",
+  "tripPreviousUpdate": "Previous update",
+  "tripNextUpdate": "Next update"
 }

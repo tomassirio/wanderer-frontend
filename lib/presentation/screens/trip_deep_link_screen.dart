@@ -17,7 +17,11 @@ import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 class TripDeepLinkScreen extends ConsumerStatefulWidget {
   final String tripId;
 
-  const TripDeepLinkScreen({super.key, required this.tripId});
+  /// Open centred on the latest update (check-in notifications).
+  final bool focusLatestUpdate;
+
+  const TripDeepLinkScreen(
+      {super.key, required this.tripId, this.focusLatestUpdate = false});
 
   @override
   ConsumerState<TripDeepLinkScreen> createState() => _TripDeepLinkScreenState();
@@ -46,7 +50,8 @@ class _TripDeepLinkScreenState extends ConsumerState<TripDeepLinkScreen> {
       final trip = await _tripService.getTripById(widget.tripId);
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          PageTransitions.slideFromRight(TripDetailScreen(trip: trip)),
+          PageTransitions.slideFromRight(TripDetailScreen(
+              trip: trip, focusLatestUpdate: widget.focusLatestUpdate)),
         );
       }
     } catch (e) {

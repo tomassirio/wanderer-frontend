@@ -1217,5 +1217,8 @@
   "homeFirstBadgeBody": "Start een willekeurige reis om hem te ontgrendelen, zelfs een rondje om het blok.",
   "homeInvite": "Uitnodigen",
   "homeInviteBody": "Reizen is leuker met gezelschap. Nodig een vriend uit om mee te kijken.",
-  "homeInviteCopied": "App-link gekopieerd. Stuur hem naar een vriend."
+  "homeInviteCopied": "App-link gekopieerd. Stuur hem naar een vriend.",
+  "tripWholeRoute": "Hele route",
+  "tripPreviousUpdate": "Vorige update",
+  "tripNextUpdate": "Volgende update"
 }

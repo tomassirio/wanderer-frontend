@@ -174,6 +174,42 @@ void main() {
         ),
       );
 
+  testWidgets('timeline tap focuses the update; whole route clears it',
+      (tester) async {
+    TripLocation? focused;
+    var whole = 0;
+    final d = data(owner: false);
+    await pump(
+        tester,
+        StatefulBuilder(
+          builder: (context, setState) => Scaffold(
+            body: TripDetailAndroidLayout(
+              mobileWeb: true,
+              data: d,
+              map: const ColoredBox(color: Colors.green),
+              onLogin: () {},
+              onCheckInTap: (_) {},
+              focusedUpdate: focused,
+              onFocusUpdate: (u) => setState(() => focused = u),
+              onWholeRoute: () => setState(() {
+                whole++;
+                focused = null;
+              }),
+            ),
+          ),
+        ),
+        size: const Size(412, 915));
+    expect(find.byKey(const Key('trip_focus_card')), findsNothing);
+    await tester.tap(find.text('Utrecht, Netherlands').first);
+    await tester.pumpAndSettle();
+    expect(focused?.id, 'update');
+    expect(find.byKey(const Key('trip_focus_card')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('trip_whole_route')));
+    await tester.pumpAndSettle();
+    expect(whole, 1);
+    expect(find.byKey(const Key('trip_focus_card')), findsNothing);
+  });
+
   test('trip desktop breakpoint includes the navigation rail', () {
     for (final width in [320.0, 719.0, 720.0, 960.0, 1024.0, 1031.0]) {
       expect(WebTripDetailLayout.fitsViewport(width), isFalse,

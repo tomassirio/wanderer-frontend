@@ -1217,5 +1217,8 @@
   "homeFirstBadgeBody": "Démarrez n'importe quel voyage pour le débloquer, même un tour du quartier.",
   "homeInvite": "Inviter",
   "homeInviteBody": "Les voyages sont meilleurs à plusieurs. Invitez un ami à vous suivre.",
-  "homeInviteCopied": "Lien de l'app copié. Envoyez-le à un ami."
+  "homeInviteCopied": "Lien de l'app copié. Envoyez-le à un ami.",
+  "tripWholeRoute": "Tout l'itinéraire",
+  "tripPreviousUpdate": "Mise à jour précédente",
+  "tripNextUpdate": "Mise à jour suivante"
 }

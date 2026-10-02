@@ -1217,5 +1217,8 @@
   "homeFirstBadgeBody": "Empieza cualquier viaje para desbloquearla, aunque sea una vuelta a la manzana.",
   "homeInvite": "Invitar",
   "homeInviteBody": "Los viajes son mejores acompañado. Invita a un amigo a seguirte.",
-  "homeInviteCopied": "Enlace de la app copiado. Envíaselo a un amigo."
+  "homeInviteCopied": "Enlace de la app copiado. Envíaselo a un amigo.",
+  "tripWholeRoute": "Ruta completa",
+  "tripPreviousUpdate": "Actualización anterior",
+  "tripNextUpdate": "Siguiente actualización"
 }

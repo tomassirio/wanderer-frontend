@@ -232,8 +232,13 @@ class _AndroidNotificationsScreenState
       case NotificationType.tripStatusChanged:
       case NotificationType.tripUpdatePosted:
         if (rid != null) {
-          Navigator.push(context,
-              PageTransitions.slideUp(TripDeepLinkScreen(tripId: rid)));
+          // Check-ins open the trip centred on where they happened.
+          Navigator.push(
+              context,
+              PageTransitions.slideUp(TripDeepLinkScreen(
+                  tripId: rid,
+                  focusLatestUpdate:
+                      n.type == NotificationType.tripUpdatePosted)));
         }
       case NotificationType.replyToComment:
       case NotificationType.commentReaction:

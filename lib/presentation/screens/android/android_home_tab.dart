@@ -685,7 +685,9 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
             n.type == NotificationType.tripStatusChanged ||
             n.type == NotificationType.tripUpdatePosted);
     _push(trip
-        ? TripDeepLinkScreen(tripId: rid)
+        ? TripDeepLinkScreen(
+            tripId: rid,
+            focusLatestUpdate: n.type == NotificationType.tripUpdatePosted)
         : const AndroidNotificationsScreen());
   }
 

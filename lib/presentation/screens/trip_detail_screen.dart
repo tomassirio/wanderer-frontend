@@ -25,6 +25,7 @@ import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/core/services/background_update_manager.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_map_helper.dart';
+import 'package:wanderer_frontend/presentation/helpers/update_markers.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/background_location_disclosure.dart';
@@ -57,7 +58,11 @@ import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 class TripDetailScreen extends ConsumerStatefulWidget {
   final Trip trip;
 
-  const TripDetailScreen({super.key, required this.trip});
+  /// Open centred on the latest update (e.g. from a check-in notification).
+  final bool focusLatestUpdate;
+
+  const TripDetailScreen(
+      {super.key, required this.trip, this.focusLatestUpdate = false});
 
   @override
   ConsumerState<TripDetailScreen> createState() => _TripDetailScreenState();
@@ -87,6 +92,10 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   static const int _commentPageSize = 20;
 
   List<TripLocation> _tripUpdates = [];
+
+  /// Android / mobile web: the update the map is centred on (ring + card).
+  TripLocation? _focusedUpdate;
+  bool _focusedLatestOnce = false;
   bool _isLoadingUpdates = false;
   int _currentUpdatesPage = 0;
   bool _hasMoreUpdates = false;
@@ -1470,6 +1479,13 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         _hasMoreUpdates = !pageResponse.last;
         _isLoadingUpdates = false;
       });
+      if (widget.focusLatestUpdate &&
+          !_focusedLatestOnce &&
+          _tripUpdates.isNotEmpty) {
+        _focusedLatestOnce = true;
+        await _mapControllerCompleter.future;
+        if (mounted) _focusUpdate(_tripUpdates.first);
+      }
     } catch (e) {
       setState(() => _isLoadingUpdates = false);
       debugPrint(
@@ -1619,7 +1635,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
   void _onMapMarkerTapped(TripLocation location) {
     if (!_usesDesktopLayout) {
-      showTripCheckInDetail(context, location);
+      _focusUpdate(location);
       return;
     }
     setState(() {
@@ -2791,6 +2807,49 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   /// Handle tap on a timeline update - animate map to that location
   /// Ignores lifecycle markers (Day Started/Ended, Trip Started/Ended) since
   /// they have no real location.
+  /// Where an update sits on the map: its marker (lifecycle updates without
+  /// coordinates get a fallback spot there), else its own coordinates.
+  LatLng? _positionOf(TripLocation u) {
+    for (final m in _markers) {
+      if (m.markerId.value == u.id) return m.position;
+    }
+    return u.hasLocation ? LatLng(u.latitude, u.longitude) : null;
+  }
+
+  /// Android / mobile web: centre the map on [u] with a ring and a card.
+  void _focusUpdate(TripLocation u) {
+    setState(() => _focusedUpdate = u);
+    final at = _positionOf(u);
+    if (at != null) _animateMapToLocation(at, zoom: 14);
+  }
+
+  /// "Whole route": drop the focus and fit every update on screen.
+  void _showWholeRoute() {
+    setState(() => _focusedUpdate = null);
+    final points = _markers
+        .where((m) => !m.markerId.value.startsWith('planned_'))
+        .map((m) => m.position)
+        .toList();
+    if (_mapController == null || points.isEmpty) return;
+    if (points.length == 1) {
+      _animateMapToLocation(points.first, zoom: 13);
+      return;
+    }
+    double minLat = points.first.latitude, maxLat = minLat;
+    double minLng = points.first.longitude, maxLng = minLng;
+    for (final p in points) {
+      if (p.latitude < minLat) minLat = p.latitude;
+      if (p.latitude > maxLat) maxLat = p.latitude;
+      if (p.longitude < minLng) minLng = p.longitude;
+      if (p.longitude > maxLng) maxLng = p.longitude;
+    }
+    _mapController!.animateCamera(CameraUpdate.newLatLngBounds(
+        LatLngBounds(
+            southwest: LatLng(minLat, minLng),
+            northeast: LatLng(maxLat, maxLng)),
+        64));
+  }
+
   void _handleTimelineUpdateTap(TripLocation update) {
     // Zoom to the update location on the map (for all update types)
     // For lifecycle markers without real location, use fallback coordinates
@@ -3048,7 +3107,19 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
                   userLocation: _userLocation),
               initialZoom: TripMapHelper.getInitialZoom(_trip,
                   userLocation: _userLocation),
-              markers: _markers,
+              markers: {
+                ..._markers,
+                if (_focusedUpdate case final f?)
+                  if (_positionOf(f) case final at?)
+                    Marker(
+                      markerId: const MarkerId('focus_ring'),
+                      position: at,
+                      icon: UpdateMarkers.ring,
+                      anchor: const Offset(0.5, 0.5),
+                      zIndexInt: 3,
+                      consumeTapEvents: true,
+                    ),
+              },
               polylines: _polylines,
               onMapCreated: (controller) {
                 _mapController = controller;
@@ -3079,10 +3150,10 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           onLogin: _navigateToAuth,
           onCenterOnMe:
               isOwner && !mobileWeb ? _centerMapOnCurrentLocation : null,
-          onCheckInTap: (u) {
-            _handleTimelineUpdateTap(u);
-            showTripCheckInDetail(context, u);
-          },
+          onCheckInTap: (u) => showTripCheckInDetail(context, u),
+          focusedUpdate: _focusedUpdate,
+          onFocusUpdate: _focusUpdate,
+          onWholeRoute: _showWholeRoute,
           donationButton: _isPromoted && _donationLink != null
               ? _buildDonationButton()
               : null,

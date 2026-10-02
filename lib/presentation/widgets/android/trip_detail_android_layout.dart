@@ -9,6 +9,8 @@ import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.da
 import 'package:wanderer_frontend/presentation/helpers/weather_helpers.dart';
 import 'package:wanderer_frontend/presentation/strategies/mobile_layout_strategy.dart';
 import 'package:wanderer_frontend/presentation/strategies/trip_detail_layout_strategy.dart';
+import 'package:wanderer_frontend/presentation/helpers/update_markers.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_duration.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/trip_checkin_sheet.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
@@ -34,6 +36,12 @@ class TripDetailAndroidLayout extends StatefulWidget {
   final ValueChanged<TripLocation> onCheckInTap;
   final Widget? donationButton;
 
+  /// Update the map is centred on: shows its card with ‹ › and drops the
+  /// sheet. Rows and markers call [onFocusUpdate]; "Whole route" clears it.
+  final TripLocation? focusedUpdate;
+  final ValueChanged<TripLocation>? onFocusUpdate;
+  final VoidCallback? onWholeRoute;
+
   /// Map bottom padding: roughly the half sheet (canvas: 356).
   static const double mapBottomPadding = 360;
 
@@ -54,6 +62,9 @@ class TripDetailAndroidLayout extends StatefulWidget {
     this.controls,
     this.onCenterOnMe,
     this.donationButton,
+    this.focusedUpdate,
+    this.onFocusUpdate,
+    this.onWholeRoute,
   });
 
   @override
@@ -79,6 +90,7 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
   double _maxHeight = 0;
   bool _dragging = false;
   final _expandedGroups = <String>{};
+  final _mobileSheetCtl = DraggableScrollableController();
 
   TripDetailLayoutData get _d => widget.data;
   Trip get _trip => _d.trip;
@@ -103,7 +115,96 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
   @override
   void dispose() {
     _sheet.dispose();
+    _mobileSheetCtl.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(TripDetailAndroidLayout old) {
+    super.didUpdateWidget(old);
+    final f = widget.focusedUpdate;
+    if (f == null || f.id == old.focusedUpdate?.id) return;
+    // The sheet drops so the map is visible.
+    if (!_mobileWeb) {
+      _snapTo(_Detent.collapsed);
+    } else if (_mobileSheetCtl.isAttached) {
+      _mobileSheetCtl.animateTo(0.12,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic);
+    }
+  }
+
+  /// Timeline row / marker tap: centre the map there, else open the detail.
+  void _tapUpdate(TripLocation u) => widget.onFocusUpdate != null
+      ? widget.onFocusUpdate!(u)
+      : widget.onCheckInTap(u);
+
+  /// Updates oldest first, for the card's ‹ › steps.
+  List<TripLocation> get _chronological =>
+      [..._d.tripUpdates]..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+  Widget _focusCard(BuildContext context, TripLocation u) {
+    final c = WandererTheme.of(context);
+    final l10n = context.l10n;
+    final list = _chronological;
+    final i = list.indexWhere((x) => x.id == u.id);
+    final place = tripCheckInPlace(u);
+    final when = DateFormat(
+            'EEE d MMM · HH:mm', Localizations.localeOf(context).toString())
+        .format(u.timestamp.toLocal());
+    Widget step(IconData icon, String label, TripLocation? to) => SizedBox(
+          width: 44,
+          height: 44,
+          child: IconButton(
+            tooltip: label,
+            onPressed: to == null ? null : () => widget.onFocusUpdate!(to),
+            style: IconButton.styleFrom(side: BorderSide(color: c.line)),
+            icon: Icon(icon, size: 20),
+          ),
+        );
+    return Material(
+      key: const Key('trip_focus_card'),
+      color: c.surface,
+      elevation: 4,
+      shadowColor: const Color(0x261B1A17),
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => widget.onCheckInTap(u),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+          child: Row(children: [
+            UpdateDot(updateKind(u)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(tripCheckInKind(l10n, u),
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: tripCheckInColor(c, u))),
+                  Text(place.isEmpty ? u.displayLocation : place,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: c.text)),
+                  Text(when, style: TextStyle(fontSize: 12, color: c.caption)),
+                ],
+              ),
+            ),
+            step(Icons.chevron_left, l10n.tripPreviousUpdate,
+                i > 0 ? list[i - 1] : null),
+            const SizedBox(width: 6),
+            step(Icons.chevron_right, l10n.tripNextUpdate,
+                i >= 0 && i < list.length - 1 ? list[i + 1] : null),
+          ]),
+        ),
+      ),
+    );
   }
 
   double get _bottomInset => MediaQuery.paddingOf(context).bottom;
@@ -288,6 +389,31 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
                     label: MaterialLocalizations.of(context).backButtonTooltip,
                     onTap: () => Navigator.of(context).maybePop(),
                   ),
+                  if (widget.focusedUpdate != null &&
+                      widget.onWholeRoute != null) ...[
+                    const SizedBox(width: 10),
+                    Material(
+                      color: c.surface,
+                      elevation: 4,
+                      shadowColor: const Color(0x261B1A17),
+                      shape: const StadiumBorder(),
+                      child: InkWell(
+                        key: const Key('trip_whole_route'),
+                        customBorder: const StadiumBorder(),
+                        onTap: widget.onWholeRoute,
+                        child: Container(
+                          height: 48,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          alignment: Alignment.center,
+                          child: Text(l10n.tripWholeRoute,
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: c.text)),
+                        ),
+                      ),
+                    ),
+                  ],
                   const Spacer(),
                   _RoundButton(
                     key: _d.shareButtonKey,
@@ -307,6 +433,14 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
                   ],
                 ]),
               ),
+              if (widget.focusedUpdate case final f?)
+                if (_mobileWeb || _detent != _Detent.full)
+                  Positioned(
+                    top: top + 60,
+                    left: 16,
+                    right: 16,
+                    child: _focusCard(context, f),
+                  ),
               // Rides on top of the sheet (canvas: sheet + 20); the full
               // sheet covers the map, so it goes away there.
               if (widget.onCenterOnMe != null)
@@ -383,6 +517,7 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
     final initialSize = TripDetailAndroidLayout.mobileSheetFraction(
         isOwner: _isOwner, status: _trip.status);
     return DraggableScrollableSheet(
+      controller: _mobileSheetCtl,
       initialChildSize: initialSize,
       minChildSize: 0.12,
       maxChildSize: 1,
@@ -890,20 +1025,16 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
     final km =
         NumberFormat.decimalPatternDigits(locale: locale, decimalDigits: 1)
             .format(_trip.accruedDistanceKm ?? 0);
-    final start = _trip.startDate;
-    final span = start == null
-        ? null
-        : (_trip.endDate ?? DateTime.now()).difference(start);
-    final (String, String) time = span == null
-        ? (l10n.categoryDuration, '—')
-        : span.inHours < 24
-            ? (
-                l10n.tripStatTime,
-                l10n.tripHoursMinutes(span.inHours, span.inMinutes % 60)
-              )
-            : (l10n.categoryDuration, l10n.daysCount(span.inDays + 1));
-    final distance = (l10n.categoryDistance, l10n.kmValue(km));
-    final updates = (
+    final span = tripSpan(_trip, _d.tripUpdates);
+    final start = span.start;
+    final (String, Object) time = (
+      _trip.tripModality == TripModality.multiDay
+          ? l10n.categoryDuration
+          : l10n.tripStatTime,
+      TripDurationText(trip: _trip, updates: _d.tripUpdates),
+    );
+    final (String, Object) distance = (l10n.categoryDistance, l10n.kmValue(km));
+    final (String, Object) updates = (
       l10n.tripStatCheckIns,
       '${_trip.updateCount ?? _d.tripUpdates.length}${_d.hasMoreUpdates ? '+' : ''}'
     );
@@ -912,7 +1043,7 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
             distance,
             (
               l10n.mobileWebDays,
-              '${_trip.currentDay ?? (span == null ? 0 : span.inDays + 1)}'
+              '${_trip.currentDay ?? (start == null ? 0 : DateTime.now().difference(start).inDays + 1)}'
             ),
             (l10n.comments, '${_trip.commentsCount}')
           ]
@@ -933,13 +1064,15 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
               children: [
                 Text(stats[i].$1,
                     style: TextStyle(fontSize: 12, color: c.caption)),
-                Text(stats[i].$2,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: c.text)),
+                DefaultTextStyle.merge(
+                  style: TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w700, color: c.text),
+                  child: switch (stats[i].$2) {
+                    final Widget w => w,
+                    final v =>
+                      Text('$v', maxLines: 1, overflow: TextOverflow.ellipsis),
+                  },
+                ),
               ],
             ),
           ),
@@ -1007,13 +1140,17 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
     }
 
     Widget row(TripLocation u, {double indent = 0}) => InkWell(
-          onTap: () => widget.onCheckInTap(u),
+          onTap: () => _tapUpdate(u),
           child: Padding(
             padding: EdgeInsets.fromLTRB(20 + indent, 14, 20, 14),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _dot(tripCheckInColor(c, u)),
+                Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: SizedBox(
+                        width: 18,
+                        child: Center(child: UpdateDot(updateKind(u))))),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -1087,7 +1224,11 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _dot(tripCheckInColor(c, latest)),
+                Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: SizedBox(
+                        width: 18,
+                        child: Center(child: UpdateDot(updateKind(latest))))),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -1197,13 +1338,6 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
         isReplyMode: _d.replyingToCommentId != null,
         onSend: _d.onSendComment,
         onCancelReply: _d.onCancelReply,
-      );
-
-  Widget _dot(Color color) => Container(
-        width: 10,
-        height: 10,
-        margin: const EdgeInsets.only(top: 5),
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       );
 
   Widget _battery(WandererColors c, int battery) => Text('$battery%',
