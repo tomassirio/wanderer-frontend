@@ -1632,7 +1632,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
   void _onMapMarkerTapped(TripLocation location) {
     if (!_usesDesktopLayout) {
+      // Centre on it and open its details (the web popover's twin).
       _focusUpdate(location);
+      showTripCheckInDetail(context, location);
       return;
     }
     setState(() {

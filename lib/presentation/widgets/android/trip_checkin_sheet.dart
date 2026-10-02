@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
@@ -10,10 +7,9 @@ import 'package:wanderer_frontend/presentation/helpers/update_markers.dart';
 
 export 'package:wanderer_frontend/presentation/helpers/update_markers.dart'
     show isAutoCheckIn;
-import 'package:wanderer_frontend/presentation/helpers/weather_helpers.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_info_window.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/trip_state_controls.dart';
-import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_sheet.dart';
 
 /// The user's own message, never the automatic placeholder or event text.
@@ -89,146 +85,13 @@ Color tripCheckInColor(WandererColors c, TripLocation u) =>
       TripUpdateType.dayEnd => c.restingFg,
     };
 
-/// Check-in detail (canvas AndroidUpdate): place, date, weather, battery,
-/// type, message, and copy / open-in-maps actions.
-Future<void> showTripCheckInDetail(BuildContext context, TripLocation u) {
-  final l10n = context.l10n;
-  final c = WandererTheme.of(context);
-  final locale = Localizations.localeOf(context).toString();
-  final when = u.timestamp.toLocal();
-  final date =
-      '${DateFormat.MMMEd(locale).add_y().format(when)} · ${DateFormat.Hm(locale).format(when)}';
-  final mapsUrl =
-      'https://www.google.com/maps/search/?api=1&query=${u.latitude},${u.longitude}';
-
-  Widget tile(String label, String value, String? sub, {Color? valueColor}) =>
-      Expanded(
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-              color: c.raised, borderRadius: BorderRadius.circular(14)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: TextStyle(fontSize: 12, color: c.caption)),
-              const SizedBox(height: 2),
-              Text(value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: valueColor ?? c.text)),
-              if (sub != null)
-                Text(sub,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 12, color: c.caption)),
-            ],
-          ),
-        ),
-      );
-
-  final tiles = <Widget>[
-    if (u.temperatureCelsius != null || u.weatherCondition != null)
-      tile(
-        l10n.tripWeather,
-        u.temperatureCelsius != null
-            ? WeatherHelpers.formatTemperature(u.temperatureCelsius!)
-            : '—',
-        u.weatherCondition != null
-            ? WeatherHelpers.getWeatherLabel(u.weatherCondition!)
-            : null,
-      ),
-    if (u.battery != null)
-      tile(
-        l10n.tripBattery,
-        '${u.battery}%',
-        u.battery! >= 30 ? l10n.tripBatteryGood : l10n.tripBatteryLow,
-        valueColor: u.battery! >= 30 ? c.forestFg : const Color(0xFFB42318),
-      ),
-    tile(l10n.tripCheckInType, tripCheckInKind(l10n, u), null),
-  ];
-
-  return showWandererSheet<void>(
-    context,
-    builder: (ctx) => Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                  color: c.skyBg, borderRadius: BorderRadius.circular(14)),
-              child: Icon(Icons.place_outlined,
-                  color: tripCheckInColor(c, u), size: 24),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(tripCheckInTitle(l10n, u),
-                      style: WandererTheme.display(22, color: c.text)),
-                  const SizedBox(height: 2),
-                  Text(date,
-                      style: TextStyle(fontSize: 14, color: c.textMuted)),
-                ],
-              ),
-            ),
-          ],
-        ),
-        if (tripCheckInMessage(u) case final message?) ...[
-          const SizedBox(height: 16),
-          Text(message,
-              style: TextStyle(fontSize: 15, height: 1.45, color: c.text)),
-        ],
-        const SizedBox(height: 16),
-        // Tiles share the tallest one's height.
-        IntrinsicHeight(
-          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            for (var i = 0; i < tiles.length; i++) ...[
-              if (i > 0) const SizedBox(width: 8),
-              tiles[i],
-            ],
-          ]),
-        ),
-        if (u.hasLocation) ...[
-          const SizedBox(height: 16),
-          Row(children: [
-            Expanded(
-              child: TripSheetButton(
-                label: l10n.tripCopyLocation,
-                background: c.surface,
-                foreground: c.text,
-                border: c.line,
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: mapsUrl));
-                  Toasts.show(ToastData(
-                      kind: ToastKind.success, title: l10n.tripLocationCopied));
-                },
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TripSheetButton(
-                label: l10n.tripOpenInMaps,
-                background: c.neutralButtonBg,
-                foreground: c.neutralButtonFg,
-                onPressed: () => launchUrl(Uri.parse(mapsUrl),
-                    mode: LaunchMode.externalApplication),
-              ),
-            ),
-          ]),
-        ],
-      ],
-    ),
-  );
-}
+/// Check-in detail sheet on Android and mobile web: the same contents as
+/// the web map popover ([UpdateDetails]), sized for the sheet.
+Future<void> showTripCheckInDetail(BuildContext context, TripLocation u) =>
+    showWandererSheet<void>(
+      context,
+      builder: (ctx) => UpdateDetails(location: u, large: true),
+    );
 
 /// Check-in composer: optional message, one orange button. Returns null when
 /// dismissed, otherwise the (possibly empty) message.

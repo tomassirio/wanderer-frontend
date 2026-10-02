@@ -9,12 +9,12 @@ import 'package:wanderer_frontend/presentation/helpers/battery_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/update_markers.dart';
 import 'package:wanderer_frontend/presentation/helpers/weather_helpers.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/trip_checkin_sheet.dart';
+import 'package:wanderer_frontend/presentation/widgets/android/trip_state_controls.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 
-/// Web map point popover (canvas "Map popover"): a 300dp card whose top
-/// edge and chip take the marker kind's colour, place and time, distance /
-/// weather / battery tiles, the traveler's note and Maps / copy actions.
-/// The arrow below points at the marker.
+/// Web map point popover (canvas "Map popover"): [UpdateDetails] in a
+/// 300dp card whose top edge takes the marker kind's colour. The arrow
+/// below it (drawn by the map) points at the marker.
 class CustomInfoWindow extends StatelessWidget {
   final TripLocation location;
   final VoidCallback onClose;
@@ -46,11 +46,49 @@ class CustomInfoWindow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = WandererTheme.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final accent = accentOf(updateKind(location), dark: dark);
+    return Material(
+      color: c.surface,
+      elevation: 10,
+      shadowColor: Colors.black.withValues(alpha: dark ? 0.6 : 0.3),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: c.line),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        width: width,
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: accent, width: 4)),
+        ),
+        padding: const EdgeInsets.fromLTRB(14, 10, 6, 14),
+        child: UpdateDetails(location: location, onClose: onClose),
+      ),
+    );
+  }
+}
+
+/// What a trip update says, shared by the web popover and the Android /
+/// mobile web check-in sheet: a type chip in the kind's colour, place and
+/// time, distance / weather / battery tiles, the traveler's note and
+/// Maps / copy actions. [large] is the sheet's size.
+class UpdateDetails extends StatelessWidget {
+  final TripLocation location;
+  final VoidCallback? onClose;
+  final bool large;
+
+  const UpdateDetails(
+      {super.key, required this.location, this.onClose, this.large = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final u = location;
     final kind = updateKind(u);
-    final accent = accentOf(kind, dark: dark);
+    final accent = CustomInfoWindow.accentOf(kind, dark: dark);
     final locale = Localizations.localeOf(context).toString();
     final when = u.timestamp.toLocal();
     final time = '${DateFormat('EEE d MMM y', locale).format(when)} · '
@@ -66,6 +104,9 @@ class CustomInfoWindow extends StatelessWidget {
     final mapsUrl =
         'https://www.google.com/maps/search/?api=1&query=${u.latitude},${u.longitude}';
     final battery = u.battery;
+    final weather = u.weatherCondition;
+    // Content lines up with the tiles; the popover's ✕ sits in its padding.
+    final right = onClose == null ? 0.0 : 8.0;
 
     Widget tile(String caption, String value,
             {Color? valueColor,
@@ -76,19 +117,22 @@ class CustomInfoWindow extends StatelessWidget {
           child: Tooltip(
             message: sub ?? '',
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: EdgeInsets.symmetric(
+                  horizontal: large ? 12 : 10, vertical: large ? 10 : 8),
               decoration: BoxDecoration(
-                  color: c.raised, borderRadius: BorderRadius.circular(10)),
+                  color: c.raised,
+                  borderRadius: BorderRadius.circular(large ? 14 : 10)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(caption,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 11, color: c.caption)),
+                      style: TextStyle(
+                          fontSize: large ? 12 : 11, color: c.caption)),
                   Row(children: [
                     if (icon != null) ...[
-                      Icon(icon, size: 15, color: iconColor),
+                      Icon(icon, size: large ? 17 : 15, color: iconColor),
                       const SizedBox(width: 4),
                     ],
                     Flexible(
@@ -96,7 +140,7 @@ class CustomInfoWindow extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                              fontSize: 14,
+                              fontSize: large ? 16 : 14,
                               fontWeight: FontWeight.w700,
                               color: valueColor ?? c.text)),
                     ),
@@ -108,14 +152,26 @@ class CustomInfoWindow extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            fontSize: 11, height: 1.25, color: c.caption)),
+                            fontSize: large ? 12 : 11,
+                            height: 1.25,
+                            color: c.caption)),
                 ],
               ),
             ),
           ),
         );
 
-    Widget action(IconData icon, String text, VoidCallback onTap) => Expanded(
+    Future<void> copy() async {
+      await Clipboard.setData(ClipboardData(text: mapsUrl));
+      Toasts.show(
+          ToastData(kind: ToastKind.success, title: l10n.tripLocationCopied));
+    }
+
+    void open() =>
+        launchUrl(Uri.parse(mapsUrl), mode: LaunchMode.externalApplication);
+
+    Widget smallAction(IconData icon, String text, VoidCallback onTap) =>
+        Expanded(
           child: SizedBox(
             height: 38,
             child: OutlinedButton.icon(
@@ -135,78 +191,72 @@ class CustomInfoWindow extends StatelessWidget {
           ),
         );
 
+    final batteryColor = battery == null
+        ? null
+        : battery < 20
+            ? (dark ? const Color(0xFFF4A39A) : const Color(0xFFB42318))
+            : c.forestFg;
+
     return Semantics(
       container: true,
       label: '$label · ${place.isEmpty ? u.displayLocation : place}',
-      child: Material(
-        color: c.surface,
-        elevation: 10,
-        shadowColor: Colors.black.withValues(alpha: dark ? 0.6 : 0.3),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: c.line),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Container(
-          width: width,
-          decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: accent, width: 4)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 10, 6, 0),
-                child: Row(children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: dark
-                          ? Colors.white.withValues(alpha: 0.06)
-                          : accent.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(kind.icon ?? Icons.place_outlined,
-                          size: 15, color: accent),
-                      const SizedBox(width: 6),
-                      Text(label,
-                          style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: accent)),
-                    ]),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    tooltip: MaterialLocalizations.of(context).closeButtonLabel,
-                    onPressed: onClose,
-                    visualDensity: VisualDensity.compact,
-                    icon: Icon(Icons.close, size: 16, color: c.caption),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(children: [
+            Flexible(
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: large ? 12 : 10, vertical: large ? 5 : 4),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: dark ? 0.16 : 0.10),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(kind.icon ?? Icons.place_outlined,
+                      size: large ? 17 : 15, color: accent),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: large ? 13 : 12,
+                            fontWeight: FontWeight.w700,
+                            color: accent)),
                   ),
                 ]),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 4, 14, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(place.isEmpty ? u.displayLocation : place,
-                        style: TextStyle(
+            ),
+            const Spacer(),
+            if (onClose != null)
+              IconButton(
+                tooltip: MaterialLocalizations.of(context).closeButtonLabel,
+                onPressed: onClose,
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.close, size: 16, color: c.caption),
+              ),
+          ]),
+          SizedBox(height: large ? 10 : 4),
+          Padding(
+            padding: EdgeInsets.only(right: right),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(place.isEmpty ? u.displayLocation : place,
+                    style: large
+                        ? WandererTheme.display(22, color: c.text)
+                        : TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w700,
                             color: c.text)),
-                    const SizedBox(height: 2),
-                    Text(time,
-                        style: TextStyle(fontSize: 13, color: c.caption)),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
-                child: IntrinsicHeight(
+                const SizedBox(height: 2),
+                Text(time,
+                    style:
+                        TextStyle(fontSize: large ? 14 : 13, color: c.caption)),
+                SizedBox(height: large ? 16 : 12),
+                IntrinsicHeight(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -216,36 +266,27 @@ class CustomInfoWindow extends StatelessWidget {
                               ? '—'
                               : l10n.kmValue(
                                   u.distanceSoFarKm!.toStringAsFixed(1))),
-                      const SizedBox(width: 6),
+                      SizedBox(width: large ? 8 : 6),
                       tile(
                         l10n.tripWeather,
                         u.temperatureCelsius == null
                             ? '—'
                             : WeatherHelpers.formatTemperature(
                                 u.temperatureCelsius!),
-                        icon: u.weatherCondition == null
+                        icon: weather == null
                             ? null
-                            : WeatherHelpers.getWeatherIcon(
-                                u.weatherCondition!),
-                        iconColor: u.weatherCondition == null
+                            : WeatherHelpers.getWeatherIcon(weather),
+                        iconColor: weather == null
                             ? null
-                            : WeatherHelpers.getWeatherColor(
-                                u.weatherCondition!),
-                        sub: u.weatherCondition == null
+                            : WeatherHelpers.getWeatherColor(weather),
+                        sub: weather == null
                             ? null
-                            : WeatherHelpers.getWeatherLabel(
-                                u.weatherCondition!),
+                            : WeatherHelpers.getWeatherLabel(weather),
                       ),
-                      const SizedBox(width: 6),
+                      SizedBox(width: large ? 8 : 6),
                       tile(
                           l10n.tripBattery, battery == null ? '—' : '$battery%',
-                          valueColor: battery == null
-                              ? null
-                              : battery < 20
-                                  ? (dark
-                                      ? const Color(0xFFF4A39A)
-                                      : const Color(0xFFB42318))
-                                  : c.forestFg,
+                          valueColor: batteryColor,
                           icon: battery == null
                               ? null
                               : BatteryHelpers.getBatteryIcon(battery),
@@ -255,45 +296,59 @@ class CustomInfoWindow extends StatelessWidget {
                     ],
                   ),
                 ),
-              ),
-              if (note != null)
-                Container(
-                  margin: const EdgeInsets.fromLTRB(14, 10, 14, 0),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: c.raised,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border(left: BorderSide(color: accent, width: 3)),
+                if (note != null)
+                  Container(
+                    margin: EdgeInsets.only(top: large ? 12 : 10),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: c.raised,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border(left: BorderSide(color: accent, width: 3)),
+                    ),
+                    child: Text('“$note”',
+                        style: TextStyle(
+                            fontSize: large ? 15 : 14,
+                            height: 1.4,
+                            color: c.text)),
                   ),
-                  child: Text('“$note”',
-                      style:
-                          TextStyle(fontSize: 14, height: 1.4, color: c.text)),
-                ),
-              if (u.hasLocation)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                  child: Row(children: [
-                    action(
-                        Icons.open_in_new,
-                        l10n.tripOpenInMaps,
-                        () => launchUrl(Uri.parse(mapsUrl),
-                            mode: LaunchMode.externalApplication)),
-                    const SizedBox(width: 8),
-                    action(Icons.copy_outlined, l10n.tripCopyLocation,
-                        () async {
-                      await Clipboard.setData(ClipboardData(text: mapsUrl));
-                      Toasts.show(ToastData(
-                          kind: ToastKind.success,
-                          title: l10n.tripLocationCopied));
-                    }),
-                  ]),
-                )
-              else
-                const SizedBox(height: 14),
-            ],
+                if (u.hasLocation) ...[
+                  SizedBox(height: large ? 16 : 12),
+                  if (large)
+                    Row(children: [
+                      Expanded(
+                        child: TripSheetButton(
+                          label: l10n.tripCopyLocation,
+                          icon: Icons.copy_outlined,
+                          background: c.surface,
+                          foreground: c.text,
+                          border: c.line,
+                          onPressed: copy,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TripSheetButton(
+                          label: l10n.tripOpenInMaps,
+                          icon: Icons.open_in_new,
+                          background: c.neutralButtonBg,
+                          foreground: c.neutralButtonFg,
+                          onPressed: open,
+                        ),
+                      ),
+                    ])
+                  else
+                    Row(children: [
+                      smallAction(Icons.open_in_new, l10n.tripOpenInMaps, open),
+                      const SizedBox(width: 8),
+                      smallAction(
+                          Icons.copy_outlined, l10n.tripCopyLocation, copy),
+                    ]),
+                ],
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
