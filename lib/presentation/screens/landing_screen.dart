@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
+import 'package:wanderer_frontend/presentation/widgets/landing/landing_hero.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
@@ -34,6 +36,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
   final _exploreKey = GlobalKey();
   final _aboutKey = GlobalKey();
   List<Trip> _featured = const [];
+  bool _featuredFailed = false;
 
   @override
   void initState() {
@@ -47,9 +50,15 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
           await ref.read(tripServiceProvider).getPublicTrips(page: 0, size: 6);
       final trips = [...page.content]
         ..sort((a, b) => (b.isPromoted ? 1 : 0) - (a.isPromoted ? 1 : 0));
-      if (mounted) setState(() => _featured = trips.take(2).toList());
-    } catch (_) {
-      // The section still shows its call-to-action card.
+      if (mounted) {
+        setState(() {
+          _featured = trips.take(2).toList();
+          _featuredFailed = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Featured trips failed: $e');
+      if (mounted) setState(() => _featuredFailed = true);
     }
   }
 
@@ -96,12 +105,14 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
         final w = constraints.maxWidth;
         final gutter = w >= 1200 ? 120.0 : (w >= 720 ? 40.0 : 16.0);
         final wide = w >= 960;
+        final compact = w < AdaptiveLayout.desktopBreakpoint;
         return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildHeader(context, gutter, wide),
-              _buildHero(context, gutter, wide),
+              _buildHeader(context, gutter, w - 2 * gutter >= 1100,
+                  compact: compact),
+              _buildHero(context, gutter, wide, compact: compact),
               _buildFeatures(context, gutter, wide),
               _buildFeatured(context, gutter, wide),
               _buildFooter(context, gutter),
@@ -112,7 +123,14 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, double gutter, bool wide) {
+  Widget _buildHeader(BuildContext context, double gutter, bool wide,
+      {required bool compact}) {
+    if (compact) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: gutter, vertical: 12),
+        child: const LandingBrandHeader(),
+      );
+    }
     final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final link =
@@ -170,41 +188,34 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
     );
   }
 
-  Widget _buildHero(BuildContext context, double gutter, bool wide) {
+  Widget _buildHero(BuildContext context, double gutter, bool wide,
+      {required bool compact}) {
     final c = WandererTheme.of(context);
     final l10n = context.l10n;
-    final headlineSize = wide ? 68.0 : 40.0;
+    final headlineSize = wide
+        ? 68.0
+        : compact
+            ? 34.0
+            : 40.0;
     final copy = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Pill(l10n.landingFreeBadge, tone: PillTone.promoted),
+        const LandingFreeBadge(),
         const SizedBox(height: 28),
-        Semantics(
-          header: true,
-          child: Text.rich(
-            TextSpan(children: [
-              TextSpan(text: l10n.landingHeroBefore),
-              TextSpan(
-                  text: l10n.landingHeroAccent,
-                  style: TextStyle(
-                      color: identical(c, WandererColors.dark)
-                          ? c.accentText
-                          : WandererTheme.trail)),
-              TextSpan(text: l10n.landingHeroAfter),
-            ]),
-            style: WandererTheme.display(headlineSize).copyWith(height: 1.04),
-          ),
-        ),
+        LandingHeadline(fontSize: headlineSize),
         const SizedBox(height: 28),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 540),
           child: Text(l10n.landingHeroSub,
-              style: TextStyle(fontSize: 19, height: 1.6, color: c.textMuted)),
+              style: TextStyle(
+                  fontSize: compact ? 16 : 19,
+                  height: 1.6,
+                  color: c.textMuted)),
         ),
         const SizedBox(height: 28),
         Wrap(spacing: 12, runSpacing: 12, children: [
           ElevatedButton(
-            onPressed: () => _openAuth(startInSignup: true),
+            onPressed: () => _openAuth(startInSignup: !compact),
             style: ElevatedButton.styleFrom(
               minimumSize: const Size(0, 56),
               padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -213,7 +224,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                   fontSize: 17,
                   fontWeight: FontWeight.w700),
             ),
-            child: Text(l10n.landingStartFirstTrip),
+            child: Text(compact ? l10n.logIn : l10n.landingStartFirstTrip),
           ),
           OutlinedButton(
             onPressed: _openExplore,
@@ -238,28 +249,37 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
             Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(Icons.check, size: 18, color: c.forestFg),
               const SizedBox(width: 8),
-              Text(label,
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: c.neutralFg)),
+              Flexible(
+                  child: Text(label,
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: c.neutralFg))),
             ]),
         ]),
       ],
     );
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(gutter, wide ? 72 : 32, gutter, 96),
+      padding: EdgeInsets.fromLTRB(
+          gutter,
+          wide
+              ? 72
+              : compact
+                  ? 24
+                  : 32,
+          gutter,
+          compact ? 48 : 96),
       child: wide
           ? Row(children: [
               Expanded(child: copy),
               const SizedBox(width: 56),
-              const Expanded(child: _ProductPreview()),
+              const Expanded(child: LandingProductPreview()),
             ])
           : Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               copy,
               const SizedBox(height: 48),
-              const _ProductPreview(),
+              const LandingProductPreview(),
             ]),
     );
   }
@@ -399,6 +419,14 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
             ],
           ),
           const SizedBox(height: 32),
+          if (_featuredFailed) ...[
+            Text(l10n.errorLoadingTrips, style: TextStyle(color: c.textMuted)),
+            Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                    onPressed: _loadFeatured, child: Text(l10n.retry))),
+            const SizedBox(height: 16),
+          ],
           _ResponsiveRow(wide: wide, children: [
             for (final trip in _featured)
               _FeaturedTripCard(
@@ -597,104 +625,6 @@ class _FeaturedTripCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Browser frame showing a real route, overlapped by a phone screenshot.
-class _ProductPreview extends StatelessWidget {
-  const _ProductPreview();
-
-  @override
-  Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 1.25,
-      child: LayoutBuilder(builder: (context, box) {
-        final c = WandererTheme.of(context);
-        final phoneW = box.maxWidth * 0.36;
-        return Stack(children: [
-          Positioned(
-            left: 0,
-            top: box.maxHeight * 0.06,
-            width: box.maxWidth * 0.84,
-            height: box.maxHeight * 0.84,
-            child: Container(
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: c.surface,
-                borderRadius: BorderRadius.circular(WandererTheme.radiusPanel),
-                border: Border.all(color: c.line),
-                boxShadow: const [
-                  BoxShadow(
-                      color: Color(0x1F3C2814),
-                      blurRadius: 60,
-                      offset: Offset(0, 24)),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(
-                    height: 40,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                        border: Border(bottom: BorderSide(color: c.lineSoft))),
-                    child: Row(children: [
-                      for (final dot in const [
-                        Color(0xFFE9A5A0),
-                        Color(0xFFEFD28F),
-                        Color(0xFFA9CDB3),
-                      ]) ...[
-                        Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                                color: dot, shape: BoxShape.circle)),
-                        const SizedBox(width: 8),
-                      ],
-                    ]),
-                  ),
-                  Expanded(
-                    child: Image.asset(
-                      'assets/images/landing-route-backdrop.png',
-                      fit: BoxFit.cover,
-                      alignment: Alignment.centerLeft,
-                      excludeFromSemantics: true,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            right: 0,
-            top: 0,
-            width: phoneW,
-            height: phoneW * 2.05,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: c.text,
-                borderRadius: BorderRadius.circular(phoneW * 0.15),
-                boxShadow: const [
-                  BoxShadow(
-                      color: Color(0x401B1A17),
-                      blurRadius: 60,
-                      offset: Offset(0, 24)),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(phoneW * 0.12),
-                child: Image.asset(
-                  'assets/images/inApp/in_map.jpeg',
-                  fit: BoxFit.cover,
-                  excludeFromSemantics: true,
-                ),
-              ),
-            ),
-          ),
-        ]);
-      }),
     );
   }
 }

@@ -1,3 +1,6 @@
+import 'package:http/http.dart' as http;
+import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
+
 import '../models/responses/page_response.dart';
 import '../client/command/user_command_client.dart';
 import '../client/query/user_query_client.dart';
@@ -17,6 +20,18 @@ class UserService {
   /// Get own profile
   Future<UserProfile> getMyProfile() async {
     return await _userQueryClient.getCurrentUser();
+  }
+
+  /// Whether [userId] uploaded a profile photo. Every user has an avatar
+  /// URL, so ask the thumbnail server whether the file is there.
+  Future<bool> hasProfilePhoto(String userId) async {
+    final url =
+        ApiEndpoints.resolveThumbnailUrl('/thumbnails/profiles/$userId.png');
+    if (url.isEmpty) return false;
+    final res = await http.head(Uri.parse(url).replace(queryParameters: {
+      'v': '${DateTime.now().millisecondsSinceEpoch}',
+    }));
+    return res.statusCode == 200;
   }
 
   /// Get user by ID

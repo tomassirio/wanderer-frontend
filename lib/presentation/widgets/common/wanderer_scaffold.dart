@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 
@@ -40,12 +40,12 @@ class WandererScaffold extends StatelessWidget {
     this.hideAppBarWithSidebar = false,
   });
 
-  static const double railBreakpoint = 720;
+  static const double railBreakpoint = AdaptiveLayout.desktopBreakpoint;
   static const double expandedBreakpoint = 1200;
 
   /// Whether the sidebar is shown beside the page (so no hamburger needed).
   static bool hasPersistentSidebar(BuildContext context) =>
-      kIsWeb && MediaQuery.sizeOf(context).width >= railBreakpoint;
+      AdaptiveLayout.usesDesktopLayout(context);
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +54,9 @@ class WandererScaffold extends StatelessWidget {
       appBar: persistent && hideAppBarWithSidebar ? null : appBar,
       // Android has no ☰ drawer (bottom nav instead), so pushed screens get
       // a back arrow.
-      drawer: persistent || !kIsWeb ? null : drawer,
+      drawer: persistent || !AdaptiveLayout.usesDesktopLayout(context)
+          ? null
+          : drawer,
       body: body,
       floatingActionButton: floatingActionButton,
       floatingActionButtonLocation: floatingActionButtonLocation,

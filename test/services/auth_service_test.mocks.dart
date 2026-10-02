@@ -3,7 +3,6 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-
 import 'dart:async' as _i6;
 
 import 'package:mockito/mockito.dart' as _i1;
@@ -169,7 +168,8 @@ class MockAuthClient extends _i1.Mock implements _i5.AuthClient {
       ) as _i6.Future<void>);
 
   @override
-  _i6.Future<void> completePasswordReset(_i2.PasswordResetRequest? request) =>
+  _i6.Future<void> completePasswordReset(
+          _i2.PasswordResetConfirmRequest? request) =>
       (super.noSuchMethod(
         Invocation.method(
           #completePasswordReset,

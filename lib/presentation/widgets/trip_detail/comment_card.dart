@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/comment_models.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/reply_card.dart';
@@ -41,21 +42,32 @@ class CommentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isAuthor = comment.userId == tripUserId;
     final l10n = context.l10n;
+    final mobileWeb = AdaptiveLayout.isMobileWeb(context);
+    final c = WandererTheme.of(context);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isAuthor
-            ? WandererTheme.primaryOrange.withOpacity(0.08)
-            : Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
-        border: Border.all(
-          color: isAuthor
-              ? WandererTheme.primaryOrange.withOpacity(0.3)
-              : WandererTheme.glassBorderColorFor(context),
-        ),
-        borderRadius: BorderRadius.circular(WandererTheme.glassRadiusSmall),
-      ),
+      margin: mobileWeb
+          ? EdgeInsets.zero
+          : const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: mobileWeb
+          ? const EdgeInsets.symmetric(horizontal: 20, vertical: 16)
+          : const EdgeInsets.all(12),
+      decoration: mobileWeb
+          ? BoxDecoration(
+              color: c.surface,
+              border: Border(bottom: BorderSide(color: c.lineSoft)))
+          : BoxDecoration(
+              color: isAuthor
+                  ? WandererTheme.primaryOrange.withOpacity(0.08)
+                  : Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
+              border: Border.all(
+                color: isAuthor
+                    ? WandererTheme.primaryOrange.withOpacity(0.3)
+                    : WandererTheme.glassBorderColorFor(context),
+              ),
+              borderRadius:
+                  BorderRadius.circular(WandererTheme.glassRadiusSmall),
+            ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

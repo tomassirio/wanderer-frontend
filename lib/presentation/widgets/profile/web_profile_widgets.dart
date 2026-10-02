@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -169,39 +171,45 @@ class WebProfileTripCard extends StatelessWidget {
           decoration: WandererTheme.cardDecoration(context),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(WandererTheme.radiusPanel),
-            child: SizedBox(
-              height: 140,
-              child: Row(
+            // Thumbnail fills the left column at whatever height the text
+            // needs, so long names can wrap instead of ellipsizing.
+            child: LayoutBuilder(builder: (context, box) {
+              // ~40% of the card on phones, capped at the desktop width.
+              final thumbWidth = math.min(180.0, box.maxWidth * 0.4);
+              return Stack(
                 children: [
-                  SizedBox(
-                    width: 180,
-                    height: 140,
-                    child: CachedTripThumbnail(
-                      thumbnailUrl: trip.thumbnailUrl,
-                      placeholder: Container(color: c.mapGround),
-                      errorWidget: empty,
-                    ),
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: thumbWidth,
+                    child: Stack(fit: StackFit.expand, children: [
+                      CachedTripThumbnail(
+                        thumbnailUrl: trip.thumbnailUrl,
+                        placeholder: Container(color: c.mapGround),
+                        errorWidget: empty,
+                      ),
+                      Positioned(
+                          top: 10,
+                          left: 10,
+                          child:
+                              Pill.status(context, trip.status, onImage: true)),
+                    ]),
                   ),
-                  Expanded(
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(
+                        minWidth: double.infinity, minHeight: 140),
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+                      padding: EdgeInsets.fromLTRB(thumbWidth + 20, 18, 20, 18),
                       child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  trip.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style:
-                                      WandererTheme.display(19, color: c.text),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Pill.status(context, trip.status),
-                            ],
+                          Text(
+                            trip.name,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: WandererTheme.display(19, color: c.text),
                           ),
                           const SizedBox(height: 10),
                           Wrap(
@@ -212,18 +220,24 @@ class WebProfileTripCard extends StatelessWidget {
                                 Icon(Icons.chat_bubble_outline,
                                     size: 14, color: c.textMuted),
                                 const SizedBox(width: 5),
-                                Text(l10n.commentsCount(trip.commentsCount),
-                                    style: meta),
+                                Flexible(
+                                    child: Text(
+                                        l10n.commentsCount(trip.commentsCount),
+                                        style: meta,
+                                        overflow: TextOverflow.ellipsis)),
                               ]),
                               Row(mainAxisSize: MainAxisSize.min, children: [
                                 Icon(visibilityIcon,
                                     size: 14, color: c.textMuted),
                                 const SizedBox(width: 5),
-                                Text(visibilityLabel, style: meta),
+                                Flexible(
+                                    child: Text(visibilityLabel,
+                                        style: meta,
+                                        overflow: TextOverflow.ellipsis)),
                               ]),
                             ],
                           ),
-                          const Spacer(),
+                          const SizedBox(height: 14),
                           Text(
                             '$cta →',
                             style: TextStyle(
@@ -237,8 +251,8 @@ class WebProfileTripCard extends StatelessWidget {
                     ),
                   ),
                 ],
-              ),
-            ),
+              );
+            }),
           ),
         ),
       ),

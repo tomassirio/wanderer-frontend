@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -168,7 +169,10 @@ class NewTripForm extends StatelessWidget {
           const SizedBox(height: 8),
           KeyedSubtree(
             key: tripTypeKey,
-            child: Row(
+            // Both cards take the taller one's height.
+            child: IntrinsicHeight(
+                child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 for (final (m, name, desc) in [
                   (
@@ -192,7 +196,7 @@ class NewTripForm extends StatelessWidget {
                   ),
                 ],
               ],
-            ),
+            )),
           ),
           const SizedBox(height: 18),
           Text(l10n.newTripWhoCanSee, style: _label(c)),
@@ -209,8 +213,10 @@ class NewTripForm extends StatelessWidget {
                 ),
             ]),
           ),
-          const SizedBox(height: 18),
-          KeyedSubtree(key: autoUpdatesKey, child: _autoCheckIn(context)),
+          if (!kIsWeb) ...[
+            const SizedBox(height: 18),
+            KeyedSubtree(key: autoUpdatesKey, child: _autoCheckIn(context)),
+          ],
         ],
       ),
     );

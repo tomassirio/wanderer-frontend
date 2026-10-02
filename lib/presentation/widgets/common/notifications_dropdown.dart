@@ -292,7 +292,10 @@ class _NotificationsDropdownContentState
       case NotificationType.tripUpdatePosted:
         Navigator.push(
           context,
-          PageTransitions.slideUp(TripDeepLinkScreen(tripId: referenceId)),
+          PageTransitions.slideUp(TripDeepLinkScreen(
+              tripId: referenceId,
+              focusLatestUpdate:
+                  notification.type == NotificationType.tripUpdatePosted)),
         );
         break;
       case NotificationType.replyToComment:

@@ -1,5 +1,9 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
+import 'package:wanderer_frontend/presentation/helpers/android_app_links.dart';
+import 'package:wanderer_frontend/presentation/widgets/mobile_web/mobile_web_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
@@ -87,6 +91,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
           _isLoading = false;
         });
 
+        if (AdaptiveLayout.isMobileWeb(context)) return;
         // Navigate to home after a short delay so the user sees the success message
         await Future.delayed(const Duration(seconds: 2));
         if (mounted) {
@@ -105,6 +110,59 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (AdaptiveLayout.isMobileWeb(context)) {
+      final l10n = context.l10n;
+      final c = WandererTheme.of(context);
+      if (_verified) {
+        return MobileWebMessage(
+          icon: Icons.check,
+          title: l10n.mobileWebEmailConfirmed,
+          message: l10n.mobileWebEmailConfirmedBody,
+          success: true,
+          actions: [
+            FilledButton(
+              style: FilledButton.styleFrom(
+                  backgroundColor: c.neutralButtonBg,
+                  foregroundColor: c.neutralButtonFg,
+                  minimumSize: const Size(0, 52)),
+              onPressed: () => AndroidAppLinks.open(context),
+              child: Text(l10n.mobileWebOpenApp),
+            ),
+            OutlinedButton(
+              onPressed: () => Navigator.of(context)
+                  .pushNamedAndRemoveUntil('/', (_) => false),
+              child: Text(l10n.mobileWebContinue),
+            ),
+          ],
+        );
+      }
+      if (_errorMessage != null) {
+        return MobileWebMessage(
+          icon: Icons.schedule,
+          title: l10n.mobileWebVerificationError,
+          message: _errorMessage!,
+          actions: [
+            FilledButton(
+                onPressed: () => setState(() => _errorMessage = null),
+                child: Text(l10n.enterVerificationToken)),
+            OutlinedButton(
+                onPressed: () =>
+                    Navigator.of(context).pushReplacementNamed('/login'),
+                child: Text(l10n.backToLogin)),
+          ],
+        );
+      }
+      return Scaffold(
+        backgroundColor: c.ground,
+        appBar: AppBar(backgroundColor: c.ground),
+        body: SafeArea(
+            child: Center(
+                child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: _isLoading ? _buildLoadingView() : _buildVerifyView(),
+        ))),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -193,7 +251,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
         const Icon(
           Icons.verified_user_outlined,
           size: 64,
-          color: Colors.blueAccent,
+          color: WandererTheme.trail,
         ),
         const SizedBox(height: 24),
         Text(
@@ -248,7 +306,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
         ),
         const SizedBox(height: 12),
         TextButton(
-          onPressed: () => Navigator.of(context).pushReplacementNamed('/auth'),
+          onPressed: () => Navigator.of(context).pushReplacementNamed('/login'),
           child: Text(l10n.backToLogin),
         ),
       ],

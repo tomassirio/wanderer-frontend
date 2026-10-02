@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
@@ -95,7 +95,7 @@ class DialogHelper {
 
   /// Shows a logout confirmation dialog
   static Future<bool> showLogoutConfirmation(BuildContext context) async {
-    if (kIsWeb) {
+    if (AdaptiveLayout.usesDesktopLayout(context)) {
       final l10n = context.l10n;
       return WandererDialog.confirm(
         context,

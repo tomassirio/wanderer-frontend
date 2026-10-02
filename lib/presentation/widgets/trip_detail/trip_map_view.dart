@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/domain/trip_location.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_info_window.dart';
@@ -70,6 +71,9 @@ class _TripMapViewState extends State<TripMapView> {
   String? _errorMessage;
   bool _isMapReady = false;
   GoogleMapController? _controller;
+
+  /// Last camera, so a map rebuilt for a theme flip opens where it was.
+  CameraPosition? _camera;
 
   /// Screen position of the selected marker (relative to the map widget).
   Offset? _markerScreenPosition;
@@ -242,14 +246,24 @@ class _TripMapViewState extends State<TripMapView> {
       );
     }
 
+    // A sheet or dialog on top: the web map would still take its drags
+    // (it sits under the Flutter canvas), so it goes still meanwhile.
+    final gestures =
+        widget.gesturesEnabled && (ModalRoute.isCurrentOf(context) ?? true);
     return Stack(
       children: [
         GoogleMap(
+          // Google's web camera pad ignores the theme; pan/zoom by gesture.
+          webCameraControlEnabled: false,
+// The web map ignores a new style after creation: rebuild it when
+          // the theme flips so light / dark follows the app.
+          key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
           style: MapStyleHelper.of(context),
-          initialCameraPosition: CameraPosition(
-            target: widget.initialLocation,
-            zoom: widget.initialZoom,
-          ),
+          initialCameraPosition: _camera ??
+              CameraPosition(
+                target: widget.initialLocation,
+                zoom: widget.initialZoom,
+              ),
           markers: widget.markers,
           polylines: widget.polylines,
           onMapCreated: (controller) {
@@ -271,7 +285,8 @@ class _TripMapViewState extends State<TripMapView> {
             // Dismiss info window when tapping on the map background.
             widget.onMapTap?.call();
           },
-          onCameraMove: (_) {
+          onCameraMove: (position) {
+            _camera = position;
             // Update bubble position when the camera moves so it tracks.
             if (widget.selectedLocation != null) {
               _updateMarkerScreenPosition();
@@ -282,15 +297,42 @@ class _TripMapViewState extends State<TripMapView> {
           },
           padding: widget.padding,
           // Android floats its own round map controls (canvas).
-          myLocationButtonEnabled: kIsWeb && widget.isOwner,
+          myLocationButtonEnabled:
+              AdaptiveLayout.usesDesktopLayout(context) && widget.isOwner,
           myLocationEnabled: widget.isOwner,
           mapToolbarEnabled: false,
-          zoomControlsEnabled: kIsWeb,
-          scrollGesturesEnabled: widget.gesturesEnabled,
-          zoomGesturesEnabled: widget.gesturesEnabled,
-          tiltGesturesEnabled: widget.gesturesEnabled,
-          rotateGesturesEnabled: widget.gesturesEnabled,
+          // Google's zoom buttons stay white in dark mode: ours are below.
+          zoomControlsEnabled: false,
+          scrollGesturesEnabled: gestures,
+          zoomGesturesEnabled: gestures,
+          tiltGesturesEnabled: gestures,
+          rotateGesturesEnabled: gestures,
         ),
+        if (AdaptiveLayout.usesDesktopLayout(context) && _isMapReady)
+          Positioned(
+            right: 16,
+            bottom: 24,
+            child: PointerInterceptor(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ZoomButton(
+                    icon: Icons.add,
+                    label: 'Zoom in',
+                    onTap: () =>
+                        _controller?.animateCamera(CameraUpdate.zoomIn()),
+                  ),
+                  const SizedBox(height: 8),
+                  _ZoomButton(
+                    icon: Icons.remove,
+                    label: 'Zoom out',
+                    onTap: () =>
+                        _controller?.animateCamera(CameraUpdate.zoomOut()),
+                  ),
+                ],
+              ),
+            ),
+          ),
         // Loading indicator while map initializes
         if (!_isMapReady && !_hasError)
           Container(
@@ -328,28 +370,28 @@ class _TripMapViewState extends State<TripMapView> {
             widget.onInfoWindowClosed != null &&
             _markerScreenPosition != null)
           Positioned(
-            // Place the bubble so its bottom-center is above the marker pin.
-            // Offset upward by ~48px to clear the marker icon.
-            left: _markerScreenPosition!.dx - 130,
-            top: _markerScreenPosition!.dy - 48,
-            child: Transform.translate(
-              offset: const Offset(0, -100),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CustomInfoWindow(
-                    location: widget.selectedLocation!,
-                    onClose: widget.onInfoWindowClosed!,
-                  ),
-                  // Small triangle/arrow pointing down
-                  CustomPaint(
-                    size: const Size(16, 8),
-                    painter: _TrianglePainter(
-                      color: _triangleColorForLocation(
-                          widget.selectedLocation!, context),
+            // Bottom-centre of the popover (its arrow) just above the
+            // marker, whatever the card's height.
+            left: _markerScreenPosition!.dx,
+            top: _markerScreenPosition!.dy - 22,
+            child: FractionalTranslation(
+              translation: const Offset(-0.5, -1),
+              child: PointerInterceptor(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CustomInfoWindow(
+                      location: widget.selectedLocation!,
+                      onClose: widget.onInfoWindowClosed!,
                     ),
-                  ),
-                ],
+                    // Arrow in the card colour, pointing at the marker.
+                    CustomPaint(
+                      size: const Size(16, 8),
+                      painter: _TrianglePainter(
+                          color: WandererTheme.of(context).surface),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -383,25 +425,41 @@ class _TripMapViewState extends State<TripMapView> {
       ],
     );
   }
+}
 
-  /// Returns the triangle arrow color matching the lifecycle marker accent,
-  /// or the info window background color for regular updates.
-  static Color _triangleColorForLocation(
-      TripLocation location, BuildContext context) {
-    switch (location.updateType) {
-      case TripUpdateType.tripStarted:
-        return WandererTheme.tripStartedColor;
-      case TripUpdateType.tripEnded:
-        return WandererTheme.tripEndedColor;
-      case TripUpdateType.dayStart:
-        return WandererTheme.dayStartColor;
-      case TripUpdateType.dayEnd:
-        return WandererTheme.dayEndColor;
-      default:
-        return Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF2C2C2C)
-            : Colors.white;
-    }
+/// Themed round map button, matching the Android layout's `_RoundButton`.
+class _ZoomButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _ZoomButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
+    return Tooltip(
+      message: label,
+      child: Material(
+        color: c.surface,
+        shape: CircleBorder(side: BorderSide(color: c.line)),
+        elevation: 4,
+        shadowColor: const Color(0x261B1A17),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: SizedBox(
+            width: 40,
+            height: 40,
+            child: Icon(icon, color: c.text, size: 22),
+          ),
+        ),
+      ),
+    );
   }
 }
 

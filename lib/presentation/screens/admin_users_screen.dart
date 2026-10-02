@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
@@ -192,7 +192,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
 
   Future<void> _promoteUser(UserProfile user) async {
     final l10n = context.l10n;
-    final confirmed = kIsWeb
+    final confirmed = AdaptiveLayout.usesDesktopLayout(context)
         ? await WandererDialog.confirm(
             context,
             title: l10n.dialogsAdminPromoteTitle,
@@ -237,7 +237,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
 
   Future<void> _demoteUser(UserProfile user) async {
     final l10n = context.l10n;
-    final confirmed = kIsWeb
+    final confirmed = AdaptiveLayout.usesDesktopLayout(context)
         ? await WandererDialog.confirm(
             context,
             title: l10n.dialogsAdminDemoteTitle,
@@ -286,7 +286,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
 
   Future<void> _deleteUser(UserProfile user) async {
     final l10n = context.l10n;
-    final confirmed = kIsWeb
+    final confirmed = AdaptiveLayout.usesDesktopLayout(context)
         ? await WandererDialog.confirm(
             context,
             title: l10n.dialogsAdminDeleteTitle,

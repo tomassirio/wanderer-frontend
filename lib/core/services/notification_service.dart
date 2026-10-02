@@ -88,6 +88,20 @@ class NotificationService {
     }
   }
 
+  /// Whether the user allows notifications (false where unsupported).
+  Future<bool> areEnabled() async {
+    if (!_isSupported) return false;
+    try {
+      return await _plugin
+              .resolvePlatformSpecificImplementation<
+                  AndroidFlutterLocalNotificationsPlugin>()
+              ?.areNotificationsEnabled() ??
+          true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Request notification permission (Android 13+).
   /// Returns `true` if granted (or if the platform doesn't require asking).
   Future<bool> requestPermission() async {

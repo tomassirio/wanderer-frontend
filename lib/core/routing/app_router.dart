@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/routing/route_strategy.dart';
+import 'package:wanderer_frontend/core/routing/strategies/plan_route_strategy.dart';
+import 'package:wanderer_frontend/core/routing/strategies/reset_password_route_strategy.dart';
 import 'package:wanderer_frontend/core/routing/strategies/login_route_strategy.dart';
 import 'package:wanderer_frontend/core/routing/strategies/privacy_policy_route_strategy.dart';
 import 'package:wanderer_frontend/core/routing/strategies/signup_route_strategy.dart';
@@ -21,9 +23,11 @@ class AppRouter {
     LoginRouteStrategy(),
     SignupRouteStrategy(),
     VerifyEmailRouteStrategy(),
+    ResetPasswordRouteStrategy(),
     PrivacyPolicyRouteStrategy(),
     TermsAndConditionsRouteStrategy(),
     TripRouteStrategy(),
+    PlanRouteStrategy(),
     UserRouteStrategy(),
   ];
 

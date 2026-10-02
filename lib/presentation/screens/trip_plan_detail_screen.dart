@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -32,7 +33,7 @@ import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 import 'package:wanderer_frontend/presentation/helpers/map_style_helper.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 
 /// The type of point the user wants to place next on the map in edit mode
 enum _EditPlacementMode { start, end, waypoint }
@@ -425,19 +426,12 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
 
   Future<void> _selectDateRange() async {
     setState(() => _isPickerOpen = true);
-    DateTimeRange? picked;
+    ({DateTime start, DateTime end, bool multiDay})? picked;
     try {
-      picked = await showDateRangePicker(
-        context: context,
-        initialDateRange: _startDate != null
-            ? DateTimeRange(
-                start: _startDate!,
-                end: _endDate ?? _startDate!,
-              )
-            : null,
-        firstDate: DateTime.now(),
-        lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-      );
+      picked = await pickPlanDates(context,
+          multiDay: _selectedPlanType == 'MULTI_DAY',
+          start: _startDate,
+          end: _endDate);
     } finally {
       if (mounted) {
         setState(() {
@@ -448,13 +442,20 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
         });
       }
     }
-    if (picked != null && mounted) {
+    if (picked case final p? when mounted) {
       setState(() {
-        _startDate = picked!.start;
-        _endDate = picked.end;
+        _startDate = p.start;
+        _endDate = p.end;
+        _selectedPlanType = p.multiDay ? 'MULTI_DAY' : 'SIMPLE';
       });
     }
   }
+
+  /// Single-day plans end the day they start.
+  void _setMultiDay(bool multi) => setState(() {
+        _selectedPlanType = multi ? 'MULTI_DAY' : 'SIMPLE';
+        if (!multi && _startDate != null) _endDate = _startDate;
+      });
 
   Future<void> _saveChanges() async {
     if (_nameController.text.trim().isEmpty) {
@@ -516,7 +517,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
         _updateMapData();
         planNotify(
             context,
-            kIsWeb
+            AdaptiveLayout.usesDesktopLayout(context)
                 ? 'Trip plan updated successfully'
                 : context.l10n.planUpdated);
       }
@@ -530,7 +531,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
 
   Future<void> _deleteTripPlan() async {
     final l10n = context.l10n;
-    final confirm = kIsWeb
+    final confirm = AdaptiveLayout.usesDesktopLayout(context)
         ? await WandererDialog.confirm(
             context,
             title: l10n.tripPlansDeleteTitle,
@@ -549,7 +550,11 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
     try {
       await _tripPlanService.deleteTripPlan(_tripPlan.id);
       if (mounted) {
-        planNotify(context, kIsWeb ? 'Trip plan deleted' : l10n.planDeleted);
+        planNotify(
+            context,
+            AdaptiveLayout.usesDesktopLayout(context)
+                ? 'Trip plan deleted'
+                : l10n.planDeleted);
         Navigator.pop(context, true); // Return true to indicate deletion
       }
     } catch (e) {
@@ -600,10 +605,12 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   Widget build(BuildContext context) {
     // When editing, show the edit form
     if (_isEditing) {
-      return kIsWeb ? _buildEditScreenWeb() : _buildEditScreenAndroid();
+      return AdaptiveLayout.usesDesktopLayout(context)
+          ? _buildEditScreenWeb()
+          : _buildEditScreenAndroid();
     }
 
-    if (kIsWeb) return _buildWebView();
+    if (AdaptiveLayout.usesDesktopLayout(context)) return _buildWebView();
 
     return _buildAndroidView();
   }
@@ -618,6 +625,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   Widget _buildAndroidView() {
     final route = _pointsOf(_polylines);
     return AndroidPlanDetailView(
+      mobileWeb: AdaptiveLayout.isMobileWeb(context),
       plan: _tripPlan,
       route: route,
       onBack: () => Navigator.pop(context),
@@ -629,6 +637,9 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
       map: FutureBuilder(
         future: PlanMapStyle.ensureLoaded(),
         builder: (context, _) => GoogleMap(
+          // Google's web camera pad ignores the theme; pan/zoom by gesture.
+          webCameraControlEnabled: false,
+          key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
           style: MapStyleHelper.of(context),
           initialCameraPosition: CameraPosition(
             target: TripPlanMapHelper.getInitialLocation(_tripPlan),
@@ -742,6 +753,9 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
         map: FutureBuilder(
           future: PlanMapStyle.ensureLoaded(),
           builder: (context, _) => GoogleMap(
+            // Google's web camera pad ignores the theme; pan/zoom by gesture.
+            webCameraControlEnabled: false,
+            key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
             style: MapStyleHelper.of(context),
             initialCameraPosition: CameraPosition(
               target: _editStartLocation ??
@@ -789,11 +803,13 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
           ),
           PlanTypeToggle(
             multiDay: _selectedPlanType == 'MULTI_DAY',
-            onChanged: (multi) => setState(
-                () => _selectedPlanType = multi ? 'MULTI_DAY' : 'SIMPLE'),
+            onChanged: _setMultiDay,
           ),
           PlanDateTiles(
-              start: _startDate, end: _endDate, onPick: _selectDateRange),
+              start: _startDate,
+              end: _endDate,
+              singleDay: _selectedPlanType != 'MULTI_DAY',
+              onPick: _selectDateRange),
           Text(summary,
               style: TextStyle(
                   fontSize: 13, color: WandererTheme.of(context).textMuted)),
@@ -869,6 +885,9 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
         onFitRoute: _markers.length >= 2 ? _fitBounds : null,
         map: hasMapData
             ? GoogleMap(
+                // Google's web camera pad ignores the theme; pan/zoom by gesture.
+                webCameraControlEnabled: false,
+                key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
                 style: MapStyleHelper.of(context),
                 initialCameraPosition: CameraPosition(
                   target: TripPlanMapHelper.getInitialLocation(_tripPlan),
@@ -939,8 +958,7 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
         isSaving: _isLoading,
         nameController: _nameController,
         multiDay: _selectedPlanType == 'MULTI_DAY',
-        onMultiDayChanged: (multi) =>
-            setState(() => _selectedPlanType = multi ? 'MULTI_DAY' : 'SIMPLE'),
+        onMultiDayChanged: _setMultiDay,
         startDate: _startDate,
         endDate: _endDate,
         onPickStartDate: _selectDateRange,
@@ -965,6 +983,9 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
           fit: StackFit.expand,
           children: [
             GoogleMap(
+              // Google's web camera pad ignores the theme; pan/zoom by gesture.
+              webCameraControlEnabled: false,
+              key: kIsWeb ? ValueKey(Theme.of(context).brightness) : null,
               style: MapStyleHelper.of(context),
               initialCameraPosition: CameraPosition(
                 target: _editStartLocation ?? const LatLng(40.7128, -74.0060),

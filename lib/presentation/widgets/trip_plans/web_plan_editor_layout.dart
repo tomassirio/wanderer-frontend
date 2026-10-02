@@ -161,19 +161,22 @@ class WebPlanEditorLayout extends StatelessWidget {
               children: [
                 Expanded(
                   child: _DateBox(
-                    label: l10n.planEditorLeave,
+                    label:
+                        multiDay ? l10n.planEditorLeave : l10n.planEditorDate,
                     date: startDate,
                     onTap: onPickStartDate,
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _DateBox(
-                    label: l10n.planEditorArrive,
-                    date: endDate,
-                    onTap: onPickEndDate,
+                if (multiDay) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _DateBox(
+                      label: l10n.planEditorArrive,
+                      date: endDate,
+                      onTap: onPickEndDate,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
             if (startDate != null && endDate != null) ...[

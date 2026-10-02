@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,11 +15,13 @@ import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.da
 class TripShareDialog extends ConsumerStatefulWidget {
   final String tripId;
   final String tripName;
+  final bool compact;
 
   const TripShareDialog({
     super.key,
     required this.tripId,
     required this.tripName,
+    this.compact = false,
   });
 
   /// Shows the trip share dialog as a modal bottom sheet on mobile
@@ -28,10 +30,13 @@ class TripShareDialog extends ConsumerStatefulWidget {
     BuildContext context, {
     required String tripId,
     required String tripName,
+    bool compact = false,
   }) {
     Widget builder(BuildContext context) =>
-        TripShareDialog(tripId: tripId, tripName: tripName);
-    if (kIsWeb) return WandererDialog.show<void>(context, builder: builder);
+        TripShareDialog(tripId: tripId, tripName: tripName, compact: compact);
+    if (!compact && AdaptiveLayout.usesDesktopLayout(context)) {
+      return WandererDialog.show<void>(context, builder: builder);
+    }
     return showDialog<void>(context: context, builder: builder);
   }
 
@@ -71,7 +76,7 @@ class _TripShareDialogState extends ConsumerState<TripShareDialog> {
     Clipboard.setData(ClipboardData(text: url));
     UiHelpers.showSuccessMessage(
         context,
-        kIsWeb
+        AdaptiveLayout.usesDesktopLayout(context)
             ? context.l10n.dialogsShareLinkCopied
             : 'Link copied to clipboard');
   }
@@ -200,7 +205,9 @@ class _TripShareDialogState extends ConsumerState<TripShareDialog> {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) return _buildWeb(context);
+    if (!widget.compact && AdaptiveLayout.usesDesktopLayout(context)) {
+      return _buildWeb(context);
+    }
     final l10n = context.l10n;
     return Dialog(
       shape: RoundedRectangleBorder(

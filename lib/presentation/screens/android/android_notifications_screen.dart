@@ -13,6 +13,42 @@ import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_deep_link_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
 
+/// Quoted trip / achievement names inside a notification message.
+final notificationQuoted = RegExp(r'"([^"]+)"');
+
+/// "Just now", "5m", "3h", "2d", then the date.
+String notificationAgo(AppLocalizations l10n, DateTime t) {
+  final d = DateTime.now().difference(t);
+  if (d.isNegative || d.inMinutes < 1) return l10n.justNow;
+  if (d.inHours < 1) return l10n.minutesAgoShort(d.inMinutes);
+  if (d.inDays < 1) return l10n.hoursAgoShort(d.inHours);
+  if (d.inDays <= 7) return l10n.daysAgoShort(d.inDays);
+  return '${t.day}/${t.month}/${t.year}';
+}
+
+/// Actor name and quoted trip / achievement names in bold, rest muted.
+InlineSpan notificationMessage(WandererColors c, NotificationDto n,
+    {double fontSize = 15}) {
+  final bold = TextStyle(fontWeight: FontWeight.w700, color: c.text);
+  final spans = <InlineSpan>[];
+  var rest = n.message;
+  final space = rest.indexOf(' ');
+  if (n.actorId != null && space > 0) {
+    spans.add(TextSpan(text: rest.substring(0, space), style: bold));
+    rest = rest.substring(space);
+  }
+  var last = 0;
+  for (final m in notificationQuoted.allMatches(rest)) {
+    spans.add(TextSpan(text: rest.substring(last, m.start)));
+    spans.add(TextSpan(text: m.group(1), style: bold));
+    last = m.end;
+  }
+  spans.add(TextSpan(text: rest.substring(last)));
+  return TextSpan(
+      style: TextStyle(fontSize: fontSize, height: 1.4, color: c.textMuted),
+      children: spans);
+}
+
 bool _isTrip(NotificationDto n) =>
     n.referenceId != null &&
     (n.type == NotificationType.tripStatusChanged ||
@@ -196,8 +232,13 @@ class _AndroidNotificationsScreenState
       case NotificationType.tripStatusChanged:
       case NotificationType.tripUpdatePosted:
         if (rid != null) {
-          Navigator.push(context,
-              PageTransitions.slideUp(TripDeepLinkScreen(tripId: rid)));
+          // Check-ins open the trip centred on where they happened.
+          Navigator.push(
+              context,
+              PageTransitions.slideUp(TripDeepLinkScreen(
+                  tripId: rid,
+                  focusLatestUpdate:
+                      n.type == NotificationType.tripUpdatePosted)));
         }
       case NotificationType.replyToComment:
       case NotificationType.commentReaction:
@@ -205,15 +246,7 @@ class _AndroidNotificationsScreenState
     }
   }
 
-  String _ago(DateTime t) {
-    final l10n = context.l10n;
-    final d = DateTime.now().difference(t);
-    if (d.isNegative || d.inMinutes < 1) return l10n.justNow;
-    if (d.inHours < 1) return l10n.minutesAgoShort(d.inMinutes);
-    if (d.inDays < 1) return l10n.hoursAgoShort(d.inHours);
-    if (d.inDays <= 7) return l10n.daysAgoShort(d.inDays);
-    return '${t.day}/${t.month}/${t.year}';
-  }
+  String _ago(DateTime t) => notificationAgo(context.l10n, t);
 
   @override
   Widget build(BuildContext context) {
@@ -436,29 +469,8 @@ class _AndroidNotificationsScreenState
           ),
       };
 
-  static final _quoted = RegExp(r'"([^"]+)"');
-
-  /// Actor name and quoted trip / achievement names in bold, rest muted.
-  InlineSpan _message(WandererColors c, NotificationDto n) {
-    final bold = TextStyle(fontWeight: FontWeight.w700, color: c.text);
-    final spans = <InlineSpan>[];
-    var rest = n.message;
-    final space = rest.indexOf(' ');
-    if (n.actorId != null && space > 0) {
-      spans.add(TextSpan(text: rest.substring(0, space), style: bold));
-      rest = rest.substring(space);
-    }
-    var last = 0;
-    for (final m in _quoted.allMatches(rest)) {
-      spans.add(TextSpan(text: rest.substring(last, m.start)));
-      spans.add(TextSpan(text: m.group(1), style: bold));
-      last = m.end;
-    }
-    spans.add(TextSpan(text: rest.substring(last)));
-    return TextSpan(
-        style: TextStyle(fontSize: 15, height: 1.4, color: c.textMuted),
-        children: spans);
-  }
+  InlineSpan _message(WandererColors c, NotificationDto n) =>
+      notificationMessage(c, n);
 
   /// "Started the trip · Posted 2 updates" for the older items of a trip.
   String _tripSummary(List<NotificationDto> older) {
@@ -527,7 +539,9 @@ class _AndroidNotificationsScreenState
                             color: c.goldBg,
                             borderRadius: BorderRadius.circular(999)),
                         child: Text(
-                            _quoted.firstMatch(a.message)?.group(1) ??
+                            notificationQuoted
+                                    .firstMatch(a.message)
+                                    ?.group(1) ??
                                 a.message,
                             style: TextStyle(
                                 fontSize: 12,

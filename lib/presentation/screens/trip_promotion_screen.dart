@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
@@ -211,23 +211,28 @@ class _TripPromotionScreenState extends ConsumerState<TripPromotionScreen> {
           final isMobile = MediaQuery.of(context).size.width < 600;
           final c = WandererTheme.of(context);
           // Web uses theme tokens (dark mode); mobile keeps its colours.
-          final primaryText = kIsWeb ? c.text : WandererTheme.textPrimary;
-          final secondaryText =
-              kIsWeb ? c.textMuted : WandererTheme.textSecondary;
+          final primaryText = AdaptiveLayout.usesDesktopLayout(context)
+              ? c.text
+              : WandererTheme.textPrimary;
+          final secondaryText = AdaptiveLayout.usesDesktopLayout(context)
+              ? c.textMuted
+              : WandererTheme.textSecondary;
 
           final body = Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                kIsWeb ? trip.name : 'Trip: ${trip.name}',
+                AdaptiveLayout.usesDesktopLayout(context)
+                    ? trip.name
+                    : 'Trip: ${trip.name}',
                 style: const TextStyle(fontWeight: FontWeight.bold),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 8),
               Text(
-                kIsWeb
+                AdaptiveLayout.usesDesktopLayout(context)
                     ? l10n.dialogsPromotionByUser(trip.username)
                     : 'By: ${trip.username}',
                 maxLines: 1,
@@ -305,7 +310,7 @@ class _TripPromotionScreenState extends ConsumerState<TripPromotionScreen> {
                       lastDate: DateTime.now().add(
                         const Duration(days: 365 * 5),
                       ),
-                      helpText: kIsWeb
+                      helpText: AdaptiveLayout.usesDesktopLayout(context)
                           ? l10n.dialogsPromotionSelectDate
                           : 'Select Countdown Start Date',
                     );
@@ -317,7 +322,7 @@ class _TripPromotionScreenState extends ConsumerState<TripPromotionScreen> {
                         initialTime: countdownStartDate != null
                             ? TimeOfDay.fromDateTime(countdownStartDate!)
                             : const TimeOfDay(hour: 0, minute: 0),
-                        helpText: kIsWeb
+                        helpText: AdaptiveLayout.usesDesktopLayout(context)
                             ? l10n.dialogsPromotionSelectTime
                             : 'Select Start Time (UTC)',
                       );
@@ -338,7 +343,7 @@ class _TripPromotionScreenState extends ConsumerState<TripPromotionScreen> {
                   icon: const Icon(Icons.calendar_today, size: 16),
                   label: Text(
                     countdownStartDate == null
-                        ? (kIsWeb
+                        ? (AdaptiveLayout.usesDesktopLayout(context)
                             ? l10n.dialogsPromotionPickStart
                             : 'Pick Start Date & Time *')
                         : _formatDateTimeWithTimezone(countdownStartDate!),
@@ -348,7 +353,7 @@ class _TripPromotionScreenState extends ConsumerState<TripPromotionScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      kIsWeb
+                      AdaptiveLayout.usesDesktopLayout(context)
                           ? l10n.dialogsPromotionLocalTime(
                               _formatLocalTime(countdownStartDate!))
                           : 'Local: ${_formatLocalTime(countdownStartDate!)}',
@@ -379,7 +384,7 @@ class _TripPromotionScreenState extends ConsumerState<TripPromotionScreen> {
                 : () => Navigator.pop(context, true),
             child: Text(l10n.promote),
           );
-          if (kIsWeb) {
+          if (AdaptiveLayout.usesDesktopLayout(context)) {
             return WandererFormDialog(
               title: l10n.promoteTripTitle,
               body: body,
@@ -408,7 +413,7 @@ class _TripPromotionScreenState extends ConsumerState<TripPromotionScreen> {
       );
     }
 
-    final result = kIsWeb
+    final result = AdaptiveLayout.usesDesktopLayout(context)
         ? await WandererDialog.show<bool>(context,
             width: WandererDialog.formWidth, builder: dialogBuilder)
         : await showDialog<bool>(context: context, builder: dialogBuilder);
@@ -437,7 +442,7 @@ class _TripPromotionScreenState extends ConsumerState<TripPromotionScreen> {
 
   Future<void> _deleteTrip(Trip trip) async {
     final l10n = context.l10n;
-    final confirmed = kIsWeb
+    final confirmed = AdaptiveLayout.usesDesktopLayout(context)
         ? await WandererDialog.confirm(
             context,
             title: l10n.adminDeleteTripTitle,
@@ -490,7 +495,7 @@ class _TripPromotionScreenState extends ConsumerState<TripPromotionScreen> {
 
   Future<void> _unpromoteTrip(String tripId) async {
     final l10n = context.l10n;
-    final confirmed = kIsWeb
+    final confirmed = AdaptiveLayout.usesDesktopLayout(context)
         ? await WandererDialog.confirm(
             context,
             title: l10n.dialogsPromotionRemoveTitle,

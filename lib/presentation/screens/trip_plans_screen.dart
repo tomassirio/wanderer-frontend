@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
@@ -207,7 +207,7 @@ class _TripPlansScreenState extends ConsumerState<TripPlansScreen> {
 
   Future<void> _handleDeletePlan(TripPlan plan) async {
     final l10n = context.l10n;
-    final confirm = kIsWeb
+    final confirm = AdaptiveLayout.usesDesktopLayout(context)
         ? await WandererDialog.confirm(
             context,
             title: l10n.tripPlansDeleteTitle,
@@ -258,7 +258,7 @@ class _TripPlansScreenState extends ConsumerState<TripPlansScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb) {
+    if (!AdaptiveLayout.usesDesktopLayout(context)) {
       return Scaffold(
         backgroundColor: WandererTheme.of(context).ground,
         appBar: AndroidTopBar(title: context.l10n.tripPlansTitle),
@@ -266,7 +266,7 @@ class _TripPlansScreenState extends ConsumerState<TripPlansScreen> {
       );
     }
     return WandererScaffold(
-      hideAppBarWithSidebar: kIsWeb,
+      hideAppBarWithSidebar: AdaptiveLayout.usesDesktopLayout(context),
       appBar: WandererAppBar(
         isLoggedIn: _isLoggedIn,
         onLoginPressed: _navigateToAuth,

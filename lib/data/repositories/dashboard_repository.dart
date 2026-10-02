@@ -29,9 +29,6 @@ class DashboardData {
   /// Comments other people left on the user's trips, newest first.
   final List<Comment> recentComments;
 
-  /// Achievements unlocked on [latestTrip].
-  final int latestTripAchievements;
-
   const DashboardData({
     required this.profile,
     required this.trips,
@@ -39,10 +36,13 @@ class DashboardData {
     required this.friendRequests,
     required this.friendRequestCount,
     required this.recentComments,
-    required this.latestTripAchievements,
   });
 
   Trip? get latestTrip => trips.isEmpty ? null : trips.first;
+
+  /// Achievements unlocked on [trip] (each unlock records its trip).
+  int achievementsOn(Trip trip) =>
+      achievements.where((a) => a.tripId == trip.id).length;
 
   double get longestTripKm => trips.fold(
       0,
@@ -101,10 +101,6 @@ class DashboardRepository {
     final results = await Future.wait([
       _resolveSenders(requests.take(3)),
       _recentComments(trips, profile.id),
-      trips.isEmpty
-          ? Future.value(0)
-          : _optional(_achievementService.getTripAchievements(trips.first.id))
-              .then((list) => list?.length ?? 0),
     ]);
 
     return DashboardData(
@@ -114,7 +110,6 @@ class DashboardRepository {
       friendRequests: results[0] as List<DashboardFriendRequest>,
       friendRequestCount: requests.length,
       recentComments: results[1] as List<Comment>,
-      latestTripAchievements: results[2] as int,
     );
   }
 

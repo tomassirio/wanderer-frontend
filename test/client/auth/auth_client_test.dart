@@ -319,7 +319,8 @@ void main() {
       test(
         'successful password reset completion completes without error',
         () async {
-          final request = PasswordResetRequest(email: 'user@example.com');
+          final request = PasswordResetConfirmRequest(
+              token: 'reset-token', newPassword: 'Secure123!');
           mockHttpClient.response = http.Response('', 204);
 
           await authClient.completePasswordReset(request);
@@ -330,11 +331,16 @@ void main() {
             endsWith(ApiEndpoints.authPasswordReset),
           );
           expect(mockHttpClient.lastBody, jsonEncode(request.toJson()));
+          expect(jsonDecode(mockHttpClient.lastBody!), {
+            'token': 'reset-token',
+            'newPassword': 'Secure123!',
+          });
         },
       );
 
       test('completePasswordReset does not require authentication', () async {
-        final request = PasswordResetRequest(email: 'user@example.com');
+        final request = PasswordResetConfirmRequest(
+            token: 'reset-token', newPassword: 'Secure123!');
         mockHttpClient.response = http.Response('', 204);
 
         await authClient.completePasswordReset(request);
@@ -343,7 +349,8 @@ void main() {
       });
 
       test('completePasswordReset throws exception on invalid token', () async {
-        final request = PasswordResetRequest(email: 'user@example.com');
+        final request = PasswordResetConfirmRequest(
+            token: 'reset-token', newPassword: 'Secure123!');
         mockHttpClient.response = http.Response(
           '{"message":"Invalid or expired reset token"}',
           400,

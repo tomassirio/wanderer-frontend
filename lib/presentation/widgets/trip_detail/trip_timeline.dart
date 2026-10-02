@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/presentation/helpers/update_markers.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
@@ -142,21 +143,8 @@ class TripTimeline extends StatelessWidget {
     }
   }
 
-  /// Returns the icon for lifecycle markers, or null for regular updates.
-  IconData? _getLifecycleIcon(TripUpdateType? updateType) {
-    switch (updateType) {
-      case TripUpdateType.tripStarted:
-        return Icons.flag_rounded;
-      case TripUpdateType.tripEnded:
-        return Icons.sports_score_rounded;
-      case TripUpdateType.dayStart:
-        return Icons.wb_sunny_rounded;
-      case TripUpdateType.dayEnd:
-        return Icons.nightlight_round;
-      default:
-        return null;
-    }
-  }
+  /// Icon for lifecycle markers (as on the map), null for check-ins.
+  IconData? _getLifecycleIcon(TripLocation update) => updateKind(update).icon;
 
   /// Build the "Load older updates" button at the bottom of the timeline
   Widget _buildLoadMoreButton(BuildContext context) {
@@ -191,12 +179,8 @@ class TripTimeline extends StatelessWidget {
   Widget _buildRegularEntry(
       BuildContext context, TripLocation update, bool isFirst, bool isLast) {
     final lifecycleColor = _getLifecycleColor(update.updateType);
-    final lifecycleIcon = _getLifecycleIcon(update.updateType);
+    final lifecycleIcon = _getLifecycleIcon(update);
     final isLifecycleMarker = lifecycleColor != null;
-    final nodeColor = lifecycleColor ??
-        (isFirst
-            ? WandererTheme.primaryOrange
-            : WandererTheme.timelineConnector);
     final borderColor = lifecycleColor?.withOpacity(0.3) ??
         (isFirst
             ? WandererTheme.primaryOrange.withOpacity(0.3)
@@ -220,18 +204,8 @@ class TripTimeline extends StatelessWidget {
                   color: WandererTheme.timelineConnector,
                 ),
               // Timeline node
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: nodeColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: nodeColor,
-                    width: 2,
-                  ),
-                ),
-              ),
+              // Same look as the map marker for this kind of update.
+              UpdateDot(updateKind(update)),
               // Connector line below (if not last)
               if (!isLast)
                 Padding(

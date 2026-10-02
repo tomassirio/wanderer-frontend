@@ -1,6 +1,6 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/update_markers.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/client/polyline_codec.dart';
 import 'package:wanderer_frontend/presentation/helpers/dashed_polyline_helper.dart';
@@ -47,6 +47,8 @@ class TripMapHelper {
                 : _buildLocationInfoWindow(location, i),
             onTap: onMarkerTap != null ? () => onMarkerTap(location) : null,
             icon: _getMarkerIcon(location, i, mappableLocations.length),
+            anchor: const Offset(0.5, 0.5),
+            zIndexInt: updateKind(location).isKeyMoment ? 1 : 0,
           ),
         );
       }
@@ -279,6 +281,8 @@ class TripMapHelper {
             onTap: onMarkerTap != null ? () => onMarkerTap(location) : null,
             icon: _getMarkerIconWithDirections(
                 location, i, mappableLocations.length),
+            anchor: const Offset(0.5, 0.5),
+            zIndexInt: updateKind(location).isKeyMoment ? 1 : 0,
           ),
         );
       }
@@ -975,151 +979,15 @@ class TripMapHelper {
     return WebMarkerGenerator.markerWithHue(hue);
   }
 
-  /// Gets the appropriate marker icon for a location based on its type
+  /// Marker for a trip update: its kind's colour and icon (canvas "Map
+  /// markers"), the same on Android, web and mobile web.
   static BitmapDescriptor _getMarkerIcon(
-    TripLocation location,
-    int index,
-    int totalLocations,
-  ) {
-    // On web, use numeric hue values for better compatibility
-    if (kIsWeb) {
-      return _getWebMarkerIcon(location, index, totalLocations);
-    }
+          TripLocation location, int index, int totalLocations) =>
+      UpdateMarkers.icon(updateKind(location));
 
-    // Check for lifecycle markers first
-    switch (location.updateType) {
-      case TripUpdateType.tripStarted:
-        return _createMarkerWithHue(BitmapDescriptor.hueGreen);
-      case TripUpdateType.tripEnded:
-        return _createMarkerWithHue(BitmapDescriptor.hueRed);
-      case TripUpdateType.dayStart:
-        return _createMarkerWithHue(BitmapDescriptor.hueYellow);
-      case TripUpdateType.dayEnd:
-        return _createMarkerWithHue(BitmapDescriptor.hueViolet);
-      case TripUpdateType.regular:
-        // For regular updates, use red for last (most recent) location
-        if (index == totalLocations - 1) {
-          return _createMarkerWithHue(BitmapDescriptor.hueRed);
-        }
-        return _createMarkerWithHue(BitmapDescriptor.hueOrange);
-    }
-  }
-
-  /// Gets marker icon for web platform using numeric hue values
-  static BitmapDescriptor _getWebMarkerIcon(
-    TripLocation location,
-    int index,
-    int totalLocations,
-  ) {
-    double hue;
-    String colorName;
-
-    switch (location.updateType) {
-      case TripUpdateType.tripStarted:
-        hue = 120.0;
-        colorName = 'GREEN';
-        break;
-      case TripUpdateType.tripEnded:
-        hue = 0.0;
-        colorName = 'RED';
-        break;
-      case TripUpdateType.dayStart:
-        hue = 60.0;
-        colorName = 'YELLOW';
-        break;
-      case TripUpdateType.dayEnd:
-        hue = 270.0;
-        colorName = 'VIOLET';
-        break;
-      case TripUpdateType.regular:
-        if (index == totalLocations - 1) {
-          hue = 0.0;
-          colorName = 'RED (latest)';
-        } else {
-          hue = 30.0;
-          colorName = 'ORANGE (previous)';
-        }
-        break;
-    }
-
-    debugPrint(
-        'WEB: Marker for ${location.updateType} at index $index/$totalLocations -> $colorName (hue: $hue)');
-    return WebMarkerGenerator.markerWithHue(hue);
-  }
-
-  /// Gets the appropriate marker icon for a location with directions mode
   static BitmapDescriptor _getMarkerIconWithDirections(
-    TripLocation location,
-    int index,
-    int totalLocations,
-  ) {
-    // On web, use numeric hue values for better compatibility
-    if (kIsWeb) {
-      return _getWebMarkerIconWithDirections(location, index, totalLocations);
-    }
-
-    // Check for lifecycle markers first
-    switch (location.updateType) {
-      case TripUpdateType.tripStarted:
-        return _createMarkerWithHue(BitmapDescriptor.hueGreen);
-      case TripUpdateType.tripEnded:
-        return _createMarkerWithHue(BitmapDescriptor.hueRed);
-      case TripUpdateType.dayStart:
-        return _createMarkerWithHue(BitmapDescriptor.hueYellow);
-      case TripUpdateType.dayEnd:
-        return _createMarkerWithHue(BitmapDescriptor.hueViolet);
-      case TripUpdateType.regular:
-        // For regular updates in directions mode:
-        // - Last (most recent) = red
-        // - Previous = orange
-        if (index == totalLocations - 1) {
-          return _createMarkerWithHue(BitmapDescriptor.hueRed);
-        }
-        return _createMarkerWithHue(BitmapDescriptor.hueOrange);
-    }
-  }
-
-  /// Gets marker icon for web platform with directions mode using numeric hue values
-  static BitmapDescriptor _getWebMarkerIconWithDirections(
-    TripLocation location,
-    int index,
-    int totalLocations,
-  ) {
-    double hue;
-    String colorName;
-
-    switch (location.updateType) {
-      case TripUpdateType.tripStarted:
-        hue = 120.0;
-        colorName = 'GREEN';
-        break;
-      case TripUpdateType.tripEnded:
-        hue = 0.0;
-        colorName = 'RED';
-        break;
-      case TripUpdateType.dayStart:
-        hue = 60.0;
-        colorName = 'YELLOW';
-        break;
-      case TripUpdateType.dayEnd:
-        hue = 270.0;
-        colorName = 'VIOLET';
-        break;
-      case TripUpdateType.regular:
-        if (index == totalLocations - 1) {
-          hue = 0.0;
-          colorName = 'RED (latest)';
-        } else {
-          hue = 30.0;
-          colorName = 'ORANGE (previous)';
-        }
-        break;
-    }
-
-    debugPrint(
-        'WEB-DIR: Marker for ${location.updateType} at index $index/$totalLocations -> $colorName (hue: $hue)');
-    return WebMarkerGenerator.markerWithHue(hue);
-  }
+          TripLocation location, int index, int totalLocations) =>
+      _getMarkerIcon(location, index, totalLocations);
 }
 
 /// Data class holding map markers and polylines

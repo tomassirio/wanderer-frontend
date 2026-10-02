@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,11 +6,13 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
+import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
+import 'package:wanderer_frontend/presentation/helpers/android_app_links.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/achievements_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_admin_screen.dart';
@@ -298,6 +301,14 @@ class _ProfileAndroidViewState extends ConsumerState<ProfileAndroidView> {
       icon: const Icon(Icons.settings_outlined),
       onPressed: () => _push(const SettingsScreen()),
     );
+    // Sun in dark mode, moon in light: flips the theme in place.
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final themeToggle = IconButton(
+      key: const Key('you_theme_toggle'),
+      tooltip: dark ? l10n.switchToLightMode : l10n.switchToDarkMode,
+      icon: Icon(dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+      onPressed: () => ThemeController().setDarkMode(!dark),
+    );
     final PreferredSizeWidget appBar = widget.isTab
         ? AppBar(
             toolbarHeight: 64,
@@ -308,11 +319,11 @@ class _ProfileAndroidViewState extends ConsumerState<ProfileAndroidView> {
             titleSpacing: 20,
             title:
                 Text(l10n.you, style: WandererTheme.display(24, color: c.text)),
-            actions: [gear, const SizedBox(width: 4)],
+            actions: [themeToggle, gear, const SizedBox(width: 4)],
           )
         : AndroidTopBar(
             title: _own ? l10n.you : (_profile?.username ?? ''),
-            actions: _own ? [gear] : null,
+            actions: _own ? [themeToggle, gear] : null,
           );
 
     Widget body;
@@ -561,6 +572,16 @@ class _ProfileAndroidViewState extends ConsumerState<ProfileAndroidView> {
         l10n.buyMeACoffee,
         _supportWanderer,
       ),
+      // Browsers: tracking happens in the app.
+      if (kIsWeb)
+        (
+          Icons.get_app_outlined,
+          c.neutralBg,
+          c.text,
+          l10n.mobileWebTrackTitle,
+          l10n.landingInstallCta,
+          () => AndroidAppLinks.open(context, install: true),
+        ),
     ];
     return _linkCard(c, rows);
   }

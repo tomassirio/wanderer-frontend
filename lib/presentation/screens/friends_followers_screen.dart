@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -482,7 +482,7 @@ class _FriendsFollowersScreenState
 
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb) return _buildAndroid();
+    if (!AdaptiveLayout.usesDesktopLayout(context)) return _buildAndroid();
     return WandererScaffold(
       hideAppBarWithSidebar: true,
       appBar: WandererAppBar(
@@ -945,7 +945,7 @@ class _FriendsFollowersScreenState
   }
 
   void _openSearch() {
-    if (kIsWeb) {
+    if (AdaptiveLayout.usesDesktopLayout(context)) {
       showSearchOverlay(context);
       return;
     }

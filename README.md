@@ -11,6 +11,18 @@
 
 A cross-platform Flutter application for tracking trips and adventures in real time. Runs on the web, Android, and iOS.
 
+On browser viewports below 720 logical pixels, the app shares Android's mobile
+appearance and bottom navigation. Wider browser windows retain the desktop web
+layout. Mobile web supports browsing, planning, and social interactions; trip
+tracking controls are replaced with Android app handoffs. Background location
+updates and native push notifications remain Android-only. See
+[the design system](docs/design-system.md#mobile-web-behavior) for app-link setup
+and backend-dependent flows.
+
+The web landing shares its desktop design across browser sizes. Android uses a
+matching, non-scrollable welcome screen with Log in and Try without logging in
+actions always visible.
+
 ![Wanderer Feature Overview](assets/images/wanderer-feature.png)
 
 ## Features
@@ -30,13 +42,13 @@ A cross-platform Flutter application for tracking trips and adventures in real t
 
 ### Screenshots
 
-| Home | Trip Detail | Trip Map |
-|:----:|:-----------:|:--------:|
-| ![Home](assets/images/inApp/home.jpeg) | ![Trip Detail](assets/images/inApp/trip_details.jpeg) | ![Trip Map](assets/images/inApp/in_map.jpeg) |
+|                 Home                  | Trip Detail | Trip Map |
+|:-------------------------------------:|:-----------:|:--------:|
+| ![Home](assets/images/inApp/home.png) | ![Trip Detail](assets/images/inApp/trip_details.png) | ![Trip Map](assets/images/inApp/in_map.png) |
 
-| Create Trip | Profile | Trip Planning |
-|:-----------:|:-------:|:-------------:|
-| ![Create Trip](assets/images/inApp/trip_create.jpeg) | ![Profile](assets/images/inApp/profile.jpeg) | ![Trip Planning](assets/images/inApp/trip_plan_create.jpeg) |
+|                     Create Trip                     | Profile | Trip Planning |
+|:---------------------------------------------------:|:-------:|:-------------:|
+| ![Create Trip](assets/images/inApp/trip_create.png) | ![Profile](assets/images/inApp/profile.png) | ![Trip Planning](assets/images/inApp/trip_plan_create.png) |
 
 ## Architecture
 
@@ -119,6 +131,11 @@ make run-web-dev  # Injects env vars into web/index.html, runs on port 51538
 ```
 
 The Makefile target restores the original `index.html` when you stop it.
+
+After changing Dart code, press **R** in the terminal running this command to
+recompile and hot-restart, then refresh the browser. A browser refresh alone does
+not recompile the `web-server` build. If it still shows an older screen, stop and
+restart `make run-web-dev`.
 
 ### Running Tests
 

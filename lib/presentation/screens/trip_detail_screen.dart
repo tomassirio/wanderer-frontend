@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:io' show Platform;
-import 'dart:ui' show ImageFilter;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/widgets/mobile_web/mobile_web_draft_trip.dart';
+import 'package:wanderer_frontend/presentation/widgets/mobile_web/app_handoff.dart';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -24,6 +25,7 @@ import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/core/services/background_update_manager.dart';
 import 'package:wanderer_frontend/presentation/helpers/trip_map_helper.dart';
+import 'package:wanderer_frontend/presentation/helpers/update_markers.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/background_location_disclosure.dart';
@@ -36,7 +38,6 @@ import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_planne
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/reaction_picker.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_map_view.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/comments_section.dart';
-import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_lifecycle_buttons.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/strategies/trip_detail_layout_strategy.dart';
@@ -57,7 +58,11 @@ import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 class TripDetailScreen extends ConsumerStatefulWidget {
   final Trip trip;
 
-  const TripDetailScreen({super.key, required this.trip});
+  /// Open centred on the latest update (e.g. from a check-in notification).
+  final bool focusLatestUpdate;
+
+  const TripDetailScreen(
+      {super.key, required this.trip, this.focusLatestUpdate = false});
 
   @override
   ConsumerState<TripDetailScreen> createState() => _TripDetailScreenState();
@@ -87,6 +92,10 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   static const int _commentPageSize = 20;
 
   List<TripLocation> _tripUpdates = [];
+
+  /// Android / mobile web: the update the map is centred on (ring + card).
+  TripLocation? _focusedUpdate;
+  bool _focusedLatestOnce = false;
   bool _isLoadingUpdates = false;
   int _currentUpdatesPage = 0;
   bool _hasMoreUpdates = false;
@@ -145,10 +154,6 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   // Multi-day trip: current day derived from backend's currentDay field
   int get _currentDay => _trip.currentDay ?? 1;
 
-  // Desktop web: track whether the mouse is hovering over a panel
-  // so we can disable map gestures only when hovering.
-  bool _isHoveringOverPanel = false;
-
   // Custom info window: currently selected map marker location
   TripLocation? _selectedMapLocation;
 
@@ -184,14 +189,19 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   /// Check if we're on Android (the only platform supporting background updates)
   bool get _isAndroid => !kIsWeb && Platform.isAndroid;
 
+  bool get _usesDesktopLayout =>
+      kIsWeb &&
+      WebTripDetailLayout.fitsViewport(MediaQuery.sizeOf(context).width);
+  bool get _isMobileWeb => kIsWeb && !_usesDesktopLayout;
+
   /// Web keeps its floating notifications; Android uses the toast stack.
-  void _showSuccess(String message) => kIsWeb
+  void _showSuccess(String message) => _usesDesktopLayout
       ? UiHelpers.showSuccessMessage(context, message)
       : Toasts.show(ToastData(kind: ToastKind.success, title: message));
-  void _showError(String message) => kIsWeb
+  void _showError(String message) => _usesDesktopLayout
       ? UiHelpers.showErrorMessage(context, message)
       : Toasts.show(ToastData(kind: ToastKind.error, title: message));
-  void _showInfo(String message) => kIsWeb
+  void _showInfo(String message) => _usesDesktopLayout
       ? UiHelpers.showInfoMessage(context, message)
       : Toasts.show(ToastData(kind: ToastKind.info, title: message));
 
@@ -276,15 +286,6 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       _trip.userId == _userId &&
       _trip.status == TripStatus.inProgress;
 
-  /// Check if the "Finish Day / Begin Day N" button should be shown
-  /// Only for MULTI_DAY trips, for the trip owner, when IN_PROGRESS or RESTING
-  bool get _showDayButton =>
-      _userId != null &&
-      _trip.userId == _userId &&
-      _trip.tripModality == TripModality.multiDay &&
-      (_trip.status == TripStatus.inProgress ||
-          _trip.status == TripStatus.resting);
-
   @override
   void initState() {
     super.initState();
@@ -314,13 +315,16 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     // the initial camera position exactly once (instant jump, no animation).
     // _fetchUserLocation is included so that trips with no locations/route can
     // centre on the user's real position instead of the hardcoded NYC default.
-    _initializeMapPosition();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _initializeMapPosition();
+    });
   }
 
   /// Fetches the user's current device location so that freshly-created trips
   /// (with no locations or planned route) centre on the user's real position
   /// instead of the hardcoded NYC default.
   Future<void> _fetchUserLocation() async {
+    if (_isMobileWeb) return;
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) return;
@@ -1209,9 +1213,23 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     });
   }
 
+  bool? _desktopMapLayout;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final desktop = _usesDesktopLayout;
+    // Route and marker colours follow the theme: restyle on a flip.
+    final brightness = Theme.of(context).brightness;
+    final themeFlipped = _mapBrightness != null && _mapBrightness != brightness;
+    _mapBrightness = brightness;
+    if (themeFlipped ||
+        (_desktopMapLayout != null && _desktopMapLayout != desktop)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _updateMapData();
+      });
+    }
+    _desktopMapLayout = desktop;
     // Initialize panel states based on screen size (only once)
     if (!_hasInitializedPanelStates) {
       _hasInitializedPanelStates = true;
@@ -1324,7 +1342,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   ///   explained as part of that step's copy instead of a separate target.
   Future<void> _maybeShowTripDetailTutorial() async {
     // Coach marks describe the floating-bubble layout, which Android dropped.
-    if (_tutorialCheckDone || !mounted || !kIsWeb) return;
+    if (_tutorialCheckDone || !mounted || !_usesDesktopLayout) {
+      return;
+    }
     _tutorialCheckDone = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1464,6 +1484,13 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         _hasMoreUpdates = !pageResponse.last;
         _isLoadingUpdates = false;
       });
+      if (widget.focusLatestUpdate &&
+          !_focusedLatestOnce &&
+          _tripUpdates.isNotEmpty) {
+        _focusedLatestOnce = true;
+        await _mapControllerCompleter.future;
+        if (mounted) _focusUpdate(_tripUpdates.first);
+      }
     } catch (e) {
       setState(() => _isLoadingUpdates = false);
       debugPrint(
@@ -1572,6 +1599,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   void _updateMapData() {
+    _mapStyleRun++;
     debugPrint(
         'TripDetailScreen: Updating map data - locations: ${_trip.locations?.length}, encodedPolyline length: ${_trip.encodedPolyline?.length}');
     try {
@@ -1581,16 +1609,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         onPlannedMarkerTap: _onPlannedMarkerTapped,
         showPlannedWaypoints: _showPlannedWaypoints,
       );
-      if (!kIsWeb) {
-        _applyAndroidMapData(mapData);
-        return;
-      }
-      setState(() {
-        _markers = mapData.markers;
-        _polylines = mapData.polylines;
-      });
-      debugPrint(
-          'TripDetailScreen: Map updated - markers: ${_markers.length}, polylines: ${_polylines.length}');
+      // Same map look everywhere: Android, web and mobile web.
+      _applyMapStyle(mapData);
     } catch (e) {
       debugPrint(
           'TripDetailScreen: Error in createMapDataWithDirections, falling back to straight lines: $e');
@@ -1611,8 +1631,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   void _onMapMarkerTapped(TripLocation location) {
-    if (!kIsWeb) {
-      showTripCheckInDetail(context, location);
+    if (!_usesDesktopLayout) {
+      // Centre on it; the layout shows its details below.
+      _focusUpdate(location);
       return;
     }
     setState(() {
@@ -1622,9 +1643,11 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   }
 
   int _mapStyleRun = 0;
+  Brightness? _mapBrightness;
 
-  /// Android: small stop dots and state-coloured route (canvas).
-  Future<void> _applyAndroidMapData(MapData data) async {
+  /// Canvas map look on every layout: update markers by kind, hollow
+  /// planned stops and a state-coloured route.
+  Future<void> _applyMapStyle(MapData data) async {
     final run = ++_mapStyleRun;
     final styled =
         await TripMapDots.restyle(data, _trip, WandererTheme.of(context));
@@ -2226,7 +2249,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         await _centerMapOnCurrentLocation();
       }
 
-      if (mounted && !kIsWeb) {
+      if (mounted && !_usesDesktopLayout) {
         _syncLiveNotification();
         final isStart = previousStatus == TripStatus.created;
         _showStateToast(
@@ -2297,7 +2320,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   /// On success, navigates to the home screen and clears the navigation stack.
   Future<void> _handleDeleteTrip() async {
     final l10n = context.l10n;
-    final confirm = kIsWeb
+    final confirm = _usesDesktopLayout
         ? await WandererDialog.confirm(
             context,
             title: l10n.tripDetailDeleteTitle,
@@ -2421,7 +2444,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         }
 
         // Refresh timeline to show the day-end marker
-        if (mounted && !kIsWeb) {
+        if (mounted && !_usesDesktopLayout) {
           _syncLiveNotification();
           _showStateToast(TripStatus.resting,
               undo: () =>
@@ -2483,7 +2506,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         }
 
         // Refresh timeline to show the day-start marker
-        if (mounted && !kIsWeb) {
+        if (mounted && !_usesDesktopLayout) {
           _syncLiveNotification();
           Toasts.show(ToastData(
             kind: ToastKind.success,
@@ -2590,7 +2613,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     Widget picker(BuildContext context) => ReactionPicker(
           onReactionSelected: (type) => _addReaction(commentId, type),
         );
-    if (kIsWeb) {
+    if (_usesDesktopLayout) {
       WandererDialog.show<void>(
         context,
         builder: (context) => Stack(
@@ -2654,7 +2677,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
       if (mounted) {
         if (result.isSuccess) {
-          if (kIsWeb) {
+          if (_usesDesktopLayout) {
             _showSuccess('Update sent successfully!');
           } else {
             Toasts.show(ToastData(
@@ -2719,7 +2742,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
     if (permission == LocationPermission.denied) {
       if (!mounted) return false;
-      final consented = await LocationPermissionDisclosure.show(context);
+      final consented =
+          kIsWeb || await LocationPermissionDisclosure.show(context);
       if (!consented) return false;
       permission = await Geolocator.requestPermission();
     }
@@ -2740,7 +2764,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           'Please enable it in your device settings.',
         );
         // Try to open app settings so the user can grant permission.
-        await Geolocator.openAppSettings();
+        if (!kIsWeb) await Geolocator.openAppSettings();
       }
       return false;
     }
@@ -2783,6 +2807,49 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   /// Handle tap on a timeline update - animate map to that location
   /// Ignores lifecycle markers (Day Started/Ended, Trip Started/Ended) since
   /// they have no real location.
+  /// Where an update sits on the map: its marker (lifecycle updates without
+  /// coordinates get a fallback spot there), else its own coordinates.
+  LatLng? _positionOf(TripLocation u) {
+    for (final m in _markers) {
+      if (m.markerId.value == u.id) return m.position;
+    }
+    return u.hasLocation ? LatLng(u.latitude, u.longitude) : null;
+  }
+
+  /// Android / mobile web: centre the map on [u] with a ring and a card.
+  void _focusUpdate(TripLocation u) {
+    setState(() => _focusedUpdate = u);
+    final at = _positionOf(u);
+    if (at != null) _animateMapToLocation(at, zoom: 14);
+  }
+
+  /// "Whole route": drop the focus and fit every update on screen.
+  void _showWholeRoute() {
+    setState(() => _focusedUpdate = null);
+    final points = _markers
+        .where((m) => !m.markerId.value.startsWith('planned_'))
+        .map((m) => m.position)
+        .toList();
+    if (_mapController == null || points.isEmpty) return;
+    if (points.length == 1) {
+      _animateMapToLocation(points.first, zoom: 13);
+      return;
+    }
+    double minLat = points.first.latitude, maxLat = minLat;
+    double minLng = points.first.longitude, maxLng = minLng;
+    for (final p in points) {
+      if (p.latitude < minLat) minLat = p.latitude;
+      if (p.latitude > maxLat) maxLat = p.latitude;
+      if (p.longitude < minLng) minLng = p.longitude;
+      if (p.longitude > maxLng) maxLng = p.longitude;
+    }
+    _mapController!.animateCamera(CameraUpdate.newLatLngBounds(
+        LatLngBounds(
+            southwest: LatLng(minLat, minLng),
+            northeast: LatLng(maxLat, maxLng)),
+        64));
+  }
+
   void _handleTimelineUpdateTap(TripLocation update) {
     // Zoom to the update location on the map (for all update types)
     // For lifecycle markers without real location, use fallback coordinates
@@ -2936,8 +3003,13 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb) return _buildAndroid(context);
-    final l10n = context.l10n;
+    if (!_usesDesktopLayout) {
+      if (_isMobileWeb &&
+          WebDraftTripView.shouldShow(_trip, _userId, _tripUpdates)) {
+        return MobileWebDraftTrip(data: _createLayoutData(true));
+      }
+      return _buildAndroid(context);
+    }
     // Re-evaluated on every rebuild, so a WebSocket status change to live
     // swaps the draft view out for the map view.
     final showDraft = kIsWeb &&
@@ -2972,18 +3044,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          // Get the appropriate layout strategy based on screen size
-          final isMobile =
-              TripDetailLayoutStrategyFactory.isMobile(constraints.maxWidth);
-          final strategy =
-              TripDetailLayoutStrategyFactory.getStrategy(constraints.maxWidth);
-
-          // Create layout data with all state and callbacks
-          final layoutData = _createLayoutData(isMobile);
-
-          // Calculate dimensions using strategy
-          final leftPanelWidth =
-              strategy.calculateLeftPanelWidth(constraints, layoutData);
+          final layoutData = _createLayoutData(false);
 
           final map = TripMapView(
             initialLocation: TripMapHelper.getInitialLocation(_trip,
@@ -2999,18 +3060,6 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
               }
             },
             isOwner: _userId != null && _trip.userId == _userId,
-            // On mobile: disable map gestures when any panel is expanded
-            // to prevent scroll-through on touch devices.
-            // On desktop: disable map gestures only when the mouse is
-            // hovering over a panel, so scroll/drag on panels doesn't
-            // move the map, but the map is freely navigable otherwise.
-            gesturesEnabled: isMobile
-                ? (_isTripInfoCollapsed &&
-                    _isCommentsCollapsed &&
-                    _isTimelineCollapsed &&
-                    _isTripUpdateCollapsed &&
-                    _isTripSettingsCollapsed)
-                : !_isHoveringOverPanel,
             selectedLocation: _selectedMapLocation,
             onInfoWindowClosed: _onInfoWindowClosed,
             selectedPlannedWaypoint: _selectedPlannedWaypoint,
@@ -3028,163 +3077,20 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
             );
           }
 
-          if (kIsWeb && constraints.maxWidth >= WebTripDetailLayout.minWidth) {
-            return WebTripDetailLayout(
-              data: layoutData,
-              map: map,
-              isMapLoading: _isMapLoading,
-              donationButton: _isPromoted && _donationLink != null
-                  ? _buildDonationButton()
-                  : null,
-              onStartOnPhone:
-                  WebDraftTripView.shouldShow(_trip, _userId, _tripUpdates)
-                      ? () {
-                          setState(() => _draftHintDismissed = false);
-                          WebDraftTripView.clearDismissed(_trip.id);
-                        }
-                      : null,
-            );
-          }
-
-          return Stack(
-            children: [
-              // Full-screen Map (background)
-              Positioned.fill(
-                child: map,
-              ),
-
-              // Map loading overlay with blur and spinner
-              if (_isMapLoading)
-                Positioned.fill(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                    child: Container(
-                      color: Colors.black.withOpacity(0.1),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                WandererTheme.primaryOrange,
-                              ),
-                              strokeWidth: 3,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              l10n.loadingTrip,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black.withOpacity(0.5),
-                                    blurRadius: 4,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-              // Left side: Trip Info and Comments (floating glass panels)
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: strategy.shouldLeftPanelStretchToBottom(layoutData)
-                    ? 0
-                    : null,
-                child: SizedBox(
-                  width: leftPanelWidth,
-                  child: MouseRegion(
-                    onEnter: (_) {
-                      if (!isMobile) {
-                        setState(() => _isHoveringOverPanel = true);
+          return WebTripDetailLayout(
+            data: layoutData,
+            map: map,
+            isMapLoading: _isMapLoading,
+            donationButton: _isPromoted && _donationLink != null
+                ? _buildDonationButton()
+                : null,
+            onStartOnPhone:
+                WebDraftTripView.shouldShow(_trip, _userId, _tripUpdates)
+                    ? () {
+                        setState(() => _draftHintDismissed = false);
+                        WebDraftTripView.clearDismissed(_trip.id);
                       }
-                    },
-                    onExit: (_) {
-                      if (!isMobile) {
-                        setState(() => _isHoveringOverPanel = false);
-                      }
-                    },
-                    child: strategy.buildLeftPanel(constraints, layoutData),
-                  ),
-                ),
-              ),
-
-              // Right side: Timeline panel (floating glass card)
-              Positioned(
-                right: 0,
-                top: 0,
-                bottom: strategy.shouldTimelinePanelStretchToBottom(layoutData)
-                    ? 0
                     : null,
-                child: MouseRegion(
-                  onEnter: (_) {
-                    if (!isMobile) {
-                      setState(() => _isHoveringOverPanel = true);
-                    }
-                  },
-                  onExit: (_) {
-                    if (!isMobile) {
-                      setState(() => _isHoveringOverPanel = false);
-                    }
-                  },
-                  child: strategy.buildTimelinePanel(constraints, layoutData),
-                ),
-              ),
-
-              // Lifecycle circle buttons (mobile only, owner only)
-              // Positioned on right side above native Google Maps zoom controls
-              if (isMobile &&
-                  _userId != null &&
-                  _trip.userId == _userId &&
-                  _trip.status != TripStatus.finished)
-                Positioned(
-                  right: 8,
-                  bottom: 120,
-                  child: TripLifecycleButtons(
-                    key: _tutorialLifecycleKey,
-                    currentStatus: _trip.status,
-                    tripModality: _trip.tripModality,
-                    isOwner: true,
-                    isLoading: _isChangingStatus,
-                    onStatusChange: _changeTripStatus,
-                    showDayButton: _showDayButton,
-                    currentDay: _currentDay,
-                    isResting: _trip.status == TripStatus.resting,
-                    onDayButtonTap:
-                        _showDayButton ? () => _handleDayButtonTap(null) : null,
-                    blockStart: _hasOtherActiveTrip,
-                    onStartBlocked: _handleBlockedStart,
-                  ),
-                ),
-
-              // Floating donation button for promoted trips
-              if (_isPromoted && _donationLink != null)
-                isMobile
-                    ? Positioned(
-                        left: 16,
-                        bottom: 16,
-                        child: _buildDonationButton(),
-                      )
-                    : AnimatedPositioned(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                        left: _isCommentsCollapsed
-                            ? 16.0
-                            : strategy.calculateInfoColumnWidth(
-                                    constraints, layoutData) -
-                                16,
-                        bottom: 16,
-                        child: _buildDonationButton(),
-                      ),
-            ],
           );
         },
       ),
@@ -3194,54 +3100,77 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   /// Android: full-screen map, round controls, draggable info sheet.
   Widget _buildAndroid(BuildContext context) {
     final isOwner = _userId != null && _trip.userId == _userId;
-    final map = TripMapView(
-      initialLocation:
-          TripMapHelper.getInitialLocation(_trip, userLocation: _userLocation),
-      initialZoom:
-          TripMapHelper.getInitialZoom(_trip, userLocation: _userLocation),
-      markers: _markers,
-      polylines: _polylines,
-      onMapCreated: (controller) {
-        _mapController = controller;
-        if (!_mapControllerCompleter.isCompleted) {
-          _mapControllerCompleter.complete(controller);
-        }
-      },
-      isOwner: isOwner,
-      padding: const EdgeInsets.only(
-          bottom: TripDetailAndroidLayout.mapBottomPadding),
-    );
+    final mobileWeb = _isMobileWeb;
+    final map = LayoutBuilder(
+        builder: (context, constraints) => TripMapView(
+              initialLocation: TripMapHelper.getInitialLocation(_trip,
+                  userLocation: _userLocation),
+              initialZoom: TripMapHelper.getInitialZoom(_trip,
+                  userLocation: _userLocation),
+              markers: {
+                ..._markers,
+                if (_focusedUpdate case final f?)
+                  if (_positionOf(f) case final at?)
+                    Marker(
+                      markerId: const MarkerId('focus_ring'),
+                      position: at,
+                      icon: UpdateMarkers.ring,
+                      anchor: const Offset(0.5, 0.5),
+                      zIndexInt: 3,
+                    ),
+              },
+              polylines: _polylines,
+              onMapCreated: (controller) {
+                _mapController = controller;
+                if (!_mapControllerCompleter.isCompleted) {
+                  _mapControllerCompleter.complete(controller);
+                }
+              },
+              isOwner: isOwner && !mobileWeb,
+              selectedPlannedWaypoint: _selectedPlannedWaypoint,
+              onPlannedInfoWindowClosed: _onInfoWindowClosed,
+              onMapTap: _onInfoWindowClosed,
+              padding: const EdgeInsets.only(
+                  bottom: TripDetailAndroidLayout.mapBottomPadding),
+            ));
     return Scaffold(
-      body: TripDetailAndroidLayout(
-        data: _createLayoutData(true),
-        map: map,
-        isMapLoading: _isMapLoading,
-        onLogin: _navigateToAuth,
-        onCenterOnMe: isOwner ? _centerMapOnCurrentLocation : null,
-        onCheckInTap: (u) {
-          _handleTimelineUpdateTap(u);
-          showTripCheckInDetail(context, u);
-        },
-        donationButton: _isPromoted && _donationLink != null
-            ? _buildDonationButton()
-            : null,
-        controls: isOwner && _trip.status != TripStatus.finished
-            ? TripStateControls(
-                status: _trip.status,
-                isMultiDay: _trip.tripModality == TripModality.multiDay,
-                isBusy: _isChangingStatus || _isSendingUpdate,
-                onStart: () => _changeTripStatus(TripStatus.inProgress),
-                onCheckIn: _androidCheckIn,
-                onPause: () => _changeTripStatus(TripStatus.paused),
-                onRest: () => _handleDayButtonTap(null, confirm: false),
-                onResume: () => _changeTripStatus(TripStatus.inProgress),
-                onContinue: () => _handleDayButtonTap(null),
-                onFinish: _androidFinish,
-                blockStart: _hasOtherActiveTrip,
-                onStartBlocked: _handleBlockedStart,
-              )
-            : null,
-      ),
+      body: Column(children: [
+        if (mobileWeb && !isOwner) MobileWebAppBanner(tripId: _trip.id),
+        Expanded(
+            child: TripDetailAndroidLayout(
+          mobileWeb: mobileWeb,
+          data: _createLayoutData(true),
+          map: map,
+          isMapLoading: _isMapLoading,
+          onLogin: _navigateToAuth,
+          onCenterOnMe:
+              isOwner && !mobileWeb ? _centerMapOnCurrentLocation : null,
+          onCheckInTap: (u) => showTripCheckInDetail(context, u),
+          focusedUpdate: _focusedUpdate,
+          onFocusUpdate: _focusUpdate,
+          onWholeRoute: _showWholeRoute,
+          onClearFocus: () => setState(() => _focusedUpdate = null),
+          donationButton: _isPromoted && _donationLink != null
+              ? _buildDonationButton()
+              : null,
+          controls: isOwner && !mobileWeb && _trip.status != TripStatus.finished
+              ? TripStateControls(
+                  status: _trip.status,
+                  isMultiDay: _trip.tripModality == TripModality.multiDay,
+                  isBusy: _isChangingStatus || _isSendingUpdate,
+                  onStart: () => _changeTripStatus(TripStatus.inProgress),
+                  onCheckIn: _androidCheckIn,
+                  onPause: () => _changeTripStatus(TripStatus.paused),
+                  onRest: () => _handleDayButtonTap(null, confirm: false),
+                  onResume: () => _changeTripStatus(TripStatus.inProgress),
+                  onContinue: () => _handleDayButtonTap(null),
+                  onFinish: _androidFinish,
+                  blockStart: _hasOtherActiveTrip,
+                  onStartBlocked: _handleBlockedStart,
+                )
+              : null,
+        )),
+      ]),
     );
   }
 

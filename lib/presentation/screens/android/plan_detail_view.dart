@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/presentation/helpers/android_app_links.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
@@ -12,6 +13,7 @@ import 'package:wanderer_frontend/presentation/widgets/common/wanderer_sheet.dar
 /// back / more buttons, plan info in a bottom sheet with Start this trip.
 class AndroidPlanDetailView extends StatelessWidget {
   final TripPlan plan;
+  final bool mobileWeb;
   final Widget map;
   final List<LatLng> route;
   final VoidCallback onBack;
@@ -23,6 +25,7 @@ class AndroidPlanDetailView extends StatelessWidget {
   const AndroidPlanDetailView({
     super.key,
     required this.plan,
+    this.mobileWeb = false,
     required this.map,
     required this.route,
     required this.onBack,
@@ -168,147 +171,169 @@ class AndroidPlanDetailView extends StatelessWidget {
               ],
             ),
           ),
-          PlanSheet(children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Pill(multiDay
-                    ? l10n.planDetailMultiDayPlan
-                    : l10n.planDetailSimplePlan),
-                const SizedBox(height: 8),
-                Text(plan.name,
-                    style: WandererTheme.display(24, color: c.text)),
-                const SizedBox(height: 6),
-                Row(
+          ConstrainedBox(
+              constraints: BoxConstraints(
+                  maxHeight: mobileWeb
+                      ? MediaQuery.sizeOf(context).height * 0.62
+                      : double.infinity),
+              child: PlanSheet(children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.calendar_today_outlined,
-                        size: 15, color: c.textMuted),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                          planDateRange(
-                                  context, plan.startDate, plan.endDate) ??
-                              l10n.noDateSet,
-                          style: TextStyle(fontSize: 14, color: c.textMuted)),
+                    Pill(multiDay
+                        ? l10n.planDetailMultiDayPlan
+                        : l10n.planDetailSimplePlan),
+                    const SizedBox(height: 8),
+                    Text(plan.name,
+                        style: WandererTheme.display(24, color: c.text)),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(Icons.calendar_today_outlined,
+                            size: 15, color: c.textMuted),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                              planDateRange(
+                                      context, plan.startDate, plan.endDate) ??
+                                  l10n.noDateSet,
+                              style:
+                                  TextStyle(fontSize: 14, color: c.textMuted)),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                  color: c.raised, borderRadius: BorderRadius.circular(14)),
-              child: IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4, bottom: 6),
-                      child: Column(
-                        children: [
-                          const _Dot(fill: WandererTheme.forest, size: 12),
-                          Expanded(child: VerticalDivider(color: c.line)),
-                          const _Dot(
-                              fill: Colors.white,
-                              ring: WandererTheme.trail,
-                              size: 10),
-                          Expanded(child: VerticalDivider(color: c.line)),
-                          const _Dot(fill: WandererTheme.trail, size: 12),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          caps(l10n.planEditorStartCaps, c.forestFg),
-                          Text(
-                              _place(plan.startLocation) ??
-                                  l10n.planEditorNotSet,
-                              style: valueStyle),
-                          const SizedBox(height: 12),
-                          Row(
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                      color: c.raised, borderRadius: BorderRadius.circular(14)),
+                  child: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4, bottom: 6),
+                          child: Column(
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    caps(
-                                        l10n.planEditorStopsCaps, c.accentText),
-                                    Text(
-                                        plan.waypoints.isEmpty
-                                            ? l10n.planNoStops
-                                            : l10n.planEditorStopsCount(
-                                                plan.waypoints.length),
-                                        style: valueStyle),
-                                  ],
-                                ),
-                              ),
-                              if (plan.waypoints.isNotEmpty)
-                                TextButton(
-                                  onPressed: () => _showStops(context),
-                                  style: TextButton.styleFrom(
-                                      foregroundColor: c.accentText,
-                                      textStyle: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700)),
-                                  child: Text(l10n.planShowAll),
-                                ),
+                              const _Dot(fill: WandererTheme.forest, size: 12),
+                              Expanded(child: VerticalDivider(color: c.line)),
+                              const _Dot(
+                                  fill: Colors.white,
+                                  ring: WandererTheme.trail,
+                                  size: 10),
+                              Expanded(child: VerticalDivider(color: c.line)),
+                              const _Dot(fill: WandererTheme.trail, size: 12),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          caps(l10n.planEditorFinishCaps, c.accentText),
-                          Text(
-                              _place(plan.endLocation) ?? l10n.planEditorNotSet,
-                              style: valueStyle),
-                        ],
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              caps(l10n.planEditorStartCaps, c.forestFg),
+                              Text(
+                                  _place(plan.startLocation) ??
+                                      l10n.planEditorNotSet,
+                                  style: valueStyle),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        caps(l10n.planEditorStopsCaps,
+                                            c.accentText),
+                                        Text(
+                                            plan.waypoints.isEmpty
+                                                ? l10n.planNoStops
+                                                : l10n.planEditorStopsCount(
+                                                    plan.waypoints.length),
+                                            style: valueStyle),
+                                      ],
+                                    ),
+                                  ),
+                                  if (plan.waypoints.isNotEmpty)
+                                    TextButton(
+                                      onPressed: () => _showStops(context),
+                                      style: TextButton.styleFrom(
+                                          foregroundColor: c.accentText,
+                                          textStyle: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w700)),
+                                      child: Text(l10n.planShowAll),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              caps(l10n.planEditorFinishCaps, c.accentText),
+                              Text(
+                                  _place(plan.endLocation) ??
+                                      l10n.planEditorNotSet,
+                                  style: valueStyle),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (km != null && !mobileWeb)
+                  Row(
+                    children: [
+                      stat(l10n.planPlannedDistance, kmText(km)),
+                      if (multiDay && days != null && days > 0) ...[
+                        const SizedBox(width: 8),
+                        stat(l10n.planDetailPerDay, kmText(km / days)),
+                      ],
+                    ],
+                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: PlanPrimaryButton(
+                        label: mobileWeb
+                            ? l10n.mobileWebStartInApp
+                            : l10n.planDetailStartTrip,
+                        icon: Icons.play_arrow_rounded,
+                        onPressed: mobileWeb
+                            ? () =>
+                                AndroidAppLinks.open(context, planId: plan.id)
+                            : onStart,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      height: 56,
+                      child: OutlinedButton(
+                        onPressed: onEdit,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: c.text,
+                          side: BorderSide(color: c.line),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                          textStyle: const TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w700),
+                        ),
+                        child: Text(l10n.edit),
                       ),
                     ),
                   ],
                 ),
-              ),
-            ),
-            if (km != null)
-              Row(
-                children: [
-                  stat(l10n.planPlannedDistance, kmText(km)),
-                  if (multiDay && days != null && days > 0) ...[
-                    const SizedBox(width: 8),
-                    stat(l10n.planDetailPerDay, kmText(km / days)),
-                  ],
-                ],
-              ),
-            Row(
-              children: [
-                Expanded(
-                  child: PlanPrimaryButton(
-                    label: l10n.planDetailStartTrip,
-                    icon: Icons.play_arrow_rounded,
-                    onPressed: onStart,
+                if (mobileWeb)
+                  TextButton(
+                    onPressed: () =>
+                        AndroidAppLinks.open(context, install: true),
+                    child: Text(
+                        '${l10n.mobileWebTrackingNeedsApp} ${l10n.mobileWebGet}',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12, color: c.caption)),
                   ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  height: 56,
-                  child: OutlinedButton(
-                    onPressed: onEdit,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: c.text,
-                      side: BorderSide(color: c.line),
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                      textStyle: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700),
-                    ),
-                    child: Text(l10n.edit),
-                  ),
-                ),
-              ],
-            ),
-          ]),
+              ])),
         ],
       ),
     );

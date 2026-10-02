@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -24,6 +24,18 @@ import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 
 /// Screen displaying all achievements and user's unlocked achievements
+/// "100 km", "45 days", "10 updates"… for an achievement's threshold.
+String achievementThresholdLabel(AppLocalizations l10n, Achievement a) {
+  final type = a.type.toJson();
+  final v = a.thresholdValue;
+  if (type.startsWith('DISTANCE_')) return l10n.achievementKm(v.toDouble());
+  if (type.startsWith('DURATION_')) return l10n.achievementDays(v);
+  if (type.startsWith('UPDATES_')) return l10n.achievementUpdatesCount(v);
+  if (type.startsWith('FOLLOWERS_')) return l10n.achievementFollowers(v);
+  if (type.startsWith('FRIENDS_')) return l10n.achievementFriends(v);
+  return '$v';
+}
+
 class AchievementsScreen extends ConsumerStatefulWidget {
   const AchievementsScreen({super.key});
 
@@ -251,30 +263,12 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
     return cappedValue.toInt().toString();
   }
 
-  String _formatThreshold(BuildContext context, Achievement achievement) {
-    final l10n = context.l10n;
-    final type = achievement.type.toJson();
-    if (type.startsWith('DISTANCE_')) {
-      return l10n.achievementKm(achievement.thresholdValue.toDouble());
-    }
-    if (type.startsWith('DURATION_')) {
-      return l10n.achievementDays(achievement.thresholdValue.toInt());
-    }
-    if (type.startsWith('UPDATES_')) {
-      return l10n.achievementUpdatesCount(achievement.thresholdValue.toInt());
-    }
-    if (type.startsWith('FOLLOWERS_')) {
-      return l10n.achievementFollowers(achievement.thresholdValue.toInt());
-    }
-    if (type.startsWith('FRIENDS_')) {
-      return l10n.achievementFriends(achievement.thresholdValue.toInt());
-    }
-    return '${achievement.thresholdValue}';
-  }
+  String _formatThreshold(BuildContext context, Achievement achievement) =>
+      achievementThresholdLabel(context.l10n, achievement);
 
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb) return _buildAndroid();
+    if (!AdaptiveLayout.usesDesktopLayout(context)) return _buildAndroid();
     return WandererScaffold(
       hideAppBarWithSidebar: true,
       appBar: WandererAppBar(
@@ -662,7 +656,7 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
     Achievement achievement,
     UserAchievement? userAchievement,
   ) {
-    if (kIsWeb) {
+    if (AdaptiveLayout.usesDesktopLayout(context)) {
       showAchievementDialog(context, achievement,
           unlocked: userAchievement, shareUsername: _username);
       return;

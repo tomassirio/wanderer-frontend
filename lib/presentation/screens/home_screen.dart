@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_explore_tab.dart';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
@@ -40,14 +42,24 @@ import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 
 /// Redesigned Home screen with personalized feed, visibility badges, and prioritization
-class HomeScreen extends ConsumerStatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+  Widget build(BuildContext context) =>
+      kIsWeb && !AdaptiveLayout.usesDesktopLayout(context)
+          ? const AndroidExploreTab()
+          : const _HomeScreenContent();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen>
+class _HomeScreenContent extends ConsumerStatefulWidget {
+  const _HomeScreenContent();
+
+  @override
+  ConsumerState<_HomeScreenContent> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<_HomeScreenContent>
     with SingleTickerProviderStateMixin, RouteAware {
   late final HomeRepository _repository;
   late final TripService _tripService;
@@ -624,13 +636,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           trip.status == TripStatus.paused;
       final isPromoted = trip.isPromoted;
 
-      // Rule 1 & 2: Public + active trips (promoted or not)
-      if (isPublic && isActive) {
+      // Rule 1 & 2: Public trips that started (live or completed)
+      if (isPublic && (isActive || trip.status == TripStatus.finished)) {
         discoverTrips.add(trip);
         continue;
       }
 
-      // Rule 3: Promoted + completed
+      // Rule 3: Promoted + completed (promotion works on any visibility)
       if (isPromoted && trip.status == TripStatus.finished) {
         discoverTrips.add(trip);
         continue;
@@ -659,10 +671,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final feedTrips = <Trip>[];
 
     for (final trip in _allTrips) {
-      final isActive = trip.status == TripStatus.inProgress ||
-          trip.status == TripStatus.resting ||
-          trip.status == TripStatus.paused;
-      if (!isActive) continue;
+      // Drafts stay out; live and completed trips both belong in the feed.
+      if (trip.status == TripStatus.created) continue;
 
       final isOwnTrip = trip.userId == _userId;
       final isPublic = trip.visibility == Visibility.public;

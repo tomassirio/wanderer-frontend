@@ -54,6 +54,46 @@ class AppLocalizations {
   /// Look up a key, falling back to English if missing.
   String _tr(String key) => _loader.string(_lang, key);
 
+  String get mobileWebAppTitle => _tr('mobileWebAppTitle');
+  String get welcomeTryGuest => _tr('welcomeTryGuest');
+  String get mobileWebAppSubtitle => _tr('mobileWebAppSubtitle');
+  String get mobileWebGet => _tr('mobileWebGet');
+  String get mobileWebOpenApp => _tr('mobileWebOpenApp');
+  String get mobileWebContinue => _tr('mobileWebContinue');
+  String get mobileWebHeadline => _tr('mobileWebHeadline');
+  String get mobileWebHeadlineHighlight => _tr('mobileWebHeadlineHighlight');
+  String get mobileWebResetError => _tr('mobileWebResetError');
+  String get mobileWebResetMissingToken => _tr('mobileWebResetMissingToken');
+  String get mobileWebVerificationError => _tr('mobileWebVerificationError');
+  String get mobileWebIntro => _tr('mobileWebIntro');
+  String get mobileWebStepPlan => _tr('mobileWebStepPlan');
+  String get mobileWebStepStart => _tr('mobileWebStepStart');
+  String get mobileWebStepShare => _tr('mobileWebStepShare');
+  String get mobileWebTrackTitle => _tr('mobileWebTrackTitle');
+  String get mobileWebTrackingNeedsApp => _tr('mobileWebTrackingNeedsApp');
+  String get mobileWebTrackingRunning => _tr('mobileWebTrackingRunning');
+  String get mobileWebHaveApp => _tr('mobileWebHaveApp');
+  String get mobileWebStartApp => _tr('mobileWebStartApp');
+  String get mobileWebStartInApp => _tr('mobileWebStartInApp');
+  String get mobileWebDays => _tr('mobileWebDays');
+  String get mobileWebDraftBody => _tr('mobileWebDraftBody');
+  String get mobileWebOpenTrip => _tr('mobileWebOpenTrip');
+  String get mobileWebPlansHint => _tr('mobileWebPlansHint');
+  String get mobileWebViewPlan => _tr('mobileWebViewPlan');
+  String get mobileWebFollowLive => _tr('mobileWebFollowLive');
+  String get mobileWebFollowSubtitle => _tr('mobileWebFollowSubtitle');
+  String get mobileWebLatestTrip => _tr('mobileWebLatestTrip');
+  String get mobileWebFeaturedTrip => _tr('mobileWebFeaturedTrip');
+  String get mobileWebLinkError => _tr('mobileWebLinkError');
+  String get mobileWebEmailConfirmed => _tr('mobileWebEmailConfirmed');
+  String get mobileWebEmailConfirmedBody => _tr('mobileWebEmailConfirmedBody');
+  String get mobileWebTripUnavailable => _tr('mobileWebTripUnavailable');
+  String get mobileWebTripUnavailableBody =>
+      _tr('mobileWebTripUnavailableBody');
+  String get mobileWebTripRestricted => _tr('mobileWebTripRestricted');
+  String get mobileWebTripRestrictedBody => _tr('mobileWebTripRestrictedBody');
+  String get mobileWebExplore => _tr('mobileWebExplore');
+
   // --- Sidebar navigation ---
   String get trips => _tr('trips');
   String get tripPlans => _tr('tripPlans');
@@ -1406,6 +1446,71 @@ class AppLocalizations {
   String get welcomeSubtitle => _tr('welcomeSubtitle');
   String get welcomeSignUpEmail => _tr('welcomeSignUpEmail');
   String get welcomeLookAround => _tr('welcomeLookAround');
+  String dashboardRecentTripsOf(Object pos, Object count) =>
+      TranslationTemplate.format(
+          _tr('dashboardRecentTripsOf'), {'pos': pos, 'count': count});
+  String get dashboardPreviousTrip => _tr('dashboardPreviousTrip');
+  String get dashboardNextTrip => _tr('dashboardNextTrip');
+  String dashboardShowTrip(Object name) =>
+      TranslationTemplate.format(_tr('dashboardShowTrip'), {'name': name});
+  String get planEditorDate => _tr('planEditorDate');
+  String get homeChecklistHide => _tr('homeChecklistHide');
+  String get searchActiveTravelers => _tr('searchActiveTravelers');
+  String get tripWholeRoute => _tr('tripWholeRoute');
+  String get tripPreviousUpdate => _tr('tripPreviousUpdate');
+  String get tripNextUpdate => _tr('tripNextUpdate');
+  String get welcomeSlideLiveBody => _tr('welcomeSlideLiveBody');
+  String get welcomeSlideFriendsTitle => _tr('welcomeSlideFriendsTitle');
+  String get welcomeSlideFriendsBody => _tr('welcomeSlideFriendsBody');
+  String get welcomeSlideBadgesTitle => _tr('welcomeSlideBadgesTitle');
+  String get welcomeSlideBadgesBody => _tr('welcomeSlideBadgesBody');
+  String welcomeSlideN(Object n) =>
+      TranslationTemplate.format(_tr('welcomeSlideN'), {'n': n});
+  String get welcomeHaveAccount => _tr('welcomeHaveAccount');
+  String get welcomeArtLive => _tr('welcomeArtLive');
+  String get welcomeArtCheckedIn => _tr('welcomeArtCheckedIn');
+  String get welcomeArtCommentTitle => _tr('welcomeArtCommentTitle');
+  String get welcomeArtCommentBody => _tr('welcomeArtCommentBody');
+  String get welcomeArtCheckInTitle => _tr('welcomeArtCheckInTitle');
+  String get welcomeArtCheckInBody => _tr('welcomeArtCheckInBody');
+  String get welcomeArtFollowTitle => _tr('welcomeArtFollowTitle');
+  String get welcomeArtFollowBody => _tr('welcomeArtFollowBody');
+  String get welcomeArtFirstTrip => _tr('welcomeArtFirstTrip');
+  String get welcomeArtUnlocked => _tr('welcomeArtUnlocked');
+  String get homeStartTrip => _tr('homeStartTrip');
+  String get homePlanOne => _tr('homePlanOne');
+  String get homeRecentTrips => _tr('homeRecentTrips');
+  String homeAllN(Object n) =>
+      TranslationTemplate.format(_tr('homeAllN'), {'n': n});
+  String get homeFriendsLately => _tr('homeFriendsLately');
+  String get homeSeeAll => _tr('homeSeeAll');
+  String get homeNoFriendsActivity => _tr('homeNoFriendsActivity');
+  String get homeNextBadge => _tr('homeNextBadge');
+  String homeToGo(Object v) =>
+      TranslationTemplate.format(_tr('homeToGo'), {'v': v});
+  String homeYourYear(Object year) =>
+      TranslationTemplate.format(_tr('homeYourYear'), {'year': year});
+  String get homeTraveled => _tr('homeTraveled');
+  String get homeDaysOut => _tr('homeDaysOut');
+  String get homeTrending => _tr('homeTrending');
+  String homeWelcomeNew(Object name) =>
+      TranslationTemplate.format(_tr('homeWelcomeNew'), {'name': name});
+  String get homeSubtitleNew => _tr('homeSubtitleNew');
+  String get homeGetStarted => _tr('homeGetStarted');
+  String homeStepsOf(Object done, Object total) => TranslationTemplate.format(
+      _tr('homeStepsOf'), {'done': done, 'total': total});
+  String get homeStepAccount => _tr('homeStepAccount');
+  String get homeStepProfile => _tr('homeStepProfile');
+  String get homeStepFirstTrip => _tr('homeStepFirstTrip');
+  String get homeStepFriend => _tr('homeStepFriend');
+  String get homeStepNotifications => _tr('homeStepNotifications');
+  String get homeStartFirstTrip => _tr('homeStartFirstTrip');
+  String get homeGetInspired => _tr('homeGetInspired');
+  String get homeFirstBadge => _tr('homeFirstBadge');
+  String get homeFirstBadgeBody => _tr('homeFirstBadgeBody');
+  String get homeInvite => _tr('homeInvite');
+  String get homeInviteBody => _tr('homeInviteBody');
+  String get homeInviteCopied => _tr('homeInviteCopied');
   String get youAdminPromotionSub => _tr('youAdminPromotionSub');
   String get youAdminUsersSub => _tr('youAdminUsersSub');
   String get youAdminMaintenanceSub => _tr('youAdminMaintenanceSub');

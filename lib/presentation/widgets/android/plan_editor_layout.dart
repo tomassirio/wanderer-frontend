@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
@@ -19,7 +19,7 @@ const _shadow = [
 /// Success / error feedback: floating notification on web (unchanged),
 /// canvas toast on Android.
 void planNotify(BuildContext context, String message, {bool error = false}) {
-  if (kIsWeb) {
+  if (AdaptiveLayout.usesDesktopLayout(context)) {
     error
         ? UiHelpers.showErrorMessage(context, message)
         : UiHelpers.showSuccessMessage(context, message);
@@ -486,15 +486,51 @@ class PlanTypeToggle extends StatelessWidget {
 }
 
 /// Leave / Arrive date tiles; both open the range picker.
+/// Plan dates: one day for a single-day plan (end = start), a range for a
+/// multi-day one. The plan type then follows the dates: same day → single,
+/// different days → multi-day.
+Future<({DateTime start, DateTime end, bool multiDay})?> pickPlanDates(
+    BuildContext context,
+    {required bool multiDay,
+    DateTime? start,
+    DateTime? end}) async {
+  final first = DateUtils.dateOnly(DateTime.now());
+  final last = first.add(const Duration(days: 365 * 2));
+  if (!multiDay) {
+    final day = await showDatePicker(
+        context: context,
+        initialDate: start != null && !start.isBefore(first) ? start : first,
+        firstDate: first,
+        lastDate: last);
+    return day == null ? null : (start: day, end: day, multiDay: false);
+  }
+  final range = await showDateRangePicker(
+      context: context,
+      initialDateRange:
+          start == null ? null : DateTimeRange(start: start, end: end ?? start),
+      firstDate: first,
+      lastDate: last);
+  if (range == null) return null;
+  return (
+    start: range.start,
+    end: range.end,
+    multiDay: !DateUtils.isSameDay(range.start, range.end),
+  );
+}
+
 class PlanDateTiles extends StatelessWidget {
   final DateTime? start;
   final DateTime? end;
   final VoidCallback onPick;
+
+  /// Single-day plans show one "Date" tile.
+  final bool singleDay;
   const PlanDateTiles(
       {super.key,
       required this.start,
       required this.end,
-      required this.onPick});
+      required this.onPick,
+      this.singleDay = false});
 
   @override
   Widget build(BuildContext context) {
@@ -533,9 +569,13 @@ class PlanDateTiles extends StatelessWidget {
           ),
         );
     return Row(children: [
-      tile(l10n.planEditorLeave, start),
-      const SizedBox(width: 10),
-      tile(l10n.planEditorArrive, end),
+      if (singleDay)
+        tile(l10n.planEditorDate, start)
+      else ...[
+        tile(l10n.planEditorLeave, start),
+        const SizedBox(width: 10),
+        tile(l10n.planEditorArrive, end),
+      ],
     ]);
   }
 }
