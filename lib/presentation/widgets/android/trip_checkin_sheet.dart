@@ -188,12 +188,15 @@ Future<void> showTripCheckInDetail(BuildContext context, TripLocation u) {
               style: TextStyle(fontSize: 15, height: 1.45, color: c.text)),
         ],
         const SizedBox(height: 16),
-        Row(children: [
-          for (var i = 0; i < tiles.length; i++) ...[
-            if (i > 0) const SizedBox(width: 8),
-            tiles[i],
-          ],
-        ]),
+        // Tiles share the tallest one's height.
+        IntrinsicHeight(
+          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            for (var i = 0; i < tiles.length; i++) ...[
+              if (i > 0) const SizedBox(width: 8),
+              tiles[i],
+            ],
+          ]),
+        ),
         if (u.hasLocation) ...[
           const SizedBox(height: 16),
           Row(children: [
