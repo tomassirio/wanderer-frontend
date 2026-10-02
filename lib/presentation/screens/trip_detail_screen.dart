@@ -1604,16 +1604,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         onPlannedMarkerTap: _onPlannedMarkerTapped,
         showPlannedWaypoints: _showPlannedWaypoints,
       );
-      if (!_usesDesktopLayout) {
-        _applyAndroidMapData(mapData);
-        return;
-      }
-      setState(() {
-        _markers = mapData.markers;
-        _polylines = mapData.polylines;
-      });
-      debugPrint(
-          'TripDetailScreen: Map updated - markers: ${_markers.length}, polylines: ${_polylines.length}');
+      // Same map look everywhere: Android, web and mobile web.
+      _applyMapStyle(mapData);
     } catch (e) {
       debugPrint(
           'TripDetailScreen: Error in createMapDataWithDirections, falling back to straight lines: $e');
@@ -1646,8 +1638,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
   int _mapStyleRun = 0;
 
-  /// Android: small stop dots and state-coloured route (canvas).
-  Future<void> _applyAndroidMapData(MapData data) async {
+  /// Canvas map look on every layout: update markers by kind, hollow
+  /// planned stops and a state-coloured route.
+  Future<void> _applyMapStyle(MapData data) async {
     final run = ++_mapStyleRun;
     final styled =
         await TripMapDots.restyle(data, _trip, WandererTheme.of(context));
