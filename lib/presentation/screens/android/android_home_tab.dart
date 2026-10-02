@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:wanderer_frontend/presentation/widgets/mobile_web/app_handoff.dart';
-import 'package:wanderer_frontend/presentation/widgets/mobile_web/mobile_web_trip_card.dart';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -306,9 +305,6 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
     final name = (profile.displayName?.isNotEmpty ?? false)
         ? profile.displayName!.split(' ').first
         : profile.username;
-    if (AdaptiveLayout.isMobileWeb(context)) {
-      return _mobileWebBody(context, name);
-    }
     final live =
         _trips.where((t) => t.status == TripStatus.inProgress).firstOrNull;
     if (_trips.isEmpty) return _newUserBody(context, name, profile);
@@ -337,7 +333,10 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
           HomeLiveTripCard(
             trip: live,
             checkingIn: _checkingIn,
-            onCheckIn: () => _checkIn(live),
+            // Browsers can't track: check-ins happen in the app.
+            onCheckIn: AdaptiveLayout.isMobileWeb(context)
+                ? () => AndroidAppLinks.open(context, tripId: live.id)
+                : () => _checkIn(live),
             onOpen: () => _push(TripDetailScreen(trip: live)),
           ),
           const SizedBox(height: 18),
@@ -348,7 +347,11 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
             const SizedBox(width: 10),
             HomeStat('$_badges', l10n.homeBadges),
           ]),
-        ] else
+        ] else ...[
+          if (AdaptiveLayout.isMobileWeb(context)) ...[
+            const MobileWebTrackingCard(),
+            const SizedBox(height: 18),
+          ],
           Row(children: [
             Expanded(
               child: _bigButton(
@@ -369,6 +372,7 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
               ),
             ),
           ]),
+        ],
         if (drafts.isNotEmpty) ...[
           gap,
           HomeSectionTitle(l10n.homePickUp,
@@ -517,6 +521,10 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
       children: [
         _greeting(c, l10n.homeWelcomeNew(name), l10n.homeSubtitleNew),
         gap,
+        if (AdaptiveLayout.isMobileWeb(context)) ...[
+          const MobileWebTrackingCard(),
+          gap,
+        ],
         if (_checklist(profile) case final card?) ...[card, gap],
         _bigButton(
           key: const Key('home_first_trip'),
@@ -603,41 +611,6 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
             ),
           ),
         ),
-      ],
-    );
-  }
-
-  /// Mobile web keeps its own Home: tracking happens in the app.
-  Widget _mobileWebBody(BuildContext context, String name) {
-    final c = WandererTheme.of(context);
-    final l10n = context.l10n;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
-      children: [
-        _greeting(
-            c,
-            homeGreeting(l10n, DateTime.now().hour, name),
-            _trips.isEmpty
-                ? l10n.dashboardSubtitleEmpty
-                : l10n.homeSubtitleIdle),
-        const SizedBox(height: 18),
-        const MobileWebTrackingCard(),
-        const SizedBox(height: 18),
-        Row(children: [
-          HomeStat('${_trips.length}', l10n.trips),
-          const SizedBox(width: 10),
-          HomeStat('$_badges', l10n.homeBadges),
-          const SizedBox(width: 10),
-          HomeStat('${_friendIds.length}', l10n.friends),
-        ]),
-        const SizedBox(height: 18),
-        ExploreSectionTitle(l10n.mobileWebLatestTrip,
-            action: l10n.exploreFilterAll,
-            onAction: () => AndroidShell.selectTab(context, AndroidTab.trips)),
-        if (_trips.isNotEmpty)
-          MobileWebTripCard(
-              trip: _trips.first,
-              onTap: () => _push(TripDetailScreen(trip: _trips.first))),
       ],
     );
   }
