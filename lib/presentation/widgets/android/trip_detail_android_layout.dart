@@ -372,7 +372,8 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
                 top: top,
                 left: 16,
                 right: 16,
-                child: Row(children: [
+                child: PointerInterceptor(
+                    child: Row(children: [
                   _RoundButton(
                     icon: Icons.arrow_back,
                     label: MaterialLocalizations.of(context).backButtonTooltip,
@@ -420,7 +421,7 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
                       onTap: _openSettings,
                     ),
                   ],
-                ]),
+                ])),
               ),
               if (widget.focusedUpdate case final f?)
                 if (_mobileWeb || _detent != _Detent.full)
@@ -428,7 +429,7 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
                     top: top + 60,
                     left: 16,
                     right: 16,
-                    child: _focusCard(context, f),
+                    child: PointerInterceptor(child: _focusCard(context, f)),
                   ),
               // Rides on top of the sheet (canvas: sheet + 20); the full
               // sheet covers the map, so it goes away there.

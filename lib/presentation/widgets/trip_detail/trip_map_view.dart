@@ -246,6 +246,10 @@ class _TripMapViewState extends State<TripMapView> {
       );
     }
 
+    // A sheet or dialog on top: the web map would still take its drags
+    // (it sits under the Flutter canvas), so it goes still meanwhile.
+    final gestures =
+        widget.gesturesEnabled && (ModalRoute.isCurrentOf(context) ?? true);
     return Stack(
       children: [
         GoogleMap(
@@ -296,10 +300,10 @@ class _TripMapViewState extends State<TripMapView> {
           myLocationEnabled: widget.isOwner,
           mapToolbarEnabled: false,
           zoomControlsEnabled: AdaptiveLayout.usesDesktopLayout(context),
-          scrollGesturesEnabled: widget.gesturesEnabled,
-          zoomGesturesEnabled: widget.gesturesEnabled,
-          tiltGesturesEnabled: widget.gesturesEnabled,
-          rotateGesturesEnabled: widget.gesturesEnabled,
+          scrollGesturesEnabled: gestures,
+          zoomGesturesEnabled: gestures,
+          tiltGesturesEnabled: gestures,
+          rotateGesturesEnabled: gestures,
         ),
         // Loading indicator while map initializes
         if (!_isMapReady && !_hasError)
