@@ -3,6 +3,7 @@ import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/admin_users_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_release_notes_editor.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_maintenance_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_promotion_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
@@ -151,6 +152,7 @@ class AndroidAdminScreen extends StatelessWidget {
             child: Material(
               type: MaterialType.transparency,
               child: Column(children: [
+                const ReleaseNotesAdminRow(),
                 for (var i = 0; i < tools.length; i++)
                   InkWell(
                     onTap: () => push(tools[i].$6),

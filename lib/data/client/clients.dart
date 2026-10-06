@@ -9,6 +9,7 @@ export 'command/admin_command_client.dart';
 export 'command/comment_command_client.dart';
 export 'command/notification_command_client.dart';
 export 'command/promotion_command_client.dart';
+export 'command/release_command_client.dart';
 export 'command/trip_command_client.dart';
 export 'command/trip_plan_command_client.dart';
 export 'command/trip_update_command_client.dart';
@@ -19,6 +20,7 @@ export 'query/admin_query_client.dart';
 export 'query/comment_query_client.dart';
 export 'query/notification_query_client.dart';
 export 'query/promotion_query_client.dart';
+export 'query/release_query_client.dart';
 export 'query/trip_query_client.dart';
 export 'query/user_query_client.dart';
 

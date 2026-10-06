@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_admin_screen.dart';
@@ -11,7 +12,8 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       var tapped = false;
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(ProviderScope(
+          child: MaterialApp(
         theme: dark ? WandererTheme.darkTheme() : WandererTheme.lightTheme(),
         home: Scaffold(
           body: Column(children: [
@@ -19,7 +21,8 @@ void main() {
             const Expanded(child: AndroidAdminScreen()),
           ]),
         ),
-      ));
+      )));
+      expect(find.text('Release notes'), findsOneWidget);
       expect(find.text('Only admins see this. Changes here affect every user.'),
           findsOneWidget);
       expect(find.text('Trips Management'), findsOneWidget);

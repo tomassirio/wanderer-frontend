@@ -64,6 +64,9 @@ class SettingsRow extends StatelessWidget {
   final bool chevron;
   final Color? color;
 
+  /// Shown right after the title (e.g. an unread dot).
+  final Widget? titleTrailing;
+
   const SettingsRow({
     super.key,
     required this.title,
@@ -72,6 +75,7 @@ class SettingsRow extends StatelessWidget {
     this.onTap,
     this.chevron = true,
     this.color,
+    this.titleTrailing,
   });
 
   @override
@@ -86,11 +90,19 @@ class SettingsRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: color ?? c.text)),
+                Row(children: [
+                  Flexible(
+                    child: Text(title,
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: color ?? c.text)),
+                  ),
+                  if (titleTrailing != null) ...[
+                    const SizedBox(width: 8),
+                    titleTrailing!,
+                  ],
+                ]),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
                   Text(subtitle!,

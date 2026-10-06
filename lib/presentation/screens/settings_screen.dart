@@ -11,6 +11,7 @@ import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/data/services/auth_service.dart';
+import 'package:wanderer_frontend/data/services/release_notes_service.dart';
 import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/data/models/requests/password_change_request.dart';
 import 'package:wanderer_frontend/data/storage/onboarding_storage.dart';
@@ -18,6 +19,7 @@ import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/tutorial_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_changelog_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/privacy_policy_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/terms_and_conditions_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/floating_notification.dart';
@@ -26,6 +28,7 @@ import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
+import 'package:wanderer_frontend/presentation/widgets/android/release_notes_widgets.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/settings_android.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
@@ -50,6 +53,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _pushEnabled = true;
   bool _isAdmin = false;
   String _appVersion = '';
+  WhatsNewStatus? _whatsNew;
 
   // Web sidebar / account ID
   String? _userId;
@@ -71,7 +75,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _loadAppVersion();
     _loadAdminStatus();
     _loadUser();
+    _loadWhatsNew();
   }
+
+  Future<void> _loadWhatsNew() async {
+    try {
+      final status = await ref.read(releaseNotesServiceProvider).status();
+      if (mounted) setState(() => _whatsNew = status);
+    } catch (e) {
+      debugPrint('SettingsScreen: what\'s new unavailable: $e');
+    }
+  }
+
+  /// Opening the changelog marks the notes read; reload clears the dot.
+  Future<void> _openWhatsNew() async {
+    await Navigator.push(context,
+        PageTransitions.slideFromRight(const AndroidChangelogScreen()));
+    if (mounted) _loadWhatsNew();
+  }
+
+  String? _whatsNewCaption() => _whatsNew == null
+      ? null
+      : context.l10n.whatsNewRowCaption(
+          _whatsNew!.release.version, _whatsNew!.release.items.length);
 
   Future<void> _loadUser() async {
     final userId = await _homeRepository.getCurrentUserId();
@@ -491,6 +517,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onCloseAccount: _handleCloseAccount,
               onVersionTap: _handleVersionTap,
               onLocaleChanged: () => setState(() {}),
+              onWhatsNew: _openWhatsNew,
+              whatsNewCaption: _whatsNewCaption(),
+              whatsNewUnread: _whatsNew?.unread ?? false,
             ),
     );
   }
@@ -555,6 +584,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   const SizedBox(height: 14),
                 ],
                 SettingsGroup(label: l10n.settingsHelp, children: [
+                  SettingsRow(
+                    title: l10n.whatsNewTitle,
+                    subtitle: _whatsNewCaption(),
+                    titleTrailing:
+                        (_whatsNew?.unread ?? false) ? const UnreadDot() : null,
+                    onTap: _openWhatsNew,
+                  ),
                   SettingsRow(
                     title: l10n.settingsAndroidContactSupport,
                     onTap: _handleContactSupport,
