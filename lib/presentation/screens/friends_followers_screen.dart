@@ -27,7 +27,7 @@ import 'package:wanderer_frontend/presentation/widgets/common/web_page_header.da
 import 'package:wanderer_frontend/presentation/widgets/friends/friends_web_widgets.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_sheet.dart';
-import 'search_screen.dart';
+import 'android/android_search_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/search/search_overlay.dart';
 import 'auth_screen.dart';
 import 'settings_screen.dart';
@@ -951,7 +951,7 @@ class _FriendsFollowersScreenState
     }
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const SearchScreen()),
+      MaterialPageRoute(builder: (context) => const AndroidSearchScreen()),
     );
   }
 

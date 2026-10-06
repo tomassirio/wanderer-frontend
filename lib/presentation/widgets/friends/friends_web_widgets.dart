@@ -324,7 +324,7 @@ class AddFriendsCard extends StatelessWidget {
               style: TextStyle(
                   fontSize: 16, fontWeight: FontWeight.w700, color: c.text)),
           const SizedBox(height: 14),
-          // ponytail: tapping opens the existing SearchScreen (users + trips);
+          // ponytail: tapping opens the search screen (users + trips);
           // inline results would need SearchService wiring here.
           TextField(
             readOnly: true,

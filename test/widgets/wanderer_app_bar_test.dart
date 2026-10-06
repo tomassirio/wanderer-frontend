@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wanderer_frontend/presentation/screens/search_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_search_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 
 void main() {
@@ -174,7 +174,7 @@ void main() {
       expect(find.text('JD'), findsWidgets);
     });
 
-    testWidgets('navigates to SearchScreen on search icon tap', (
+    testWidgets('navigates to search on search icon tap', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
@@ -197,15 +197,15 @@ void main() {
       expect(find.byIcon(Icons.search), findsOneWidget);
       expect(find.text('Wanderer'), findsOneWidget);
 
-      // Tap search icon — navigates to SearchScreen
+      // Tap search icon — navigates to search
       await tester.tap(find.byIcon(Icons.search));
       await tester.pumpAndSettle();
 
-      // SearchScreen should be pushed onto the navigator
-      expect(find.byType(SearchScreen), findsOneWidget);
+      // Search should be pushed onto the navigator
+      expect(find.byType(AndroidSearchScreen), findsOneWidget);
     });
 
-    testWidgets('search icon remains after navigating back from SearchScreen', (
+    testWidgets('search icon remains after navigating back from search', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(

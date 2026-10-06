@@ -8,7 +8,7 @@ import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_logo.dart';
 import 'package:wanderer_frontend/presentation/helpers/avatar_helper.dart';
 import 'package:wanderer_frontend/core/constants/api_endpoints.dart';
-import 'package:wanderer_frontend/presentation/screens/search_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_search_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/search/search_overlay.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
 
@@ -61,7 +61,7 @@ class _WandererAppBarState extends ConsumerState<WandererAppBar> {
   void _navigateToSearch() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const SearchScreen()),
+      MaterialPageRoute(builder: (context) => const AndroidSearchScreen()),
     );
   }
 

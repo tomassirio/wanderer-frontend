@@ -33,7 +33,7 @@ Future<void> showSearchOverlay(BuildContext context) async {
     if (picked is UserSearchResult) {
       await AuthNavigationHelper.navigateToUserProfile(context, picked.id);
     } else if (picked is TripSummary) {
-      // Same route SearchScreen uses: loads the trip, then TripDetailScreen.
+      // Same route Android search uses: loads the trip, then TripDetailScreen.
       await Navigator.of(context).pushNamed('/trip/${picked.id}');
     }
   } finally {

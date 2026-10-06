@@ -8,7 +8,7 @@ import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/presentation/helpers/date_format_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/android/trips_plans_list.dart';
-import 'package:wanderer_frontend/presentation/screens/search_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_search_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/cached_trip_thumbnail.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
@@ -71,7 +71,7 @@ class AndroidTripsTab extends StatelessWidget {
                         onPressed: () => Navigator.push(
                             context,
                             PageTransitions.slideFromRight(
-                                const SearchScreen())),
+                                const AndroidSearchScreen(tripsFirst: true))),
                       ),
                     ],
                   ),

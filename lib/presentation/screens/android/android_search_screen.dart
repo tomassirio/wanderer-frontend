@@ -73,7 +73,9 @@ List<TextSpan> searchHighlight(String text, String query, Color color) {
 /// chips, grouped results and recent searches. Uses the same
 /// [SearchService] and recent-search storage as the web search overlay.
 class AndroidSearchScreen extends ConsumerStatefulWidget {
-  const AndroidSearchScreen({super.key});
+  /// Open with the Trips chip selected (Trips tab search).
+  final bool tripsFirst;
+  const AndroidSearchScreen({super.key, this.tripsFirst = false});
 
   @override
   ConsumerState<AndroidSearchScreen> createState() =>
@@ -90,7 +92,7 @@ class _AndroidSearchScreenState extends ConsumerState<AndroidSearchScreen> {
   String _resultsQuery = '';
   bool _loading = false;
   bool _error = false;
-  _Filter _filter = _Filter.all;
+  late _Filter _filter = widget.tripsFirst ? _Filter.trips : _Filter.all;
   List<String> _recent = [];
   List<(UserSearchResult, Trip)> _suggested = const [];
 
@@ -191,7 +193,7 @@ class _AndroidSearchScreenState extends ConsumerState<AndroidSearchScreen> {
 
   Future<void> _openTrip(TripSummary t) async {
     await _saveRecent();
-    // Same route the web overlay and SearchScreen use.
+    // Same route the web overlay uses.
     if (mounted) await Navigator.of(context).pushNamed('/trip/${t.id}');
   }
 
