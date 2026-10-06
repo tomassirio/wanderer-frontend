@@ -20,10 +20,8 @@ import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/client/polyline_codec.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/presentation/helpers/location_permission_disclosure.dart';
-import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_shell.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_trips_tab.dart';
-import 'package:wanderer_frontend/presentation/screens/create_trip_plan_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/plan_editor_layout.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/plan_map_style.dart';
@@ -347,18 +345,14 @@ class _ReadyTripScreenState extends ConsumerState<ReadyTripScreen> {
     }
   }
 
-  /// Plans need a start and finish: here, today. Without a location the
-  /// plan editor opens instead so they can be picked on the map.
+  /// Saves what the screen has: today, and here when the location is
+  /// known (plans don't need one).
   Future<void> _saveAsPlan() async {
     final l10n = context.l10n;
-    final here = _here ?? await _locate(interactive: true);
-    if (!mounted) return;
-    if (here == null) {
-      Navigator.of(context).pushReplacement(
-          PageTransitions.slideFromRight(const CreateTripPlanScreen()));
-      return;
-    }
-    final at = GeoLocation(lat: here.latitude, lon: here.longitude);
+    final here = _here;
+    final at = here == null
+        ? null
+        : GeoLocation(lat: here.latitude, lon: here.longitude);
     final today = DateUtils.dateOnly(DateTime.now());
     final typed = _name.text.trim();
     try {

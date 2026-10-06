@@ -1133,7 +1133,6 @@ class AppLocalizations {
   String get createPlanSave => _tr('createPlanSave');
   String get createPlanNameRequired => _tr('createPlanNameRequired');
   String get createPlanNameMinLength => _tr('createPlanNameMinLength');
-  String get createPlanSelectLocations => _tr('createPlanSelectLocations');
   String get createPlanSelectDates => _tr('createPlanSelectDates');
   String get createPlanCreated => _tr('createPlanCreated');
   String createPlanError(Object error) =>
@@ -1599,4 +1598,5 @@ class AppLocalizations {
   String get tripsPlansNoticeTitle => _tr('tripsPlansNoticeTitle');
   String get tripsPlansNoticeBody => _tr('tripsPlansNoticeBody');
   String get tripsPlansNoticeSee => _tr('tripsPlansNoticeSee');
+  String get planNoRoute => _tr('planNoRoute');
 }

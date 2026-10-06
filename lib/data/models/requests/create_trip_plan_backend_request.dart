@@ -14,8 +14,10 @@ class CreateTripPlanBackendRequest {
   final String planType;
   final DateTime startDate;
   final DateTime endDate;
-  final GeoLocation startLocation;
-  final GeoLocation endLocation;
+
+  /// Optional: a plan can be saved before its route is known.
+  final GeoLocation? startLocation;
+  final GeoLocation? endLocation;
   final List<GeoLocation> waypoints;
   final Map<String, dynamic>? metadata;
   final String? plannedPolyline;
@@ -25,8 +27,8 @@ class CreateTripPlanBackendRequest {
     required this.planType,
     required this.startDate,
     required this.endDate,
-    required this.startLocation,
-    required this.endLocation,
+    this.startLocation,
+    this.endLocation,
     this.waypoints = const [],
     this.metadata,
     this.plannedPolyline,
@@ -38,8 +40,8 @@ class CreateTripPlanBackendRequest {
         'startDate':
             startDate.toIso8601String().split('T')[0], // LocalDate format
         'endDate': endDate.toIso8601String().split('T')[0], // LocalDate format
-        'startLocation': startLocation.toJson(),
-        'endLocation': endLocation.toJson(),
+        if (startLocation != null) 'startLocation': startLocation!.toJson(),
+        if (endLocation != null) 'endLocation': endLocation!.toJson(),
         'waypoints': waypoints.map((w) => w.toJson()).toList(),
         if (metadata != null) 'metadata': metadata,
         if (plannedPolyline != null) 'plannedPolyline': plannedPolyline,

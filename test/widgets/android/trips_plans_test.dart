@@ -59,4 +59,36 @@ void main() {
     expect(find.text('Start this trip'), findsOneWidget);
     expect(find.text('Per day'), findsOneWidget);
   });
+
+  testWidgets('Plan detail without start, finish or route shows an empty state',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.6;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final plan = TripPlan(
+      id: 'p',
+      userId: 'u',
+      name: 'Someday walk',
+      planType: 'SIMPLE',
+      createdTimestamp: DateTime(2026),
+    );
+    await tester.pumpWidget(MaterialApp(
+      home: AndroidPlanDetailView(
+        plan: plan,
+        map: const Placeholder(),
+        route: const [],
+        onBack: () {},
+        onDelete: () {},
+        onEdit: () {},
+        onStart: () {},
+        onFocusStop: (_) {},
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('plan_no_route')), findsOneWidget);
+    expect(find.text('Not set'), findsNWidgets(2));
+    expect(find.text('Start this trip'), findsOneWidget);
+  });
 }

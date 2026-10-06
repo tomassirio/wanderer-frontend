@@ -857,7 +857,6 @@
   "createPlanSave": "Save plan",
   "createPlanNameRequired": "Please enter a plan name",
   "createPlanNameMinLength": "Plan name must be at least 3 characters",
-  "createPlanSelectLocations": "Please select start and end locations on the map",
   "createPlanSelectDates": "Please select start and end dates",
   "createPlanCreated": "Trip plan created successfully!",
   "createPlanError": "Error creating trip plan: {error}",
@@ -1279,5 +1278,6 @@
   "readyBackgroundNeeded": "Auto check-in needs location all the time. Turn auto check-in off or allow it in settings.",
   "tripsPlansNoticeTitle": "Unstarted trips are now plans",
   "tripsPlansNoticeBody": "Start any of them with a single tap.",
-  "tripsPlansNoticeSee": "See"
+  "tripsPlansNoticeSee": "See",
+  "planNoRoute": "No route yet. Edit the plan to add a start and finish."
 }

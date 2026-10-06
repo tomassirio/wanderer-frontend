@@ -857,7 +857,6 @@
   "createPlanSave": "Guardar plan",
   "createPlanNameRequired": "Ingresá un nombre para el plan",
   "createPlanNameMinLength": "El nombre del plan debe tener al menos 3 caracteres",
-  "createPlanSelectLocations": "Elegí el inicio y el final en el mapa",
   "createPlanSelectDates": "Elegí las fechas de inicio y fin",
   "createPlanCreated": "¡Plan de viaje creado!",
   "createPlanError": "Error al crear el plan de viaje: {error}",
@@ -1279,5 +1278,6 @@
   "readyBackgroundNeeded": "El registro automático necesita la ubicación siempre. Desactívalo o permítelo en ajustes.",
   "tripsPlansNoticeTitle": "Los viajes sin empezar ahora son planes",
   "tripsPlansNoticeBody": "Empieza cualquiera con un solo toque.",
-  "tripsPlansNoticeSee": "Ver"
+  "tripsPlansNoticeSee": "Ver",
+  "planNoRoute": "Aún sin ruta. Edita el plan para añadir inicio y final."
 }

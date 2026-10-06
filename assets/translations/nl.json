@@ -857,7 +857,6 @@
   "createPlanSave": "Plan opslaan",
   "createPlanNameRequired": "Voer een naam voor het plan in",
   "createPlanNameMinLength": "De naam van het plan moet minstens 3 tekens bevatten",
-  "createPlanSelectLocations": "Kies een start- en eindpunt op de kaart",
   "createPlanSelectDates": "Kies een start- en einddatum",
   "createPlanCreated": "Reisplan aangemaakt!",
   "createPlanError": "Fout bij het aanmaken van het reisplan: {error}",
@@ -1279,5 +1278,6 @@
   "readyBackgroundNeeded": "Automatisch inchecken heeft altijd locatie nodig. Zet het uit of sta het toe in instellingen.",
   "tripsPlansNoticeTitle": "Niet-gestarte reizen zijn nu plannen",
   "tripsPlansNoticeBody": "Start ze met één tik.",
-  "tripsPlansNoticeSee": "Bekijk"
+  "tripsPlansNoticeSee": "Bekijk",
+  "planNoRoute": "Nog geen route. Bewerk het plan om een start en finish toe te voegen."
 }

@@ -857,7 +857,6 @@
   "createPlanSave": "Enregistrer le plan",
   "createPlanNameRequired": "Veuillez saisir un nom de plan",
   "createPlanNameMinLength": "Le nom du plan doit comporter au moins 3 caractères",
-  "createPlanSelectLocations": "Veuillez choisir le départ et l'arrivée sur la carte",
   "createPlanSelectDates": "Veuillez choisir les dates de début et de fin",
   "createPlanCreated": "Plan de voyage créé !",
   "createPlanError": "Erreur lors de la création du plan : {error}",
@@ -1279,5 +1278,6 @@
   "readyBackgroundNeeded": "L'enregistrement auto a besoin de la localisation en permanence. Désactivez-le ou autorisez-la dans les réglages.",
   "tripsPlansNoticeTitle": "Les voyages non démarrés sont maintenant des plans",
   "tripsPlansNoticeBody": "Démarrez-en un d'un seul geste.",
-  "tripsPlansNoticeSee": "Voir"
+  "tripsPlansNoticeSee": "Voir",
+  "planNoRoute": "Pas encore d'itinéraire. Modifiez le plan pour ajouter un départ et une arrivée."
 }

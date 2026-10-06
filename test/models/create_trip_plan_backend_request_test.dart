@@ -53,8 +53,8 @@ void main() {
       expect(request.planType, 'ROAD_TRIP');
       expect(request.startDate, DateTime(2025, 12, 20));
       expect(request.endDate, DateTime(2025, 12, 25));
-      expect(request.startLocation.lat, 37.7749);
-      expect(request.endLocation.lat, 34.0522);
+      expect(request.startLocation!.lat, 37.7749);
+      expect(request.endLocation!.lat, 34.0522);
       expect(request.waypoints, isEmpty);
       expect(request.metadata, isNull);
     });
@@ -219,5 +219,16 @@ void main() {
         expect(json.containsKey('plannedPolyline'), isFalse);
       });
     });
+  });
+
+  test('a plan without start and end omits both', () {
+    final json = CreateTripPlanBackendRequest(
+      name: 'Someday',
+      planType: 'SIMPLE',
+      startDate: DateTime(2026, 10, 6),
+      endDate: DateTime(2026, 10, 6),
+    ).toJson();
+    expect(json.containsKey('startLocation'), isFalse);
+    expect(json.containsKey('endLocation'), isFalse);
   });
 }

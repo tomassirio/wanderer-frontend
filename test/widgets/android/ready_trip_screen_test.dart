@@ -211,7 +211,7 @@ void main() {
       await settle(tester);
       final plan = plans.created.single;
       expect(plan.name, startsWith('Amsterdam · '));
-      expect(plan.startLocation.lat, 52.37);
+      expect(plan.startLocation!.lat, 52.37);
       expect(plan.metadata, {'visibility': 'PROTECTED'});
       expect(trips.starts, isEmpty);
       expect(trips.events.last, ('SAVED_AS_PLAN', 'SCRATCH'));
@@ -227,6 +227,46 @@ void main() {
       expect(trips.starts, hasLength(1));
       expect(find.textContaining('LIVE'), findsOneWidget);
     });
+  });
+
+  testWidgets('D: Save as a plan works without a location', (tester) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(_geolocator, (call) async {
+      return call.method == 'isLocationServiceEnabled' ? false : 0;
+    });
+    await open(tester);
+    await tester.tap(find.byKey(const Key('ready_close')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('ready_save_plan')));
+    await settle(tester);
+    final plan = plans.created.single;
+    expect(plan.startLocation, isNull);
+    expect(plan.endLocation, isNull);
+    expect(plan.name, isNotEmpty);
+    expect(plan.metadata, {'visibility': 'PROTECTED'});
+    expect(find.text('Saved to your plans'), findsOneWidget);
+    expect(find.byType(ReadyTripScreen), findsNothing);
+  });
+
+  testWidgets('E: a plan with no location starts where you are',
+      (tester) async {
+    final plan = TripPlan(
+      id: 'bare',
+      userId: 'u',
+      name: 'Someday walk',
+      planType: 'SIMPLE',
+      createdTimestamp: DateTime(2026),
+    );
+    await open(tester, plan: plan);
+    expect(find.text('Someday walk'), findsOneWidget);
+    expect(find.text('From your plan'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('ready_start')));
+    await settle(tester);
+    final (request, _) = trips.starts.single;
+    expect(request.tripPlanId, 'bare');
+    expect(request.lat, 52.37);
+    expect(request.lon, 4.89);
+    expect(find.textContaining('LIVE'), findsOneWidget);
   });
 
   testWidgets('E: starting a plan uses the same screen with the plan',
