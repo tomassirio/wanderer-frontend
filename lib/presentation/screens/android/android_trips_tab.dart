@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
@@ -17,7 +18,6 @@ import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
 enum TripsFilter {
   all,
   live,
-  drafts,
   finished;
 
   bool matches(TripStatus s) => switch (this) {
@@ -25,7 +25,6 @@ enum TripsFilter {
         TripsFilter.live => s == TripStatus.inProgress ||
             s == TripStatus.paused ||
             s == TripStatus.resting,
-        TripsFilter.drafts => s == TripStatus.created,
         TripsFilter.finished => s == TripStatus.finished,
       };
 }
@@ -40,8 +39,16 @@ class AndroidTripsTab extends StatelessWidget {
   /// twice in a row still fires after the user swiped back).
   static final ValueNotifier<int> _plansRequests = ValueNotifier(0);
 
+  static DateTime? _plansRequestedAt;
+
+  @visibleForTesting
+  static void resetPlansRequest() => _plansRequestedAt = null;
+
   /// Show the Plans sub tab (e.g. from the You tab's "Trip plans" link).
-  static void showPlans() => _plansRequests.value++;
+  static void showPlans() {
+    _plansRequestedAt = DateTime.now();
+    _plansRequests.value++;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,6 +133,15 @@ class _PlansRequestListenerState extends State<_PlansRequestListener> {
   void initState() {
     super.initState();
     AndroidTripsTab._plansRequests.addListener(_showPlans);
+    // The shell rebuilds its tabs right after a create flow closes, so a
+    // request made just before (e.g. "Save as a plan") lands here.
+    // ponytail: 2 s window; pass the wish through the shell if it misfires.
+    final at = AndroidTripsTab._plansRequestedAt;
+    if (at != null && DateTime.now().difference(at).inSeconds < 2) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showPlans();
+      });
+    }
   }
 
   @override
@@ -152,6 +168,10 @@ class _MyTripsListState extends ConsumerState<_MyTripsList>
   List<Trip>? _trips;
   TripsFilter _filter = TripsFilter.all;
 
+  /// One-time "unstarted trips are now plans" notice (Drafts are gone).
+  static const _plansNoticeKey = 'trips_plans_notice_seen';
+  bool _showPlansNotice = false;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -159,6 +179,19 @@ class _MyTripsListState extends ConsumerState<_MyTripsList>
   void initState() {
     super.initState();
     _load();
+    SharedPreferences.getInstance().then((p) {
+      if (mounted && p.getBool(_plansNoticeKey) != true) {
+        setState(() => _showPlansNotice = true);
+      }
+    }).catchError((_) {});
+  }
+
+  Future<void> _dismissPlansNotice({bool openPlans = false}) async {
+    setState(() => _showPlansNotice = false);
+    if (openPlans) DefaultTabController.of(context).animateTo(1);
+    try {
+      (await SharedPreferences.getInstance()).setBool(_plansNoticeKey, true);
+    } catch (_) {}
   }
 
   Future<void> _load() async {
@@ -185,7 +218,6 @@ class _MyTripsListState extends ConsumerState<_MyTripsList>
     String label(TripsFilter f) => switch (f) {
           TripsFilter.all => l10n.profileFilterAll,
           TripsFilter.live => l10n.live,
-          TripsFilter.drafts => l10n.profileFilterDrafts,
           TripsFilter.finished => l10n.tripsFilterFinished,
         };
     return Column(
@@ -207,6 +239,15 @@ class _MyTripsListState extends ConsumerState<_MyTripsList>
             ],
           ),
         ),
+        // Only people with trips can have had Drafts.
+        if (_showPlansNotice && trips.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            child: _PlansNotice(
+              onSee: () => _dismissPlansNotice(openPlans: true),
+              onDismiss: _dismissPlansNotice,
+            ),
+          ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: _load,
@@ -234,6 +275,56 @@ class _MyTripsListState extends ConsumerState<_MyTripsList>
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Sky info card (canvas Proposal F): Drafts moved to Plans.
+class _PlansNotice extends StatelessWidget {
+  final VoidCallback onSee;
+  final VoidCallback onDismiss;
+  const _PlansNotice({required this.onSee, required this.onDismiss});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
+    final l10n = context.l10n;
+    return Material(
+      key: const Key('trips_plans_notice'),
+      color: c.skyBg,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 6, 4, 6),
+        child: Row(children: [
+          Expanded(
+            child: Text.rich(
+              TextSpan(children: [
+                TextSpan(
+                    text: '${l10n.tripsPlansNoticeTitle}\n',
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                TextSpan(text: l10n.tripsPlansNoticeBody),
+              ]),
+              style: TextStyle(fontSize: 14, height: 1.4, color: c.skyFg),
+            ),
+          ),
+          SizedBox(
+            height: 48,
+            child: TextButton(
+              onPressed: onSee,
+              style: TextButton.styleFrom(
+                  foregroundColor: c.skyFg,
+                  textStyle: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w700)),
+              child: Text(l10n.tripsPlansNoticeSee),
+            ),
+          ),
+          IconButton(
+            tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+            onPressed: onDismiss,
+            icon: Icon(Icons.close, size: 18, color: c.skyFg),
+          ),
+        ]),
+      ),
     );
   }
 }

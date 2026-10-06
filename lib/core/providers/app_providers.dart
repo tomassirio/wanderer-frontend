@@ -12,6 +12,7 @@ import '../../data/client/command/trip_plan_command_client.dart';
 import '../../data/client/command/trip_update_command_client.dart';
 import '../../data/client/command/user_command_client.dart';
 import '../../data/client/google_directions_api_client.dart';
+import '../../data/client/google_geocoding_api_client.dart';
 import '../../data/client/query/achievement_query_client.dart';
 import '../../data/client/query/admin_query_client.dart';
 import '../../data/client/query/comment_query_client.dart';
@@ -158,6 +159,12 @@ final userQueryClientProvider = Provider<UserQueryClient>((ref) {
 final googleDirectionsApiClientProvider =
     Provider<GoogleDirectionsApiClient>((ref) {
   return GoogleDirectionsApiClient(ApiEndpoints.googleMapsApiKey);
+});
+
+/// Reverse geocoding for the ready-to-start trip name.
+final googleGeocodingApiClientProvider =
+    Provider<GoogleGeocodingApiClient>((ref) {
+  return GoogleGeocodingApiClient(ApiEndpoints.googleMapsApiKey);
 });
 
 // ---------------------------------------------------------------------------

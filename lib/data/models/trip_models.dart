@@ -11,6 +11,8 @@ export 'requests/change_visibility_request.dart';
 export 'requests/change_status_request.dart';
 export 'requests/change_trip_settings_request.dart';
 export 'requests/trip_from_plan_request.dart';
+export 'requests/start_trip_request.dart';
+export 'domain/trip_start_settings.dart';
 export 'domain/trip_plan.dart';
 export 'domain/planned_location.dart';
 export 'requests/create_trip_plan_request.dart';

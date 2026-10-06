@@ -20,6 +20,21 @@ class TripQueryClient {
     return _apiClient.handleResponse(response, Trip.fromJson);
   }
 
+  /// Ready screen prefill from the user's last trip (defaults for new
+  /// users), and whether it came from a previous trip (`fromLastTrip`).
+  Future<(TripStartSettings, bool)> getStartDefaults() async {
+    final response = await _apiClient.get(
+      ApiEndpoints.tripsStartDefaults,
+      requireAuth: true,
+    );
+    return _apiClient.handleResponse(
+        response,
+        (json) => (
+              TripStartSettings.fromJson(json),
+              json['fromLastTrip'] as bool? ?? false
+            ));
+  }
+
   /// Get a public trip by ID (no authentication required)
   /// Used to fetch promoted pre-announced trips for guest users
   Future<Trip> getPublicTripById(String tripId) async {

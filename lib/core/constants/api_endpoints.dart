@@ -131,6 +131,15 @@ class ApiEndpoints {
   static String tripFromPlan(String tripPlanId) =>
       '/trips/from-plan/$tripPlanId';
 
+  /// One-step create + start (live trip and first check-in in one call).
+  static const String tripsStart = '/trips/start';
+
+  /// Ready screen prefill from the last trip (queryBaseUrl).
+  static const String tripsStartDefaults = '/trips/me/start-defaults';
+
+  /// Trip start funnel counters (commandBaseUrl).
+  static const String analyticsEvents = '/analytics/events';
+
   // Trip Plan endpoints (use commandBaseUrl for commands, queryBaseUrl for queries)
   static const String tripPlans = '/trips/plans';
   static String tripPlanById(String planId) => '/trips/plans/$planId';

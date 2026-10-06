@@ -1,3 +1,4 @@
+import 'package:wanderer_frontend/presentation/screens/android/ready_trip_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:wanderer_frontend/presentation/helpers/android_app_links.dart';
@@ -7,13 +8,11 @@ import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
-import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_plan_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/plan_editor_layout.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/cached_trip_thumbnail.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_sheet.dart';
-import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
 
 /// Android "Plans" list (canvas AndroidPlans): plan cards with a map
 /// preview, Start this trip / Edit, and a hint pointing at the + button.
@@ -66,22 +65,9 @@ class _AndroidPlansListState extends ConsumerState<AndroidPlansList>
       await AndroidAppLinks.open(context, planId: plan.id);
       return;
     }
-    final request = await TripFromPlanDialog.show(context,
-        planName: plan.name, planType: plan.planType);
-    if (request == null || !mounted) return;
-    final tripService = ref.read(tripServiceProvider);
-    try {
-      final tripId = await tripService.createTripFromPlan(plan.id, request);
-      final trip = await tripService.getTripById(tripId);
-      if (!mounted) return;
-      planNotify(context, context.l10n.msgTripCreatedFromPlan);
-      Navigator.push(context,
-          PageTransitions.slideFromRight(TripDetailScreen(trip: trip)));
-    } catch (e) {
-      if (mounted) {
-        planNotify(context, context.l10n.msgTripCreateError(e), error: true);
-      }
-    }
+    await Navigator.push(
+        context, PageTransitions.slideFromBottom(ReadyTripScreen(plan: plan)));
+    if (mounted) _load();
   }
 
   Future<void> _delete(TripPlan plan) async {

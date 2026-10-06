@@ -5,15 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/repositories/create_trip_repository.dart';
-import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
-import 'package:wanderer_frontend/data/services/trip_service.dart';
-import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/presentation/helpers/tutorial_helper.dart';
-import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
@@ -22,8 +18,7 @@ import 'package:wanderer_frontend/presentation/screens/trip_plans_screen.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
-import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
-import 'package:wanderer_frontend/presentation/widgets/android/new_trip_form.dart';
+import 'package:wanderer_frontend/presentation/screens/android/ready_trip_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 import 'package:wanderer_frontend/presentation/widgets/create_trip/web_create_trip_layout.dart';
 
@@ -44,17 +39,12 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
   Visibility _selectedVisibility = Visibility.public;
   TripModality _selectedModality = TripModality.simple;
   bool _isLoading = false;
-  TripPlan? _selectedTripPlan;
-  List<TripPlan> _tripPlans = [];
-  bool _createFromPlan = false;
   bool _automaticUpdates = true;
   bool get _useAutomaticUpdates =>
       _automaticUpdates &&
       (!kIsWeb || AdaptiveLayout.usesDesktopLayout(context));
   final _intervalController = TextEditingController(text: '15');
   static const int _minIntervalMinutes = 15;
-  late final TripPlanService _tripPlanService;
-  late final TripService _tripService;
 
   // First-time create trip tutorial (coach marks)
   final GlobalKey _tutorialTitleKey = GlobalKey();
@@ -67,13 +57,11 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
   void initState() {
     super.initState();
     _repository = ref.read(createTripRepositoryProvider);
-    _tripPlanService = ref.read(tripPlanServiceProvider);
-    _tripService = ref.read(tripServiceProvider);
-    _loadTripPlans();
     if (kIsWeb) _loadUserInfo();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      // Phones get the Ready to start trip screen instead (see build).
+      if (!mounted || !AdaptiveLayout.usesDesktopLayout(context)) return;
       final route = ModalRoute.of(context);
       final routeAnimation = route?.animation;
       if (routeAnimation != null &&
@@ -153,23 +141,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
     super.dispose();
   }
 
-  Future<void> _loadTripPlans() async {
-    try {
-      final plans = await _tripPlanService.getUserTripPlans();
-      setState(() {
-        _tripPlans = plans;
-      });
-    } catch (e) {
-      debugPrint('Failed to load trip plans: $e');
-    }
-  }
-
   Future<void> _createTrip() async {
-    if (_createFromPlan && _selectedTripPlan != null) {
-      await _createTripFromPlan();
-      return;
-    }
-
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -207,44 +179,6 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
         Navigator.pushReplacement(
           context,
           PageTransitions.slideFromRight(TripDetailScreen(trip: effectiveTrip)),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        _showError(context.l10n.msgTripCreateError(e));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _createTripFromPlan() async {
-    if (_selectedTripPlan == null) return;
-
-    final request = await TripFromPlanDialog.show(context,
-        planName: _selectedTripPlan!.name,
-        planType: _selectedTripPlan!.planType);
-
-    if (request == null || !mounted) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final tripId = await _tripService.createTripFromPlan(
-        _selectedTripPlan!.id,
-        request,
-      );
-      final trip = await _tripService.getTripById(tripId);
-
-      if (mounted) {
-        _showSuccess(AdaptiveLayout.usesDesktopLayout(context)
-            ? 'Trip created from plan successfully!'
-            : context.l10n.msgTripCreatedFromPlan);
-        Navigator.pushReplacement(
-          context,
-          PageTransitions.slideFromRight(TripDetailScreen(trip: trip)),
         );
       }
     } catch (e) {
@@ -364,37 +298,8 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
   @override
   Widget build(BuildContext context) {
     if (AdaptiveLayout.usesDesktopLayout(context)) return _buildWeb(context);
-    final c = WandererTheme.of(context);
-    return Scaffold(
-      backgroundColor: c.ground,
-      appBar: AndroidTopBar(title: context.l10n.newTripBreadcrumb, close: true),
-      body: NewTripForm(
-        formKey: _formKey,
-        titleController: _titleController,
-        descriptionController: _descriptionController,
-        modality: _selectedModality,
-        onModalityChanged: (m) => setState(() => _selectedModality = m),
-        visibility: _selectedVisibility,
-        onVisibilityChanged: (v) => setState(() => _selectedVisibility = v),
-        automaticUpdates: _automaticUpdates,
-        onAutomaticUpdatesChanged: (v) => setState(() => _automaticUpdates = v),
-        intervalMinutes: _intervalMinutes,
-        onIntervalChanged: (m) =>
-            setState(() => _intervalController.text = '$m'),
-        plans: _tripPlans,
-        fromPlan: _createFromPlan,
-        onFromPlanChanged: (v) => setState(() => _createFromPlan = v),
-        selectedPlan: _selectedTripPlan,
-        onPlanSelected: (p) => setState(() => _selectedTripPlan = p),
-        isLoading: _isLoading,
-        onCreate: _createTrip,
-        titleKey: _tutorialTitleKey,
-        tripTypeKey: _tutorialTripTypeKey,
-        visibilityKey: _tutorialVisibilityKey,
-        autoUpdatesKey: _tutorialAutoUpdatesKey,
-        createButtonKey: _tutorialCreateButtonKey,
-      ),
-    );
+    // Phones and mobile web: the trip screen itself, ready to start.
+    return const ReadyTripScreen();
   }
 
   /// Web keeps its floating notifications; Android uses the canvas toasts.

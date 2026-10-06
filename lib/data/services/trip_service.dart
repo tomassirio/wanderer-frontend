@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../models/responses/page_response.dart';
 import '../models/trip_models.dart';
 import '../client/clients.dart';
@@ -130,6 +131,24 @@ class TripService {
   Future<String> createTripFromPlan(
       String tripPlanId, TripFromPlanRequest request) async {
     return await _tripCommandClient.createTripFromPlan(tripPlanId, request);
+  }
+
+  /// Create and start a trip in one call; see [TripCommandClient.startTrip].
+  Future<StartTripResult> startTrip(StartTripRequest request,
+          {required String idempotencyKey}) =>
+      _tripCommandClient.startTrip(request, idempotencyKey: idempotencyKey);
+
+  /// Ready screen prefill and whether it came from the last trip.
+  Future<(TripStartSettings, bool)> getStartDefaults() =>
+      _tripQueryClient.getStartDefaults();
+
+  /// Trip start funnel event; never throws (analytics must not block).
+  Future<void> trackStartFunnel(String event, {String? source}) async {
+    try {
+      await _tripCommandClient.trackStartFunnel(event, source: source);
+    } catch (e) {
+      debugPrint('Start funnel event $event not sent: $e');
+    }
   }
 
   /// Send trip update (location, message)

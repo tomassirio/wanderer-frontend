@@ -22,12 +22,11 @@ import 'package:wanderer_frontend/presentation/screens/android/android_shell.dar
 import 'package:wanderer_frontend/presentation/screens/android/android_welcome_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/android/profile_android_view.dart';
 import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
-import 'package:wanderer_frontend/presentation/screens/create_trip_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/android/ready_trip_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/landing_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/profile_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
-import 'package:wanderer_frontend/presentation/widgets/android/new_trip_form.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/web_auth_layout.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
@@ -35,7 +34,6 @@ import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
 import 'package:wanderer_frontend/presentation/widgets/landing/landing_hero.dart';
 import 'package:wanderer_frontend/presentation/widgets/profile/web_profile_widgets.dart';
-import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
 
 void main() {
   late _SessionStorage storage;
@@ -221,10 +219,10 @@ void main() {
     });
   }
 
-  testWidgets('new trip uses Android form without browser auto check-in',
+  testWidgets('new trip is the ready screen without browser auto check-in',
       (tester) async {
-    await pump(tester, const CreateTripScreen());
-    expect(find.byType(NewTripForm), findsOneWidget);
+    await pump(tester, const ReadyTripScreen(testMap: SizedBox.expand()));
+    expect(find.text('Ready to start'), findsOneWidget);
     expect(find.text('Auto check-in'), kIsWeb ? findsNothing : findsOneWidget);
     expect(find.byType(AppSidebar), findsNothing);
   });
@@ -259,31 +257,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(BottomSheet), findsOneWidget);
     expect(find.byType(Dialog), findsNothing);
-  });
-
-  testWidgets('plan start uses Android sheet with manual browser check-ins',
-      (tester) async {
-    TripFromPlanRequest? result;
-    await pump(
-        tester,
-        Builder(
-          builder: (context) => TextButton(
-            onPressed: () async => result = await TripFromPlanDialog.show(
-              context,
-              planName: 'Coastal walk',
-              planType: 'SIMPLE',
-            ),
-            child: const Text('start'),
-          ),
-        ));
-    await tester.tap(find.text('start'));
-    await tester.pumpAndSettle();
-    expect(find.byType(BottomSheet), findsOneWidget);
-    expect(find.byType(Switch), kIsWeb ? findsNothing : findsOneWidget);
-    await tester.tap(find.text('Start trip now'));
-    await tester.pumpAndSettle();
-    expect(result, isNotNull);
-    expect(result!.automaticUpdates, isNull);
   });
 
   testWidgets('status pills use Android paused and resting tones on phones',

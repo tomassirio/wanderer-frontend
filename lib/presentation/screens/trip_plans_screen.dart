@@ -1,3 +1,4 @@
+import 'package:wanderer_frontend/presentation/screens/android/ready_trip_screen.dart';
 import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -167,6 +168,13 @@ class _TripPlansScreenState extends ConsumerState<TripPlansScreen> {
   }
 
   Future<void> _handleCreateTripFromPlan(TripPlan plan) async {
+    // Phones: the trip screen, ready to start this plan (one call).
+    if (!AdaptiveLayout.usesDesktopLayout(context)) {
+      await Navigator.push(context,
+          PageTransitions.slideFromBottom(ReadyTripScreen(plan: plan)));
+      if (mounted) await _loadTripPlans();
+      return;
+    }
     final request = await TripFromPlanDialog.show(context,
         planName: plan.name, planType: plan.planType);
 
