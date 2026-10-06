@@ -1599,4 +1599,8 @@ class AppLocalizations {
   String get tripsPlansNoticeBody => _tr('tripsPlansNoticeBody');
   String get tripsPlansNoticeSee => _tr('tripsPlansNoticeSee');
   String get planNoRoute => _tr('planNoRoute');
+  String get startPlanStep2Bold => _tr('startPlanStep2Bold');
+  String get startPlanStep3Bold => _tr('startPlanStep3Bold');
+  String get startPlanQrLabel => _tr('startPlanQrLabel');
+  String get startOnPhoneWebLink => _tr('startOnPhoneWebLink');
 }

@@ -34,6 +34,7 @@ class ApiEndpoints {
 
   // Trip deep link URL
   static String tripDeepLink(String tripId) => '$appBaseUrl/trip/$tripId';
+  static String planDeepLink(String planId) => '$appBaseUrl/plan/$planId';
 
   // Android app listing on Google Play
   static const playStoreUrl =

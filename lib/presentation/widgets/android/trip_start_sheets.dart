@@ -6,7 +6,6 @@ import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/plan_editor_layout.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_sheet.dart';
-import 'package:wanderer_frontend/presentation/widgets/create_trip/web_create_trip_layout.dart';
 
 /// Sheets of the "Ready to start" trip screen (canvas Proposal B and D).
 /// The controls are the ones the old New trip form had, moved here.
@@ -195,7 +194,7 @@ class _TripStartSettingsSheetState extends State<_TripStartSettingsSheet> {
             height: 48,
             child: Center(
               child: Text(
-                WebCreateTripLayout.intervalLabel(context.l10n, minutes),
+                intervalLabel(context.l10n, minutes),
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -208,6 +207,11 @@ class _TripStartSettingsSheetState extends State<_TripStartSettingsSheet> {
     );
   }
 }
+
+/// "15 min" / "1 h".
+String intervalLabel(AppLocalizations l10n, int minutes) => minutes < 60
+    ? l10n.newTripMinutes(minutes)
+    : l10n.newTripHours(minutes ~/ 60);
 
 String visibilityName(AppLocalizations l10n, Visibility v) => switch (v) {
       Visibility.public => l10n.newTripPublic,

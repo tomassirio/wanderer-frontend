@@ -34,7 +34,6 @@ import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/data/storage/token_storage.dart';
 import 'package:wanderer_frontend/data/repositories/auth_repository.dart';
-import 'package:wanderer_frontend/data/repositories/create_trip_repository.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/data/repositories/profile_repository.dart';
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
@@ -165,11 +164,10 @@ void main() {
       expect(container.read(notificationApiServiceProvider),
           isA<NotificationApiService>());
       expect(container.read(searchServiceProvider), isA<SearchService>());
-      expect(
-          container.read(tripPlanServiceProvider), isA<TripPlanService>());
+      expect(container.read(tripPlanServiceProvider), isA<TripPlanService>());
       expect(container.read(tripServiceProvider), isA<TripService>());
-      expect(container.read(tripUpdateServiceProvider),
-          isA<TripUpdateService>());
+      expect(
+          container.read(tripUpdateServiceProvider), isA<TripUpdateService>());
       expect(container.read(urlShortenerServiceProvider),
           isA<UrlShortenerService>());
       expect(container.read(userServiceProvider), isA<UserService>());
@@ -183,8 +181,10 @@ void main() {
 
       // WebSocketService() is a factory constructor returning a shared
       // singleton - the provider must not create a second instance.
-      expect(identical(container.read(websocketServiceProvider),
-          WebSocketService()), isTrue);
+      expect(
+          identical(
+              container.read(websocketServiceProvider), WebSocketService()),
+          isTrue);
     });
   });
 
@@ -194,8 +194,6 @@ void main() {
       addTearDown(container.dispose);
 
       expect(container.read(authRepositoryProvider), isA<AuthRepository>());
-      expect(container.read(createTripRepositoryProvider),
-          isA<CreateTripRepository>());
       expect(container.read(homeRepositoryProvider), isA<HomeRepository>());
       expect(
           container.read(profileRepositoryProvider), isA<ProfileRepository>());

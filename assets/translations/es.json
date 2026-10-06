@@ -1279,5 +1279,9 @@
   "tripsPlansNoticeTitle": "Los viajes sin empezar ahora son planes",
   "tripsPlansNoticeBody": "Empieza cualquiera con un solo toque.",
   "tripsPlansNoticeSee": "Ver",
-  "planNoRoute": "Aún sin ruta. Edita el plan para añadir inicio y final."
+  "planNoRoute": "Aún sin ruta. Edita el plan para añadir inicio y final.",
+  "startPlanStep2Bold": "Abre este plan",
+  "startPlanStep3Bold": "Toca Empezar este viaje",
+  "startPlanQrLabel": "Código QR que abre este plan en la app de Android",
+  "startOnPhoneWebLink": "¿No tienes Android? Abre este enlace en el navegador del móvil:"
 }

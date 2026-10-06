@@ -1279,5 +1279,9 @@
   "tripsPlansNoticeTitle": "Niet-gestarte reizen zijn nu plannen",
   "tripsPlansNoticeBody": "Start ze met één tik.",
   "tripsPlansNoticeSee": "Bekijk",
-  "planNoRoute": "Nog geen route. Bewerk het plan om een start en finish toe te voegen."
+  "planNoRoute": "Nog geen route. Bewerk het plan om een start en finish toe te voegen.",
+  "startPlanStep2Bold": "Open dit plan",
+  "startPlanStep3Bold": "Tik op Start deze reis",
+  "startPlanQrLabel": "QR-code die dit plan opent in de Android-app",
+  "startOnPhoneWebLink": "Geen Android-telefoon? Open deze link in de browser van je telefoon:"
 }

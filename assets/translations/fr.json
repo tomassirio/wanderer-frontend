@@ -1279,5 +1279,9 @@
   "tripsPlansNoticeTitle": "Les voyages non démarrés sont maintenant des plans",
   "tripsPlansNoticeBody": "Démarrez-en un d'un seul geste.",
   "tripsPlansNoticeSee": "Voir",
-  "planNoRoute": "Pas encore d'itinéraire. Modifiez le plan pour ajouter un départ et une arrivée."
+  "planNoRoute": "Pas encore d'itinéraire. Modifiez le plan pour ajouter un départ et une arrivée.",
+  "startPlanStep2Bold": "Ouvrez ce plan",
+  "startPlanStep3Bold": "Touchez Démarrer ce voyage",
+  "startPlanQrLabel": "Code QR qui ouvre ce plan dans l'app Android",
+  "startOnPhoneWebLink": "Pas de téléphone Android ? Ouvrez ce lien dans le navigateur du téléphone :"
 }

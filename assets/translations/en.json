@@ -1279,5 +1279,9 @@
   "tripsPlansNoticeTitle": "Unstarted trips are now plans",
   "tripsPlansNoticeBody": "Start any of them with a single tap.",
   "tripsPlansNoticeSee": "See",
-  "planNoRoute": "No route yet. Edit the plan to add a start and finish."
+  "planNoRoute": "No route yet. Edit the plan to add a start and finish.",
+  "startPlanStep2Bold": "Open this plan",
+  "startPlanStep3Bold": "Tap Start this trip",
+  "startPlanQrLabel": "QR code that opens this plan in the Android app",
+  "startOnPhoneWebLink": "No Android phone? Open this link in your phone's browser:"
 }

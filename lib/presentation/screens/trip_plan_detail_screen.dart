@@ -9,7 +9,6 @@ import 'package:wanderer_frontend/data/client/polyline_codec.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
-import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/dashed_polyline_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
@@ -17,7 +16,6 @@ import 'package:wanderer_frontend/presentation/helpers/trip_plan_map_helper.dart
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
-import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/screens/android/plan_detail_view.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
@@ -25,7 +23,7 @@ import 'package:wanderer_frontend/presentation/widgets/android/plan_editor_layou
 import 'package:wanderer_frontend/presentation/widgets/android/plan_map_style.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_sheet.dart';
-import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/web_draft_trip_view.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/web_plan_detail_layout.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_plans/web_plan_editor_layout.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
@@ -56,7 +54,6 @@ class TripPlanDetailScreen extends ConsumerStatefulWidget {
 
 class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   late final TripPlanService _tripPlanService;
-  late final TripService _tripService;
   late final HomeRepository _homeRepository;
   late final GoogleDirectionsApiClient _directionsClient;
   late TripPlan _tripPlan;
@@ -109,7 +106,6 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
   void initState() {
     super.initState();
     _tripPlanService = ref.read(tripPlanServiceProvider);
-    _tripService = ref.read(tripServiceProvider);
     _homeRepository = ref.read(homeRepositoryProvider);
     _directionsClient = ref.read(googleDirectionsApiClientProvider);
     _tripPlan = widget.tripPlan;
@@ -573,39 +569,10 @@ class _TripPlanDetailScreenState extends ConsumerState<TripPlanDetailScreen> {
           PageTransitions.slideFromBottom(ReadyTripScreen(plan: _tripPlan)));
       return;
     }
-    final request = await TripFromPlanDialog.show(context,
-        planName: _tripPlan.name, planType: _tripPlan.planType);
-
-    if (request == null || !mounted) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-
-    try {
-      final tripId =
-          await _tripService.createTripFromPlan(_tripPlan.id, request);
-      final trip = await _tripService.getTripById(tripId);
-
-      if (mounted) {
-        Navigator.pop(context); // Close loading dialog
-        planNotify(
-          context,
-          'Trip created successfully from plan!',
-        );
-        Navigator.push(
-          context,
-          PageTransitions.slideFromRight(TripDetailScreen(trip: trip)),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context); // Close loading dialog
-        planNotify(context, error: true, 'Error creating trip: $e');
-      }
-    }
+    // Desktop can't track: show how to start it on the phone. Nothing
+    // is created here.
+    await StartOnPhoneCard.showForPlan(context, _tripPlan,
+        username: _username ?? '');
   }
 
   @override

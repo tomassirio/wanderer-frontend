@@ -36,7 +36,6 @@ import '../../data/services/user_service.dart';
 import '../../data/services/websocket_service.dart';
 import '../../data/storage/token_storage.dart';
 import '../../data/repositories/auth_repository.dart';
-import '../../data/repositories/create_trip_repository.dart';
 import '../../data/repositories/dashboard_repository.dart';
 import '../../data/repositories/home_repository.dart';
 import '../../data/repositories/profile_repository.dart';
@@ -265,10 +264,6 @@ final websocketServiceProvider = Provider<WebSocketService>((ref) {
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(authService: ref.watch(authServiceProvider));
-});
-
-final createTripRepositoryProvider = Provider<CreateTripRepository>((ref) {
-  return CreateTripRepository(tripService: ref.watch(tripServiceProvider));
 });
 
 final homeRepositoryProvider = Provider<HomeRepository>((ref) {
