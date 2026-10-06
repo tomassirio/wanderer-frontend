@@ -471,7 +471,7 @@ jobs:
 
           # Bump to next development version
           IFS='.' read -r MAJOR MINOR PATCH <<< "${BASE_VERSION}"
-          NEXT_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))-SNAPSHOT"
+          NEXT_VERSION="${MAJOR}.$((MINOR + 1)).0-SNAPSHOT"
           sed -i "s/^version: .*/version: ${NEXT_VERSION}/" pubspec.yaml
 
           # Create a branch, push, open a PR, and auto-merge
@@ -523,7 +523,7 @@ jobs:
 
           # Split version and compute next SNAPSHOT
           IFS='.' read -r MAJOR MINOR PATCH <<< "${BASE_VERSION}"
-          NEXT_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))-SNAPSHOT"
+          NEXT_VERSION="${MAJOR}.$((MINOR + 1)).0-SNAPSHOT"
 
           # Only bump if current version still points to the released version
           if echo "$CURRENT_VERSION" | grep -q "^${BASE_VERSION}"; then
