@@ -5,6 +5,7 @@ import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/core/errors/app_exception.dart';
 import 'package:wanderer_frontend/data/client/command/trip_update_command_client.dart';
 import 'package:wanderer_frontend/data/models/domain/location_update_result.dart';
 import 'package:wanderer_frontend/data/models/requests/trip_update_request.dart';
@@ -101,13 +102,14 @@ class TripUpdateService {
         LocationFailureReason.networkError,
       );
     } catch (e) {
-      // Server / API errors — surface the actual message so the user
-      // (and the developer via the snackbar) can see what went wrong.
+      // Server / API errors — the detail is for logs, the status code lets
+      // callers word the message (403/404: the trip is gone).
       final errorMsg = e.toString();
       debugPrint('TripUpdateService: Failed to send update: $errorMsg');
       return LocationUpdateResult.failureWithDetail(
         LocationFailureReason.serverError,
         errorMsg,
+        statusCode: e is ApiException ? e.statusCode : null,
       );
     }
   }

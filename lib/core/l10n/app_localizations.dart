@@ -1534,4 +1534,39 @@ class AppLocalizations {
   String get tripSheetShowDetails => _tr('tripSheetShowDetails');
   String get tripSheetExpand => _tr('tripSheetExpand');
   String get tripSheetCollapse => _tr('tripSheetCollapse');
+
+  // Push notifications (Android)
+  String get notifChannelLiveTrip => _tr('notifChannelLiveTrip');
+  String get notifChannelLiveTripDesc => _tr('notifChannelLiveTripDesc');
+  String get notifChannelTripProblems => _tr('notifChannelTripProblems');
+  String get notifChannelTripProblemsDesc =>
+      _tr('notifChannelTripProblemsDesc');
+  String get notifChannelComments => _tr('notifChannelComments');
+  String get notifChannelCommentsDesc => _tr('notifChannelCommentsDesc');
+  String get notifChannelFriends => _tr('notifChannelFriends');
+  String get notifChannelFriendsDesc => _tr('notifChannelFriendsDesc');
+  String get notifChannelAchievements => _tr('notifChannelAchievements');
+  String get notifChannelAchievementsDesc =>
+      _tr('notifChannelAchievementsDesc');
+  String notifLastCheckIn(Object time) =>
+      TranslationTemplate.format(_tr('notifLastCheckIn'), {'time': time});
+  String notifLastCheckInAt(Object time, Object place) =>
+      TranslationTemplate.format(
+          _tr('notifLastCheckInAt'), {'time': time, 'place': place});
+  String notifNextCheckIn(Object time) =>
+      TranslationTemplate.format(_tr('notifNextCheckIn'), {'time': time});
+  String get notifCheckInFailedTitle => _tr('notifCheckInFailedTitle');
+  String notifCheckInGone(Object trip) =>
+      TranslationTemplate.format(_tr('notifCheckInGone'), {'trip': trip});
+  String get notifCheckInOffline => _tr('notifCheckInOffline');
+  String get notifCheckInLocationOff => _tr('notifCheckInLocationOff');
+  String get notifCheckInNoPermission => _tr('notifCheckInNoPermission');
+  String get notifCheckInNoFix => _tr('notifCheckInNoFix');
+  String get notifCheckInGeneric => _tr('notifCheckInGeneric');
+  String get notifSignedOut => _tr('notifSignedOut');
+  String get notifFriendRequestBody => _tr('notifFriendRequestBody');
+  String get notifOpenTrip => _tr('notifOpenTrip');
+  String get notifTryAgain => _tr('notifTryAgain');
+  String get notifView => _tr('notifView');
+  String get notifDecline => _tr('notifDecline');
 }

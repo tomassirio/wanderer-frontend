@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 
 /**
  * A foreground service that keeps the app process alive and exempt from Android's
@@ -19,8 +20,8 @@ import androidx.core.app.NotificationCompat
  * ensures WorkManager one-off tasks fire at their scheduled intervals even when the
  * phone is locked.
  *
- * The service itself does no work — it only shows a persistent "Tracking: [name]"
- * notification. The actual location-update logic continues to run through the
+ * The service itself does no work — it only shows a persistent "[name] · Live"
+ * notification, which the Dart side replaces (same ID) with the full live-trip one. The actual location-update logic continues to run through the
  * existing WorkManager chained task infrastructure (callbackDispatcher in Dart).
  *
  * Lifecycle:
@@ -84,11 +85,12 @@ class TripTrackingService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Trip Tracking",
+                "Live trip",
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
-                description = "Shown while automatic trip location updates are active"
+                description = "Shown while a trip is live, with Check in, Pause and Rest"
                 setShowBadge(false)
+                setSound(null, null)
             }
             val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
@@ -97,9 +99,11 @@ class TripTrackingService : Service() {
 
     private fun buildNotification(tripName: String) =
         NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("Tracking: $tripName")
-            .setContentText("Automatic location updates are active")
+            .setSmallIcon(R.drawable.ic_stat_wanderer)
+            .setColor(ContextCompat.getColor(this, R.color.notification_color))
+            .setContentTitle(tripName)
+            .setContentText("Live")
+            .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)

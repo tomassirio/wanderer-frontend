@@ -138,13 +138,15 @@ void main() {
         expect(result.userMessage, contains('server returned an error'));
       });
 
-      test('serverError with detail includes the detail', () {
+      test('serverError never shows the raw detail', () {
         const result = LocationUpdateResult.failureWithDetail(
           LocationFailureReason.serverError,
           'API Error (403): Forbidden',
+          statusCode: 403,
         );
-        expect(result.userMessage, contains('Server error'));
-        expect(result.userMessage, contains('API Error (403): Forbidden'));
+        expect(result.userMessage, contains('server returned an error'));
+        expect(result.userMessage, isNot(contains('403')));
+        expect(result.statusCode, 403);
       });
 
       test('failureWithDetail sets errorDetail', () {
