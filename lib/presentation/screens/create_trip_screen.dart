@@ -47,10 +47,8 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
   TripPlan? _selectedTripPlan;
   List<TripPlan> _tripPlans = [];
   bool _createFromPlan = false;
+  // Saved on the trip everywhere; the app applies it once tracking starts.
   bool _automaticUpdates = true;
-  bool get _useAutomaticUpdates =>
-      _automaticUpdates &&
-      (!kIsWeb || AdaptiveLayout.usesDesktopLayout(context));
   final _intervalController = TextEditingController(text: '15');
   static const int _minIntervalMinutes = 15;
   late final TripPlanService _tripPlanService;
@@ -124,15 +122,14 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
           shape: ShapeLightFocus.RRect,
           radius: 12,
         ),
-        if (!kIsWeb || AdaptiveLayout.usesDesktopLayout(context))
-          TutorialStep(
-            key: _tutorialAutoUpdatesKey,
-            title: l10n.tutorialAutoUpdatesTitle,
-            description: l10n.tutorialAutoUpdatesDescription,
-            shape: ShapeLightFocus.RRect,
-            radius: 12,
-            align: ContentAlign.top,
-          ),
+        TutorialStep(
+          key: _tutorialAutoUpdatesKey,
+          title: l10n.tutorialAutoUpdatesTitle,
+          description: l10n.tutorialAutoUpdatesDescription,
+          shape: ShapeLightFocus.RRect,
+          radius: 12,
+          align: ContentAlign.top,
+        ),
         TutorialStep(
           key: _tutorialCreateButtonKey,
           title: l10n.tutorialCreateButtonTitle,
@@ -182,8 +179,8 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
             : _descriptionController.text.trim(),
         visibility: _selectedVisibility,
         tripModality: _selectedModality,
-        automaticUpdates: _useAutomaticUpdates ? true : null,
-        updateRefresh: _useAutomaticUpdates
+        automaticUpdates: _automaticUpdates ? true : null,
+        updateRefresh: _automaticUpdates
             ? (int.tryParse(_intervalController.text) ?? _minIntervalMinutes) *
                 60
             : null,
@@ -193,7 +190,7 @@ class _CreateTripScreenState extends ConsumerState<CreateTripScreen> {
 
       // Apply creation settings that the backend may not have propagated yet
       // into the query model (e.g. automaticUpdates / updateRefresh).
-      final effectiveTrip = _useAutomaticUpdates
+      final effectiveTrip = _automaticUpdates
           ? trip.copyWith(
               automaticUpdates: true,
               updateRefresh: (int.tryParse(_intervalController.text) ??
