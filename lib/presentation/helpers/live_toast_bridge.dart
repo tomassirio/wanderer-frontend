@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/services/background_update_manager.dart';
 import 'package:wanderer_frontend/core/services/navigation_service.dart';
+import 'package:wanderer_frontend/core/services/notification_service.dart';
 import 'package:wanderer_frontend/data/client/websocket_client.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
@@ -10,6 +12,7 @@ import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
 import 'package:wanderer_frontend/data/storage/token_storage.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_notifications_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/achievements/achievement_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 
@@ -112,6 +115,43 @@ class NotificationActions {
   const NotificationActions();
 
   BuildContext? get _ctx => NavigationService().navigatorKey.currentContext;
+
+  /// A tapped Android notification or one of its buttons (payloads: see
+  /// [NotificationService]).
+  Future<void> handlePush(String? action, String payload) async {
+    final sep = payload.indexOf(':');
+    final kind = sep < 0 ? payload : payload.substring(0, sep);
+    final id = sep < 0 ? '' : payload.substring(sep + 1);
+    switch (action) {
+      case NotificationService.actionCheckIn:
+      case NotificationService.actionRetry:
+      case NotificationService.actionPause:
+      case NotificationService.actionRest:
+        return BackgroundUpdateManager().handleLiveTripAction(action!, id);
+      case NotificationService.actionAccept:
+        return acceptFriendRequest(id);
+      case NotificationService.actionDecline:
+        return declineFriendRequest(id);
+    }
+    final ctx = _ctx;
+    if (ctx == null) return;
+    switch (kind) {
+      case 'trip':
+        openTrip(id);
+      case 'user':
+        openProfile(id);
+      case 'achievement':
+        openAchievement(id);
+      case 'achievements':
+        AuthNavigationHelper.navigateToAchievements(ctx);
+      case 'request':
+      case 'friends':
+        AuthNavigationHelper.navigateToFriendsFollowers(ctx);
+      default:
+        Navigator.of(ctx).push(MaterialPageRoute(
+            builder: (_) => const AndroidNotificationsScreen()));
+    }
+  }
 
   void openTrip(String tripId) {
     final ctx = _ctx;

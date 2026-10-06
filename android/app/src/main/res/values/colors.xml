@@ -2,4 +2,6 @@
 <resources>
     <color name="ic_launcher_background">#FFFFFF</color>
     <color name="launch_background">#000000</color>
+    <!-- Trail orange: tints the notification icon in the shade -->
+    <color name="notification_color">#C2410C</color>
 </resources>
