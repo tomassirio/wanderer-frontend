@@ -234,25 +234,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   /// Android: keep the ongoing "live" notification in sync with the trip.
   void _syncLiveNotification() {
     if (!_isAndroid || _userId == null || _trip.userId != _userId) return;
-    final l10n = context.l10n;
     final latest = _tripUpdates.isEmpty
         ? null
         : _tripUpdates
-            .map((u) => u.timestamp)
-            .reduce((a, b) => a.isAfter(b) ? a : b);
-    BackgroundUpdateManager().syncLiveNotification(
-      tripId: _trip.id,
-      tripName: _trip.name,
-      isLive: _trip.status == TripStatus.inProgress,
-      body: [
-        l10n.live,
-        if (latest != null)
-          l10n.tripLastCheckIn(
-              TimeOfDay.fromDateTime(latest.toLocal()).format(context)),
-      ].join(' · '),
-      checkInLabel: l10n.tripCheckIn,
-      pauseLabel: l10n.pause,
-    );
+            .reduce((a, b) => a.timestamp.isAfter(b.timestamp) ? a : b);
+    BackgroundUpdateManager().syncLiveNotification(_trip,
+        lastCheckIn: latest?.timestamp, place: latest?.city);
   }
 
   /// Android "Check in": optional message, then the regular manual update.

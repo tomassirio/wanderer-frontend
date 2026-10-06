@@ -7,7 +7,11 @@ import 'package:geolocator_android/geolocator_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
+import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
+import 'package:wanderer_frontend/core/l10n/translation_loader.dart';
 import 'package:wanderer_frontend/core/services/notification_service.dart';
+import 'package:wanderer_frontend/data/models/domain/location_update_result.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/data/services/trip_update_service.dart';
@@ -32,6 +36,10 @@ const String _updateIntervalKey = 'update_interval_seconds';
 /// Key to signal the background isolate that chained updates are active
 const String _chainedUpdatesActiveKey = 'chained_updates_active';
 
+/// When the next chained check-in is due (ms since epoch), for the live
+/// notification's "Next auto check-in at …".
+const String _nextCheckInKey = 'next_auto_check_in_at';
+
 /// Tag used for all chained update tasks — allows cancellation by tag
 const String _chainedTaskTag = 'trip_auto_update_chain';
 
@@ -49,6 +57,11 @@ Future<void> _scheduleNextChainedTask(SharedPreferences prefs) async {
   }
 
   final taskId = 'trip_update_chain_${DateTime.now().millisecondsSinceEpoch}';
+  await prefs.setInt(
+      _nextCheckInKey,
+      DateTime.now()
+          .add(Duration(seconds: intervalSeconds))
+          .millisecondsSinceEpoch);
   debugPrint('BG_CHAIN: Scheduling next task in ${intervalSeconds}s '
       '(${(intervalSeconds / 60).toStringAsFixed(1)} min), taskId=$taskId');
 
@@ -108,6 +121,9 @@ void callbackDispatcher() {
     debugPrint('$tag: ⚡ WorkManager task fired. taskName=$taskName');
 
     if (taskName == tripUpdateTaskName) {
+      // Notification text and channel names in the user's language.
+      await LocaleController().initialize();
+      await TranslationLoader.instance.load();
       final notificationService = NotificationService();
       await notificationService.initialize();
 
@@ -142,16 +158,15 @@ void callbackDispatcher() {
         if (!tokenValid) {
           debugPrint(
               '$tag: Could not obtain a valid token — user may need to log in again');
-          await notificationService.showUpdateFailure(
-            tripName: tripName,
-            reason: 'Please open the app and log in again',
-          );
+          await notificationService.showCheckInFailed(
+              tripId: tripId, tripName: tripName);
           await _scheduleNextChainedTask(prefs);
           return true;
         }
 
+        Trip? trip;
         if (!await shouldKeepAutoUpdating(
-            () => TripService().getTripById(tripId))) {
+            () async => trip = await TripService().getTripById(tripId))) {
           debugPrint('$tag: Trip $tripId is not IN_PROGRESS — ending chain');
           // The foreground service can only be stopped from the UI isolate;
           // initialize() does that on the next app start.
@@ -159,6 +174,7 @@ void callbackDispatcher() {
           await prefs.remove(_activeTripIdKey);
           await prefs.remove(_activeTripNameKey);
           await prefs.remove(_updateIntervalKey);
+          await prefs.remove(_nextCheckInKey);
           return true;
         }
 
@@ -172,36 +188,44 @@ void callbackDispatcher() {
         final elapsed = DateTime.now().difference(startTime).inMilliseconds;
 
         if (result.isSuccess) {
-          await notificationService.showUpdateSuccess(
-            tripName: tripName,
-            latitude: result.latitude!,
-            longitude: result.longitude!,
-            batteryLevel: result.batteryLevel,
-          );
           debugPrint('$tag: ✅ SUCCESS in ${elapsed}ms');
         } else {
-          await notificationService.showUpdateFailure(
-            tripName: tripName,
-            reason: result.userMessage,
-          );
+          await notificationService.showCheckInFailed(
+              tripId: tripId, tripName: tripName, result: result);
           debugPrint('$tag: ❌ FAILED in ${elapsed}ms — '
               'reason=${result.failureReason}, detail=${result.errorDetail}');
+          // Trip deleted or no longer ours: retrying can't help.
+          if (result.statusCode == 403 || result.statusCode == 404) {
+            await prefs.setBool(_chainedUpdatesActiveKey, false);
+            await prefs.remove(_activeTripIdKey);
+            await prefs.remove(_activeTripNameKey);
+            await prefs.remove(_updateIntervalKey);
+            await prefs.remove(_nextCheckInKey);
+            return true;
+          }
         }
 
         await _scheduleNextChainedTask(prefs);
+        // Auto check-ins edit the live notification in place, silently.
+        if (result.isSuccess && trip != null) {
+          await showLiveTripNotification(trip!, lastCheckIn: DateTime.now());
+        }
         return true;
       } catch (e, stackTrace) {
         final elapsed = DateTime.now().difference(startTime).inMilliseconds;
         debugPrint('$tag: 💥 EXCEPTION in ${elapsed}ms: $e\n$stackTrace');
 
         try {
-          final tripName = (await SharedPreferences.getInstance())
-                  .getString(_activeTripNameKey) ??
-              'Trip Update';
-          await notificationService.showUpdateFailure(
-            tripName: tripName,
-            reason: 'Something went wrong. Will retry next cycle.',
-          );
+          final prefs = await SharedPreferences.getInstance();
+          final tripId = prefs.getString(_activeTripIdKey);
+          if (tripId != null) {
+            await notificationService.showCheckInFailed(
+              tripId: tripId,
+              tripName: prefs.getString(_activeTripNameKey) ?? '',
+              result: const LocationUpdateResult.failure(
+                  LocationFailureReason.unknownError),
+            );
+          }
         } catch (_) {}
 
         try {
@@ -217,6 +241,36 @@ void callbackDispatcher() {
     debugPrint('$tag: Unknown task name: $taskName — skipping');
     return true;
   });
+}
+
+/// Shows (or silently refreshes) the ongoing live-trip notification for
+/// [trip]: day, last check-in and place, next auto check-in, a "Live" timer
+/// from the start of the current stretch, and the trip's buttons.
+Future<void> showLiveTripNotification(Trip trip,
+    {DateTime? lastCheckIn, String? place}) async {
+  final prefs = await SharedPreferences.getInstance();
+  final next = (prefs.getBool(_chainedUpdatesActiveKey) ?? false) &&
+          prefs.getString(_activeTripIdKey) == trip.id
+      ? prefs.getInt(_nextCheckInKey)
+      : null;
+  final multiDay = trip.tripModality == TripModality.multiDay;
+  final openDay = trip.tripDays?.where((d) => d.endTimestamp == null);
+  await NotificationService().showLiveTrip(
+    tripId: trip.id,
+    tripName: trip.name,
+    body: NotificationService.liveTripBody(
+      AppLocalizations.fromController(),
+      day: multiDay ? trip.currentDay : null,
+      lastCheckIn: lastCheckIn,
+      place: place,
+      nextCheckIn:
+          next == null ? null : DateTime.fromMillisecondsSinceEpoch(next),
+    ),
+    liveSince: (openDay == null || openDay.isEmpty)
+        ? trip.startDate
+        : openDay.last.startTimestamp,
+    canRest: multiDay,
+  );
 }
 
 /// Manages background updates for trips using WorkManager
@@ -263,8 +317,6 @@ class BackgroundUpdateManager {
       debugPrint('BackgroundUpdateManager: Already initialized');
       return;
     }
-
-    NotificationService.onTripAction = handleLiveTripAction;
 
     try {
       await Workmanager().initialize(
@@ -313,6 +365,11 @@ class BackgroundUpdateManager {
       await prefs.setString(_activeTripNameKey, tripName);
       await prefs.setInt(_updateIntervalKey, intervalSeconds);
       await prefs.setBool(_chainedUpdatesActiveKey, true);
+      await prefs.setInt(
+          _nextCheckInKey,
+          DateTime.now()
+              .add(Duration(seconds: intervalSeconds))
+              .millisecondsSinceEpoch);
 
       // Verify the writes
       debugPrint('BackgroundUpdateManager: 📝 Stored: tripId=$tripId, '
@@ -371,6 +428,7 @@ class BackgroundUpdateManager {
       await prefs.remove(_activeTripIdKey);
       await prefs.remove(_activeTripNameKey);
       await prefs.remove(_updateIntervalKey);
+      await prefs.remove(_nextCheckInKey);
 
       // Stop the foreground service so the app can enter Doze when idle
       await _stopForegroundService();
@@ -450,6 +508,7 @@ class BackgroundUpdateManager {
       await prefs.remove(_activeTripIdKey);
       await prefs.remove(_activeTripNameKey);
       await prefs.remove(_updateIntervalKey);
+      await prefs.remove(_nextCheckInKey);
 
       await _stopForegroundService();
 
@@ -467,38 +526,19 @@ class BackgroundUpdateManager {
   // ---------------------------------------------------------------------------
 
   /// Last live notification content, reused after a notification action.
-  ({
-    String tripId,
-    String title,
-    String body,
-    String checkInLabel,
-    String pauseLabel
-  })? _live;
+  ({Trip trip, DateTime? lastCheckIn, String? place})? _live;
 
-  /// Shows the ongoing live-trip notification while [isLive], removes it
-  /// otherwise. Labels come from the caller (it has the l10n context).
-  Future<void> syncLiveNotification({
-    required String tripId,
-    required String tripName,
-    required bool isLive,
-    required String body,
-    required String checkInLabel,
-    required String pauseLabel,
-  }) async {
+  /// Shows the ongoing live-trip notification while [trip] is in progress,
+  /// removes it otherwise. [lastCheckIn] and [place] are its latest update.
+  Future<void> syncLiveNotification(Trip trip,
+      {DateTime? lastCheckIn, String? place}) async {
     if (!_isSupported) return;
-    final notifications = NotificationService();
-    if (!isLive) {
+    if (trip.status != TripStatus.inProgress) {
       _live = null;
-      await notifications.cancelLiveTrip();
+      await NotificationService().cancelLiveTrip();
       return;
     }
-    _live = (
-      tripId: tripId,
-      title: tripName,
-      body: body,
-      checkInLabel: checkInLabel,
-      pauseLabel: pauseLabel,
-    );
+    _live = (trip: trip, lastCheckIn: lastCheckIn, place: place);
     await _showLive();
     // ponytail: the native tracking service may post its own notification
     // (same ID) just after starting; post ours again once it has. Move the
@@ -509,38 +549,51 @@ class BackgroundUpdateManager {
   Future<void> _showLive() async {
     final live = _live;
     if (live == null) return;
-    await NotificationService().showLiveTrip(
-      tripId: live.tripId,
-      title: live.title,
-      body: live.body,
-      checkInLabel: live.checkInLabel,
-      pauseLabel: live.pauseLabel,
-    );
+    await showLiveTripNotification(live.trip,
+        lastCheckIn: live.lastCheckIn, place: live.place);
   }
 
-  /// Runs a live-notification action (Check in / Pause) for [tripId].
-  @visibleForTesting
+  /// Runs a trip button (Check in / Try again / Pause / Rest) for [tripId].
   Future<void> handleLiveTripAction(String actionId, String tripId) async {
     try {
-      if (actionId == NotificationService.actionCheckIn) {
-        final result = await TripUpdateService().sendUpdate(tripId: tripId);
-        if (!result.isSuccess) {
-          await NotificationService().showUpdateFailure(
-            tripName: _live?.title ?? 'Trip',
-            reason: result.userMessage,
+      switch (actionId) {
+        case NotificationService.actionCheckIn:
+        case NotificationService.actionRetry:
+          final result = await TripUpdateService().sendUpdate(tripId: tripId);
+          final live = _live?.trip.id == tripId ? _live : null;
+          if (!result.isSuccess) {
+            await NotificationService().showCheckInFailed(
+              tripId: tripId,
+              tripName: live?.trip.name ?? '',
+              result: result,
+            );
+          } else if (live != null) {
+            _live = (trip: live.trip, lastCheckIn: DateTime.now(), place: null);
+            await _showLive();
+          }
+        case NotificationService.actionPause:
+          await TripService().changeStatus(
+              tripId, ChangeStatusRequest(status: TripStatus.paused));
+          await _endLive(tripId);
+        case NotificationService.actionRest:
+          await TripService().toggleDay(tripId);
+          final day = _live?.trip.currentDay;
+          await TripUpdateService().sendUpdate(
+            tripId: tripId,
+            updateType: TripUpdateType.dayEnd,
+            message: day == null ? null : 'Day $day finished',
           );
-        }
-        await _showLive();
-      } else if (actionId == NotificationService.actionPause) {
-        await TripService().changeStatus(
-            tripId, ChangeStatusRequest(status: TripStatus.paused));
-        await stopAutoUpdates(tripId);
-        _live = null;
-        await NotificationService().cancelLiveTrip();
+          await _endLive(tripId);
       }
     } catch (e) {
       debugPrint('BackgroundUpdateManager: Live action $actionId failed: $e');
     }
+  }
+
+  Future<void> _endLive(String tripId) async {
+    await stopAutoUpdates(tripId);
+    _live = null;
+    await NotificationService().cancelLiveTrip();
   }
 
   // ---------------------------------------------------------------------------

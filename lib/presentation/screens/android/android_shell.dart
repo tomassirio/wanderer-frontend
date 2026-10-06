@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/providers/app_providers.dart';
+import 'package:wanderer_frontend/core/services/notification_service.dart';
 import 'package:wanderer_frontend/core/services/push_notification_manager.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
@@ -82,6 +83,8 @@ class AndroidShellState extends ConsumerState<AndroidShell> {
   void initState() {
     super.initState();
     AndroidShell._current = this;
+    // Notification taps and buttons need a signed-in session and navigator.
+    NotificationService.onResponse = const NotificationActions().handlePush;
     _connect();
   }
 
@@ -99,7 +102,10 @@ class AndroidShellState extends ConsumerState<AndroidShell> {
 
   @override
   void dispose() {
-    if (AndroidShell._current == this) AndroidShell._current = null;
+    if (AndroidShell._current == this) {
+      AndroidShell._current = null;
+      NotificationService.onResponse = null;
+    }
     PushNotificationManager().stop();
     if (kIsWeb) LiveToastBridge().stop();
     super.dispose();

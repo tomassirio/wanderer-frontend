@@ -1,8 +1,12 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, debugPrint, visibleForTesting;
+import 'package:flutter_local_notifications/flutter_local_notifications.dart'
+    show AndroidNotificationAction;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/core/services/notification_service.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
@@ -111,38 +115,133 @@ class PushNotificationManager {
   }
 
   void _showPushNotification(NotificationCreatedEvent event) {
-    final title = _titleForType(event.notificationType);
-    final body = event.message;
-
-    if (body.isEmpty) return;
-
-    _notificationService.showInAppNotification(title: title, body: body);
-  }
-
-  String _titleForType(String notificationType) {
-    switch (notificationType.toUpperCase()) {
-      case 'FRIEND_REQUEST_RECEIVED':
-        return '👋 Friend Request';
-      case 'FRIEND_REQUEST_ACCEPTED':
-        return '🤝 Friend Request Accepted';
-      case 'FRIEND_REQUEST_DECLINED':
-        return '😔 Friend Request Declined';
-      case 'COMMENT_ON_TRIP':
-        return '💬 New Comment';
-      case 'REPLY_TO_COMMENT':
-        return '↩️ Reply';
-      case 'COMMENT_REACTION':
-        return '❤️ Reaction';
-      case 'NEW_FOLLOWER':
-        return '👤 New Follower';
-      case 'ACHIEVEMENT_UNLOCKED':
-        return '🏆 Achievement Unlocked';
-      case 'TRIP_STATUS_CHANGED':
-        return '🗺️ Trip Update';
-      case 'TRIP_UPDATE_POSTED':
-        return '📍 Trip Update';
-      default:
-        return '🔔 Wanderer';
-    }
+    final n = activityNotification(
+        AppLocalizations.fromController(), event.notificationType,
+        message: event.message,
+        referenceId: event.referenceId,
+        actorId: event.actorId);
+    if (n == null) return;
+    _notificationService.showActivity(
+      kind: n.kind,
+      title: n.title,
+      body: n.body,
+      payload: n.payload,
+      actions: n.actions,
+      groupKey: n.groupKey,
+    );
   }
 }
+
+/// How a backend notification shows in the shade: its channel, plain text
+/// (no emoji; trip names unquoted), the screen it opens and its buttons.
+/// Null for types that aren't pushed (a friend's every check-in stays in the
+/// in-app list) or have no message.
+@visibleForTesting
+({
+  NotificationChannelKind kind,
+  String title,
+  String? body,
+  String payload,
+  List<AndroidNotificationAction> actions,
+  String? groupKey,
+})? activityNotification(AppLocalizations l10n, String type,
+    {required String message, String? referenceId, String? actorId}) {
+  if (message.isEmpty) return null;
+  final title = message.replaceAllMapped(notificationQuotes, (m) => m[1]!);
+  final ref = referenceId ?? '';
+  final view = NotificationService.button(
+      NotificationService.actionOpen, l10n.notifView);
+  switch (type.toUpperCase()) {
+    case 'FRIEND_REQUEST_RECEIVED':
+      return (
+        kind: NotificationChannelKind.friends,
+        title: title,
+        body: l10n.notifFriendRequestBody,
+        payload: 'request:$ref',
+        actions: [
+          if (ref.isNotEmpty) ...[
+            NotificationService.button(
+                NotificationService.actionAccept, l10n.acceptRequest),
+            NotificationService.button(
+                NotificationService.actionDecline, l10n.notifDecline),
+          ],
+        ],
+        groupKey: null,
+      );
+    case 'FRIEND_REQUEST_ACCEPTED':
+      return (
+        kind: NotificationChannelKind.friends,
+        title: title,
+        body: null,
+        payload: actorId == null ? 'friends' : 'user:$actorId',
+        actions: const [],
+        groupKey: null,
+      );
+    case 'FRIEND_REQUEST_DECLINED':
+      return (
+        kind: NotificationChannelKind.friends,
+        title: title,
+        body: null,
+        payload: 'friends',
+        actions: const [],
+        groupKey: null,
+      );
+    case 'NEW_FOLLOWER':
+      return (
+        kind: NotificationChannelKind.friends,
+        title: title,
+        body: null,
+        payload: ref.isEmpty ? 'friends' : 'user:$ref',
+        actions: const [],
+        groupKey: null,
+      );
+    case 'COMMENT_ON_TRIP':
+      return (
+        kind: NotificationChannelKind.comments,
+        title: title,
+        body: null,
+        payload: 'trip:$ref',
+        actions: [
+          NotificationService.button(
+              NotificationService.actionReply, l10n.reply),
+          view,
+        ],
+        groupKey: ref.isEmpty ? null : 'comments:$ref',
+      );
+    // Their reference is a comment, not a trip: open the list.
+    case 'REPLY_TO_COMMENT':
+    case 'COMMENT_REACTION':
+      return (
+        kind: NotificationChannelKind.comments,
+        title: title,
+        body: null,
+        payload: 'notifications',
+        actions: const [],
+        groupKey: null,
+      );
+    // A friend started or finished a trip.
+    case 'TRIP_STATUS_CHANGED':
+      return (
+        kind: NotificationChannelKind.friends,
+        title: title,
+        body: null,
+        payload: ref.isEmpty ? 'notifications' : 'trip:$ref',
+        actions: const [],
+        groupKey: null,
+      );
+    case 'ACHIEVEMENT_UNLOCKED':
+      return (
+        kind: NotificationChannelKind.achievements,
+        title: title,
+        body: null,
+        payload: ref.isEmpty ? 'achievements' : 'achievement:$ref',
+        actions: const [],
+        groupKey: null,
+      );
+    default:
+      return null;
+  }
+}
+
+/// Quoted trip / achievement names inside a backend message.
+final notificationQuotes = RegExp(r'"([^"]+)"');

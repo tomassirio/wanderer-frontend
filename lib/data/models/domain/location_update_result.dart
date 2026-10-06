@@ -31,9 +31,11 @@ class LocationUpdateResult {
   final bool isSuccess;
   final LocationFailureReason? failureReason;
 
-  /// Optional detail from the server / exception (shown to the user for
-  /// [serverError] and [networkError]).
+  /// Detail from the server / exception, for logs only — never shown.
   final String? errorDetail;
+
+  /// HTTP status of a [LocationFailureReason.serverError], when known.
+  final int? statusCode;
 
   /// Location and battery data captured during the update attempt.
   /// Available on both success and some failures (e.g. network errors
@@ -49,13 +51,15 @@ class LocationUpdateResult {
     this.batteryLevel,
   })  : isSuccess = true,
         failureReason = null,
-        errorDetail = null;
+        errorDetail = null,
+        statusCode = null;
 
   /// Failed update with a specific reason.
   const LocationUpdateResult.failure(LocationFailureReason reason)
       : isSuccess = false,
         failureReason = reason,
         errorDetail = null,
+        statusCode = null,
         latitude = null,
         longitude = null,
         batteryLevel = null;
@@ -63,8 +67,9 @@ class LocationUpdateResult {
   /// Failed update with a reason and extra detail text.
   const LocationUpdateResult.failureWithDetail(
     LocationFailureReason reason,
-    this.errorDetail,
-  )   : isSuccess = false,
+    this.errorDetail, {
+    this.statusCode,
+  })  : isSuccess = false,
         failureReason = reason,
         latitude = null,
         longitude = null,
@@ -91,9 +96,6 @@ class LocationUpdateResult {
         return 'Failed to send the update. '
             'Please check your internet connection.';
       case LocationFailureReason.serverError:
-        if (errorDetail != null && errorDetail!.isNotEmpty) {
-          return 'Server error: $errorDetail';
-        }
         return 'The server returned an error. Please try again later.';
       case null:
         return '';
