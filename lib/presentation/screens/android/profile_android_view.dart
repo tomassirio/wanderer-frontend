@@ -9,6 +9,7 @@ import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/client/api_client.dart';
+import 'package:wanderer_frontend/data/models/achievement_models.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/user_models.dart';
 import 'package:wanderer_frontend/data/models/responses/page_response.dart';
@@ -91,7 +92,11 @@ class _ProfileAndroidViewState extends ConsumerState<ProfileAndroidView> {
           _friends = (r[3] as PageResponse).totalElements;
           _requests = (r[4] as List).length;
           _achievementTotal = (r[5] as List).length;
-          _unlocked = (r[6] as List).length;
+          // One entry per unlock: per-trip achievements repeat once per trip.
+          _unlocked = (r[6] as List<UserAchievement>)
+              .map((a) => a.achievement.id)
+              .toSet()
+              .length;
           _loading = false;
           _error = null;
         });
