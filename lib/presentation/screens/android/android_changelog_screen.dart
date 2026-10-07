@@ -7,10 +7,12 @@ import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/domain/release_note.dart';
 import 'package:wanderer_frontend/data/services/release_notes_service.dart';
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/explore_widgets.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/release_notes_widgets.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
 
 /// A trip is on the road (live, paused or resting overnight).
 bool isTripRunning(Trip t) =>
@@ -40,6 +42,11 @@ Future<void> maybeShowWhatsNew(
     if (note == null || !context.mounted || !_whatsNewShown.add(note.version)) {
       return;
     }
+    if (AdaptiveLayout.usesDesktopLayout(context)) {
+      await showWebWhatsNewDialog(context, latest: note);
+      await service.markSeen(await service.appVersion());
+      return;
+    }
     final seeAll = await showWhatsNewSheet(context, note);
     await service.markSeen(await service.appVersion());
     if (seeAll == true && context.mounted) {
@@ -54,17 +61,30 @@ Future<void> maybeShowWhatsNew(
 }
 
 /// Every published version, newest first (canvas "C · Full changelog").
-/// Opening it marks the running version's notes as read.
-class AndroidChangelogScreen extends ConsumerStatefulWidget {
+class AndroidChangelogScreen extends StatelessWidget {
   const AndroidChangelogScreen({super.key});
 
   @override
-  ConsumerState<AndroidChangelogScreen> createState() =>
-      _AndroidChangelogScreenState();
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: WandererTheme.of(context).ground,
+        appBar: AndroidTopBar(title: context.l10n.whatsNewTitle),
+        body: const ChangelogView(),
+      );
 }
 
-class _AndroidChangelogScreenState
-    extends ConsumerState<AndroidChangelogScreen> {
+/// The changelog list: version banner, New/Improved/Fixed filters and one
+/// card per version. Used by the Android screen and the web popup.
+/// Loading it marks the running version's notes as read.
+class ChangelogView extends ConsumerStatefulWidget {
+  final EdgeInsets padding;
+  const ChangelogView(
+      {super.key, this.padding = const EdgeInsets.fromLTRB(16, 4, 16, 24)});
+
+  @override
+  ConsumerState<ChangelogView> createState() => _ChangelogViewState();
+}
+
+class _ChangelogViewState extends ConsumerState<ChangelogView> {
   List<ReleaseNote>? _releases;
   String _appVersion = '';
   bool _offline = false;
@@ -87,7 +107,7 @@ class _AndroidChangelogScreenState
       if (mounted) _show(fresh, version, offline: false);
       await service.markSeen(version);
     } catch (e) {
-      debugPrint('AndroidChangelogScreen: load failed: $e');
+      debugPrint('ChangelogView: load failed: $e');
       if (mounted) _show(cached ?? const [], version, offline: true);
     }
   }
@@ -107,69 +127,65 @@ class _AndroidChangelogScreenState
     final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final releases = _releases;
-    return Scaffold(
-      backgroundColor: c.ground,
-      appBar: AndroidTopBar(title: l10n.whatsNewTitle),
-      body: releases == null
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-              children: [
-                if (_offline) ...[
-                  _Banner(
-                      icon: Icons.cloud_off_outlined,
-                      bg: c.neutralBg,
-                      fg: c.neutralFg,
-                      title: releases.isEmpty
-                          ? l10n.changelogLoadFailed
-                          : l10n.changelogOffline),
-                  const SizedBox(height: 12),
-                ],
-                if (releases.isNotEmpty) ...[
-                  _versionBanner(c, l10n, releases.first.version),
-                  const SizedBox(height: 12),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(children: [
-                      for (final (type, label) in [
-                        (null, l10n.changelogAll),
-                        (ReleaseChangeType.newFeature, l10n.releaseTypeNew),
-                        (ReleaseChangeType.improved, l10n.releaseTypeImproved),
-                        (ReleaseChangeType.fixed, l10n.releaseTypeFixed),
-                      ])
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: ExploreChip(
-                            label: label,
-                            selected: _filter == type,
-                            onTap: () => setState(() => _filter = type),
-                          ),
-                        ),
-                    ]),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                if (releases.isEmpty && !_offline)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 48),
-                    child: Text(l10n.changelogEmpty,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 15, color: c.textMuted)),
-                  ),
-                for (final (i, r) in releases.indexed) ...[
-                  if (i > 0) const SizedBox(height: 12),
-                  _ReleaseCard(
-                    release: r,
-                    latest: i == 0,
-                    open: _open == r.version,
-                    filter: _filter,
-                    onToggle: () => setState(
-                        () => _open = _open == r.version ? null : r.version),
-                  ),
-                ],
+    return releases == null
+        ? const Center(child: CircularProgressIndicator())
+        : ListView(
+            padding: widget.padding,
+            children: [
+              if (_offline) ...[
+                _Banner(
+                    icon: Icons.cloud_off_outlined,
+                    bg: c.neutralBg,
+                    fg: c.neutralFg,
+                    title: releases.isEmpty
+                        ? l10n.changelogLoadFailed
+                        : l10n.changelogOffline),
+                const SizedBox(height: 12),
               ],
-            ),
-    );
+              if (releases.isNotEmpty) ...[
+                _versionBanner(c, l10n, releases.first.version),
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(children: [
+                    for (final (type, label) in [
+                      (null, l10n.changelogAll),
+                      (ReleaseChangeType.newFeature, l10n.releaseTypeNew),
+                      (ReleaseChangeType.improved, l10n.releaseTypeImproved),
+                      (ReleaseChangeType.fixed, l10n.releaseTypeFixed),
+                    ])
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ExploreChip(
+                          label: label,
+                          selected: _filter == type,
+                          onTap: () => setState(() => _filter = type),
+                        ),
+                      ),
+                  ]),
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (releases.isEmpty && !_offline)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 48),
+                  child: Text(l10n.changelogEmpty,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 15, color: c.textMuted)),
+                ),
+              for (final (i, r) in releases.indexed) ...[
+                if (i > 0) const SizedBox(height: 12),
+                _ReleaseCard(
+                  release: r,
+                  latest: i == 0,
+                  open: _open == r.version,
+                  filter: _filter,
+                  onToggle: () => setState(
+                      () => _open = _open == r.version ? null : r.version),
+                ),
+              ],
+            ],
+          );
   }
 
   Widget _versionBanner(
@@ -338,6 +354,164 @@ class _ReleaseCard extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Web What's new popup (canvas G/H): "Latest" shows [latest]'s notes, "All
+/// versions" the full changelog, both inside the same popup. Opens on "All
+/// versions" when [latest] is null or [showAll] is set.
+Future<void> showWebWhatsNewDialog(BuildContext context,
+        {ReleaseNote? latest, bool showAll = false}) =>
+    WandererDialog.show(
+      context,
+      width: 600,
+      builder: (_) => _WebWhatsNewDialog(
+          latest: latest, showAll: showAll || latest == null),
+    );
+
+class _WebWhatsNewDialog extends StatefulWidget {
+  final ReleaseNote? latest;
+  final bool showAll;
+  const _WebWhatsNewDialog({required this.latest, required this.showAll});
+
+  @override
+  State<_WebWhatsNewDialog> createState() => _WebWhatsNewDialogState();
+}
+
+class _WebWhatsNewDialogState extends State<_WebWhatsNewDialog> {
+  late bool _all = widget.showAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
+    final l10n = context.l10n;
+    final latest = widget.latest;
+    void close() => Navigator.of(context).pop();
+    Widget tab(String label, bool selected, VoidCallback onTap) => Expanded(
+          child: Semantics(
+            selected: selected,
+            button: true,
+            child: Material(
+              color: selected ? c.surface : Colors.transparent,
+              borderRadius: BorderRadius.circular(9),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(9),
+                onTap: onTap,
+                child: SizedBox(
+                  height: 40,
+                  child: Center(
+                    child: Text(label,
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: selected ? c.text : c.textMuted)),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+    final footerButton = ButtonStyle(
+      minimumSize: const WidgetStatePropertyAll(Size(0, 48)),
+      shape: WidgetStatePropertyAll(RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(WandererTheme.radiusControl))),
+      textStyle: const WidgetStatePropertyAll(
+          TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+    );
+    final gotIt = FilledButton(
+      onPressed: close,
+      style: footerButton.copyWith(
+        backgroundColor: WidgetStatePropertyAll(c.neutralButtonBg),
+        foregroundColor: WidgetStatePropertyAll(c.neutralButtonFg),
+      ),
+      child: Text(_all ? l10n.close : l10n.whatsNewGotIt),
+    );
+
+    return SizedBox(
+      height: (MediaQuery.sizeOf(context).height - 48).clamp(320.0, 700.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 22, 24, 0),
+            child: Row(children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                    color: c.trailSoftBg,
+                    borderRadius:
+                        BorderRadius.circular(WandererTheme.radiusControl)),
+                child: Icon(Icons.auto_awesome_outlined,
+                    size: 20, color: c.trailSoftFg),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Semantics(
+                  header: true,
+                  child: Text(l10n.whatsNewTitle,
+                      style: WandererTheme.display(22, color: c.text)),
+                ),
+              ),
+              IconButton(
+                onPressed: close,
+                tooltip: l10n.close,
+                icon: Icon(Icons.close, color: c.textMuted),
+              ),
+            ]),
+          ),
+          if (latest != null)
+            Container(
+              margin: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                  color: c.neutralBg,
+                  borderRadius:
+                      BorderRadius.circular(WandererTheme.radiusControl)),
+              child: Row(children: [
+                tab('${l10n.changelogLatest} · ${latest.version}', !_all,
+                    () => setState(() => _all = false)),
+                const SizedBox(width: 4),
+                tab(l10n.changelogAllVersions, _all,
+                    () => setState(() => _all = true)),
+              ]),
+            ),
+          Expanded(
+            child: _all || latest == null
+                ? const ChangelogView(
+                    padding: EdgeInsets.fromLTRB(24, 16, 24, 16))
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(24, 18, 24, 16),
+                    child: WhatsNewContent(note: latest),
+                  ),
+          ),
+          Container(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 22),
+            decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: c.lineSoft))),
+            child: Row(children: [
+              if (!_all) ...[
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => setState(() => _all = true),
+                    style: footerButton.copyWith(
+                      foregroundColor: WidgetStatePropertyAll(c.text),
+                      side: WidgetStatePropertyAll(BorderSide(color: c.line)),
+                    ),
+                    child: Text(l10n.changelogAllVersions),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(flex: 7, child: gotIt),
+              ] else ...[
+                const Spacer(),
+                gotIt,
+              ],
+            ]),
+          ),
+        ],
       ),
     );
   }

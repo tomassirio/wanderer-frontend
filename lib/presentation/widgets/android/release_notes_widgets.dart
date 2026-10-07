@@ -77,16 +77,14 @@ String releaseDate(BuildContext context, DateTime? d) => d == null
     : DateFormat('EEE d MMM y', Localizations.localeOf(context).toString())
         .format(d.toLocal());
 
-/// Body of the What's new sheet (A). Shared with the editor's Preview.
+/// Body of the What's new sheet (A). Shared with the editor's Preview and the
+/// web popup, which brings its own buttons: leave [onGotIt] null to omit them.
 class WhatsNewContent extends StatelessWidget {
   final ReleaseNote note;
-  final VoidCallback onGotIt;
-  final VoidCallback onSeeAll;
+  final VoidCallback? onGotIt;
+  final VoidCallback? onSeeAll;
   const WhatsNewContent(
-      {super.key,
-      required this.note,
-      required this.onGotIt,
-      required this.onSeeAll});
+      {super.key, required this.note, this.onGotIt, this.onSeeAll});
 
   @override
   Widget build(BuildContext context) {
@@ -125,35 +123,37 @@ class WhatsNewContent extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         for (final ch in note.items) ReleaseChangeTile(ch),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 56,
-          child: FilledButton(
-            onPressed: onGotIt,
-            style: FilledButton.styleFrom(
-              backgroundColor: c.neutralButtonBg,
-              foregroundColor: c.neutralButtonFg,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              textStyle:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        if (onGotIt != null) ...[
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 56,
+            child: FilledButton(
+              onPressed: onGotIt,
+              style: FilledButton.styleFrom(
+                backgroundColor: c.neutralButtonBg,
+                foregroundColor: c.neutralButtonFg,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                textStyle:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+              child: Text(l10n.whatsNewGotIt),
             ),
-            child: Text(l10n.whatsNewGotIt),
           ),
-        ),
-        const SizedBox(height: 4),
-        SizedBox(
-          height: 48,
-          child: TextButton(
-            onPressed: onSeeAll,
-            style: TextButton.styleFrom(
-              foregroundColor: c.accentText,
-              textStyle:
-                  const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          const SizedBox(height: 4),
+          SizedBox(
+            height: 48,
+            child: TextButton(
+              onPressed: onSeeAll,
+              style: TextButton.styleFrom(
+                foregroundColor: c.accentText,
+                textStyle:
+                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+              ),
+              child: Text(l10n.whatsNewSeeAll),
             ),
-            child: Text(l10n.whatsNewSeeAll),
           ),
-        ),
+        ],
       ],
     );
   }

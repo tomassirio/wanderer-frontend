@@ -1159,6 +1159,7 @@
   "whatsNewUnread": "Ongelezen",
   "changelogAll": "Alles",
   "changelogLatest": "Nieuwste",
+  "changelogAllVersions": "Alle versies",
   "changelogOnLatestTitle": "Je hebt Wanderer {version}",
   "changelogOnLatestBody": "Dat is de nieuwste versie.",
   "changelogUpdateTitle": "Update beschikbaar",

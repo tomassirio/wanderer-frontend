@@ -216,6 +216,45 @@ void main() {
     });
   });
 
+  group('Web popup', () {
+    testWidgets('Latest tab, switch to All versions, close', (tester) async {
+      tester.view.physicalSize = const Size(1440, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final service = _FakeReleaseNotesService(
+          published: [_release('1.7.0'), _release('1.6.11')]);
+      await tester.pumpWidget(ProviderScope(
+        overrides: [releaseNotesServiceProvider.overrideWithValue(service)],
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () =>
+                  showWebWhatsNewDialog(context, latest: _release('1.7.0')),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.text('Latest · 1.7.0'), findsOneWidget);
+      expect(find.text('Got it'), findsOneWidget);
+      expect(find.text('1.6.11'), findsNothing);
+
+      await tester.tap(find.text('All versions').last);
+      await tester.pumpAndSettle();
+      expect(find.text('1.6.11'), findsOneWidget);
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(service.seen, ['1.7.0']);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Close'));
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsNothing);
+    });
+  });
+
   group('Changelog', () {
     Future<void> pumpChangelog(
         WidgetTester tester, _FakeReleaseNotesService service) async {

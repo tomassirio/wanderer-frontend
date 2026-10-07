@@ -89,8 +89,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   /// Opening the changelog marks the notes read; reload clears the dot.
   Future<void> _openWhatsNew() async {
-    await Navigator.push(context,
-        PageTransitions.slideFromRight(const AndroidChangelogScreen()));
+    if (AdaptiveLayout.usesDesktopLayout(context)) {
+      await showWebWhatsNewDialog(context,
+          latest: _whatsNew?.release, showAll: true);
+    } else {
+      await Navigator.push(context,
+          PageTransitions.slideFromRight(const AndroidChangelogScreen()));
+    }
     if (mounted) _loadWhatsNew();
   }
 

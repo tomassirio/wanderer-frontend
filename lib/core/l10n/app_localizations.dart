@@ -1522,6 +1522,7 @@ class AppLocalizations {
   String get whatsNewUnread => _tr('whatsNewUnread');
   String get changelogAll => _tr('changelogAll');
   String get changelogLatest => _tr('changelogLatest');
+  String get changelogAllVersions => _tr('changelogAllVersions');
   String changelogOnLatestTitle(Object version) => TranslationTemplate.format(
       _tr('changelogOnLatestTitle'), {'version': version});
   String get changelogOnLatestBody => _tr('changelogOnLatestBody');

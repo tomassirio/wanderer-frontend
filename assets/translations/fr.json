@@ -1159,6 +1159,7 @@
   "whatsNewUnread": "Non lu",
   "changelogAll": "Tout",
   "changelogLatest": "Dernière",
+  "changelogAllVersions": "Toutes les versions",
   "changelogOnLatestTitle": "Vous avez Wanderer {version}",
   "changelogOnLatestBody": "C'est la dernière version.",
   "changelogUpdateTitle": "Mise à jour disponible",
