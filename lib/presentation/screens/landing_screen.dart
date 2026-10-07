@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/legal_document.dart';
 import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:wanderer_frontend/presentation/widgets/landing/landing_hero.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,8 +16,6 @@ import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/home_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
-import 'package:wanderer_frontend/presentation/screens/privacy_policy_screen.dart';
-import 'package:wanderer_frontend/presentation/screens/terms_and_conditions_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/cached_trip_thumbnail.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
@@ -466,13 +465,13 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               TextButton(
-                onPressed: () => Navigator.push(
-                    context, PageTransitions.fade(const PrivacyPolicyScreen())),
+                onPressed: () =>
+                    showLegalDocument(context, LegalDocument.privacy),
                 child: Text(l10n.privacyPolicy, style: muted),
               ),
               TextButton(
-                onPressed: () => Navigator.push(context,
-                    PageTransitions.fade(const TermsAndConditionsScreen())),
+                onPressed: () =>
+                    showLegalDocument(context, LegalDocument.terms),
                 child: Text(l10n.termsShort, style: muted),
               ),
               TextButton(

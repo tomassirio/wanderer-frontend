@@ -20,8 +20,6 @@ import 'package:wanderer_frontend/presentation/helpers/tutorial_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_changelog_screen.dart';
-import 'package:wanderer_frontend/presentation/screens/privacy_policy_screen.dart';
-import 'package:wanderer_frontend/presentation/screens/terms_and_conditions_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/floating_notification.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/fireworks_widget.dart';
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
@@ -29,6 +27,7 @@ import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/release_notes_widgets.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/legal_document.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/settings_android.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
@@ -510,15 +509,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onResetPassword: _handleResetPassword,
               onContactSupport: _handleContactSupport,
               onResetTutorials: _handleResetTutorials,
-              onTerms: () => Navigator.push(
-                context,
-                PageTransitions.slideFromRight(
-                    const TermsAndConditionsScreen()),
-              ),
-              onPrivacy: () => Navigator.push(
-                context,
-                PageTransitions.slideFromRight(const PrivacyPolicyScreen()),
-              ),
+              onTerms: () => showLegalDocument(context, LegalDocument.terms),
+              onPrivacy: () =>
+                  showLegalDocument(context, LegalDocument.privacy),
               onCloseAccount: _handleCloseAccount,
               onVersionTap: _handleVersionTap,
               onLocaleChanged: () => setState(() {}),
@@ -535,8 +528,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final l10n = context.l10n;
     final c = WandererTheme.of(context);
     final danger = Theme.of(context).colorScheme.error;
-    void push(Widget screen) =>
-        Navigator.push(context, PageTransitions.slideFromRight(screen));
     return Scaffold(
       backgroundColor: c.ground,
       appBar: AndroidTopBar(title: l10n.settings),
@@ -607,11 +598,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   SettingsRow(
                     title: l10n.settingsAndroidTerms,
-                    onTap: () => push(const TermsAndConditionsScreen()),
+                    onTap: () =>
+                        showLegalDocument(context, LegalDocument.terms),
                   ),
                   SettingsRow(
                     title: l10n.settingsAndroidPrivacy,
-                    onTap: () => push(const PrivacyPolicyScreen()),
+                    onTap: () =>
+                        showLegalDocument(context, LegalDocument.privacy),
                   ),
                 ]),
                 const SizedBox(height: 14),
