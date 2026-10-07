@@ -1255,9 +1255,6 @@ class AppLocalizations {
   String get you => _tr('you');
   String get trip => _tr('trip');
   String get tripPlan => _tr('tripPlan');
-  String get createMenuPlanSubtitle => _tr('createMenuPlanSubtitle');
-  String get createMenuTripSubtitle => _tr('createMenuTripSubtitle');
-  String get closeCreateMenu => _tr('closeCreateMenu');
   String get newTripAutoCheckIn => _tr('newTripAutoCheckIn');
   String get newTripAutoCheckInCaption => _tr('newTripAutoCheckInCaption');
   String get newTripPickPlan => _tr('newTripPickPlan');
@@ -1603,4 +1600,11 @@ class AppLocalizations {
   String get startPlanStep3Bold => _tr('startPlanStep3Bold');
   String get startPlanQrLabel => _tr('startPlanQrLabel');
   String get startOnPhoneWebLink => _tr('startOnPhoneWebLink');
+  String get wander => _tr('wander');
+  String get wanderStart => _tr('wanderStart');
+  String get wanderOpenLive => _tr('wanderOpenLive');
+  String get wanderLocationTitle => _tr('wanderLocationTitle');
+  String get wanderLocationBody => _tr('wanderLocationBody');
+  String get wanderTurnOnLocation => _tr('wanderTurnOnLocation');
+  String get wanderNotNow => _tr('wanderNotNow');
 }

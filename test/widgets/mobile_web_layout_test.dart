@@ -151,7 +151,7 @@ void main() {
     expect(find.byType(AndroidExploreTab), findsOneWidget);
   });
 
-  testWidgets('phone login replaces welcome with four-tab shell',
+  testWidgets('phone login replaces welcome with the shell and Wander',
       (tester) async {
     await pump(tester, const InitialScreen());
     await tester.ensureVisible(find.byKey(const Key('welcome_login')));
@@ -167,17 +167,17 @@ void main() {
     expect(auth.loginCount, 1);
     expect(find.byType(AndroidShell), findsOneWidget);
     expect(find.byType(AuthScreen), findsNothing);
+    // Four tabs and Wander in the middle; no + create button any more.
     expect(find.byType(NavigationDestination), findsNWidgets(4));
+    expect(find.byKey(const Key('wander_button')), findsOneWidget);
+    expect(find.byIcon(Icons.add), findsNothing);
     expect(find.byType(AppSidebar), findsNothing);
     await tester.tap(find.byType(NavigationDestination).at(1));
     await tester.pumpAndSettle();
+    // Trips is the second slot of five (Wander sits at 2).
     expect(
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
         AndroidTab.trips.index);
-    await tester.tap(find.byIcon(Icons.add).last);
-    await tester.pumpAndSettle();
-    expect(find.text('Trip plan'), findsOneWidget);
-    expect(find.text('Trip'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

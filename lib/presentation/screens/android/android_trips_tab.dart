@@ -31,7 +31,7 @@ enum TripsFilter {
 
 /// Android "Trips" tab root (canvas AndroidTrips / AndroidPlans): My trips
 /// with state filters, and the user's trip plans. Shown inside
-/// [AndroidShell], which provides the bottom nav and the + button.
+/// [AndroidShell], which provides the bottom nav with Wander.
 class AndroidTripsTab extends StatelessWidget {
   const AndroidTripsTab({super.key});
 
