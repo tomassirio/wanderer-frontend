@@ -16,7 +16,8 @@ import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
 enum ExploreFilter { all, live, completed, friends }
 
 /// Trips for an Explore chip. "All/Live/Completed" follow the web Discover
-/// rules (public + active, or promoted completed / pre-announced); "Friends"
+/// rules (HomeScreen._categorizeTrips: public + started, i.e. active or
+/// finished, or promoted completed / pre-announced); "Friends"
 /// is every trip of a friend that friends may see. Newest first.
 @visibleForTesting
 List<Trip> exploreTrips(
@@ -26,7 +27,8 @@ List<Trip> exploreTrips(
       t.status == TripStatus.resting ||
       t.status == TripStatus.paused;
   bool discover(Trip t) =>
-      (t.visibility == Visibility.public && active(t)) ||
+      (t.visibility == Visibility.public &&
+          (active(t) || t.status == TripStatus.finished)) ||
       (t.isPromoted &&
           (t.status == TripStatus.finished || t.status == TripStatus.created));
   final out = trips.where((t) => switch (filter) {

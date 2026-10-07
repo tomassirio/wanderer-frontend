@@ -56,9 +56,10 @@ void main() {
       _trip('t5', status: TripStatus.created),
     ];
     ids(ExploreFilter f) => exploreTrips(trips, f, {'f'}).map((t) => t.id);
-    expect(ids(ExploreFilter.all), ['t3', 't1']);
+    // Public completed trips show even when not promoted (t2), like web.
+    expect(ids(ExploreFilter.all), ['t3', 't2', 't1']);
     expect(ids(ExploreFilter.live), ['t1']);
-    expect(ids(ExploreFilter.completed), ['t3']);
+    expect(ids(ExploreFilter.completed), ['t3', 't2']);
     expect(ids(ExploreFilter.friends), ['t4']);
   });
 
