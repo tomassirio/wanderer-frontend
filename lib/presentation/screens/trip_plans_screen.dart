@@ -1,10 +1,10 @@
+import 'package:wanderer_frontend/presentation/screens/android/ready_trip_screen.dart';
 import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/services/trip_plan_service.dart';
-import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/data/repositories/home_repository.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
@@ -12,7 +12,7 @@ import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_app_bar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
-import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
+import 'package:wanderer_frontend/presentation/widgets/trip_detail/web_draft_trip_view.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/screens/android/trips_plans_list.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/android_ui.dart';
@@ -21,7 +21,6 @@ import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'auth_screen.dart';
 import 'create_trip_plan_screen.dart';
 import 'settings_screen.dart';
-import 'trip_detail_screen.dart';
 import 'trip_plan_detail_screen.dart';
 import 'package:wanderer_frontend/core/l10n/app_localizations.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
@@ -38,7 +37,6 @@ class TripPlansScreen extends ConsumerStatefulWidget {
 class _TripPlansScreenState extends ConsumerState<TripPlansScreen> {
   late final TripPlanService _tripPlanService;
   late final HomeRepository _homeRepository;
-  late final TripService _tripService;
   List<TripPlan> _filteredPlans = [];
   bool _isLoading = false;
   String? _error;
@@ -55,7 +53,6 @@ class _TripPlansScreenState extends ConsumerState<TripPlansScreen> {
     super.initState();
     _tripPlanService = ref.read(tripPlanServiceProvider);
     _homeRepository = ref.read(homeRepositoryProvider);
-    _tripService = ref.read(tripServiceProvider);
     _loadUserInfo();
     _loadTripPlans();
   }
@@ -167,42 +164,17 @@ class _TripPlansScreenState extends ConsumerState<TripPlansScreen> {
   }
 
   Future<void> _handleCreateTripFromPlan(TripPlan plan) async {
-    final request = await TripFromPlanDialog.show(context,
-        planName: plan.name, planType: plan.planType);
-
-    if (request == null || !mounted) return;
-
-    // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-
-    try {
-      final tripId = await _tripService.createTripFromPlan(plan.id, request);
-
-      // Fetch the created trip to get full details
-      final trip = await _tripService.getTripById(tripId);
-
-      if (mounted) {
-        Navigator.pop(context); // Close loading dialog
-        UiHelpers.showSuccessMessage(
-          context,
-          'Trip created successfully from plan!',
-        );
-        // Navigate to trip detail screen
-        Navigator.push(
-          context,
-          PageTransitions.slideFromRight(TripDetailScreen(trip: trip)),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context); // Close loading dialog
-        UiHelpers.showErrorMessage(context, 'Error creating trip: $e');
-      }
+    // Phones: the trip screen, ready to start this plan (one call).
+    if (!AdaptiveLayout.usesDesktopLayout(context)) {
+      await Navigator.push(context,
+          PageTransitions.slideFromBottom(ReadyTripScreen(plan: plan)));
+      if (mounted) await _loadTripPlans();
+      return;
     }
+    // Desktop can't track: show how to start it on the phone. Nothing
+    // is created here.
+    await StartOnPhoneCard.showForPlan(context, plan,
+        username: _username ?? '');
   }
 
   Future<void> _handleDeletePlan(TripPlan plan) async {

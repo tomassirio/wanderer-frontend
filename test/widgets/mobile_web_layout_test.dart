@@ -22,12 +22,11 @@ import 'package:wanderer_frontend/presentation/screens/android/android_shell.dar
 import 'package:wanderer_frontend/presentation/screens/android/android_welcome_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/android/profile_android_view.dart';
 import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
-import 'package:wanderer_frontend/presentation/screens/create_trip_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/android/ready_trip_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/landing_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/profile_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
-import 'package:wanderer_frontend/presentation/widgets/android/new_trip_form.dart';
 import 'package:wanderer_frontend/presentation/widgets/auth/web_auth_layout.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
@@ -35,7 +34,6 @@ import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
 import 'package:wanderer_frontend/presentation/widgets/landing/landing_hero.dart';
 import 'package:wanderer_frontend/presentation/widgets/profile/web_profile_widgets.dart';
-import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
 
 void main() {
   late _SessionStorage storage;
@@ -153,7 +151,7 @@ void main() {
     expect(find.byType(AndroidExploreTab), findsOneWidget);
   });
 
-  testWidgets('phone login replaces welcome with four-tab shell',
+  testWidgets('phone login replaces welcome with the shell and Wander',
       (tester) async {
     await pump(tester, const InitialScreen());
     await tester.ensureVisible(find.byKey(const Key('welcome_login')));
@@ -169,17 +167,17 @@ void main() {
     expect(auth.loginCount, 1);
     expect(find.byType(AndroidShell), findsOneWidget);
     expect(find.byType(AuthScreen), findsNothing);
+    // Four tabs and Wander in the middle; no + create button any more.
     expect(find.byType(NavigationDestination), findsNWidgets(4));
+    expect(find.byKey(const Key('wander_button')), findsOneWidget);
+    expect(find.byIcon(Icons.add), findsNothing);
     expect(find.byType(AppSidebar), findsNothing);
     await tester.tap(find.byType(NavigationDestination).at(1));
     await tester.pumpAndSettle();
+    // Trips is the second slot of five (Wander sits at 2).
     expect(
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
         AndroidTab.trips.index);
-    await tester.tap(find.byIcon(Icons.add).last);
-    await tester.pumpAndSettle();
-    expect(find.text('Trip plan'), findsOneWidget);
-    expect(find.text('Trip'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -221,10 +219,10 @@ void main() {
     });
   }
 
-  testWidgets('new trip uses Android form without browser auto check-in',
+  testWidgets('new trip is the ready screen without browser auto check-in',
       (tester) async {
-    await pump(tester, const CreateTripScreen());
-    expect(find.byType(NewTripForm), findsOneWidget);
+    await pump(tester, const ReadyTripScreen(testMap: SizedBox.expand()));
+    expect(find.text('Ready to start'), findsOneWidget);
     expect(find.text('Auto check-in'), kIsWeb ? findsNothing : findsOneWidget);
     expect(find.byType(AppSidebar), findsNothing);
   });
@@ -259,31 +257,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(BottomSheet), findsOneWidget);
     expect(find.byType(Dialog), findsNothing);
-  });
-
-  testWidgets('plan start uses Android sheet with manual browser check-ins',
-      (tester) async {
-    TripFromPlanRequest? result;
-    await pump(
-        tester,
-        Builder(
-          builder: (context) => TextButton(
-            onPressed: () async => result = await TripFromPlanDialog.show(
-              context,
-              planName: 'Coastal walk',
-              planType: 'SIMPLE',
-            ),
-            child: const Text('start'),
-          ),
-        ));
-    await tester.tap(find.text('start'));
-    await tester.pumpAndSettle();
-    expect(find.byType(BottomSheet), findsOneWidget);
-    expect(find.byType(Switch), kIsWeb ? findsNothing : findsOneWidget);
-    await tester.tap(find.text('Start trip now'));
-    await tester.pumpAndSettle();
-    expect(result, isNotNull);
-    expect(result!.automaticUpdates, isNull);
   });
 
   testWidgets('status pills use Android paused and resting tones on phones',

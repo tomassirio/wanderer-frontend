@@ -111,4 +111,30 @@ class TripCommandClient {
     );
     return _apiClient.handleAcceptedResponse(response);
   }
+
+  /// Create a trip and start it in one call (`POST /trips/start`).
+  /// [idempotencyKey] must stay the same for every retry of one Start press:
+  /// a repeat returns the original trip ([StartTripResult.replayed]).
+  Future<StartTripResult> startTrip(StartTripRequest request,
+      {required String idempotencyKey}) async {
+    final response = await _apiClient.post(
+      ApiEndpoints.tripsStart,
+      body: request.toJson(),
+      headers: {'Idempotency-Key': idempotencyKey},
+      requireAuth: true,
+    );
+    return _apiClient.handleResponse(response, StartTripResult.fromJson);
+  }
+
+  /// Trip start funnel counter (`POST /analytics/events`). [event] is one
+  /// of READY_SCREEN_VIEWED, CLOSED_WITHOUT_STARTING, SAVED_AS_PLAN;
+  /// [source] SCRATCH or PLAN. TRIP_STARTED is counted by the server.
+  Future<void> trackStartFunnel(String event, {String? source}) async {
+    final response = await _apiClient.post(
+      ApiEndpoints.analyticsEvents,
+      body: {'event': event, if (source != null) 'source': source},
+      requireAuth: true,
+    );
+    _apiClient.handleNoContentResponse(response);
+  }
 }

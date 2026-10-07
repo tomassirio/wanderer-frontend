@@ -1,3 +1,4 @@
+import 'package:wanderer_frontend/presentation/screens/android/ready_trip_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
 import 'package:wanderer_frontend/presentation/helpers/android_app_links.dart';
@@ -7,16 +8,15 @@ import 'package:wanderer_frontend/core/providers/app_providers.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
-import 'package:wanderer_frontend/presentation/screens/trip_detail_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/create_trip_plan_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/trip_plan_detail_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/plan_editor_layout.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/cached_trip_thumbnail.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_sheet.dart';
-import 'package:wanderer_frontend/presentation/widgets/trip_plans/trip_from_plan_dialog.dart';
 
 /// Android "Plans" list (canvas AndroidPlans): plan cards with a map
-/// preview, Start this trip / Edit, and a hint pointing at the + button.
+/// preview, Start this trip / Edit, and a New plan button.
 class AndroidPlansList extends ConsumerStatefulWidget {
   const AndroidPlansList({super.key});
 
@@ -66,22 +66,15 @@ class _AndroidPlansListState extends ConsumerState<AndroidPlansList>
       await AndroidAppLinks.open(context, planId: plan.id);
       return;
     }
-    final request = await TripFromPlanDialog.show(context,
-        planName: plan.name, planType: plan.planType);
-    if (request == null || !mounted) return;
-    final tripService = ref.read(tripServiceProvider);
-    try {
-      final tripId = await tripService.createTripFromPlan(plan.id, request);
-      final trip = await tripService.getTripById(tripId);
-      if (!mounted) return;
-      planNotify(context, context.l10n.msgTripCreatedFromPlan);
-      Navigator.push(context,
-          PageTransitions.slideFromRight(TripDetailScreen(trip: trip)));
-    } catch (e) {
-      if (mounted) {
-        planNotify(context, context.l10n.msgTripCreateError(e), error: true);
-      }
-    }
+    await Navigator.push(
+        context, PageTransitions.slideFromBottom(ReadyTripScreen(plan: plan)));
+    if (mounted) _load();
+  }
+
+  Future<void> _newPlan() async {
+    await Navigator.push(
+        context, PageTransitions.slideFromBottom(const CreateTripPlanScreen()));
+    if (mounted) _load();
   }
 
   Future<void> _delete(TripPlan plan) async {
@@ -155,13 +148,38 @@ class _AndroidPlansListState extends ConsumerState<AndroidPlansList>
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: c.line, width: 2),
             ),
-            child: Text(
-                AdaptiveLayout.isMobileWeb(context)
-                    ? l10n.mobileWebPlansHint
-                    : l10n.plansEmptyHint,
-                textAlign: TextAlign.center,
-                style:
-                    TextStyle(fontSize: 14, height: 1.5, color: c.textMuted)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                    AdaptiveLayout.isMobileWeb(context)
+                        ? l10n.mobileWebPlansHint
+                        : l10n.plansEmptyHint,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 14, height: 1.5, color: c.textMuted)),
+                const SizedBox(height: 12),
+                // Plans are created here (and from Home's "Plan one"); the
+                // bottom bar's middle button is Wander.
+                SizedBox(
+                  height: 48,
+                  child: FilledButton.icon(
+                    key: const Key('plans_new_plan'),
+                    onPressed: _newPlan,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: c.neutralButtonBg,
+                      foregroundColor: c.neutralButtonFg,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      textStyle: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: Text(l10n.tripPlansNewPlan),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
