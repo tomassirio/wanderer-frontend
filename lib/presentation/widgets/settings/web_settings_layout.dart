@@ -5,6 +5,7 @@ import 'package:wanderer_frontend/core/l10n/locale_controller.dart';
 import 'package:wanderer_frontend/core/theme/theme_controller.dart';
 import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
+import 'package:wanderer_frontend/presentation/widgets/android/release_notes_widgets.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/web_page_header.dart';
 
@@ -24,6 +25,9 @@ class WebSettingsLayout extends StatefulWidget {
   final VoidCallback onCloseAccount;
   final VoidCallback onVersionTap;
   final VoidCallback onLocaleChanged;
+  final VoidCallback? onWhatsNew;
+  final String? whatsNewCaption;
+  final bool whatsNewUnread;
 
   const WebSettingsLayout({
     super.key,
@@ -39,6 +43,9 @@ class WebSettingsLayout extends StatefulWidget {
     required this.onCloseAccount,
     required this.onVersionTap,
     required this.onLocaleChanged,
+    this.onWhatsNew,
+    this.whatsNewCaption,
+    this.whatsNewUnread = false,
   });
 
   @override
@@ -132,6 +139,19 @@ class _WebSettingsLayoutState extends State<WebSettingsLayout> {
         ]),
         const SizedBox(height: 24),
         _Card(key: _keys[2], title: titles[2], rows: [
+          if (widget.onWhatsNew != null)
+            _Row(
+              title: l10n.whatsNewTitle,
+              caption: widget.whatsNewCaption,
+              onTap: widget.onWhatsNew,
+              trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                if (widget.whatsNewUnread) ...[
+                  const UnreadDot(),
+                  const SizedBox(width: 8),
+                ],
+                Icon(Icons.chevron_right, size: 18, color: c.caption),
+              ]),
+            ),
           _Row(
             title: l10n.contactSupport,
             caption: l10n.contactSupportSubtitle,

@@ -1507,6 +1507,67 @@ class AppLocalizations {
   String get adminToolsTitle => _tr('adminToolsTitle');
   String get adminToolsSub => _tr('adminToolsSub');
   String get adminToolsNotice => _tr('adminToolsNotice');
+  // Release notes / What's new
+  String get whatsNewTitle => _tr('whatsNewTitle');
+  String whatsNewPill(Object version) =>
+      TranslationTemplate.format(_tr('whatsNewPill'), {'version': version});
+  String get whatsNewGotIt => _tr('whatsNewGotIt');
+  String get whatsNewSeeAll => _tr('whatsNewSeeAll');
+  String get releaseTypeNew => _tr('releaseTypeNew');
+  String get releaseTypeImproved => _tr('releaseTypeImproved');
+  String get releaseTypeFixed => _tr('releaseTypeFixed');
+  String whatsNewRowCaption(Object version, int count) =>
+      TranslationTemplate.plural(_loader, _lang, 'whatsNewRowCaption', count,
+          {'version': version, 'count': count});
+  String get whatsNewUnread => _tr('whatsNewUnread');
+  String get changelogAll => _tr('changelogAll');
+  String get changelogLatest => _tr('changelogLatest');
+  String get changelogAllVersions => _tr('changelogAllVersions');
+  String changelogOnLatestTitle(Object version) => TranslationTemplate.format(
+      _tr('changelogOnLatestTitle'), {'version': version});
+  String get changelogOnLatestBody => _tr('changelogOnLatestBody');
+  String get changelogUpdateTitle => _tr('changelogUpdateTitle');
+  String changelogUpdateBody(Object version, Object current) =>
+      TranslationTemplate.format(
+          _tr('changelogUpdateBody'), {'version': version, 'current': current});
+  String get changelogEmpty => _tr('changelogEmpty');
+  String get changelogEmptyFilter => _tr('changelogEmptyFilter');
+  String get changelogOffline => _tr('changelogOffline');
+  String get changelogLoadFailed => _tr('changelogLoadFailed');
+  String get releasePlatformAndroid => _tr('releasePlatformAndroid');
+  String get releasePlatformWeb => _tr('releasePlatformWeb');
+  String get releaseNotesTitle => _tr('releaseNotesTitle');
+  String get releaseNotesSub => _tr('releaseNotesSub');
+  String releaseNotesDrafts(int count) => TranslationTemplate.plural(
+      _loader, _lang, 'releaseNotesDrafts', count, {'count': count});
+  String get releaseNotesDraft => _tr('releaseNotesDraft');
+  String get releaseNotesVersion => _tr('releaseNotesVersion');
+  String get releaseNotesPlatforms => _tr('releaseNotesPlatforms');
+  String get releaseNotesDraftedHint => _tr('releaseNotesDraftedHint');
+  String get releaseNotesHeadline => _tr('releaseNotesHeadline');
+  String releaseNotesChanges(int count) =>
+      TranslationTemplate.format(_tr('releaseNotesChanges'), {'count': count});
+  String get releaseNotesAddChange => _tr('releaseNotesAddChange');
+  String get releaseNotesChangeType => _tr('releaseNotesChangeType');
+  String get releaseNotesChangeTitle => _tr('releaseNotesChangeTitle');
+  String get releaseNotesChangeDescription =>
+      _tr('releaseNotesChangeDescription');
+  String get releaseNotesRemoveChange => _tr('releaseNotesRemoveChange');
+  String get releaseNotesMoveUp => _tr('releaseNotesMoveUp');
+  String get releaseNotesMoveDown => _tr('releaseNotesMoveDown');
+  String releaseNotesFromPr(Object number) =>
+      TranslationTemplate.format(_tr('releaseNotesFromPr'), {'number': number});
+  String get releaseNotesPopup => _tr('releaseNotesPopup');
+  String get releaseNotesPopupCaption => _tr('releaseNotesPopupCaption');
+  String get releaseNotesPreview => _tr('releaseNotesPreview');
+  String releaseNotesPublish(Object version) => TranslationTemplate.format(
+      _tr('releaseNotesPublish'), {'version': version});
+  String releaseNotesPublishCaption(Object version) =>
+      TranslationTemplate.format(
+          _tr('releaseNotesPublishCaption'), {'version': version});
+  String get releaseNotesPublished => _tr('releaseNotesPublished');
+  String get releaseNotesPublishFailed => _tr('releaseNotesPublishFailed');
+  String get releaseNotesNoDrafts => _tr('releaseNotesNoDrafts');
   String get avatarAdjustTitle => _tr('avatarAdjustTitle');
   String get avatarAdjustHint => _tr('avatarAdjustHint');
   String get avatarPreviewCaption => _tr('avatarPreviewCaption');

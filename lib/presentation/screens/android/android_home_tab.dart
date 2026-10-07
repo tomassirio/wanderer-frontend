@@ -20,6 +20,7 @@ import 'package:wanderer_frontend/presentation/helpers/android_app_links.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/location_permission_disclosure.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_changelog_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_notifications_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_search_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_shell.dart';
@@ -190,6 +191,9 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
         if (unread != null) _unread = unread;
         _error = null;
       });
+      // What's new waits for a Home load with no trip on the road.
+      maybeShowWhatsNew(context, ref.read(releaseNotesServiceProvider),
+          tripRunning: trips.any(isTripRunning));
     } catch (e) {
       if (mounted) setState(() => _error = e);
     }

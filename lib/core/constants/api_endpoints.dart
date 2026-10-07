@@ -179,6 +179,15 @@ class ApiEndpoints {
   static const String adminRegenerateMissingThumbnails =
       '/admin/trips/thumbnails/regenerate-missing';
 
+  // Release notes / What's new (reads: queryBaseUrl, writes: commandBaseUrl)
+  static const String releases = '/releases';
+  static const String releasesUnread = '/releases/me/unread';
+  static const String releasesSeen = '/releases/me/seen';
+  static const String adminReleases = '/admin/releases';
+  static String adminRelease(String version) => '/admin/releases/$version';
+  static String adminReleasePublish(String version) =>
+      '/admin/releases/$version/publish';
+
   // Self-deletion endpoint (use commandBaseUrl, any authenticated user)
   static const String usersDeleteMe = '/users/me';
 

@@ -15,6 +15,7 @@ import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/screens/achievements_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_changelog_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/create_trip_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/friends_followers_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
@@ -84,6 +85,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           _data = data;
           _error = null;
         });
+        // What's new waits for a Home load with no trip on the road.
+        maybeShowWhatsNew(context, ref.read(releaseNotesServiceProvider),
+            tripRunning: data.trips.any(isTripRunning));
       }
     } catch (e) {
       if (mounted) setState(() => _error = e);

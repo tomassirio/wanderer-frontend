@@ -9,4 +9,5 @@ export 'user_service.dart';
 export 'admin_service.dart';
 export 'sso/sso_service.dart';
 export 'trip_plan_service.dart';
+export 'release_notes_service.dart';
 export 'websocket_service.dart';

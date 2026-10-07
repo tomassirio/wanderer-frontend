@@ -26,6 +26,9 @@ import '../../data/services/admin_service.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/comment_service.dart';
 import '../../data/services/notification_api_service.dart';
+import '../../data/client/command/release_command_client.dart';
+import '../../data/client/query/release_query_client.dart';
+import '../../data/services/release_notes_service.dart';
 import '../../data/services/search_service.dart';
 import '../../data/services/sso/sso_service.dart';
 import '../../data/services/trip_plan_service.dart';
@@ -205,6 +208,15 @@ final notificationApiServiceProvider = Provider<NotificationApiService>((ref) {
   return NotificationApiService(
     notificationQueryClient: ref.watch(notificationQueryClientProvider),
     notificationCommandClient: ref.watch(notificationCommandClientProvider),
+  );
+});
+
+final releaseNotesServiceProvider = Provider<ReleaseNotesService>((ref) {
+  return ReleaseNotesService(
+    queryClient:
+        ReleaseQueryClient(apiClient: ref.watch(apiClientQueryProvider)),
+    commandClient:
+        ReleaseCommandClient(apiClient: ref.watch(apiClientCommandProvider)),
   );
 });
 
