@@ -61,7 +61,7 @@ List<Trip> friendsOnTheRoad(Iterable<Trip> trips, Set<String> friendIds) =>
       });
 
 /// Android "Home" tab root (canvas: AndroidHome). Shown inside
-/// [AndroidShell], which provides the bottom nav and the + button.
+/// [AndroidShell], which provides the bottom nav with Wander.
 class AndroidHomeTab extends ConsumerStatefulWidget {
   const AndroidHomeTab({super.key});
 
@@ -328,7 +328,7 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
     const gap = SizedBox(height: 20);
 
     return ListView(
-      // Bottom room for the shell's + button.
+      // Bottom room above the shell's bottom bar.
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 130),
       children: [
         _greeting(c, homeGreeting(l10n, DateTime.now().hour, name),

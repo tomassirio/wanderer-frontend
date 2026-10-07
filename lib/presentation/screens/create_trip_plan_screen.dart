@@ -622,15 +622,6 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
       return;
     }
 
-    if (_startLocation == null || _endLocation == null) {
-      planNotify(
-        context,
-        error: true,
-        context.l10n.createPlanSelectLocations,
-      );
-      return;
-    }
-
     if (_startDate == null || _endDate == null) {
       planNotify(context, error: true, context.l10n.createPlanSelectDates);
       return;
@@ -649,14 +640,19 @@ class _CreateTripPlanScreenState extends ConsumerState<CreateTripPlanScreen> {
         planType: _planType,
         startDate: _startDate!,
         endDate: _endDate!,
-        startLocation: GeoLocation(
-          lat: _startLocation!.latitude,
-          lon: _startLocation!.longitude,
-        ),
-        endLocation: GeoLocation(
-          lat: _endLocation!.latitude,
-          lon: _endLocation!.longitude,
-        ),
+        // Start and finish are optional; the route can come later.
+        startLocation: _startLocation == null
+            ? null
+            : GeoLocation(
+                lat: _startLocation!.latitude,
+                lon: _startLocation!.longitude,
+              ),
+        endLocation: _endLocation == null
+            ? null
+            : GeoLocation(
+                lat: _endLocation!.latitude,
+                lon: _endLocation!.longitude,
+              ),
         waypoints: _waypoints
             .map((loc) => GeoLocation(lat: loc.latitude, lon: loc.longitude))
             .toList(),

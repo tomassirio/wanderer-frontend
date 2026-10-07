@@ -13,6 +13,7 @@ import 'package:wanderer_frontend/presentation/helpers/date_format_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/strategies/trip_detail_layout_strategy.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_share_dialog.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/web_trip_detail_layout.dart';
 
@@ -78,30 +79,6 @@ class _WebDraftTripViewState extends State<WebDraftTripView> {
     UiHelpers.showSuccessMessage(context, context.l10n.dialogsShareLinkCopied);
   }
 
-  Future<void> _launch(Uri uri) async {
-    try {
-      if (!await launchUrl(uri, mode: LaunchMode.externalApplication) &&
-          mounted) {
-        UiHelpers.showErrorMessage(
-            context, context.l10n.msgEmailClientUnavailable);
-      }
-    } catch (_) {
-      if (mounted) {
-        UiHelpers.showErrorMessage(
-            context, context.l10n.msgEmailClientUnavailable);
-      }
-    }
-  }
-
-  // The user's email isn't stored client-side, so the recipient is left
-  // empty and the mail app fills in the sender's own account.
-  void _emailLink() {
-    final l10n = context.l10n;
-    _launch(Uri.parse('mailto:?subject='
-        '${Uri.encodeComponent(l10n.draftTripEmailSubject(_trip.name))}'
-        '&body=${Uri.encodeComponent(l10n.draftTripEmailBody(_link))}'));
-  }
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
@@ -109,7 +86,16 @@ class _WebDraftTripViewState extends State<WebDraftTripView> {
       return SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(gutter, 24, gutter, 28),
         child: LayoutBuilder(builder: (context, box) {
-          final main = _buildMainCard(context);
+          final main = Container(
+            decoration: WandererTheme.cardDecoration(context, radius: 22),
+            child: StartOnPhoneCard(
+              link: _link,
+              name: _trip.name,
+              username: _trip.username,
+              onDismiss: widget.onDismiss,
+              dismissLabel: context.l10n.draftTripHide,
+            ),
+          );
           final side = _buildSide(context);
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -283,179 +269,6 @@ class _WebDraftTripViewState extends State<WebDraftTripView> {
     );
   }
 
-  Widget _buildMainCard(BuildContext context) {
-    final c = WandererTheme.of(context);
-    final l10n = context.l10n;
-    return Container(
-      decoration: WandererTheme.cardDecoration(context, radius: 22),
-      child: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(32),
-            child: LayoutBuilder(builder: (context, box) {
-              final text = _buildSteps(context);
-              final qr = SizedBox(width: 170, child: _buildQrColumn(context));
-              // On short (very wide) cards the QR column is the tallest
-              // item; keep its top clear of the × in the corner.
-              final qrClear =
-                  Padding(padding: const EdgeInsets.only(top: 24), child: qr);
-              // Board: 150px | 1fr | 170px, 32px gaps, vertically centred.
-              if (box.maxWidth >= 560) {
-                return Row(children: [
-                  const SizedBox(
-                      width: 150,
-                      height: 250,
-                      child: CustomPaint(painter: _PhonePainter())),
-                  const SizedBox(width: 32),
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(
-                            maxWidth: WebDraftTripView.maxTextWidth),
-                        child: text,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 32),
-                  qrClear,
-                ]);
-              }
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [text, const SizedBox(height: 24), Center(child: qr)],
-              );
-            }),
-          ),
-          Positioned(
-            top: 14,
-            right: 14,
-            child: IconButton(
-              tooltip: l10n.draftTripHide,
-              onPressed: widget.onDismiss,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-              style: IconButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10))),
-              icon: Icon(Icons.close, size: 16, color: c.caption),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSteps(BuildContext context) {
-    final c = WandererTheme.of(context);
-    final l10n = context.l10n;
-    final steps = [
-      (l10n.draftTripStep1Bold, l10n.draftTripStep1Rest(_trip.username)),
-      (l10n.draftTripStep2Bold, l10n.draftTripStep2Rest),
-      (l10n.draftTripStep3Bold, l10n.draftTripStep3Rest),
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Pill(l10n.draftTripNextStep, tone: PillTone.promoted),
-        const SizedBox(height: 16),
-        Semantics(
-          header: true,
-          child: Text(l10n.draftTripTitle,
-              style: WandererTheme.display(28).copyWith(height: 1.15)),
-        ),
-        const SizedBox(height: 16),
-        Text(l10n.draftTripBody,
-            style: TextStyle(fontSize: 15, height: 1.55, color: c.textMuted)),
-        for (var i = 0; i < steps.length; i++) ...[
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 26,
-                height: 26,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                    color: c.neutralButtonBg, shape: BoxShape.circle),
-                child: Text('${i + 1}',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: c.neutralButtonFg)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text.rich(
-                  TextSpan(children: [
-                    TextSpan(
-                        text: steps[i].$1,
-                        style: TextStyle(
-                            fontWeight: FontWeight.w700, color: c.text)),
-                    TextSpan(text: steps[i].$2),
-                  ]),
-                  style:
-                      TextStyle(fontSize: 15, height: 1.45, color: c.textMuted),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildQrColumn(BuildContext context) {
-    final c = WandererTheme.of(context);
-    final l10n = context.l10n;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Colors.white, // QR needs a light quiet zone in dark mode too
-            border: Border.all(color: c.line),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Semantics(
-            label: l10n.draftTripQrLabel,
-            image: true,
-            child: QrImageView(
-              data: _link,
-              version: QrVersions.auto,
-              size: 126,
-              padding: EdgeInsets.zero,
-              backgroundColor: Colors.white,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(l10n.draftTripScan,
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, height: 1.4, color: c.caption)),
-        const SizedBox(height: 12),
-        Semantics(
-          button: true,
-          label: l10n.landingInstallCta,
-          child: InkWell(
-            onTap: () => _launch(Uri.parse(ApiEndpoints.playStoreUrl)),
-            child:
-                Image.asset('assets/images/google-play-badge.png', width: 170),
-          ),
-        ),
-        const SizedBox(height: 4),
-        TextButton(
-          onPressed: _emailLink,
-          style: TextButton.styleFrom(
-              textStyle:
-                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-          child: Text(l10n.draftTripEmailMe),
-        ),
-      ],
-    );
-  }
-
   Widget _buildSide(BuildContext context) {
     final c = WandererTheme.of(context);
     final l10n = context.l10n;
@@ -528,6 +341,269 @@ class _WebDraftTripViewState extends State<WebDraftTripView> {
               ),
             ],
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// "Start this trip from your phone": phone picture, three steps and a QR
+/// code with the Play Store badge (Android) and the link for any phone's
+/// browser. Used by the desktop draft view and the desktop "Start this
+/// trip" on a plan ([forPlan]).
+class StartOnPhoneCard extends StatelessWidget {
+  final String link;
+  final String name;
+  final String username;
+  final bool forPlan;
+
+  /// Shows the corner × when set.
+  final VoidCallback? onDismiss;
+  final String? dismissLabel;
+
+  const StartOnPhoneCard({
+    super.key,
+    required this.link,
+    required this.name,
+    required this.username,
+    this.forPlan = false,
+    this.onDismiss,
+    this.dismissLabel,
+  });
+
+  /// Desktop "Start this trip" on a plan: the card in a dialog. Nothing is
+  /// created here; the trip starts on the phone.
+  static Future<void> showForPlan(BuildContext context, TripPlan plan,
+          {required String username}) =>
+      WandererDialog.show<void>(
+        context,
+        width: 880,
+        builder: (dialog) => SingleChildScrollView(
+          child: StartOnPhoneCard(
+            key: const Key('start_on_phone_card'),
+            link: ApiEndpoints.planDeepLink(plan.id),
+            name: plan.name,
+            username: username,
+            forPlan: true,
+            onDismiss: () => Navigator.pop(dialog),
+            dismissLabel: MaterialLocalizations.of(dialog).closeButtonTooltip,
+          ),
+        ),
+      );
+
+  Future<void> _launch(BuildContext context, Uri uri) async {
+    try {
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication) &&
+          context.mounted) {
+        UiHelpers.showErrorMessage(
+            context, context.l10n.msgEmailClientUnavailable);
+      }
+    } catch (_) {
+      if (context.mounted) {
+        UiHelpers.showErrorMessage(
+            context, context.l10n.msgEmailClientUnavailable);
+      }
+    }
+  }
+
+  // The user's email isn't stored client-side, so the recipient is left
+  // empty and the mail app fills in the sender's own account.
+  void _emailLink(BuildContext context) {
+    final l10n = context.l10n;
+    _launch(
+        context,
+        Uri.parse('mailto:?subject='
+            '${Uri.encodeComponent(l10n.draftTripEmailSubject(name))}'
+            '&body=${Uri.encodeComponent(l10n.draftTripEmailBody(link))}'));
+  }
+
+  @override
+  Widget build(BuildContext context) => _buildMainCard(context);
+
+  Widget _buildMainCard(BuildContext context) {
+    final c = WandererTheme.of(context);
+    return Stack(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(32),
+          child: LayoutBuilder(builder: (context, box) {
+            final text = _buildSteps(context);
+            final qr = SizedBox(width: 170, child: _buildQrColumn(context));
+            // On short (very wide) cards the QR column is the tallest
+            // item; keep its top clear of the × in the corner.
+            final qrClear =
+                Padding(padding: const EdgeInsets.only(top: 24), child: qr);
+            // Board: 150px | 1fr | 170px, 32px gaps, vertically centred.
+            if (box.maxWidth >= 560) {
+              return Row(children: [
+                const SizedBox(
+                    width: 150,
+                    height: 250,
+                    child: CustomPaint(painter: _PhonePainter())),
+                const SizedBox(width: 32),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                          maxWidth: WebDraftTripView.maxTextWidth),
+                      child: text,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 32),
+                qrClear,
+              ]);
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [text, const SizedBox(height: 24), Center(child: qr)],
+            );
+          }),
+        ),
+        if (onDismiss != null)
+          Positioned(
+            top: 14,
+            right: 14,
+            child: IconButton(
+              tooltip: dismissLabel,
+              onPressed: onDismiss,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+              style: IconButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10))),
+              icon: Icon(Icons.close, size: 16, color: c.caption),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSteps(BuildContext context) {
+    final c = WandererTheme.of(context);
+    final l10n = context.l10n;
+    final steps = [
+      (l10n.draftTripStep1Bold, l10n.draftTripStep1Rest(username)),
+      (
+        forPlan ? l10n.startPlanStep2Bold : l10n.draftTripStep2Bold,
+        l10n.draftTripStep2Rest
+      ),
+      (
+        forPlan ? l10n.startPlanStep3Bold : l10n.draftTripStep3Bold,
+        l10n.draftTripStep3Rest
+      ),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Pill(l10n.draftTripNextStep, tone: PillTone.promoted),
+        const SizedBox(height: 16),
+        Semantics(
+          header: true,
+          child: Text(l10n.draftTripTitle,
+              style: WandererTheme.display(28).copyWith(height: 1.15)),
+        ),
+        const SizedBox(height: 16),
+        Text(l10n.draftTripBody,
+            style: TextStyle(fontSize: 15, height: 1.55, color: c.textMuted)),
+        for (var i = 0; i < steps.length; i++) ...[
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 26,
+                height: 26,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                    color: c.neutralButtonBg, shape: BoxShape.circle),
+                child: Text('${i + 1}',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: c.neutralButtonFg)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text.rich(
+                  TextSpan(children: [
+                    TextSpan(
+                        text: steps[i].$1,
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, color: c.text)),
+                    TextSpan(text: steps[i].$2),
+                  ]),
+                  style:
+                      TextStyle(fontSize: 15, height: 1.45, color: c.textMuted),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildQrColumn(BuildContext context) {
+    final c = WandererTheme.of(context);
+    final l10n = context.l10n;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.white, // QR needs a light quiet zone in dark mode too
+            border: Border.all(color: c.line),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Semantics(
+            label: forPlan ? l10n.startPlanQrLabel : l10n.draftTripQrLabel,
+            image: true,
+            child: QrImageView(
+              data: link,
+              version: QrVersions.auto,
+              size: 126,
+              padding: EdgeInsets.zero,
+              backgroundColor: Colors.white,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(l10n.draftTripScan,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, height: 1.4, color: c.caption)),
+        const SizedBox(height: 12),
+        Semantics(
+          button: true,
+          label: l10n.landingInstallCta,
+          child: InkWell(
+            onTap: () => _launch(context, Uri.parse(ApiEndpoints.playStoreUrl)),
+            child:
+                Image.asset('assets/images/google-play-badge.png', width: 170),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // No iOS app: other phones open the link in their browser.
+        Text(l10n.startOnPhoneWebLink,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, height: 1.4, color: c.caption)),
+        const SizedBox(height: 4),
+        SelectableText(link,
+            key: const Key('start_on_phone_web_link'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: c.accentText)),
+        const SizedBox(height: 4),
+        TextButton(
+          onPressed: () => _emailLink(context),
+          style: TextButton.styleFrom(
+              textStyle:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+          child: Text(l10n.draftTripEmailMe),
         ),
       ],
     );

@@ -143,6 +143,31 @@ class AndroidPlanDetailView extends StatelessWidget {
             child: Stack(
               children: [
                 Positioned.fill(child: map),
+                // A plan saved before its route is known.
+                if (route.isEmpty &&
+                    _place(plan.startLocation) == null &&
+                    _place(plan.endLocation) == null)
+                  Positioned.fill(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: Container(
+                          key: const Key('plan_no_route'),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                              color: c.overlayPillBg,
+                              borderRadius: BorderRadius.circular(16)),
+                          child: Text(l10n.planNoRoute,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: c.text)),
+                        ),
+                      ),
+                    ),
+                  ),
                 Positioned(
                   left: 16,
                   right: 16,

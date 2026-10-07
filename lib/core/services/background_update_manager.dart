@@ -194,8 +194,11 @@ void callbackDispatcher() {
               tripId: tripId, tripName: tripName, result: result);
           debugPrint('$tag: ❌ FAILED in ${elapsed}ms — '
               'reason=${result.failureReason}, detail=${result.errorDetail}');
-          // Trip deleted or no longer ours: retrying can't help.
-          if (result.statusCode == 403 || result.statusCode == 404) {
+          // Trip deleted, no longer ours or no longer live: retrying
+          // can't help.
+          if (result.statusCode == 403 ||
+              result.statusCode == 404 ||
+              result.statusCode == 409) {
             await prefs.setBool(_chainedUpdatesActiveKey, false);
             await prefs.remove(_activeTripIdKey);
             await prefs.remove(_activeTripNameKey);

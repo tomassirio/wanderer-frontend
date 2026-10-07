@@ -1133,7 +1133,6 @@ class AppLocalizations {
   String get createPlanSave => _tr('createPlanSave');
   String get createPlanNameRequired => _tr('createPlanNameRequired');
   String get createPlanNameMinLength => _tr('createPlanNameMinLength');
-  String get createPlanSelectLocations => _tr('createPlanSelectLocations');
   String get createPlanSelectDates => _tr('createPlanSelectDates');
   String get createPlanCreated => _tr('createPlanCreated');
   String createPlanError(Object error) =>
@@ -1256,13 +1255,9 @@ class AppLocalizations {
   String get you => _tr('you');
   String get trip => _tr('trip');
   String get tripPlan => _tr('tripPlan');
-  String get createMenuPlanSubtitle => _tr('createMenuPlanSubtitle');
-  String get createMenuTripSubtitle => _tr('createMenuTripSubtitle');
-  String get closeCreateMenu => _tr('closeCreateMenu');
   String get newTripAutoCheckIn => _tr('newTripAutoCheckIn');
   String get newTripAutoCheckInCaption => _tr('newTripAutoCheckInCaption');
   String get newTripPickPlan => _tr('newTripPickPlan');
-  String get newTripCreateFromPlan => _tr('newTripCreateFromPlan');
   String get msgTripCreatedFromPlan => _tr('msgTripCreatedFromPlan');
   String get authForgotShort => _tr('authForgotShort');
   String get authResetSheetTitle => _tr('authResetSheetTitle');
@@ -1345,11 +1340,6 @@ class AppLocalizations {
       _tr('tripsFilterCount'), {'label': label, 'n': n});
   String get tripsNoneForFilter => _tr('tripsNoneForFilter');
   String get plansEmptyHint => _tr('plansEmptyHint');
-  String planStartFromPlan(Object name) =>
-      TranslationTemplate.format(_tr('planStartFromPlan'), {'name': name});
-  String get planStartNow => _tr('planStartNow');
-  String get planNotYet => _tr('planNotYet');
-  String get planAutoCheckInCaption => _tr('planAutoCheckInCaption');
   String get planStepStart => _tr('planStepStart');
   String get planStepFinish => _tr('planStepFinish');
   String get planStepStops => _tr('planStepStops');
@@ -1569,4 +1559,52 @@ class AppLocalizations {
   String get notifTryAgain => _tr('notifTryAgain');
   String get notifView => _tr('notifView');
   String get notifDecline => _tr('notifDecline');
+
+  // One-step trip start (ready screen)
+  String get readyToStart => _tr('readyToStart');
+  String get readyNamedFromPlace => _tr('readyNamedFromPlace');
+  String get readyRenameAnytime => _tr('readyRenameAnytime');
+  String get readyFromPlan => _tr('readyFromPlan');
+  String readyFromPlanStops(Object n) =>
+      TranslationTemplate.format(_tr('readyFromPlanStops'), {'n': n});
+  String get readyTileWho => _tr('readyTileWho');
+  String get readyOneDay => _tr('readyOneDay');
+  String get readyCheckInHere => _tr('readyCheckInHere');
+  String get readyLocationOff => _tr('readyLocationOff');
+  String get readyTurnOn => _tr('readyTurnOn');
+  String get readyOrPlans => _tr('readyOrPlans');
+  String readyYouAreHere(Object place) =>
+      TranslationTemplate.format(_tr('readyYouAreHere'), {'place': place});
+  String get readySettingsFromLastTrip => _tr('readySettingsFromLastTrip');
+  String get readySettingsChangeLater => _tr('readySettingsChangeLater');
+  String get readyCloseTitle => _tr('readyCloseTitle');
+  String get readyCloseBody => _tr('readyCloseBody');
+  String get readySaveAsPlan => _tr('readySaveAsPlan');
+  String get readyStartNow => _tr('readyStartNow');
+  String get readyDiscard => _tr('readyDiscard');
+  String get readySavedAsPlan => _tr('readySavedAsPlan');
+  String readyStartedBody(Object place) =>
+      TranslationTemplate.format(_tr('readyStartedBody'), {'place': place});
+  String get readyOffline => _tr('readyOffline');
+  String get readyStartFailed => _tr('readyStartFailed');
+  String get readySaveFailed => _tr('readySaveFailed');
+  String get readyAlreadyLive => _tr('readyAlreadyLive');
+  String get readyNoFix => _tr('readyNoFix');
+  String get readyLocationNeeded => _tr('readyLocationNeeded');
+  String get readyBackgroundNeeded => _tr('readyBackgroundNeeded');
+  String get tripsPlansNoticeTitle => _tr('tripsPlansNoticeTitle');
+  String get tripsPlansNoticeBody => _tr('tripsPlansNoticeBody');
+  String get tripsPlansNoticeSee => _tr('tripsPlansNoticeSee');
+  String get planNoRoute => _tr('planNoRoute');
+  String get startPlanStep2Bold => _tr('startPlanStep2Bold');
+  String get startPlanStep3Bold => _tr('startPlanStep3Bold');
+  String get startPlanQrLabel => _tr('startPlanQrLabel');
+  String get startOnPhoneWebLink => _tr('startOnPhoneWebLink');
+  String get wander => _tr('wander');
+  String get wanderStart => _tr('wanderStart');
+  String get wanderOpenLive => _tr('wanderOpenLive');
+  String get wanderLocationTitle => _tr('wanderLocationTitle');
+  String get wanderLocationBody => _tr('wanderLocationBody');
+  String get wanderTurnOnLocation => _tr('wanderTurnOnLocation');
+  String get wanderNotNow => _tr('wanderNotNow');
 }

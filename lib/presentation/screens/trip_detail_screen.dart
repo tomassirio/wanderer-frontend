@@ -28,7 +28,6 @@ import 'package:wanderer_frontend/presentation/helpers/trip_map_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/update_markers.dart';
 import 'package:wanderer_frontend/presentation/helpers/ui_helpers.dart';
 import 'package:wanderer_frontend/presentation/helpers/dialog_helper.dart';
-import 'package:wanderer_frontend/presentation/helpers/background_location_disclosure.dart';
 import 'package:wanderer_frontend/presentation/helpers/location_permission_disclosure.dart';
 import 'package:wanderer_frontend/presentation/helpers/auth_navigation_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
@@ -2707,88 +2706,31 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     }
   }
 
-  /// Ensures location permission is granted, requesting it from the user
-  /// if necessary.  Returns `true` when permission is sufficient to proceed.
-  ///
-  /// On Android, when background location is needed (automatic trip updates),
-  /// this also shows a prominent in-app disclosure as required by Google Play
-  /// and requests ACCESS_BACKGROUND_LOCATION (i.e. "Allow all the time").
+  /// Ensures location permission is granted (see [ensureLocationAccess]),
+  /// showing why not. Returns `true` when permission is sufficient.
   Future<bool> _ensureLocationPermission(
       {bool requireBackground = false}) async {
-    if (!await Geolocator.isLocationServiceEnabled()) {
-      if (mounted) {
-        _showError(
-          'Location services are disabled. '
+    final access = await ensureLocationAccess(context,
+        requireBackground: requireBackground);
+    if (!mounted) return false;
+    final message = switch (access) {
+      LocationAccess.granted || LocationAccess.dismissed => null,
+      LocationAccess.serviceOff => 'Location services are disabled. '
           'Please enable GPS in your device settings.',
-        );
-      }
-      return false;
-    }
-
-    var permission = await Geolocator.checkPermission();
-
-    if (permission == LocationPermission.denied) {
-      if (!mounted) return false;
-      final consented =
-          kIsWeb || await LocationPermissionDisclosure.show(context);
-      if (!consented) return false;
-      permission = await Geolocator.requestPermission();
-    }
-
-    if (permission == LocationPermission.denied) {
-      if (mounted) {
-        _showError(
-          'Location permission is required to send updates.',
-        );
-      }
-      return false;
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      if (mounted) {
-        _showError(
-          'Location permission is permanently denied. '
-          'Please enable it in your device settings.',
-        );
-        // Try to open app settings so the user can grant permission.
-        if (!kIsWeb) await Geolocator.openAppSettings();
-      }
-      return false;
-    }
-
-    // On Android, if background location is needed (for automatic updates),
-    // show the prominent disclosure and request "Allow all the time".
-    if (requireBackground &&
-        !kIsWeb &&
-        Platform.isAndroid &&
-        permission == LocationPermission.whileInUse) {
-      if (!mounted) return false;
-      final userConsented = await BackgroundLocationDisclosure.show(context);
-      if (!userConsented) {
-        if (mounted) {
-          _showError(
-            'Background location is required for automatic trip updates. '
+      LocationAccess.denied =>
+        'Location permission is required to send updates.',
+      LocationAccess.deniedForever =>
+        'Location permission is permanently denied. '
+            'Please enable it in your device settings.',
+      LocationAccess.backgroundDenied =>
+        'Background location is required for automatic trip updates. '
             'You can still send manual updates.',
-          );
-        }
-        return false;
-      }
-
-      // After consent, trigger the system prompt for background location
-      permission = await Geolocator.requestPermission();
-      if (permission != LocationPermission.always) {
-        if (mounted) {
-          _showError(
-            'Please select "Allow all the time" in your device settings '
+      LocationAccess.backgroundNotAlways =>
+        'Please select "Allow all the time" in your device settings '
             'to enable automatic trip updates.',
-          );
-          await Geolocator.openAppSettings();
-        }
-        return false;
-      }
-    }
-
-    return true;
+    };
+    if (message != null) _showError(message);
+    return access == LocationAccess.granted;
   }
 
   /// Handle tap on a timeline update - animate map to that location
