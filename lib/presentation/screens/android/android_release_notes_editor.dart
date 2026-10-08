@@ -15,11 +15,16 @@ import 'package:wanderer_frontend/presentation/widgets/common/wanderer_sheet.dar
 
 const releasePlatforms = ['ANDROID', 'WEB'];
 
-/// Admin editor for a drafted release (canvas "E · Edit the drafted notes,
-/// then publish"). Pops true once published.
+final _semver = RegExp(r'^\d+\.\d+\.\d+$');
+
+/// Admin editor for a release (canvas "E · Edit the drafted notes, then
+/// publish"). For a new release ([takenVersions] given) the version is
+/// editable and must not be one of them. Pops true once published.
 class AndroidReleaseNotesEditor extends ConsumerStatefulWidget {
   final ReleaseNote draft;
-  const AndroidReleaseNotesEditor({super.key, required this.draft});
+  final Set<String>? takenVersions;
+  const AndroidReleaseNotesEditor(
+      {super.key, required this.draft, this.takenVersions});
 
   @override
   ConsumerState<AndroidReleaseNotesEditor> createState() =>
@@ -41,6 +46,7 @@ class _Item {
 
 class _AndroidReleaseNotesEditorState
     extends ConsumerState<AndroidReleaseNotesEditor> {
+  late final _version = TextEditingController(text: widget.draft.version);
   late final _headline = TextEditingController(text: widget.draft.headline);
   late final List<_Item> _items = [
     for (final c in widget.draft.items) _Item(c)
@@ -53,6 +59,7 @@ class _AndroidReleaseNotesEditorState
 
   @override
   void dispose() {
+    _version.dispose();
     _headline.dispose();
     for (final i in _items) {
       i.title.dispose();
@@ -65,7 +72,7 @@ class _AndroidReleaseNotesEditorState
   /// yet (it goes live there once a date is set).
   ReleaseNote get _note => ReleaseNote(
         id: widget.draft.id,
-        version: widget.draft.version,
+        version: _version.text.trim(),
         draft: widget.draft.draft,
         headline: _headline.text.trim(),
         showPopup: _popup,
@@ -77,7 +84,11 @@ class _AndroidReleaseNotesEditorState
         items: [for (final i in _items) i.value],
       );
 
+  bool get _isNew => widget.takenVersions != null;
+
   bool get _valid =>
+      _semver.hasMatch(_version.text.trim()) &&
+      !(widget.takenVersions?.contains(_version.text.trim()) ?? false) &&
       _headline.text.trim().isNotEmpty &&
       _platforms.isNotEmpty &&
       _items.isNotEmpty &&
@@ -117,7 +128,8 @@ class _AndroidReleaseNotesEditorState
   Widget build(BuildContext context) {
     final c = WandererTheme.of(context);
     final l10n = context.l10n;
-    final version = widget.draft.version;
+    final version = _version.text.trim();
+    final drafted = widget.draft.items.any((i) => i.prNumber != null);
     return Scaffold(
       backgroundColor: c.ground,
       appBar: AndroidTopBar(
@@ -125,14 +137,26 @@ class _AndroidReleaseNotesEditorState
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
-            child: Center(child: Pill(l10n.releaseNotesDraft)),
+            child: Center(
+                child: Pill(widget.draft.draft
+                    ? l10n.releaseNotesDraft
+                    : l10n.releaseNotesLive)),
           ),
         ],
       ),
-      body: ListView(
+      body: _Narrow(ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
-          _Field(label: l10n.releaseNotesVersion, value: version),
+          if (_isNew)
+            LabeledField(
+              label: l10n.releaseNotesVersion,
+              controller: _version,
+              helper: l10n.releaseNotesVersionHelp,
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
+            )
+          else
+            _Field(label: l10n.releaseNotesVersion, value: version),
           const SizedBox(height: 12),
           Text(l10n.releaseNotesPlatforms,
               style: TextStyle(
@@ -152,21 +176,24 @@ class _AndroidReleaseNotesEditorState
               const SizedBox(width: 8),
             ],
           ]),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-                color: c.skyBg, borderRadius: BorderRadius.circular(12)),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(Icons.auto_awesome_outlined, size: 18, color: c.skyFg),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(l10n.releaseNotesDraftedHint,
-                    style:
-                        TextStyle(fontSize: 13, height: 1.4, color: c.skyFg)),
-              ),
-            ]),
-          ),
+          if (drafted) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                  color: c.skyBg, borderRadius: BorderRadius.circular(12)),
+              child:
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Icon(Icons.auto_awesome_outlined, size: 18, color: c.skyFg),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(l10n.releaseNotesDraftedHint,
+                      style:
+                          TextStyle(fontSize: 13, height: 1.4, color: c.skyFg)),
+                ),
+              ]),
+            ),
+          ],
           const SizedBox(height: 12),
           LabeledField(
             label: l10n.releaseNotesHeadline,
@@ -229,13 +256,13 @@ class _AndroidReleaseNotesEditorState
             ),
           ),
         ],
-      ),
+      )),
       bottomNavigationBar: SafeArea(
         child: Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           decoration: BoxDecoration(
               color: c.ground, border: Border(top: BorderSide(color: c.line))),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
+          child: _Narrow(Column(mainAxisSize: MainAxisSize.min, children: [
             Row(children: [
               Expanded(
                 child: SizedBox(
@@ -269,11 +296,25 @@ class _AndroidReleaseNotesEditorState
             Text(l10n.releaseNotesPublishCaption(version),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12, color: c.caption)),
-          ]),
+          ])),
         ),
       ),
     );
   }
+}
+
+/// Keeps admin pages phone-width on desktop.
+class _Narrow extends StatelessWidget {
+  final Widget child;
+  const _Narrow(this.child);
+
+  @override
+  Widget build(BuildContext context) => Align(
+        alignment: Alignment.topCenter,
+        heightFactor: 1,
+        child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720), child: child),
+      );
 }
 
 class _Field extends StatelessWidget {
@@ -412,7 +453,7 @@ class _ChangeCard extends StatelessWidget {
 }
 
 /// "Release notes" row at the top of Admin tools (canvas "D"), with a
-/// draft-count pill. Opens the newest draft in the editor.
+/// draft-count pill. Opens [ReleaseNotesAdminScreen].
 class ReleaseNotesAdminRow extends ConsumerStatefulWidget {
   const ReleaseNotesAdminRow({super.key});
 
@@ -430,33 +471,20 @@ class _ReleaseNotesAdminRowState extends ConsumerState<ReleaseNotesAdminRow> {
     _load();
   }
 
-  Future<List<ReleaseNote>> _load() async {
+  Future<void> _load() async {
     try {
       final all =
           await ref.read(releaseNotesServiceProvider).getAdminReleases();
-      final drafts = all.where((r) => r.draft).toList();
-      if (mounted) setState(() => _drafts = drafts);
-      return drafts;
+      if (mounted) setState(() => _drafts = all.where((r) => r.draft).toList());
     } catch (e) {
       debugPrint('ReleaseNotesAdminRow: load failed: $e');
-      return _drafts;
     }
   }
 
-  // ponytail: opens the newest draft only; add a version picker if several
-  // drafts pile up at once.
   Future<void> _open() async {
-    final drafts = _drafts.isEmpty ? await _load() : _drafts;
-    if (!mounted) return;
-    if (drafts.isEmpty) {
-      Toasts.show(ToastData(
-          kind: ToastKind.hint, title: context.l10n.releaseNotesNoDrafts));
-      return;
-    }
-    final published = await Navigator.of(context).push(
-        PageTransitions.slideFromRight(
-            AndroidReleaseNotesEditor(draft: drafts.first)));
-    if (published == true) _load();
+    await Navigator.of(context)
+        .push(PageTransitions.slideFromRight(const ReleaseNotesAdminScreen()));
+    _load();
   }
 
   @override
@@ -507,6 +535,139 @@ class _ReleaseNotesAdminRowState extends ConsumerState<ReleaseNotesAdminRow> {
           Icon(Icons.chevron_right, size: 18, color: c.label),
         ]),
       ),
+    );
+  }
+}
+
+/// Every release, drafts and published, newest first, plus "New release".
+/// Reached from Admin tools (phone) and the web sidebar's Admin group.
+class ReleaseNotesAdminScreen extends ConsumerStatefulWidget {
+  const ReleaseNotesAdminScreen({super.key});
+
+  @override
+  ConsumerState<ReleaseNotesAdminScreen> createState() =>
+      _ReleaseNotesAdminScreenState();
+}
+
+class _ReleaseNotesAdminScreenState
+    extends ConsumerState<ReleaseNotesAdminScreen> {
+  List<ReleaseNote>? _releases;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _failed = false);
+    try {
+      final all = [
+        ...await ref.read(releaseNotesServiceProvider).getAdminReleases()
+      ]..sort((a, b) => compareVersions(b.version, a.version));
+      if (mounted) setState(() => _releases = all);
+    } catch (e) {
+      debugPrint('ReleaseNotesAdminScreen: load failed: $e');
+      if (mounted) setState(() => _failed = true);
+    }
+  }
+
+  Set<String> get _taken => {for (final r in _releases ?? []) r.version};
+
+  Future<void> _edit(ReleaseNote note, {bool isNew = false}) async {
+    final published = await Navigator.of(context).push(
+        PageTransitions.slideFromRight(AndroidReleaseNotesEditor(
+            draft: note, takenVersions: isNew ? _taken : null)));
+    if (published == true) _load();
+  }
+
+  /// Prefills the installed version unless it already has notes.
+  Future<void> _new() async {
+    final v = await ref.read(releaseNotesServiceProvider).appVersion();
+    if (!mounted) return;
+    await _edit(
+        ReleaseNote(
+          version: _taken.contains(v) ? '' : v,
+          draft: true,
+          platforms: [for (final p in releasePlatforms) ReleasePlatform(p)],
+        ),
+        isNew: true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = WandererTheme.of(context);
+    final l10n = context.l10n;
+    final releases = _releases;
+    return Scaffold(
+      backgroundColor: c.ground,
+      appBar: AndroidTopBar(title: l10n.releaseNotesTitle),
+      body: _Narrow(ListView(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        children: [
+          SizedBox(
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: releases == null ? null : _new,
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(l10n.releaseNotesNew),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: c.text,
+                side: BorderSide(color: c.line),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (_failed)
+            Center(
+              child: OutlinedButton(onPressed: _load, child: Text(l10n.retry)),
+            )
+          else if (releases == null)
+            const Center(child: CircularProgressIndicator())
+          else if (releases.isEmpty)
+            Text(l10n.releaseNotesEmpty,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: c.textMuted))
+          else
+            Container(
+              decoration: WandererTheme.cardDecoration(context),
+              clipBehavior: Clip.antiAlias,
+              child: Material(
+                type: MaterialType.transparency,
+                child: Column(children: [
+                  for (final (i, r) in releases.indexed)
+                    ListTile(
+                      onTap: () => _edit(r),
+                      minVerticalPadding: 12,
+                      shape: i == 0
+                          ? null
+                          : Border(top: BorderSide(color: c.lineSoft)),
+                      title: Text(r.version,
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: c.text)),
+                      subtitle: r.headline.isEmpty
+                          ? null
+                          : Text(r.headline,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 13, color: c.caption)),
+                      trailing: Pill(
+                          r.draft
+                              ? l10n.releaseNotesDraft
+                              : l10n.releaseNotesLive,
+                          tone:
+                              r.draft ? PillTone.promoted : PillTone.completed),
+                    ),
+                ]),
+              ),
+            ),
+        ],
+      )),
     );
   }
 }

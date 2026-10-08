@@ -11,6 +11,7 @@ import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/avatar_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/achievements_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_release_notes_editor.dart';
 import 'package:wanderer_frontend/presentation/screens/admin_users_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/friends_followers_screen.dart';
@@ -48,6 +49,7 @@ class WebSidebar extends ConsumerStatefulWidget {
 }
 
 class _WebSidebarState extends ConsumerState<WebSidebar> {
+  static const _releaseNotesIndex = 8;
   int _pendingRequests = 0;
 
   AppSidebar get _c => widget.config;
@@ -72,6 +74,12 @@ class _WebSidebarState extends ConsumerState<WebSidebar> {
   void _go(int index) {
     if (!widget.persistent) Navigator.pop(context);
     if (index == _c.selectedIndex && _c.onSameScreen) return;
+    if (index == _releaseNotesIndex) {
+      // An editor, not a top-level page: pushed so Back returns here.
+      Navigator.push(context,
+          PageTransitions.slideFromRight(const ReleaseNotesAdminScreen()));
+      return;
+    }
 
     final Widget? screen = switch (index) {
       AppSidebar.dashboardIndex => const InitialScreen(),
@@ -138,6 +146,8 @@ class _WebSidebarState extends ConsumerState<WebSidebar> {
           _NavItem(5, Icons.campaign_outlined, l10n.tripPromotion),
           _NavItem(6, Icons.shield_outlined, l10n.userManagement),
           _NavItem(7, Icons.build_outlined, l10n.tripDataMaintenance),
+          _NavItem(_releaseNotesIndex, Icons.description_outlined,
+              l10n.releaseNotesTitle),
         ]),
     ];
 

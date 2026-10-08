@@ -67,14 +67,16 @@ class ReleaseNotesService {
 
   Future<void> markSeen(String version) => _command.markSeen(version);
 
-  /// Release to pop up now, or null. Follows the contract's client flow:
-  /// nothing to pop up → silently mark the installed version seen, so new
-  /// users (no last-seen yet) start there and the next release does show.
+  /// Release to pop up now, or null. New users (no last-seen yet) are
+  /// silently baselined at the installed version, so they start there and
+  /// the next release does show. Everyone else keeps their last-seen: notes
+  /// are usually published after the update ships, and marking seen here
+  /// would hide them.
   Future<ReleaseNote?> popupRelease() async {
     final version = await appVersion();
     final unread = await getUnread(version);
     if (unread.releases.isNotEmpty) return unread.releases.first;
-    if (unread.lastSeenVersion != version) await markSeen(version);
+    if (unread.lastSeenVersion == null) await markSeen(version);
     return null;
   }
 

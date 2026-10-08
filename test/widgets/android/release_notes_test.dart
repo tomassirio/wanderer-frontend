@@ -11,6 +11,7 @@ import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/services/release_notes_service.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_admin_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/android/android_changelog_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_release_notes_editor.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/release_notes_widgets.dart';
 
@@ -189,7 +190,20 @@ void main() {
       await pumpHome(tester, service, trips: const []);
       await openHome(tester);
       expect(find.text('Quiet'), findsNothing);
-      expect(service.seen, ['1.7.0']);
+      expect(service.seen, isEmpty);
+    });
+
+    testWidgets('notes published after the update still pop up',
+        (tester) async {
+      final service = _FakeReleaseNotesService(lastSeen: '1.6.11');
+      await pumpHome(tester, service, trips: const []);
+      await openHome(tester);
+      expect(service.seen, isEmpty);
+
+      service.published = [_release('1.7.0')];
+      resetWhatsNewSession();
+      await openHome(tester);
+      expect(find.text("What's new · 1.7.0"), findsOneWidget);
     });
 
     testWidgets('See every change opens the changelog', (tester) async {
@@ -364,11 +378,18 @@ void main() {
 
       await tester.tap(find.text('Release notes'));
       await tester.pumpAndSettle();
+      expect(find.text('Published'), findsOneWidget);
+      await tester.tap(find.text('1.8.0'));
+      await tester.pumpAndSettle();
       expect(find.text('Publish with 1.8.0'), findsOneWidget);
       expect(find.text('from PR #112'), findsOneWidget);
 
       // Reorder: move the second change up.
+      await tester.ensureVisible(find.byTooltip('Move up').at(1));
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Move up').at(1));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byTooltip('Remove change').at(1));
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Remove change').at(1));
       await tester.pumpAndSettle();
@@ -386,6 +407,41 @@ void main() {
       expect(published.single.items.single.type, ReleaseChangeType.fixed);
       expect(jsonEncode(published.single.toUpdateJson()),
           contains('"platform":"ANDROID"'));
+    });
+
+    testWidgets('new release for a version without notes', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.6;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final published = <ReleaseNote>[];
+      final service = _PublishingFake(published);
+      await tester.pumpWidget(ProviderScope(
+        overrides: [releaseNotesServiceProvider.overrideWithValue(service)],
+        child: const MaterialApp(home: ReleaseNotesAdminScreen()),
+      ));
+      await tester.pumpAndSettle();
+      expect(
+          find.text('No release notes yet. Create one for the version you '
+              'are shipping.'),
+          findsOneWidget);
+
+      await tester.tap(find.text('New release'));
+      await tester.pumpAndSettle();
+      // Prefilled with the installed version; not publishable while empty.
+      expect(find.text('Publish with 1.7.0'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).at(1), 'Start in one tap');
+      await tester.tap(find.text('Add change'));
+      await tester.pumpAndSettle();
+      // Version, headline, then the new change's title.
+      await tester.enterText(find.byType(TextField).at(2), 'One-tap start');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Publish with 1.7.0'));
+      await tester.pumpAndSettle();
+      expect(published.single.version, '1.7.0');
+      expect(published.single.platforms.map((p) => p.platform),
+          ['ANDROID', 'WEB']);
     });
   });
 }
