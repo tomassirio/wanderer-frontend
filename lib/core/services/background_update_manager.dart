@@ -508,6 +508,13 @@ class BackgroundUpdateManager {
   static bool recordsTrack(Trip trip) =>
       trip.automaticUpdates || trip.tripModality == TripModality.simple;
 
+  /// Whether this phone is recording [tripId] right now.
+  static Future<bool> isRecording(String tripId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return (prefs.getBool(_chainedUpdatesActiveKey) ?? false) &&
+        prefs.getString(_activeTripIdKey) == tripId;
+  }
+
   /// Starts (or restarts) recording [trip] when it is in progress and
   /// [recordsTrack], otherwise stops its chain.
   Future<void> syncRecording(Trip trip) async {

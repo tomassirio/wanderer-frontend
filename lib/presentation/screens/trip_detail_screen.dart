@@ -401,11 +401,18 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     if (_hasInitialMapPosition) _refreshTripData();
   }
 
-  /// Android: follows the track this phone records for the trip (the
-  /// owner's live route and distance) and its unsent check-ins.
-  void _watchLocalTrack() {
-    _localTrackSub =
-        ref.read(trackStoreProvider).watchTrack(_trip.id).listen((points) {
+  /// Android: follows the track this phone records or recorded for the trip
+  /// (the owner's live route and distance) and its unsent check-ins. Trips
+  /// this phone never recorded have nothing to watch.
+  Future<void> _watchLocalTrack() async {
+    if (_localTrackSub != null) return;
+    final store = ref.read(trackStoreProvider);
+    if (!await BackgroundUpdateManager.isRecording(_trip.id) &&
+        await store.latestPoint(_trip.id) == null) {
+      return;
+    }
+    if (!mounted || _localTrackSub != null) return;
+    _localTrackSub = store.watchTrack(_trip.id).listen((points) {
       if (!mounted) return;
       _loadPendingCheckIns();
       if (points.isEmpty) return;
@@ -419,6 +426,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       });
       _updateMapData();
     }, onError: (e) => debugPrint('TripDetailScreen: local track: $e'));
+  }
+
+  /// Starts or stops recording the trip, watching its track once it records.
+  Future<void> _syncRecording() async {
+    await BackgroundUpdateManager().syncRecording(_trip);
+    _watchLocalTrack();
   }
 
   Future<void> _loadPendingCheckIns() async {
@@ -2344,7 +2357,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
       // Record while in progress, stop otherwise (Android only)
       if (_isAndroid) {
-        await BackgroundUpdateManager().syncRecording(_trip);
+        await _syncRecording();
       }
 
       // When starting a trip, center the map on the user's current location
@@ -2395,7 +2408,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   /// flush stopped it).
   void _resumeRecordingIfLive() {
     if (_isAndroid && _trip.status == TripStatus.inProgress) {
-      BackgroundUpdateManager().syncRecording(_trip);
+      _syncRecording();
     }
   }
 
@@ -2612,7 +2625,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           final hasPermission =
               await _ensureLocationPermission(requireBackground: true);
           if (hasPermission) {
-            await BackgroundUpdateManager().syncRecording(_trip);
+            await _syncRecording();
           }
         }
 
@@ -2689,7 +2702,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       if (_isAndroid) {
         await _loadRecordingProfile();
         if (_trip.status == TripStatus.inProgress) {
-          await BackgroundUpdateManager().syncRecording(_trip);
+          await _syncRecording();
         }
       }
 
@@ -2807,7 +2820,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           if (_isAndroid &&
               _trip.status == TripStatus.inProgress &&
               _trip.automaticUpdates) {
-            await BackgroundUpdateManager().syncRecording(_trip);
+            await _syncRecording();
           }
         } else {
           _showError(result.userMessage);
