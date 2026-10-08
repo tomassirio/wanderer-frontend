@@ -1,4 +1,5 @@
 import '../../../core/constants/enums.dart';
+import 'recording_profile.dart';
 
 /// The choices a trip starts with: who sees it, auto check-in and length.
 /// Prefilled from the user's last trip (see `TripService.getStartDefaults`).
@@ -10,11 +11,16 @@ class TripStartSettings {
   final int intervalMinutes;
   final TripModality modality;
 
+  /// Route recording the user picked (Android, local only); null means the
+  /// default for [modality].
+  final RecordingProfile? recordingProfile;
+
   const TripStartSettings({
     this.visibility = Visibility.public,
     this.automaticUpdates = true,
     this.intervalMinutes = 15,
     this.modality = TripModality.simple,
+    this.recordingProfile,
   });
 
   /// `GET /trips/me/start-defaults` (interval comes in seconds).
@@ -37,12 +43,14 @@ class TripStartSettings {
     bool? automaticUpdates,
     int? intervalMinutes,
     TripModality? modality,
+    RecordingProfile? recordingProfile,
   }) =>
       TripStartSettings(
         visibility: visibility ?? this.visibility,
         automaticUpdates: automaticUpdates ?? this.automaticUpdates,
         intervalMinutes: intervalMinutes ?? this.intervalMinutes,
         modality: modality ?? this.modality,
+        recordingProfile: recordingProfile ?? this.recordingProfile,
       );
 
   @override
@@ -51,9 +59,10 @@ class TripStartSettings {
       other.visibility == visibility &&
       other.automaticUpdates == automaticUpdates &&
       other.intervalMinutes == intervalMinutes &&
-      other.modality == modality;
+      other.modality == modality &&
+      other.recordingProfile == recordingProfile;
 
   @override
-  int get hashCode =>
-      Object.hash(visibility, automaticUpdates, intervalMinutes, modality);
+  int get hashCode => Object.hash(visibility, automaticUpdates, intervalMinutes,
+      modality, recordingProfile);
 }

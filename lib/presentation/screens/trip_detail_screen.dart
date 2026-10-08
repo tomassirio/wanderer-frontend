@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io' show Platform;
+import 'dart:math' show max;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:wanderer_frontend/presentation/widgets/mobile_web/mobile_web_draft_trip.dart';
 import 'package:wanderer_frontend/presentation/widgets/mobile_web/app_handoff.dart';
@@ -21,6 +22,8 @@ import 'package:wanderer_frontend/data/models/domain/location_update_result.dart
 import 'package:wanderer_frontend/data/repositories/trip_detail_repository.dart';
 import 'package:wanderer_frontend/data/client/query/promotion_query_client.dart';
 import 'package:wanderer_frontend/data/services/websocket_service.dart';
+import 'package:wanderer_frontend/data/client/websocket_client.dart'
+    show WebSocketConnectionState;
 import 'package:wanderer_frontend/data/services/user_service.dart';
 import 'package:wanderer_frontend/data/services/achievement_service.dart';
 import 'package:wanderer_frontend/core/services/background_update_manager.dart';
@@ -91,6 +94,27 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   static const int _commentPageSize = 20;
 
   List<TripLocation> _tripUpdates = [];
+
+  /// Check-ins added from WebSocket events, kept across reloads until the
+  /// CQRS query model has them.
+  final Set<String> _wsUpdateIds = {};
+
+  /// Android: this phone's check-ins not sent yet (shown as pending).
+  List<TripLocation> _pendingCheckIns = [];
+
+  /// The recorded route on the map, oldest first: this phone's own track
+  /// while it records the trip ([_localTrack]), otherwise the backend's
+  /// track points. Empty for trips recorded before track points existed.
+  List<TrackPoint> _track = [];
+  bool _localTrack = false;
+  double _localTrackKm = 0;
+  bool _backfillingTrack = false;
+  StreamSubscription<List<TrackPoint>>? _localTrackSub;
+  StreamSubscription<WebSocketConnectionState>? _wsStateSub;
+  AppLifecycleListener? _lifecycle;
+
+  /// Android owner: how this phone records the route.
+  RecordingProfile? _recordingProfile;
 
   /// Android / mobile web: the update the map is centred on (ring + card).
   TripLocation? _focusedUpdate;
@@ -297,6 +321,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     _loadPromotionInfo();
     _loadTripAchievements();
     _initWebSocket();
+    if (_isAndroid) {
+      _watchLocalTrack();
+      _loadRecordingProfile();
+    }
+    // Followers catch up on the route after the app was in the background.
+    _lifecycle = AppLifecycleListener(onResume: _backfillTrack);
     // Load trip updates, full trip data and user location together, then set
     // the initial camera position exactly once (instant jump, no animation).
     // _fetchUserLocation is included so that trips with no locations/route can
@@ -364,6 +394,95 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       });
     }
     _hasInitialMapPosition = true;
+    _backfillTrack();
+  }
+
+  /// Android: follows the track this phone records for the trip (the
+  /// owner's live route and distance) and its unsent check-ins.
+  void _watchLocalTrack() {
+    _localTrackSub =
+        ref.read(trackStoreProvider).watchTrack(_trip.id).listen((points) {
+      if (!mounted) return;
+      _loadPendingCheckIns();
+      if (points.isEmpty) return;
+      _localTrackKm = TripMapHelper.trackDistanceKm(points);
+      setState(() {
+        _localTrack = true;
+        _track = points;
+        _trip = _trip.copyWith(
+            accruedDistanceKm:
+                max(_localTrackKm, _trip.accruedDistanceKm ?? 0));
+      });
+      _updateMapData();
+    }, onError: (e) => debugPrint('TripDetailScreen: local track: $e'));
+  }
+
+  Future<void> _loadPendingCheckIns() async {
+    if (!_isAndroid) return;
+    try {
+      final pending =
+          await ref.read(trackStoreProvider).pendingCheckIns(_trip.id);
+      if (!mounted) return;
+      setState(() =>
+          _pendingCheckIns = [for (final p in pending) p.toTripLocation()]);
+    } catch (e) {
+      debugPrint('TripDetailScreen: pending check-ins: $e');
+    }
+  }
+
+  Future<void> _loadRecordingProfile() async {
+    final profile = await BackgroundUpdateManager().recordingProfile(_trip);
+    if (mounted) setState(() => _recordingProfile = profile);
+  }
+
+  Future<void> _setRecordingProfile(RecordingProfile profile) async {
+    setState(() => _recordingProfile = profile);
+    await BackgroundUpdateManager().setRecordingProfile(_trip, profile);
+  }
+
+  /// Fetches the backend's recorded route, or only what was recorded after
+  /// the last point we have (after a reconnect or resume). Not needed while
+  /// this phone records the trip itself.
+  Future<void> _backfillTrack() async {
+    if (!_hasInitialMapPosition || _localTrack || _backfillingTrack) return;
+    // A finished trip's backend polyline already is its whole route.
+    if (_track.isEmpty && _trip.status == TripStatus.finished) return;
+    _backfillingTrack = true;
+    try {
+      final points = await _repository.loadTrackPoints(_trip.id,
+          since: _track.isEmpty ? null : _track.last.recordedAt);
+      if (!mounted || _localTrack || points.isEmpty) return;
+      setState(() => _track = TripMapHelper.mergeTrack(_track, points));
+      _updateMapData();
+    } catch (e) {
+      debugPrint('TripDetailScreen: Could not load track points: $e');
+    } finally {
+      _backfillingTrack = false;
+    }
+  }
+
+  void _handleTrackUpdated(TrackUpdatedEvent event) {
+    if (_localTrack) return;
+    if (_track.isEmpty) {
+      // First points we hear of: load the whole route, not just these.
+      _backfillTrack();
+    } else {
+      setState(() => _track = TripMapHelper.mergeTrack(_track, event.points));
+      _updateMapData();
+    }
+    if (event.distanceKm != null) {
+      setState(
+          () => _trip = _trip.copyWith(accruedDistanceKm: event.distanceKm));
+    }
+  }
+
+  void _handleTripUpdateEnriched(TripUpdateEnrichedEvent event) {
+    setState(() {
+      _tripUpdates = _tripUpdates.map(event.applyTo).toList();
+      _trip = _trip.copyWith(
+          locations: _trip.locations?.map(event.applyTo).toList());
+    });
+    _syncLiveNotification();
   }
 
   Future<void> _initWebSocket() async {
@@ -373,6 +492,10 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     // Subscribe to events for this specific trip
     final tripStream = _webSocketService.subscribeToTrip(_trip.id);
     _wsSubscription = tripStream.listen(_handleWebSocketEvent);
+    // Points recorded while we were disconnected never come as events.
+    _wsStateSub = _webSocketService.connectionState.listen((state) {
+      if (state == WebSocketConnectionState.connected) _backfillTrack();
+    });
 
     // Listen to the global events stream for notification events
     // (e.g. ACHIEVEMENT_UNLOCKED) that arrive on the user topic, not
@@ -476,6 +599,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       case WebSocketEventType.polylineUpdated:
         _handlePolylineUpdatedEvent(event as PolylineUpdatedEvent);
         break;
+      case WebSocketEventType.trackUpdated:
+        _handleTrackUpdated(event as TrackUpdatedEvent);
+        break;
+      case WebSocketEventType.tripUpdateEnriched:
+        _handleTripUpdateEnriched(event as TripUpdateEnrichedEvent);
+        break;
       case WebSocketEventType.commentAdded:
         _handleCommentAdded(event as CommentAddedEvent);
         break;
@@ -559,8 +688,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         final apiLocationIds =
             (updatedTrip.locations ?? []).map((l) => l.id).toSet();
         final wsOnlyLocations = (_trip.locations ?? [])
-            .where(
-                (l) => l.id.startsWith('ws_') && !apiLocationIds.contains(l.id))
+            .where((l) =>
+                _wsUpdateIds.contains(l.id) && !apiLocationIds.contains(l.id))
             .toList();
 
         final mergedLocations = <TripLocation>[
@@ -578,6 +707,10 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
                 updatedTrip.automaticUpdates || _trip.automaticUpdates,
             updateRefresh: updatedTrip.updateRefresh ?? _trip.updateRefresh,
             locations: mergedLocations,
+            // This phone's own track is ahead of the query model.
+            accruedDistanceKm: _localTrack
+                ? max(_localTrackKm, updatedTrip.accruedDistanceKm ?? 0)
+                : null,
           );
         });
         _updateMapData();
@@ -623,7 +756,11 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     // have location: null. Add them to the timeline but don't create map pins.
     final hasLocation = event.latitude != null && event.longitude != null;
 
-    final updateId = 'ws_${event.timestamp.millisecondsSinceEpoch}';
+    // Older backends don't send the check-in's id.
+    final updateId =
+        event.tripUpdateId ?? 'ws_${event.timestamp.millisecondsSinceEpoch}';
+    // Our own pending check-in has arrived: it's a normal one now.
+    _pendingCheckIns = _pendingCheckIns.where((p) => p.id != updateId).toList();
 
     // Guard against duplicate processing (event can arrive from both the
     // trip-specific and global streams).
@@ -653,10 +790,11 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     debugPrint(
         'TripDetailScreen: Processing TRIP_UPDATED - hasLocation: $hasLocation, lat: ${event.latitude}, lng: ${event.longitude}');
 
+    _wsUpdateIds.add(updateId);
     setState(() {
       _tripUpdates = [newUpdate, ..._tripUpdates];
       // Update trip's accrued distance if provided
-      if (event.distanceSoFarKm != null) {
+      if (event.distanceSoFarKm != null && !_localTrack) {
         _trip = _trip.copyWith(
           accruedDistanceKm: event.distanceSoFarKm,
         );
@@ -722,10 +860,11 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     debugPrint(
         'TripDetailScreen: Processing TRIP_UPDATE_CREATED - hasLocation: $hasLocation, lat: ${event.latitude}, lng: ${event.longitude}');
 
+    _wsUpdateIds.add(updateId);
     setState(() {
       _tripUpdates = [newUpdate, ..._tripUpdates];
       // Update trip's accrued distance if provided
-      if (event.distanceSoFarKm != null) {
+      if (event.distanceSoFarKm != null && !_localTrack) {
         _trip = _trip.copyWith(
           accruedDistanceKm: event.distanceSoFarKm,
         );
@@ -1239,6 +1378,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     debugPrint('TripDetailScreen: Disposing for trip ${_trip.id}');
     _wsSubscription?.cancel();
     _globalWsSubscription?.cancel();
+    _localTrackSub?.cancel();
+    _wsStateSub?.cancel();
+    _lifecycle?.dispose();
     _achievementRefreshTimer?.cancel();
     debugPrint('TripDetailScreen: Cancelled WebSocket subscriptions');
     _webSocketService.unsubscribeFromTrip(_trip.id);
@@ -1464,12 +1606,13 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         // the most recent updates.
         final apiIds = pageResponse.content.map((l) => l.id).toSet();
         final wsOnlyUpdates = _tripUpdates
-            .where((u) => u.id.startsWith('ws_') && !apiIds.contains(u.id))
+            .where((u) => _wsUpdateIds.contains(u.id) && !apiIds.contains(u.id))
             .toList();
         _tripUpdates = [...wsOnlyUpdates, ...pageResponse.content];
         _hasMoreUpdates = !pageResponse.last;
         _isLoadingUpdates = false;
       });
+      _loadPendingCheckIns();
       if (widget.focusLatestUpdate &&
           !_focusedLatestOnce &&
           _tripUpdates.isNotEmpty) {
@@ -1589,12 +1732,14 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     debugPrint(
         'TripDetailScreen: Updating map data - locations: ${_trip.locations?.length}, encodedPolyline length: ${_trip.encodedPolyline?.length}');
     try {
-      final mapData = TripMapHelper.createMapDataWithDirections(
-        _trip,
-        onMarkerTap: _onMapMarkerTapped,
-        onPlannedMarkerTap: _onPlannedMarkerTapped,
-        showPlannedWaypoints: _showPlannedWaypoints,
-      );
+      final mapData = TripMapHelper.withTrack(
+          TripMapHelper.createMapDataWithDirections(
+            _trip,
+            onMarkerTap: _onMapMarkerTapped,
+            onPlannedMarkerTap: _onPlannedMarkerTapped,
+            showPlannedWaypoints: _showPlannedWaypoints,
+          ),
+          _track);
       // Same map look everywhere: Android, web and mobile web.
       _applyMapStyle(mapData);
     } catch (e) {
@@ -2154,10 +2299,10 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     final isMultiDay = _trip.tripModality == TripModality.multiDay;
 
     try {
-      // If starting/resuming with automatic updates, ensure background location
-      // permission is granted (shows prominent disclosure on Android).
+      // If starting/resuming a trip that records its track, ensure background
+      // location permission is granted (shows prominent disclosure on Android).
       if (newStatus == TripStatus.inProgress &&
-          _trip.automaticUpdates &&
+          BackgroundUpdateManager.recordsTrack(_trip) &&
           _isAndroid) {
         final hasPermission =
             await _ensureLocationPermission(requireBackground: true);
@@ -2220,21 +2365,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         _isChangingStatus = false;
       });
 
-      // Manage background updates based on new status (Android only)
+      // Record while in progress, stop otherwise (Android only)
       if (_isAndroid) {
-        final backgroundManager = BackgroundUpdateManager();
-        if (newStatus == TripStatus.inProgress && _trip.automaticUpdates) {
-          // Start automatic updates when trip starts/resumes AND automatic updates is enabled
-          await backgroundManager.startAutoUpdates(
-            _trip.id,
-            _trip.name,
-            _trip.effectiveUpdateRefresh,
-            modality: _trip.tripModality,
-          );
-        } else {
-          // Stop automatic updates when trip is paused/finished or automatic updates is disabled
-          await backgroundManager.stopAutoUpdates(_trip.id);
-        }
+        await BackgroundUpdateManager().syncRecording(_trip);
       }
 
       // When starting a trip, center the map on the user's current location
@@ -2284,12 +2417,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   /// Restarts recording after a failed rest / pause / finish (the final
   /// flush stopped it).
   void _resumeRecordingIfLive() {
-    if (_isAndroid &&
-        _trip.status == TripStatus.inProgress &&
-        _trip.automaticUpdates) {
-      BackgroundUpdateManager().startAutoUpdates(
-          _trip.id, _trip.name, _trip.effectiveUpdateRefresh,
-          modality: _trip.tripModality);
+    if (_isAndroid && _trip.status == TripStatus.inProgress) {
+      BackgroundUpdateManager().syncRecording(_trip);
     }
   }
 
@@ -2501,18 +2630,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           _isChangingStatus = false;
         });
 
-        // Resume background updates if enabled (Android only)
-        if (_isAndroid && _trip.automaticUpdates) {
+        // Resume recording if this trip records (Android only)
+        if (_isAndroid && BackgroundUpdateManager.recordsTrack(_trip)) {
           final hasPermission =
               await _ensureLocationPermission(requireBackground: true);
           if (hasPermission) {
-            final backgroundManager = BackgroundUpdateManager();
-            await backgroundManager.startAutoUpdates(
-              _trip.id,
-              _trip.name,
-              _trip.effectiveUpdateRefresh,
-              modality: _trip.tripModality,
-            );
+            await BackgroundUpdateManager().syncRecording(_trip);
           }
         }
 
@@ -2585,17 +2708,11 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         _isChangingSettings = false;
       });
 
-      // Manage background updates based on new settings (Android only)
-      if (_isAndroid && _trip.status == TripStatus.inProgress) {
-        final backgroundManager = BackgroundUpdateManager();
-        if (automaticUpdates && updateRefresh != null) {
-          // Start/restart automatic updates with new interval
-          await backgroundManager.startAutoUpdates(
-              _trip.id, _trip.name, updateRefresh,
-              modality: _trip.tripModality);
-        } else {
-          // Stop automatic updates when disabled
-          await backgroundManager.stopAutoUpdates(_trip.id);
+      // Restart recording with the new settings, or stop it (Android only)
+      if (_isAndroid) {
+        await _loadRecordingProfile();
+        if (_trip.status == TripStatus.inProgress) {
+          await BackgroundUpdateManager().syncRecording(_trip);
         }
       }
 
@@ -2686,6 +2803,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
 
       final result =
           await _repository.sendTripUpdate(_trip.id, message: message);
+      _loadPendingCheckIns();
 
       if (mounted) {
         if (result.isSuccess) {
@@ -2712,13 +2830,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           if (_isAndroid &&
               _trip.status == TripStatus.inProgress &&
               _trip.automaticUpdates) {
-            final backgroundManager = BackgroundUpdateManager();
-            await backgroundManager.startAutoUpdates(
-              _trip.id,
-              _trip.name,
-              _trip.effectiveUpdateRefresh,
-              modality: _trip.tripModality,
-            );
+            await BackgroundUpdateManager().syncRecording(_trip);
           }
         } else {
           _showError(result.userMessage);
@@ -3108,6 +3220,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
           onFocusUpdate: _focusUpdate,
           onWholeRoute: _showWholeRoute,
           onClearFocus: () => setState(() => _focusedUpdate = null),
+          recordingProfile: isOwner &&
+                  _isAndroid &&
+                  BackgroundUpdateManager.recordsTrack(_trip)
+              ? _recordingProfile
+              : null,
+          onRecordingProfile: _setRecordingProfile,
           donationButton: _isPromoted && _donationLink != null
               ? _buildDonationButton()
               : null,
@@ -3185,7 +3303,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       comments: _comments,
       replies: _replies,
       expandedComments: _expandedComments,
-      tripUpdates: _tripUpdates,
+      tripUpdates: withPendingCheckIns(_tripUpdates, _pendingCheckIns),
       isLoadingComments: _isLoadingComments,
       isLoadingMoreComments: _isLoadingMoreComments,
       hasMoreComments: _hasMoreComments,

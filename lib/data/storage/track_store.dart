@@ -19,6 +19,13 @@ class PendingCheckIn {
     required this.json,
     required this.createdAt,
   });
+
+  /// How the timeline shows it until the backend has it.
+  TripLocation toTripLocation() => TripLocation.fromJson({
+        ...json,
+        'id': id,
+        'timestamp': json['recordedAt'] ?? createdAt.toIso8601String(),
+      }).copyWith(pending: true);
 }
 
 /// The phone's local track and check-in outbox, in SQLite
@@ -160,9 +167,9 @@ class TrackStore {
 
   /// Trips with unsynced points or pending check-ins.
   Future<List<String>> tripsWithPendingData() async {
-    final rows = await (await _database).rawQuery(
-        'SELECT trip_id FROM track_points WHERE synced = 0 '
-        'UNION SELECT trip_id FROM pending_checkins');
+    final rows = await (await _database)
+        .rawQuery('SELECT trip_id FROM track_points WHERE synced = 0 '
+            'UNION SELECT trip_id FROM pending_checkins');
     return rows.map((r) => r['trip_id'] as String).toList();
   }
 

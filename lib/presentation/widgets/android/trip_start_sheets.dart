@@ -96,6 +96,20 @@ class _TripStartSettingsSheetState extends State<_TripStartSettingsSheet> {
                     i == 1 ? TripModality.multiDay : TripModality.simple)),
           ),
         ],
+        // Native only: the phone records the route.
+        if (!kIsWeb &&
+            (_s.automaticUpdates || _s.modality == TripModality.simple)) ...[
+          const SizedBox(height: 16),
+          Text(l10n.recordingTitle, style: label),
+          const SizedBox(height: 8),
+          RecordingProfilePicker(
+            selected:
+                _s.recordingProfile ?? RecordingProfile.defaultFor(_s.modality),
+            checkInMinutes: _s.automaticUpdates ? _s.intervalMinutes : null,
+            onSelect: (p) =>
+                setState(() => _s = _s.copyWith(recordingProfile: p)),
+          ),
+        ],
         const SizedBox(height: 20),
         SizedBox(
           height: 56,
@@ -223,6 +237,45 @@ String _visibilityCaption(AppLocalizations l10n, Visibility v) => switch (v) {
       Visibility.public => l10n.newTripPublicCaption,
       Visibility.protected => l10n.newTripFriendsCaption,
       Visibility.private => l10n.newTripPrivateCaption,
+    };
+
+/// Live / Battery saver radio rows with what each costs and gives.
+/// [checkInMinutes] is the automatic check-in interval, null when off.
+class RecordingProfilePicker extends StatelessWidget {
+  final RecordingProfile selected;
+  final int? checkInMinutes;
+  final ValueChanged<RecordingProfile> onSelect;
+  const RecordingProfilePicker(
+      {super.key,
+      required this.selected,
+      required this.checkInMinutes,
+      required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return TripStartRadioList(rows: [
+      for (final p in RecordingProfile.values)
+        (
+          p == selected,
+          () => onSelect(p),
+          recordingProfileName(l10n, p),
+          switch (p) {
+            RecordingProfile.live => l10n.recordingLiveCaption,
+            RecordingProfile.saver => checkInMinutes == null
+                ? l10n.recordingSaverCaption
+                : l10n.recordingSaverCheckIns(
+                    intervalLabel(l10n, checkInMinutes!)),
+          },
+        ),
+    ]);
+  }
+}
+
+String recordingProfileName(AppLocalizations l10n, RecordingProfile p) =>
+    switch (p) {
+      RecordingProfile.live => l10n.recordingLive,
+      RecordingProfile.saver => l10n.recordingSaver,
     };
 
 /// White card of radio rows: (selected, onTap, title, caption).

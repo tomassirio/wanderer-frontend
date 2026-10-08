@@ -1,3 +1,6 @@
+import 'dart:math' show max;
+
+import 'package:geolocator/geolocator.dart' show Geolocator;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/presentation/helpers/update_markers.dart';
@@ -378,6 +381,54 @@ class TripMapHelper {
       );
       return false;
     }
+  }
+
+  /// [data] with its route drawn from the recorded [track], when there is
+  /// one (trips recorded before track points keep the backend polyline).
+  static MapData withTrack(MapData data, List<TrackPoint> track) {
+    if (track.length < 2) return data;
+    return MapData(markers: data.markers, polylines: {
+      ...data.polylines.where((p) => p.polylineId.value != 'route'),
+      Polyline(
+        polylineId: const PolylineId('route'),
+        points: [for (final p in track) LatLng(p.lat, p.lon)],
+        color: Colors.blue,
+        width: 5,
+        startCap: Cap.roundCap,
+        endCap: Cap.roundCap,
+        jointType: JointType.round,
+      ),
+    });
+  }
+
+  /// [track] plus [incoming] (a `TRACK_UPDATED` batch or a backfill),
+  /// oldest first, one point per capture time.
+  static List<TrackPoint> mergeTrack(
+      List<TrackPoint> track, List<TrackPoint> incoming) {
+    final byTime = {
+      for (final p in [...track, ...incoming])
+        p.recordedAt.millisecondsSinceEpoch: p
+    };
+    return byTime.values.toList()
+      ..sort((a, b) => a.recordedAt.compareTo(b.recordedAt));
+  }
+
+  /// Length of [track] in km without GPS jitter, the way the backend counts
+  /// it: points with accuracy over 100 m, or closer than max(accuracy, 5 m)
+  /// to the previous kept point, are skipped.
+  static double trackDistanceKm(List<TrackPoint> track) {
+    TrackPoint? last;
+    var metres = 0.0;
+    for (final p in track) {
+      if ((p.accuracyM ?? 0) > 100) continue;
+      if (last != null) {
+        final d = Geolocator.distanceBetween(last.lat, last.lon, p.lat, p.lon);
+        if (d < max(p.accuracyM ?? 0, 5)) continue;
+        metres += d;
+      }
+      last = p;
+    }
+    return metres / 1000;
   }
 
   /// Adds a straight-line polyline connecting the waypoints.

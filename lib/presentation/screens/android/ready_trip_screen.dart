@@ -259,8 +259,10 @@ class _ReadyTripScreenState extends ConsumerState<ReadyTripScreen> {
     final auto = _settings.automaticUpdates && _autoAvailable;
     setState(() => _starting = true);
     try {
-      final access =
-          await ensureLocationAccess(context, requireBackground: auto);
+      // The phone records single-day trips even without auto check-ins.
+      final access = await ensureLocationAccess(context,
+          requireBackground: auto ||
+              (_autoAvailable && _settings.modality == TripModality.simple));
       if (!mounted) return;
       if (access != LocationAccess.granted) {
         if (access == LocationAccess.serviceOff) {
@@ -307,10 +309,12 @@ class _ReadyTripScreenState extends ConsumerState<ReadyTripScreen> {
         idempotencyKey: _idempotencyKey,
       );
       final trip = await trips.getTripById(result.tripId);
-      if (auto && trip.status == TripStatus.inProgress) {
-        await BackgroundUpdateManager().startAutoUpdates(
-            trip.id, trip.name, trip.effectiveUpdateRefresh,
-            modality: trip.tripModality);
+      if (trip.status == TripStatus.inProgress) {
+        final profile = _settings.recordingProfile;
+        if (profile != null) {
+          await BackgroundUpdateManager().setRecordingProfile(trip, profile);
+        }
+        await BackgroundUpdateManager().syncRecording(trip);
       }
       if (!mounted) return;
       _toast(ToastKind.success, l10n.tripToastStarted,

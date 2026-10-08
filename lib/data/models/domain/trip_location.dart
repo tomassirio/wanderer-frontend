@@ -18,6 +18,9 @@ class TripLocation {
   final TripUpdateType updateType;
   final double? distanceSoFarKm;
 
+  /// A check-in still in this phone's outbox (Android): shown, not sent yet.
+  final bool pending;
+
   TripLocation({
     required this.id,
     required this.latitude,
@@ -33,6 +36,7 @@ class TripLocation {
     this.weatherCondition,
     this.updateType = TripUpdateType.regular,
     this.distanceSoFarKm,
+    this.pending = false,
   });
 
   factory TripLocation.fromJson(Map<String, dynamic> json) {
@@ -121,6 +125,7 @@ class TripLocation {
     WeatherCondition? weatherCondition,
     TripUpdateType? updateType,
     double? distanceSoFarKm,
+    bool? pending,
   }) {
     return TripLocation(
       id: id ?? this.id,
@@ -137,6 +142,7 @@ class TripLocation {
       weatherCondition: weatherCondition ?? this.weatherCondition,
       updateType: updateType ?? this.updateType,
       distanceSoFarKm: distanceSoFarKm ?? this.distanceSoFarKm,
+      pending: pending ?? this.pending,
     );
   }
 
