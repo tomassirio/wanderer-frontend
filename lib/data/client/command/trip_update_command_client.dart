@@ -16,10 +16,18 @@ class TripUpdateCommandClient {
   Future<String> createTripUpdate(
     String tripId,
     TripUpdateRequest request,
+  ) =>
+      postTripUpdateJson(tripId, request.toJson());
+
+  /// Posts an already serialised [TripUpdateRequest] (from the offline
+  /// outbox). Returns the trip update ID.
+  Future<String> postTripUpdateJson(
+    String tripId,
+    Map<String, dynamic> body,
   ) async {
     final response = await _apiClient.post(
       ApiEndpoints.tripUpdates(tripId),
-      body: request.toJson(),
+      body: body,
       requireAuth: true,
     );
     return _apiClient.handleAcceptedResponse(response);

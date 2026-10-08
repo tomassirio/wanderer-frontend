@@ -4,6 +4,8 @@ library;
 export 'domain/trip.dart';
 export 'domain/trip_day.dart';
 export 'domain/trip_location.dart';
+export 'domain/track_point.dart';
+export 'domain/recording_profile.dart';
 export 'requests/create_trip_request.dart';
 export 'requests/update_trip_request.dart';
 export 'requests/trip_update_request.dart';
