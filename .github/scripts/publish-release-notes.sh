@@ -13,13 +13,13 @@
 #
 # Usage: publish-release-notes.sh VERSION
 # Env: GH_TOKEN (pull-requests:read), RELEASE_CI_TOKEN, PUBLISH_URL,
-#      GEMINI_API_KEY (optional), GEMINI_MODEL (optional, a free-tier Flash model)
+#      GEMINI_API_KEY (optional), GEMINI_MODEL (optional: free-tier models to try in order)
 #      FROM_TAG (optional) to cover more than the previous release, e.g. v2.0.5
 #      DRY_RUN=1 prints the notes instead of publishing them.
 set -euo pipefail
 
 VERSION=$1
-MODEL=${GEMINI_MODEL:-gemini-flash-latest}
+MODELS=${GEMINI_MODEL:-gemini-flash-latest gemini-flash-lite-latest}
 
 # Release tags sit on CI commits off master, so take the next lower tag by version rather
 # than walking history.
@@ -115,25 +115,29 @@ else
       }}
     }
   }'
-  REQUEST=$(jq -n --arg model "$MODEL" --arg guide "$GUIDE" --arg user "$USER_MSG" --argjson schema "$SCHEMA" '{
-    model: $model,
+  REQUEST=$(jq -n --arg guide "$GUIDE" --arg user "$USER_MSG" --argjson schema "$SCHEMA" '{
     temperature: 0.3,
     messages: [{role: "system", content: $guide}, {role: "user", content: $user}],
     response_format: {type: "json_schema", json_schema: {name: "release_notes", schema: $schema}}
   }')
-  # Gemini's OpenAI-compatible endpoint. The free tier is often briefly busy (429/503).
-  for delay in 15 30 60 120 0; do
-    CODE=$(curl -sS -o gemini.json -w '%{http_code}' \
-      https://generativelanguage.googleapis.com/v1beta/openai/chat/completions \
-      -H "Authorization: Bearer ${GEMINI_API_KEY}" -H 'Content-Type: application/json' --data "$REQUEST")
-    case "$CODE" in 429|500|502|503|504) ;; *) break ;; esac
-    [ "$delay" -eq 0 ] && break
-    echo "Gemini busy (HTTP ${CODE}), retrying in ${delay}s"
-    sleep "$delay"
+  # Gemini's OpenAI-compatible endpoint. Free-tier models are often briefly busy (429/503),
+  # so retry, then fall back to the next model.
+  for MODEL in $MODELS; do
+    for delay in 15 30 0; do
+      CODE=$(jq --arg m "$MODEL" '. + {model: $m}' <<< "$REQUEST" | curl -sS -o gemini.json -w '%{http_code}' \
+        https://generativelanguage.googleapis.com/v1beta/openai/chat/completions \
+        -H "Authorization: Bearer ${GEMINI_API_KEY}" -H 'Content-Type: application/json' --data @-)
+      case "$CODE" in 429|500|502|503|504) ;; *) break 2 ;; esac
+      [ "$delay" -eq 0 ] && break
+      echo "${MODEL} busy (HTTP ${CODE}), retrying in ${delay}s"
+      sleep "$delay"
+    done
+    echo "${MODEL} unavailable, trying the next model"
   done
   RESPONSE=$(cat gemini.json)
   GENERATED=$(jq -ce '.choices[0].message.content | fromjson | select(.headline and .items)' <<< "$RESPONSE" 2>/dev/null) || {
     echo "::error::Unexpected Gemini response: $(head -c 500 <<< "$RESPONSE")"; exit 1; }
+  echo "Written by ${MODEL}"
 fi
 
 # PR-written items first within each type; New, Improved, Fixed. Backend length limits apply.
