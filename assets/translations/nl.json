@@ -1042,6 +1042,7 @@
   "homeAutoEvery": "auto elke {interval}",
   "homeCheckInNow": "Nu inchecken",
   "homeCheckedIn": "Ingecheckt",
+  "checkInQueued": "Wordt verstuurd zodra je online bent",
   "homeOpenMap": "Kaart openen",
   "homeDrafts": "Concepten",
   "homeBadges": "Badges",

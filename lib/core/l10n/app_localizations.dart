@@ -1322,6 +1322,7 @@ class AppLocalizations {
       TranslationTemplate.format(_tr('homeAutoEvery'), {'interval': interval});
   String get homeCheckInNow => _tr('homeCheckInNow');
   String get homeCheckedIn => _tr('homeCheckedIn');
+  String get checkInQueued => _tr('checkInQueued');
   String get homeOpenMap => _tr('homeOpenMap');
   String get homeDrafts => _tr('homeDrafts');
   String get homeBadges => _tr('homeBadges');

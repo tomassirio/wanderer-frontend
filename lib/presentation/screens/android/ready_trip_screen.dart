@@ -308,8 +308,9 @@ class _ReadyTripScreenState extends ConsumerState<ReadyTripScreen> {
       );
       final trip = await trips.getTripById(result.tripId);
       if (auto && trip.status == TripStatus.inProgress) {
-        await BackgroundUpdateManager()
-            .startAutoUpdates(trip.id, trip.name, trip.effectiveUpdateRefresh);
+        await BackgroundUpdateManager().startAutoUpdates(
+            trip.id, trip.name, trip.effectiveUpdateRefresh,
+            modality: trip.tripModality);
       }
       if (!mounted) return;
       _toast(ToastKind.success, l10n.tripToastStarted,

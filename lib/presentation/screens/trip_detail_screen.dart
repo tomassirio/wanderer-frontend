@@ -2167,6 +2167,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         }
       }
 
+      // Final flush: stop recording and upload the track before leaving
+      // IN_PROGRESS, so no point lands after the status change.
+      if (_isAndroid && newStatus != TripStatus.inProgress) {
+        await BackgroundUpdateManager().stopAndFlush(_trip.id);
+      }
+
       await _repository.changeTripStatus(_trip.id, newStatus);
 
       // Send lifecycle trip update with GPS location (fire-and-forget)
@@ -2223,6 +2229,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
             _trip.id,
             _trip.name,
             _trip.effectiveUpdateRefresh,
+            modality: _trip.tripModality,
           );
         } else {
           // Stop automatic updates when trip is paused/finished or automatic updates is disabled
@@ -2267,9 +2274,22 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       }
     } catch (e) {
       setState(() => _isChangingStatus = false);
+      _resumeRecordingIfLive();
       if (mounted) {
         _showError(friendlyMessage(e));
       }
+    }
+  }
+
+  /// Restarts recording after a failed rest / pause / finish (the final
+  /// flush stopped it).
+  void _resumeRecordingIfLive() {
+    if (_isAndroid &&
+        _trip.status == TripStatus.inProgress &&
+        _trip.automaticUpdates) {
+      BackgroundUpdateManager().startAutoUpdates(
+          _trip.id, _trip.name, _trip.effectiveUpdateRefresh,
+          modality: _trip.tripModality);
     }
   }
 
@@ -2402,6 +2422,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       setState(() => _isChangingStatus = true);
 
       try {
+        if (_isAndroid) {
+          await BackgroundUpdateManager().stopAndFlush(_trip.id);
+        }
         await _repository.toggleDay(_trip.id);
 
         // Send DAY_END lifecycle update with GPS location (fire-and-forget)
@@ -2443,6 +2466,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         return true;
       } catch (e) {
         setState(() => _isChangingStatus = false);
+        _resumeRecordingIfLive();
         if (mounted) {
           _showError('Error ending day: $e');
         }
@@ -2487,6 +2511,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
               _trip.id,
               _trip.name,
               _trip.effectiveUpdateRefresh,
+              modality: _trip.tripModality,
             );
           }
         }
@@ -2566,7 +2591,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         if (automaticUpdates && updateRefresh != null) {
           // Start/restart automatic updates with new interval
           await backgroundManager.startAutoUpdates(
-              _trip.id, _trip.name, updateRefresh);
+              _trip.id, _trip.name, updateRefresh,
+              modality: _trip.tripModality);
         } else {
           // Stop automatic updates when disabled
           await backgroundManager.stopAutoUpdates(_trip.id);
@@ -2669,7 +2695,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
             Toasts.show(ToastData(
               kind: ToastKind.success,
               title: context.l10n.tripToastCheckedIn,
-              body: context.l10n.tripToastCheckedInBody,
+              body: result.isQueued
+                  ? context.l10n.checkInQueued
+                  : context.l10n.tripToastCheckedInBody,
             ));
           }
           // Delay the timeline refresh so the CQRS query model has time to
@@ -2689,6 +2717,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
               _trip.id,
               _trip.name,
               _trip.effectiveUpdateRefresh,
+              modality: _trip.tripModality,
             );
           }
         } else {

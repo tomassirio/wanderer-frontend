@@ -1042,6 +1042,7 @@
   "homeAutoEvery": "auto toutes les {interval}",
   "homeCheckInNow": "S'enregistrer maintenant",
   "homeCheckedIn": "Enregistrement envoyé",
+  "checkInQueued": "Sera envoyé une fois en ligne",
   "homeOpenMap": "Ouvrir la carte",
   "homeDrafts": "Brouillons",
   "homeBadges": "Badges",

@@ -1042,6 +1042,7 @@
   "homeAutoEvery": "auto every {interval}",
   "homeCheckInNow": "Check in now",
   "homeCheckedIn": "Checked in",
+  "checkInQueued": "Will send when online",
   "homeOpenMap": "Open map",
   "homeDrafts": "Drafts",
   "homeBadges": "Badges",
