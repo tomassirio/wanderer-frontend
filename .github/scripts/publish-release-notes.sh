@@ -7,17 +7,18 @@
 #     ## Release notes
 #     New — Save trips for later
 #     Not ready to go? Save your trip as a plan and come back to it whenever you're ready.
-# - every other PR is written up by GitHub Models (free with the workflow's GITHUB_TOKEN),
-#   which also writes the headline.
+# - every other PR is written up by Gemini (free tier), which also writes the headline.
+#   Without GEMINI_API_KEY only the blocks are published, headed by the first one's title.
 # Admins can still edit the notes afterwards in Admin › Release notes.
 #
 # Usage: publish-release-notes.sh VERSION
-# Env: GH_TOKEN (needs models:read and pull-requests:read), RELEASE_CI_TOKEN, PUBLISH_URL
+# Env: GH_TOKEN (pull-requests:read), RELEASE_CI_TOKEN, PUBLISH_URL,
+#      GEMINI_API_KEY (optional), GEMINI_MODEL (optional, a free-tier Flash model)
 #      DRY_RUN=1 prints the notes instead of publishing them.
 set -euo pipefail
 
 VERSION=$1
-MODEL=openai/gpt-4.1
+MODEL=${GEMINI_MODEL:-gemini-flash-latest}
 
 # Release tags sit on CI commits off master, so take the next lower tag by version rather
 # than walking history.
@@ -55,7 +56,7 @@ while IFS= read -r subject; do
   if [ -n "$BLOCK" ]; then
     WRITTEN=$(jq -c --arg b "$BLOCK" '. + [$b | split("\n")[] | split("\t") | {type: .[0], title: .[1], text: .[2]}]' <<< "$WRITTEN")
   else
-    # Keep the request inside the free tier's input limit.
+    # Keep the request small; the free tier limits tokens per minute.
     PRS+=$'\n\n'"### PR #${NUMBER}: ${subject}"$'\n'"$(head -c 3000 <<< "$BODY")"
   fi
 done < <(git log --pretty=format:%s "$RANGE")
@@ -90,32 +91,40 @@ $(jq -r '.[] | "\(.type) · \(.title): \(.text)"' <<< "$WRITTEN")
 
 Pull requests to write up:${PRS:- none}"
 
-SCHEMA='{
-  "type": "object", "additionalProperties": false, "required": ["headline", "items"],
-  "properties": {
-    "headline": {"type": "string"},
-    "items": {"type": "array", "items": {
-      "type": "object", "additionalProperties": false, "required": ["type", "title", "text"],
-      "properties": {
-        "type": {"type": "string", "enum": ["NEW", "IMPROVED", "FIXED"]},
-        "title": {"type": "string"},
-        "text": {"type": "string"}
-      }
-    }}
-  }
-}'
-
-REQUEST=$(jq -n --arg model "$MODEL" --arg guide "$GUIDE" --arg user "$USER_MSG" --argjson schema "$SCHEMA" '{
-  model: $model,
-  temperature: 0.3,
-  messages: [{role: "system", content: $guide}, {role: "user", content: $user}],
-  response_format: {type: "json_schema", json_schema: {name: "release_notes", strict: true, schema: $schema}}
-}')
-
-RESPONSE=$(curl -sS --fail-with-body https://models.github.ai/inference/chat/completions \
-  -H "Authorization: Bearer ${GH_TOKEN}" -H 'Content-Type: application/json' --data "$REQUEST")
-GENERATED=$(jq -c '.choices[0].message.content | fromjson' <<< "$RESPONSE") || {
-  echo "::error::Unexpected GitHub Models response: $(head -c 500 <<< "$RESPONSE")"; exit 1; }
+if [ -z "${GEMINI_API_KEY:-}" ]; then
+  if [ "$WRITTEN" == '[]' ]; then
+    echo "::warning::No GEMINI_API_KEY and no Release notes blocks in the PRs; no release notes for ${VERSION}"
+    exit 0
+  fi
+  [ -n "$PRS" ] && echo "::warning::No GEMINI_API_KEY: PRs without a Release notes block are left out"
+  GENERATED=$(jq -c '{headline: .[0].title, items: []}' <<< "$WRITTEN")
+else
+  SCHEMA='{
+    "type": "object", "required": ["headline", "items"],
+    "properties": {
+      "headline": {"type": "string"},
+      "items": {"type": "array", "items": {
+        "type": "object", "required": ["type", "title", "text"],
+        "properties": {
+          "type": {"type": "string", "enum": ["NEW", "IMPROVED", "FIXED"]},
+          "title": {"type": "string"},
+          "text": {"type": "string"}
+        }
+      }}
+    }
+  }'
+  REQUEST=$(jq -n --arg model "$MODEL" --arg guide "$GUIDE" --arg user "$USER_MSG" --argjson schema "$SCHEMA" '{
+    model: $model,
+    temperature: 0.3,
+    messages: [{role: "system", content: $guide}, {role: "user", content: $user}],
+    response_format: {type: "json_schema", json_schema: {name: "release_notes", schema: $schema}}
+  }')
+  # Gemini's OpenAI-compatible endpoint.
+  RESPONSE=$(curl -sS https://generativelanguage.googleapis.com/v1beta/openai/chat/completions \
+    -H "Authorization: Bearer ${GEMINI_API_KEY}" -H 'Content-Type: application/json' --data "$REQUEST")
+  GENERATED=$(jq -ce '.choices[0].message.content | fromjson | select(.headline and .items)' <<< "$RESPONSE" 2>/dev/null) || {
+    echo "::error::Unexpected Gemini response: $(head -c 500 <<< "$RESPONSE")"; exit 1; }
+fi
 
 # PR-written items first within each type; New, Improved, Fixed. Backend length limits apply.
 NOTES=$(jq -c --arg v "$VERSION" --argjson written "$WRITTEN" '

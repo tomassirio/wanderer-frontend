@@ -492,7 +492,7 @@ jobs:
           fi
 
   # Writes the in-app "What's new" from the PRs since the previous tag (a PR's own
-  # "## Release notes" block word for word, GitHub Models for the rest) and publishes it, right after the web deploy (or once web is rejected, so an Android-only
+  # "## Release notes" block word for word, Gemini's free tier for the rest) and publishes it, right after the web deploy (or once web is rejected, so an Android-only
   # release still gets notes). Users see the popup once they run this version. Admins can
   # edit the notes later in Admin › Release notes. Never fails the release.
   publish-release-notes:
@@ -505,7 +505,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
-      models: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -516,6 +515,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_CI_TOKEN: ${{ secrets.RELEASE_CI_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
           PUBLISH_URL: https://wanderer.tomassir.io/api/command/releases/publish
         run: |
           if [ -z "$RELEASE_CI_TOKEN" ]; then
