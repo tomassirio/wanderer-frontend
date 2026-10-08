@@ -26,6 +26,37 @@ void main() {
       tripQueryClient = TripQueryClient(apiClient: apiClient);
     });
 
+    group('getTrackPoints', () {
+      test('returns the recorded route', () async {
+        mockHttpClient.response = http.Response(
+            jsonEncode([
+              {'lat': 52.09, 'lon': 5.12, 'recordedAt': '2026-10-08T09:15:02Z'},
+              {'lat': 52.1, 'lon': 5.13, 'recordedAt': '2026-10-08T09:15:12Z'},
+            ]),
+            200);
+
+        final points = await tripQueryClient.getTrackPoints('trip-123');
+
+        expect(points, hasLength(2));
+        expect(points.first.lat, 52.09);
+        expect(points.first.tripId, 'trip-123');
+        expect(mockHttpClient.lastUri?.path,
+            endsWith(ApiEndpoints.tripTrackPoints('trip-123')));
+        expect(mockHttpClient.lastUri?.queryParameters, isEmpty);
+      });
+
+      test('asks only for points after since', () async {
+        mockHttpClient.response = http.Response('[]', 200);
+
+        final points = await tripQueryClient.getTrackPoints('trip-123',
+            since: DateTime.utc(2026, 10, 8, 9, 15, 12));
+
+        expect(points, isEmpty);
+        expect(mockHttpClient.lastUri?.queryParameters['since'],
+            '2026-10-08T09:15:12.000Z');
+      });
+    });
+
     group('getTripById', () {
       test('successful retrieval returns Trip', () async {
         final responseBody = {

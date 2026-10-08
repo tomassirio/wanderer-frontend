@@ -140,4 +140,20 @@ class TripQueryClient {
     );
     return _apiClient.handlePageResponse(response, TripLocation.fromJson);
   }
+
+  /// GET /trips/{tripId}/track-points → the recorded route, oldest first.
+  /// [since] limits it to points recorded after that instant.
+  /// Empty for trips recorded before track points existed.
+  Future<List<TrackPoint>> getTrackPoints(String tripId,
+      {DateTime? since}) async {
+    final query = since == null
+        ? ''
+        : '?since=${Uri.encodeQueryComponent(since.toUtc().toIso8601String())}';
+    final response = await _apiClient.get(
+      '${ApiEndpoints.tripTrackPoints(tripId)}$query',
+      requireAuth: true,
+    );
+    return _apiClient.handleListResponse(
+        response, (j) => TrackPoint.fromJson(j, tripId));
+  }
 }
