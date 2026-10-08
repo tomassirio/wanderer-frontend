@@ -113,5 +113,8 @@ dependencies {
     // AndroidX Activity 1.10+ handles edge-to-edge on API 35+ without
     // calling the deprecated setStatusBarColor / setNavigationBarColor APIs.
     implementation("androidx.activity:activity-ktx:1.10.0")
+    // Fused location for the track recorder in TripTrackingService (same
+    // version geolocator_android uses, which only has it on its own classpath).
+    implementation("com.google.android.gms:play-services-location:21.2.0")
 }
 

@@ -25,11 +25,21 @@ class MainActivity : FlutterFragmentActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
-                    "startTracking" -> {
-                        val tripName = call.argument<String>("tripName") ?: "Trip"
+                    // startTracking {tripName, tripId, profile}; setProfile {profile}.
+                    // Both (re)start the service, which falls back to the
+                    // SharedPreferences written by Dart for missing values.
+                    "startTracking", "setProfile" -> {
                         val intent = Intent(this, TripTrackingService::class.java).apply {
                             action = TripTrackingService.ACTION_START
-                            putExtra(TripTrackingService.EXTRA_TRIP_NAME, tripName)
+                            call.argument<String>("tripName")?.let {
+                                putExtra(TripTrackingService.EXTRA_TRIP_NAME, it)
+                            }
+                            call.argument<String>("tripId")?.let {
+                                putExtra(TripTrackingService.EXTRA_TRIP_ID, it)
+                            }
+                            call.argument<String>("profile")?.let {
+                                putExtra(TripTrackingService.EXTRA_PROFILE, it)
+                            }
                         }
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             startForegroundService(intent)
