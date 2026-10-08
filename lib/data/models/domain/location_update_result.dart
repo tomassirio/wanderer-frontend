@@ -29,6 +29,10 @@ enum LocationFailureReason {
 /// can show a specific, actionable message.
 class LocationUpdateResult {
   final bool isSuccess;
+
+  /// Saved on the phone but not sent yet (offline): it goes out on the next
+  /// sync. Counts as a success — callers only word it differently.
+  final bool isQueued;
   final LocationFailureReason? failureReason;
 
   /// Detail from the server / exception, for logs only — never shown.
@@ -50,6 +54,18 @@ class LocationUpdateResult {
     this.longitude,
     this.batteryLevel,
   })  : isSuccess = true,
+        isQueued = false,
+        failureReason = null,
+        errorDetail = null,
+        statusCode = null;
+
+  /// Stored in the outbox; will be sent when online.
+  const LocationUpdateResult.queued({
+    this.latitude,
+    this.longitude,
+    this.batteryLevel,
+  })  : isSuccess = true,
+        isQueued = true,
         failureReason = null,
         errorDetail = null,
         statusCode = null;
@@ -57,6 +73,7 @@ class LocationUpdateResult {
   /// Failed update with a specific reason.
   const LocationUpdateResult.failure(LocationFailureReason reason)
       : isSuccess = false,
+        isQueued = false,
         failureReason = reason,
         errorDetail = null,
         statusCode = null,
@@ -70,6 +87,7 @@ class LocationUpdateResult {
     this.errorDetail, {
     this.statusCode,
   })  : isSuccess = false,
+        isQueued = false,
         failureReason = reason,
         latitude = null,
         longitude = null,

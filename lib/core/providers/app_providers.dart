@@ -9,6 +9,7 @@ import '../../data/client/command/notification_command_client.dart';
 import '../../data/client/command/promotion_command_client.dart';
 import '../../data/client/command/trip_command_client.dart';
 import '../../data/client/command/trip_plan_command_client.dart';
+import '../../data/client/command/track_point_command_client.dart';
 import '../../data/client/command/trip_update_command_client.dart';
 import '../../data/client/command/user_command_client.dart';
 import '../../data/client/google_directions_api_client.dart';
@@ -30,6 +31,7 @@ import '../../data/client/command/release_command_client.dart';
 import '../../data/client/query/release_query_client.dart';
 import '../../data/services/release_notes_service.dart';
 import '../../data/services/search_service.dart';
+import '../../data/services/track_sync_service.dart';
 import '../../data/services/sso/sso_service.dart';
 import '../../data/services/trip_plan_service.dart';
 import '../../data/services/trip_service.dart';
@@ -38,6 +40,7 @@ import '../../data/services/url_shortener_service.dart';
 import '../../data/services/user_service.dart';
 import '../../data/services/websocket_service.dart';
 import '../../data/storage/token_storage.dart';
+import '../../data/storage/track_store.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/dashboard_repository.dart';
 import '../../data/repositories/home_repository.dart';
@@ -115,6 +118,12 @@ final tripPlanCommandClientProvider = Provider<TripPlanCommandClient>((ref) {
 final tripUpdateCommandClientProvider =
     Provider<TripUpdateCommandClient>((ref) {
   return TripUpdateCommandClient(
+      apiClient: ref.watch(apiClientCommandProvider));
+});
+
+final trackPointCommandClientProvider =
+    Provider<TrackPointCommandClient>((ref) {
+  return TrackPointCommandClient(
       apiClient: ref.watch(apiClientCommandProvider));
 });
 
@@ -246,9 +255,25 @@ final tripServiceProvider = Provider<TripService>((ref) {
   );
 });
 
+/// The phone's local track and check-in outbox (Android only).
+final trackStoreProvider = Provider<TrackStore>((ref) {
+  return TrackStore();
+});
+
+final trackSyncServiceProvider = Provider<TrackSyncService>((ref) {
+  return TrackSyncService(
+    store: ref.watch(trackStoreProvider),
+    trackPointCommandClient: ref.watch(trackPointCommandClientProvider),
+    tripUpdateCommandClient: ref.watch(tripUpdateCommandClientProvider),
+  );
+});
+
 final tripUpdateServiceProvider = Provider<TripUpdateService>((ref) {
   return TripUpdateService(
-      tripUpdateCommandClient: ref.watch(tripUpdateCommandClientProvider));
+    tripUpdateCommandClient: ref.watch(tripUpdateCommandClientProvider),
+    trackStore: ref.watch(trackStoreProvider),
+    trackSyncService: ref.watch(trackSyncServiceProvider),
+  );
 });
 
 final urlShortenerServiceProvider = Provider<UrlShortenerService>((ref) {
