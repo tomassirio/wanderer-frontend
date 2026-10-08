@@ -14,6 +14,11 @@ import 'package:wanderer_frontend/presentation/screens/android/android_changelog
 import 'package:wanderer_frontend/presentation/screens/android/android_release_notes_editor.dart';
 import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/release_notes_widgets.dart';
+import 'package:wanderer_frontend/data/repositories/home_repository.dart';
+import 'package:wanderer_frontend/presentation/helpers/adaptive_layout.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/web_sidebar.dart';
 
 ReleaseNote _release(String version,
         {bool draft = false, String headline = 'Start a trip in one tap'}) =>
@@ -409,6 +414,66 @@ void main() {
           contains('"platform":"ANDROID"'));
     });
 
+    testWidgets('desktop: sidebar page, other entries leave it',
+        (tester) async {
+      AdaptiveLayout.debugIsWeb = true;
+      addTearDown(() => AdaptiveLayout.debugIsWeb = null);
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final service = _FakeReleaseNotesService(admin: [_release('1.7.0')]);
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          releaseNotesServiceProvider.overrideWithValue(service),
+          homeRepositoryProvider.overrideWithValue(_AdminHome()),
+        ],
+        child: const MaterialApp(home: ReleaseNotesAdminScreen()),
+      ));
+      await tester.pump();
+      await tester.pump();
+
+      // Sidebar beside the page with Release notes selected; a top-level
+      // page has no back arrow.
+      expect(tester.widget<AppSidebar>(find.byType(AppSidebar)).selectedIndex,
+          AppSidebar.releaseNotesIndex);
+      expect(find.byType(BackButton), findsNothing);
+    });
+
+    testWidgets('web sidebar: Release notes has its own slot', (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          releaseNotesServiceProvider
+              .overrideWithValue(_FakeReleaseNotesService()),
+          homeRepositoryProvider.overrideWithValue(_AdminHome()),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: WebSidebar(
+              config: AppSidebar(
+                  username: 'admin',
+                  isAdmin: true,
+                  selectedIndex: AppSidebar.releaseNotesIndex),
+              persistent: true,
+            ),
+          ),
+        ),
+      ));
+      await tester.pump();
+      expect(find.text('Release notes'), findsOneWidget);
+
+      // Home goes home: it used to share Release notes' index.
+      await tester.tap(find.text('Home'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(InitialScreen), findsOneWidget);
+      expect(find.byType(ReleaseNotesAdminScreen), findsNothing);
+    });
+
     testWidgets('new release for a version without notes', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 2.6;
@@ -444,6 +509,19 @@ void main() {
           ['ANDROID', 'WEB']);
     });
   });
+}
+
+class _AdminHome extends HomeRepository {
+  @override
+  Future<String?> getCurrentUsername() async => 'admin';
+  @override
+  Future<String?> getCurrentUserId() async => 'u1';
+  @override
+  Future<String?> getCurrentDisplayName() async => 'Admin';
+  @override
+  Future<String?> getCurrentAvatarUrl() async => null;
+  @override
+  Future<bool> isAdmin() async => true;
 }
 
 class _PublishingFake extends _FakeReleaseNotesService {

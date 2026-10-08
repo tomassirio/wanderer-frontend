@@ -46,6 +46,7 @@ class AppSidebar extends StatelessWidget {
   static const int myTripsIndex = 4;
   static const int exploreIndex = 0;
   static const int friendsIndex = 2;
+  static const int releaseNotesIndex = 9;
 
   const AppSidebar({
     super.key,

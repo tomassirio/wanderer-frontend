@@ -49,7 +49,6 @@ class WebSidebar extends ConsumerStatefulWidget {
 }
 
 class _WebSidebarState extends ConsumerState<WebSidebar> {
-  static const _releaseNotesIndex = 8;
   int _pendingRequests = 0;
 
   AppSidebar get _c => widget.config;
@@ -74,12 +73,6 @@ class _WebSidebarState extends ConsumerState<WebSidebar> {
   void _go(int index) {
     if (!widget.persistent) Navigator.pop(context);
     if (index == _c.selectedIndex && _c.onSameScreen) return;
-    if (index == _releaseNotesIndex) {
-      // An editor, not a top-level page: pushed so Back returns here.
-      Navigator.push(context,
-          PageTransitions.slideFromRight(const ReleaseNotesAdminScreen()));
-      return;
-    }
 
     final Widget? screen = switch (index) {
       AppSidebar.dashboardIndex => const InitialScreen(),
@@ -91,6 +84,7 @@ class _WebSidebarState extends ConsumerState<WebSidebar> {
       5 => const TripPromotionScreen(),
       6 => const AdminUsersScreen(),
       7 => const TripMaintenanceScreen(),
+      AppSidebar.releaseNotesIndex => const ReleaseNotesAdminScreen(),
       _ => null,
     };
     if (screen == null) return;
@@ -146,7 +140,7 @@ class _WebSidebarState extends ConsumerState<WebSidebar> {
           _NavItem(5, Icons.campaign_outlined, l10n.tripPromotion),
           _NavItem(6, Icons.shield_outlined, l10n.userManagement),
           _NavItem(7, Icons.build_outlined, l10n.tripDataMaintenance),
-          _NavItem(_releaseNotesIndex, Icons.description_outlined,
+          _NavItem(AppSidebar.releaseNotesIndex, Icons.description_outlined,
               l10n.releaseNotesTitle),
         ]),
     ];

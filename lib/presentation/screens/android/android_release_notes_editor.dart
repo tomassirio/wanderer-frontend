@@ -11,6 +11,10 @@ import 'package:wanderer_frontend/presentation/widgets/android/plan_editor_layou
 import 'package:wanderer_frontend/presentation/widgets/android/release_notes_widgets.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/toasts.dart';
+import 'package:wanderer_frontend/presentation/screens/initial_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/settings_screen.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/app_sidebar.dart';
+import 'package:wanderer_frontend/presentation/widgets/common/wanderer_scaffold.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_sheet.dart';
 
 const releasePlatforms = ['ANDROID', 'WEB'];
@@ -540,7 +544,9 @@ class _ReleaseNotesAdminRowState extends ConsumerState<ReleaseNotesAdminRow> {
 }
 
 /// Every release, drafts and published, newest first, plus "New release".
-/// Reached from Admin tools (phone) and the web sidebar's Admin group.
+/// Reached from Admin tools (phone) and the web sidebar's Admin group, where
+/// it is a top-level page with the sidebar beside it like the other admin
+/// pages.
 class ReleaseNotesAdminScreen extends ConsumerStatefulWidget {
   const ReleaseNotesAdminScreen({super.key});
 
@@ -553,11 +559,40 @@ class _ReleaseNotesAdminScreenState
     extends ConsumerState<ReleaseNotesAdminScreen> {
   List<ReleaseNote>? _releases;
   bool _failed = false;
+  AppSidebar? _sidebar;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadSidebar();
+  }
+
+  /// Same account details the other admin pages give their sidebar.
+  Future<void> _loadSidebar() async {
+    final repo = ref.read(homeRepositoryProvider);
+    try {
+      final sidebar = AppSidebar(
+        username: await repo.getCurrentUsername(),
+        userId: await repo.getCurrentUserId(),
+        displayName: await repo.getCurrentDisplayName(),
+        avatarUrl: await repo.getCurrentAvatarUrl(),
+        isAdmin: await repo.isAdmin(),
+        selectedIndex: AppSidebar.releaseNotesIndex,
+        onSettings: () => Navigator.push(
+            context, PageTransitions.slideFromBottom(const SettingsScreen())),
+        onLogout: () async {
+          await repo.logout();
+          if (mounted) {
+            Navigator.pushAndRemoveUntil(context,
+                PageTransitions.fade(const InitialScreen()), (_) => false);
+          }
+        },
+      );
+      if (mounted) setState(() => _sidebar = sidebar);
+    } catch (e) {
+      debugPrint('ReleaseNotesAdminScreen: sidebar load failed: $e');
+    }
   }
 
   Future<void> _load() async {
@@ -600,9 +635,12 @@ class _ReleaseNotesAdminScreenState
     final c = WandererTheme.of(context);
     final l10n = context.l10n;
     final releases = _releases;
-    return Scaffold(
+    return WandererScaffold(
       backgroundColor: c.ground,
-      appBar: AndroidTopBar(title: l10n.releaseNotesTitle),
+      drawer: _sidebar,
+      appBar: AndroidTopBar(
+          title: l10n.releaseNotesTitle,
+          showBack: Navigator.of(context).canPop()),
       body: _Narrow(ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
