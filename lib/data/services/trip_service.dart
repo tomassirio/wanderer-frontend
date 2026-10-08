@@ -192,8 +192,4 @@ class TripService {
     return await _tripQueryClient.getTripUpdates(tripId,
         page: page, size: size);
   }
-
-  /// The trip's recorded route (see [TripQueryClient.getTrackPoints]).
-  Future<List<TrackPoint>> getTrackPoints(String tripId, {DateTime? since}) =>
-      _tripQueryClient.getTrackPoints(tripId, since: since);
 }

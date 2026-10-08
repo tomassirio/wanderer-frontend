@@ -213,10 +213,6 @@ class TripDetailRepository {
     return await _tripService.getTripUpdates(tripId, page: page, size: size);
   }
 
-  /// The trip's recorded route, or what was recorded after [since].
-  Future<List<TrackPoint>> loadTrackPoints(String tripId, {DateTime? since}) =>
-      _tripService.getTrackPoints(tripId, since: since);
-
   /// Sends a manual trip update with current location and battery
   /// Returns a [LocationUpdateResult] indicating success or failure reason.
   Future<LocationUpdateResult> sendTripUpdate(
