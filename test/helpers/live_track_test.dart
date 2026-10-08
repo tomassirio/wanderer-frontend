@@ -14,21 +14,6 @@ void main() {
         recordedAt: t0.add(Duration(seconds: seconds)),
       );
 
-  group('mergeTrack', () {
-    test('appends new points in time order', () {
-      final merged =
-          TripMapHelper.mergeTrack([p(0, 52), p(10, 52.001)], [p(20, 52.002)]);
-      expect(merged.map((e) => e.recordedAt.second), [0, 10, 20]);
-    });
-
-    test('drops points it already has and sorts out-of-order batches', () {
-      // A backfill after reconnect overlaps a TRACK_UPDATED batch.
-      final merged = TripMapHelper.mergeTrack([p(0, 52), p(20, 52.002)],
-          [p(30, 52.003), p(10, 52.001), p(20, 52.002)]);
-      expect(merged.map((e) => e.recordedAt.second), [0, 10, 20, 30]);
-    });
-  });
-
   group('trackDistanceKm', () {
     test('sums the distance between points', () {
       // 0.001° of latitude ≈ 111 m.

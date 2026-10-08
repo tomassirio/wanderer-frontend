@@ -102,13 +102,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   /// Android: this phone's check-ins not sent yet (shown as pending).
   List<TripLocation> _pendingCheckIns = [];
 
-  /// The recorded route on the map, oldest first: this phone's own track
-  /// while it records the trip ([_localTrack]), otherwise the backend's
-  /// track points. Empty for trips recorded before track points existed.
+  /// This phone's own track of the trip, oldest first, drawn as the route
+  /// while it records it ([_localTrack]). Everyone else draws the trip's
+  /// encoded polyline, kept fresh by `POLYLINE_UPDATED`.
   List<TrackPoint> _track = [];
   bool _localTrack = false;
   double _localTrackKm = 0;
-  bool _backfillingTrack = false;
   StreamSubscription<List<TrackPoint>>? _localTrackSub;
   StreamSubscription<WebSocketConnectionState>? _wsStateSub;
   AppLifecycleListener? _lifecycle;
@@ -325,8 +324,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       _watchLocalTrack();
       _loadRecordingProfile();
     }
-    // Followers catch up on the route after the app was in the background.
-    _lifecycle = AppLifecycleListener(onResume: _backfillTrack);
+    // Catch up on what happened while the app was in the background.
+    _lifecycle = AppLifecycleListener(onResume: _catchUp);
     // Load trip updates, full trip data and user location together, then set
     // the initial camera position exactly once (instant jump, no animation).
     // _fetchUserLocation is included so that trips with no locations/route can
@@ -394,7 +393,12 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       });
     }
     _hasInitialMapPosition = true;
-    _backfillTrack();
+  }
+
+  /// Re-fetches the trip (route, distance, check-ins) after a reconnect or
+  /// resume: events sent meanwhile never arrive.
+  void _catchUp() {
+    if (_hasInitialMapPosition) _refreshTripData();
   }
 
   /// Android: follows the track this phone records for the trip (the
@@ -440,36 +444,10 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     await BackgroundUpdateManager().setRecordingProfile(_trip, profile);
   }
 
-  /// Fetches the backend's recorded route, or only what was recorded after
-  /// the last point we have (after a reconnect or resume). Not needed while
-  /// this phone records the trip itself.
-  Future<void> _backfillTrack() async {
-    if (!_hasInitialMapPosition || _localTrack || _backfillingTrack) return;
-    // A finished trip's backend polyline already is its whole route.
-    if (_track.isEmpty && _trip.status == TripStatus.finished) return;
-    _backfillingTrack = true;
-    try {
-      final points = await _repository.loadTrackPoints(_trip.id,
-          since: _track.isEmpty ? null : _track.last.recordedAt);
-      if (!mounted || _localTrack || points.isEmpty) return;
-      setState(() => _track = TripMapHelper.mergeTrack(_track, points));
-      _updateMapData();
-    } catch (e) {
-      debugPrint('TripDetailScreen: Could not load track points: $e');
-    } finally {
-      _backfillingTrack = false;
-    }
-  }
-
+  /// Only the distance: the route comes with the `POLYLINE_UPDATED` sent
+  /// alongside.
   void _handleTrackUpdated(TrackUpdatedEvent event) {
     if (_localTrack) return;
-    if (_track.isEmpty) {
-      // First points we hear of: load the whole route, not just these.
-      _backfillTrack();
-    } else {
-      setState(() => _track = TripMapHelper.mergeTrack(_track, event.points));
-      _updateMapData();
-    }
     if (event.distanceKm != null) {
       setState(
           () => _trip = _trip.copyWith(accruedDistanceKm: event.distanceKm));
@@ -492,9 +470,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     // Subscribe to events for this specific trip
     final tripStream = _webSocketService.subscribeToTrip(_trip.id);
     _wsSubscription = tripStream.listen(_handleWebSocketEvent);
-    // Points recorded while we were disconnected never come as events.
     _wsStateSub = _webSocketService.connectionState.listen((state) {
-      if (state == WebSocketConnectionState.connected) _backfillTrack();
+      if (state == WebSocketConnectionState.connected) _catchUp();
     });
 
     // Listen to the global events stream for notification events
