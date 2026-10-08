@@ -99,67 +99,6 @@ jobs:
           git push "${REMOTE_URL}" master || echo "⚠️ Could not push release commit to master (branch protection). Tag will still be created."
           git push "${REMOTE_URL}" --tags
 
-  # Drafts the in-app "What's new" for this version from the PRs since the
-  # previous tag. The admin rewrites and publishes it in the app (Admin tools
-  # or the web sidebar › Release notes), ideally while the release gates wait.
-  # Never blocks the release.
-  draft-release-notes:
-    needs: prepare-release
-    if: needs.prepare-release.outputs.skip != 'true'
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    permissions:
-      contents: read
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: v${{ needs.prepare-release.outputs.base-version }}
-          fetch-depth: 0
-
-      - name: Send draft to the backend
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_CI_TOKEN: ${{ secrets.RELEASE_CI_TOKEN }}
-          VERSION: ${{ needs.prepare-release.outputs.base-version }}
-          DRAFTS_URL: https://wanderer.tomassir.io/api/command/releases/drafts
-        run: |
-          if [ -z "$RELEASE_CI_TOKEN" ]; then
-            echo "::warning::RELEASE_CI_TOKEN not set; no release notes draft for ${VERSION}"
-            exit 0
-          fi
-          # Release tags sit on CI commits off master, so take the next lower
-          # tag by version rather than walking history.
-          PREV_TAG=$(git tag -l 'v*' --sort=-v:refname | awk -v cur="v${VERSION}" 'seen {print; exit} $0 == cur {seen = 1}')
-          RANGE="${PREV_TAG:+${PREV_TAG}..}v${VERSION}"
-
-          # Squash-merge subjects end in "(#123)". Internal types are left out;
-          # feat → New, fix → Fixed, anything else → Improved (backend maps it).
-          PRS='[]'
-          while IFS= read -r subject; do
-            NUMBER=$(sed -nE 's/.*\(#([0-9]+)\)$/\1/p' <<< "$subject")
-            [ -z "$NUMBER" ] && continue
-            TYPE=$(sed -nE 's/^([a-zA-Z]+)(\([^)]*\))?!?: .*/\1/p' <<< "$subject" | tr 'A-Z' 'a-z')
-            case "$TYPE" in ci|chore|docs|test|refactor|build|style) continue ;; esac
-            TITLE=$(sed -E 's/^[a-zA-Z]+(\([^)]*\))?!?: //; s/ \(#[0-9]+\)$//' <<< "$subject")
-            # Optional "Traveller summary: ..." line in the PR description.
-            SUMMARY=$(gh pr view "$NUMBER" --json body -q .body 2>/dev/null \
-              | sed -nE 's/^[[:space:]]*\**Traveller summary:?\**:?[[:space:]]*//Ip' | head -1 | tr -d '\r' | sed -E 's/<!--.*-->//; s/[[:space:]]+$//')
-            PRS=$(jq -c --argjson n "$NUMBER" --arg t "${TITLE^}" --arg l "${TYPE:-improved}" --arg s "$SUMMARY" \
-              '. + [{number: $n, title: $t, label: $l, summary: (if $s == "" then null else $s end)}]' <<< "$PRS")
-          done < <(git log --pretty=format:%s "$RANGE")
-
-          echo "Drafting ${VERSION} with $(jq length <<< "$PRS") PRs since ${PREV_TAG:-the start}"
-          STATUS=$(jq -n --arg v "$VERSION" --argjson prs "$PRS" '{version: $v, prs: $prs}' \
-            | curl -sS -o response.json -w '%{http_code}' -X POST "$DRAFTS_URL" \
-                -H 'Content-Type: application/json' -H "X-Release-Token: ${RELEASE_CI_TOKEN}" --data @-)
-          cat response.json; echo
-          case "$STATUS" in
-            200|201) echo "✅ Draft ready: Admin tools › Release notes › ${VERSION}" ;;
-            409) echo "::notice::${VERSION} is already published; draft left alone" ;;
-            *) echo "::error::Draft request failed with HTTP ${STATUS}"; exit 1 ;;
-          esac
-
   test-and-coverage:
     needs: prepare-release
     if: needs.prepare-release.outputs.skip != 'true'
@@ -551,6 +490,39 @@ jobs:
           else
             echo "Nothing to commit"
           fi
+
+  # Writes the in-app "What's new" with Claude from the PRs since the previous tag and
+  # publishes it, right after the web deploy (or once web is rejected, so an Android-only
+  # release still gets notes). Users see the popup once they run this version. Admins can
+  # edit the notes later in Admin › Release notes. Never fails the release.
+  publish-release-notes:
+    needs:
+      - prepare-release
+      - deploy-to-production
+    if: ${{ !cancelled() && needs.prepare-release.outputs.skip != 'true' }}
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.prepare-release.outputs.base-version }}
+          fetch-depth: 0
+
+      - name: Write and publish What's new
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RELEASE_CI_TOKEN: ${{ secrets.RELEASE_CI_TOKEN }}
+          PUBLISH_URL: https://wanderer.tomassir.io/api/command/releases/publish
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ] || [ -z "$RELEASE_CI_TOKEN" ]; then
+            echo "::warning::ANTHROPIC_API_KEY or RELEASE_CI_TOKEN not set; no release notes published"
+            exit 0
+          fi
+          .github/scripts/publish-release-notes.sh "${{ needs.prepare-release.outputs.base-version }}"
 
   # Handles the case where the release was skipped (tag already exists)
   # but the version in pubspec.yaml was never bumped after the last release.

@@ -1,4 +1,4 @@
 ## What changed
 
 
-Traveller summary: <!-- One sentence for the in-app "What's new", in travellers' words. Delete this line for internal changes. -->
+Traveller summary: <!-- Optional: one sentence on what travellers notice. Claude reads it when writing the in-app What's new. Delete for internal changes. -->
