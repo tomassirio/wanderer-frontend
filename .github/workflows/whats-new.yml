@@ -18,10 +18,6 @@ on:
         required: false
         type: boolean
         default: false
-  # TEMP: lets the branch run a preview before this workflow is on master.
-  push:
-    branches: [feature/release-notes-shipping]
-    paths: [.github/workflows/whats-new.yml, .github/scripts/publish-release-notes.sh]
 
 jobs:
   whats-new:
@@ -42,5 +38,5 @@ jobs:
           RELEASE_CI_TOKEN: ${{ secrets.RELEASE_CI_TOKEN }}
           PUBLISH_URL: https://wanderer.tomassir.io/api/command/releases/publish
           DRY_RUN: ${{ inputs.publish && '0' || '1' }}
-          FROM_TAG: ${{ github.event_name == 'push' && 'v2.0.5' || inputs.from-tag }}
-        run: .github/scripts/publish-release-notes.sh "${{ inputs.version || '2.1.0' }}"
+          FROM_TAG: ${{ inputs.from-tag }}
+        run: .github/scripts/publish-release-notes.sh "${{ inputs.version }}"
