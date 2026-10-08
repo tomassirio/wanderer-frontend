@@ -1,0 +1,23 @@
+name: TEMP release notes dry run
+on:
+  push:
+    branches: [feature/release-notes-shipping]
+    paths: [.github/workflows/tmp-release-notes-dry-run.yml]
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      models: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: "1"
+        run: |
+          for v in 2.1.0 2.0.6 2.0.4; do
+            echo "::group::$v"; .github/scripts/publish-release-notes.sh "$v"; echo "::endgroup::"
+          done

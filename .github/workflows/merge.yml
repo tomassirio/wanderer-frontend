@@ -491,8 +491,8 @@ jobs:
             echo "Nothing to commit"
           fi
 
-  # Writes the in-app "What's new" with Claude from the PRs since the previous tag and
-  # publishes it, right after the web deploy (or once web is rejected, so an Android-only
+  # Writes the in-app "What's new" from the PRs since the previous tag (a PR's own
+  # "## Release notes" block word for word, GitHub Models for the rest) and publishes it, right after the web deploy (or once web is rejected, so an Android-only
   # release still gets notes). Users see the popup once they run this version. Admins can
   # edit the notes later in Admin › Release notes. Never fails the release.
   publish-release-notes:
@@ -505,6 +505,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+      models: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -514,12 +515,11 @@ jobs:
       - name: Write and publish What's new
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           RELEASE_CI_TOKEN: ${{ secrets.RELEASE_CI_TOKEN }}
           PUBLISH_URL: https://wanderer.tomassir.io/api/command/releases/publish
         run: |
-          if [ -z "$ANTHROPIC_API_KEY" ] || [ -z "$RELEASE_CI_TOKEN" ]; then
-            echo "::warning::ANTHROPIC_API_KEY or RELEASE_CI_TOKEN not set; no release notes published"
+          if [ -z "$RELEASE_CI_TOKEN" ]; then
+            echo "::warning::RELEASE_CI_TOKEN not set; no release notes published"
             exit 0
           fi
           .github/scripts/publish-release-notes.sh "${{ needs.prepare-release.outputs.base-version }}"

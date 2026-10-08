@@ -1,35 +1,67 @@
 #!/usr/bin/env bash
 # Writes the in-app "What's new" for a release and publishes it.
 #
-# Collects the PRs merged since the previous tag, has Claude turn them into notes for
-# travellers (headline + New / Improved / Fixed items), and sends them to the backend's
-# POST /releases/publish. Admins can still edit them afterwards in Admin › Release notes.
+# Collects the PRs merged since the previous tag and sends the backend's
+# POST /releases/publish a headline plus New / Improved / Fixed items for travellers:
+# - a PR's own "## Release notes" block is used word for word, e.g.
+#     ## Release notes
+#     New — Save trips for later
+#     Not ready to go? Save your trip as a plan and come back to it whenever you're ready.
+# - every other PR is written up by GitHub Models (free with the workflow's GITHUB_TOKEN),
+#   which also writes the headline.
+# Admins can still edit the notes afterwards in Admin › Release notes.
 #
 # Usage: publish-release-notes.sh VERSION
-# Env: ANTHROPIC_API_KEY, RELEASE_CI_TOKEN, GH_TOKEN, PUBLISH_URL
+# Env: GH_TOKEN (needs models:read and pull-requests:read), RELEASE_CI_TOKEN, PUBLISH_URL
 #      DRY_RUN=1 prints the notes instead of publishing them.
 set -euo pipefail
 
 VERSION=$1
-MODEL=claude-opus-5-5
+MODEL=openai/gpt-4.1
 
 # Release tags sit on CI commits off master, so take the next lower tag by version rather
 # than walking history.
 PREV_TAG=$(git tag -l 'v*' --sort=-v:refname | awk -v cur="v${VERSION}" 'seen {print; exit} $0 == cur {seen = 1}')
 RANGE="${PREV_TAG:+${PREV_TAG}..}v${VERSION}"
 
+# "New — Title" / next line as text, from a PR body's "## Release notes" section.
+release_notes_block() {
+  awk '
+    /^##[^#]/ { inside = tolower($0) ~ /^## *release notes/; next }
+    !inside { next }
+    { sub(/\r$/, ""); sub(/^[[:space:]]*[-*][[:space:]]*/, "") }
+    # Skip HTML comments (the PR template instructions), even multi-line ones.
+    /<!--/ { comment = 1 }
+    comment { if (/-->/) comment = 0; next }
+    /^[[:space:]]*$/ { next }
+    title == "" && match(tolower($0), /^(new|improved|fixed)[[:space:]]*(—|–|-|:|·)[[:space:]]*/) {
+      type = tolower($0) ~ /^new/ ? "NEW" : tolower($0) ~ /^improved/ ? "IMPROVED" : "FIXED"
+      title = substr($0, RLENGTH + 1); next
+    }
+    title != "" { printf "%s\t%s\t%s\n", type, title, $0; title = "" }
+  '
+}
+
 # Squash-merge subjects end in "(#123)". Internal-only types are left out.
 PRS=""
+WRITTEN='[]'
 while IFS= read -r subject; do
   NUMBER=$(sed -nE 's/.*\(#([0-9]+)\)$/\1/p' <<< "$subject")
   [ -z "$NUMBER" ] && continue
   TYPE=$(sed -nE 's/^([a-zA-Z]+)(\([^)]*\))?!?: .*/\1/p' <<< "$subject" | tr 'A-Z' 'a-z')
   case "$TYPE" in ci|chore|docs|test|refactor|build|style) continue ;; esac
-  BODY=$(gh pr view "$NUMBER" --json body -q .body 2>/dev/null | head -c 6000 || true)
-  PRS+=$'\n\n'"### PR #${NUMBER}: ${subject}"$'\n'"${BODY}"
+  BODY=$(gh pr view "$NUMBER" --json body -q .body 2>/dev/null || true)
+  BLOCK=$(release_notes_block <<< "$BODY")
+  if [ -n "$BLOCK" ]; then
+    WRITTEN=$(jq -c --arg b "$BLOCK" '. + [$b | split("\n")[] | split("\t") | {type: .[0], title: .[1], text: .[2]}]' <<< "$WRITTEN")
+  else
+    # Keep the request inside the free tier's input limit.
+    PRS+=$'\n\n'"### PR #${NUMBER}: ${subject}"$'\n'"$(head -c 3000 <<< "$BODY")"
+  fi
 done < <(git log --pretty=format:%s "$RANGE")
+PRS=$(head -c 24000 <<< "$PRS")
 
-if [ -z "$PRS" ]; then
+if [ -z "$PRS" ] && [ "$WRITTEN" == '[]' ]; then
   echo "No user-facing PRs since ${PREV_TAG:-the start}; no release notes for ${VERSION}"
   exit 0
 fi
@@ -52,39 +84,47 @@ IMPROVED · Plans without a route: Create plans even when you don't know your ro
 FIXED · Achievement counts: Your profile now shows the correct number of unlocked achievements.
 EOF
 
-REQUEST=$(jq -n --arg model "$MODEL" --arg guide "$GUIDE" \
-  --arg prs "Version ${VERSION}. Pull requests since ${PREV_TAG:-the first release}:${PRS}" '{
-  model: $model,
-  max_tokens: 2000,
-  system: $guide,
-  tools: [{
-    name: "release_notes",
-    description: "The What'\''s new notes for this version.",
-    input_schema: {
-      type: "object",
-      required: ["headline", "items"],
-      properties: {
-        headline: {type: "string", maxLength: 80},
-        items: {type: "array", items: {
-          type: "object",
-          required: ["type", "title", "text"],
-          properties: {
-            type: {type: "string", enum: ["NEW", "IMPROVED", "FIXED"]},
-            title: {type: "string", maxLength: 80},
-            text: {type: "string", maxLength: 300}
-          }
-        }}
+USER_MSG="Version ${VERSION}.
+Items already written (do not repeat them, but take them into account for the headline):
+$(jq -r '.[] | "\(.type) · \(.title): \(.text)"' <<< "$WRITTEN")
+
+Pull requests to write up:${PRS:- none}"
+
+SCHEMA='{
+  "type": "object", "additionalProperties": false, "required": ["headline", "items"],
+  "properties": {
+    "headline": {"type": "string"},
+    "items": {"type": "array", "items": {
+      "type": "object", "additionalProperties": false, "required": ["type", "title", "text"],
+      "properties": {
+        "type": {"type": "string", "enum": ["NEW", "IMPROVED", "FIXED"]},
+        "title": {"type": "string"},
+        "text": {"type": "string"}
       }
-    }
-  }],
-  tool_choice: {type: "tool", name: "release_notes"},
-  messages: [{role: "user", content: $prs}]
+    }}
+  }
+}'
+
+REQUEST=$(jq -n --arg model "$MODEL" --arg guide "$GUIDE" --arg user "$USER_MSG" --argjson schema "$SCHEMA" '{
+  model: $model,
+  temperature: 0.3,
+  messages: [{role: "system", content: $guide}, {role: "user", content: $user}],
+  response_format: {type: "json_schema", json_schema: {name: "release_notes", strict: true, schema: $schema}}
 }')
 
-NOTES=$(curl -sS --fail-with-body https://api.anthropic.com/v1/messages \
-    -H "x-api-key: ${ANTHROPIC_API_KEY}" -H 'anthropic-version: 2023-06-01' \
-    -H 'content-type: application/json' --data "$REQUEST" \
-  | jq -c --arg v "$VERSION" '.content[] | select(.type == "tool_use") | .input + {version: $v}')
+RESPONSE=$(curl -sS --fail-with-body https://models.github.ai/inference/chat/completions \
+  -H "Authorization: Bearer ${GH_TOKEN}" -H 'Content-Type: application/json' --data "$REQUEST")
+GENERATED=$(jq -c '.choices[0].message.content | fromjson' <<< "$RESPONSE") || {
+  echo "::error::Unexpected GitHub Models response: $(head -c 500 <<< "$RESPONSE")"; exit 1; }
+
+# PR-written items first within each type; New, Improved, Fixed. Backend length limits apply.
+NOTES=$(jq -c --arg v "$VERSION" --argjson written "$WRITTEN" '
+  {NEW: 0, IMPROVED: 1, FIXED: 2} as $order
+  | {version: $v,
+     headline: (.headline[0:200]),
+     items: ([$written[], .items[]] | to_entries
+       | sort_by($order[.value.type], .key) | map(.value | .title |= .[0:200] | .text |= .[0:500]))}
+' <<< "$GENERATED")
 
 if [ "$(jq '.items | length' <<< "$NOTES")" -eq 0 ]; then
   echo "Nothing noticeable to travellers in ${VERSION}; no release notes"
