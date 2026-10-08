@@ -1567,7 +1567,10 @@ class AppLocalizations {
           _tr('releaseNotesPublishCaption'), {'version': version});
   String get releaseNotesPublished => _tr('releaseNotesPublished');
   String get releaseNotesPublishFailed => _tr('releaseNotesPublishFailed');
-  String get releaseNotesNoDrafts => _tr('releaseNotesNoDrafts');
+  String get releaseNotesNew => _tr('releaseNotesNew');
+  String get releaseNotesLive => _tr('releaseNotesLive');
+  String get releaseNotesVersionHelp => _tr('releaseNotesVersionHelp');
+  String get releaseNotesEmpty => _tr('releaseNotesEmpty');
   String get avatarAdjustTitle => _tr('avatarAdjustTitle');
   String get avatarAdjustHint => _tr('avatarAdjustHint');
   String get avatarPreviewCaption => _tr('avatarPreviewCaption');

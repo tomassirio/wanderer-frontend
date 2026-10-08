@@ -241,9 +241,27 @@ Coverage: ~31%. CI uploads to Codecov. Target: Maintain/improve coverage with ea
    - Testing performed
    - Screenshots for UI changes
    - Related issue number
+   - A `## Release notes` section for anything travellers notice (see below)
 4. **CI checks**: All workflows must pass (format check, analyze, tests, Docker build)
 5. **Code review**: Wait for review approval before merging
 6. **Merging**: Squash and merge to keep history clean
+
+### Release notes (in-app What's new)
+
+When a release is deployed, CI publishes the What's new popup from the PRs in it. A PR's
+`## Release notes` section is used word for word, so write it for travellers, not developers:
+
+```
+## Release notes
+New — Save trips for later
+Not ready to go? Save your trip as a plan and come back to it whenever you're ready.
+Fixed — Achievement counts
+Your profile now shows the correct number of unlocked achievements.
+```
+
+Each item is `New —`, `Improved —` or `Fixed —` plus a short title, then one or two plain
+sentences. Leave out admin tools and internal changes; delete the section if travellers notice
+nothing. PRs without the section are written up automatically.
 
 ### Commit Message Format
 

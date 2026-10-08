@@ -1,0 +1,42 @@
+name: What's new (manual)
+
+# Preview or publish the in-app What's new for any released version, e.g. to try the
+# notes before a release or to publish a version that shipped without them.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Released version, e.g. 2.1.0'
+        required: true
+        type: string
+      from-tag:
+        description: 'Cover changes since this tag instead of the previous release, e.g. v2.0.5'
+        required: false
+        type: string
+      publish:
+        description: 'Publish (unticked: only print the notes)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  whats-new:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Write What's new
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          RELEASE_CI_TOKEN: ${{ secrets.RELEASE_CI_TOKEN }}
+          PUBLISH_URL: https://wanderer.tomassir.io/api/command/releases/publish
+          DRY_RUN: ${{ inputs.publish && '0' || '1' }}
+          FROM_TAG: ${{ inputs.from-tag }}
+        run: .github/scripts/publish-release-notes.sh "${{ inputs.version }}"

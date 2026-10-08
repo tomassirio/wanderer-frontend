@@ -74,3 +74,7 @@ Client tests use a different pattern: inject `MockHttpClient` and `MockTokenStor
 - Command client write operations return **just a trip ID** (HTTP 202); full data arrives via `WebSocketService`
 - Google Maps API key is injected at runtime via env vars — `{{GOOGLE_MAPS_API_KEY}}` placeholder in `web/index.html`
 
+## Pull requests
+
+Add a `## Release notes` section for anything travellers notice; CI publishes it word for word
+as the in-app What's new. Format and rules: `.github/copilot-instructions.md` › Release notes.

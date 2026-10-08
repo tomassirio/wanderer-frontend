@@ -11,6 +11,7 @@ import 'package:wanderer_frontend/core/theme/wanderer_theme.dart';
 import 'package:wanderer_frontend/presentation/helpers/avatar_helper.dart';
 import 'package:wanderer_frontend/presentation/helpers/page_transitions.dart';
 import 'package:wanderer_frontend/presentation/screens/achievements_screen.dart';
+import 'package:wanderer_frontend/presentation/screens/android/android_release_notes_editor.dart';
 import 'package:wanderer_frontend/presentation/screens/admin_users_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/auth_screen.dart';
 import 'package:wanderer_frontend/presentation/screens/friends_followers_screen.dart';
@@ -83,6 +84,7 @@ class _WebSidebarState extends ConsumerState<WebSidebar> {
       5 => const TripPromotionScreen(),
       6 => const AdminUsersScreen(),
       7 => const TripMaintenanceScreen(),
+      AppSidebar.releaseNotesIndex => const ReleaseNotesAdminScreen(),
       _ => null,
     };
     if (screen == null) return;
@@ -138,6 +140,8 @@ class _WebSidebarState extends ConsumerState<WebSidebar> {
           _NavItem(5, Icons.campaign_outlined, l10n.tripPromotion),
           _NavItem(6, Icons.shield_outlined, l10n.userManagement),
           _NavItem(7, Icons.build_outlined, l10n.tripDataMaintenance),
+          _NavItem(AppSidebar.releaseNotesIndex, Icons.description_outlined,
+              l10n.releaseNotesTitle),
         ]),
     ];
 
