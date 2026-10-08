@@ -40,6 +40,17 @@ const String _updateIntervalKey = 'update_interval_seconds';
 /// NOTE: TripTrackingService reads it as "flutter.active_recording_profile".
 const String _activeProfileKey = 'active_recording_profile';
 
+/// Whether the live trip has automatic updates on; without them the chain
+/// only uploads the track, even in Battery saver.
+const String _autoCheckInKey = 'auto_check_in_enabled';
+
+/// Whether the chain posts an "Automatic Update" on each tick.
+bool _chainChecksIn(SharedPreferences prefs) =>
+    (RecordingProfile.fromWireName(prefs.getString(_activeProfileKey)) ??
+            RecordingProfile.saver)
+        .autoCheckIn &&
+    (prefs.getBool(_autoCheckInKey) ?? true);
+
 /// Per-trip profile the user picked; absent means the modality default.
 String _profileKey(String tripId) => 'recording_profile_$tripId';
 
@@ -78,7 +89,7 @@ Future<void> _registerChainTask(SharedPreferences prefs, int intervalSeconds,
       RecordingProfile.fromWireName(prefs.getString(_activeProfileKey)) ??
           RecordingProfile.saver;
   final delaySeconds = profile.uploadSeconds(intervalSeconds);
-  if (profile.autoCheckIn) {
+  if (_chainChecksIn(prefs)) {
     await prefs.setInt(
         _nextCheckInKey,
         DateTime.now()
@@ -118,6 +129,7 @@ Future<void> _clearChain(SharedPreferences prefs) async {
   await prefs.remove(_updateIntervalKey);
   await prefs.remove(_nextCheckInKey);
   await prefs.remove(_activeProfileKey);
+  await prefs.remove(_autoCheckInKey);
 }
 
 /// Whether the chain should keep checking in: only while the backend says the
@@ -211,12 +223,10 @@ void callbackDispatcher() {
           return true;
         }
 
-        // Live: just upload what was recorded. Battery saver: also post the
-        // automatic check-in (which flushes the track first).
-        final profile =
-            RecordingProfile.fromWireName(prefs.getString(_activeProfileKey)) ??
-                RecordingProfile.saver;
-        if (!profile.autoCheckIn) {
+        // Live (or automatic updates off): just upload what was recorded.
+        // Battery saver: also post the automatic check-in (which flushes the
+        // track first).
+        if (!_chainChecksIn(prefs)) {
           final flushed = await TrackSyncService().flush(tripId);
           debugPrint('$tag: synced track (rejected=${flushed.rejectedStatus}, '
               'pending=${flushed.hasPending})');
@@ -398,12 +408,14 @@ class BackgroundUpdateManager {
   /// [intervalSeconds] - The interval between updates (any value, no 15 min minimum)
   /// [modality] - Picks the default [RecordingProfile] when the user hasn't
   /// chosen one for this trip.
+  /// [autoCheckIn] - Whether the trip has automatic updates on; off, the
+  /// chain only uploads the track.
   ///
   /// Also starts the native track recorder with that profile; the chain
   /// then syncs at the profile's upload interval.
   Future<void> startAutoUpdates(
       String tripId, String tripName, int intervalSeconds,
-      {TripModality? modality}) async {
+      {TripModality? modality, bool autoCheckIn = true}) async {
     if (!_isSupported) {
       debugPrint('BackgroundUpdateManager: Not supported on this platform');
       return;
@@ -426,6 +438,7 @@ class BackgroundUpdateManager {
       await prefs.setString(_activeTripNameKey, tripName);
       await prefs.setInt(_updateIntervalKey, intervalSeconds);
       await prefs.setString(_activeProfileKey, profile.wireName);
+      await prefs.setBool(_autoCheckInKey, autoCheckIn);
       await prefs.setBool(_chainedUpdatesActiveKey, true);
 
       // Verify the writes
@@ -486,6 +499,24 @@ class BackgroundUpdateManager {
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getString(_activeTripIdKey) == tripId) {
       await stopAutoUpdates(tripId);
+    }
+  }
+
+  /// Whether [trip] records its track while in progress: single-day trips
+  /// always, multi-day trips only with automatic updates on. Automatic
+  /// updates themselves only decide the automatic check-ins.
+  static bool recordsTrack(Trip trip) =>
+      trip.automaticUpdates || trip.tripModality == TripModality.simple;
+
+  /// Starts (or restarts) recording [trip] when it is in progress and
+  /// [recordsTrack], otherwise stops its chain.
+  Future<void> syncRecording(Trip trip) async {
+    if (!_isSupported) return;
+    if (trip.status == TripStatus.inProgress && recordsTrack(trip)) {
+      await startAutoUpdates(trip.id, trip.name, trip.effectiveUpdateRefresh,
+          modality: trip.tripModality, autoCheckIn: trip.automaticUpdates);
+    } else {
+      await stopAutoUpdatesFor(trip.id);
     }
   }
 

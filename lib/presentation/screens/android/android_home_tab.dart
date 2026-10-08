@@ -234,9 +234,7 @@ class _AndroidHomeTabState extends ConsumerState<AndroidHomeTab> {
           body: result.isQueued ? l10n.checkInQueued : trip.name));
       // Same as trip detail: a check-in restarts the automatic schedule.
       if (!kIsWeb && trip.automaticUpdates) {
-        await BackgroundUpdateManager().startAutoUpdates(
-            trip.id, trip.name, trip.effectiveUpdateRefresh,
-            modality: trip.tripModality);
+        await BackgroundUpdateManager().syncRecording(trip);
       }
       // Give the CQRS read side a moment before reloading.
       Future.delayed(const Duration(seconds: 2), () {
