@@ -21,7 +21,7 @@ on:
   # TEMP: lets the branch run a preview before this workflow is on master.
   push:
     branches: [feature/release-notes-shipping]
-    paths: [.github/workflows/whats-new.yml]
+    paths: [.github/workflows/whats-new.yml, .github/scripts/publish-release-notes.sh]
 
 jobs:
   whats-new:

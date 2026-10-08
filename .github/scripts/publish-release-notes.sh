@@ -121,9 +121,17 @@ else
     messages: [{role: "system", content: $guide}, {role: "user", content: $user}],
     response_format: {type: "json_schema", json_schema: {name: "release_notes", schema: $schema}}
   }')
-  # Gemini's OpenAI-compatible endpoint.
-  RESPONSE=$(curl -sS https://generativelanguage.googleapis.com/v1beta/openai/chat/completions \
-    -H "Authorization: Bearer ${GEMINI_API_KEY}" -H 'Content-Type: application/json' --data "$REQUEST")
+  # Gemini's OpenAI-compatible endpoint. The free tier is often briefly busy (429/503).
+  for delay in 15 30 60 120 0; do
+    CODE=$(curl -sS -o gemini.json -w '%{http_code}' \
+      https://generativelanguage.googleapis.com/v1beta/openai/chat/completions \
+      -H "Authorization: Bearer ${GEMINI_API_KEY}" -H 'Content-Type: application/json' --data "$REQUEST")
+    case "$CODE" in 429|500|502|503|504) ;; *) break ;; esac
+    [ "$delay" -eq 0 ] && break
+    echo "Gemini busy (HTTP ${CODE}), retrying in ${delay}s"
+    sleep "$delay"
+  done
+  RESPONSE=$(cat gemini.json)
   GENERATED=$(jq -ce '.choices[0].message.content | fromjson | select(.headline and .items)' <<< "$RESPONSE" 2>/dev/null) || {
     echo "::error::Unexpected Gemini response: $(head -c 500 <<< "$RESPONSE")"; exit 1; }
 fi
