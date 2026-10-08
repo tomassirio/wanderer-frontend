@@ -39,6 +39,20 @@ class TrackPoint {
         synced: row['synced'] == 1,
       );
 
+  /// From the backend's `{lat, lon, recordedAt}` (`GET …/track-points`,
+  /// `TRACK_UPDATED`). It has no id, so the capture time stands in.
+  factory TrackPoint.fromJson(Map<String, dynamic> json, String tripId) {
+    final recordedAt = DateTime.parse(json['recordedAt'] as String);
+    return TrackPoint(
+      id: recordedAt.toIso8601String(),
+      tripId: tripId,
+      lat: (json['lat'] as num).toDouble(),
+      lon: (json['lon'] as num).toDouble(),
+      recordedAt: recordedAt,
+      synced: true,
+    );
+  }
+
   /// Upload shape for `POST /trips/{tripId}/track-points`.
   Map<String, dynamic> toJson() => {
         'id': id,
