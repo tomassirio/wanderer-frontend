@@ -14,6 +14,7 @@
 # Usage: publish-release-notes.sh VERSION
 # Env: GH_TOKEN (pull-requests:read), RELEASE_CI_TOKEN, PUBLISH_URL,
 #      GEMINI_API_KEY (optional), GEMINI_MODEL (optional, a free-tier Flash model)
+#      FROM_TAG (optional) to cover more than the previous release, e.g. v2.0.5
 #      DRY_RUN=1 prints the notes instead of publishing them.
 set -euo pipefail
 
@@ -22,7 +23,8 @@ MODEL=${GEMINI_MODEL:-gemini-flash-latest}
 
 # Release tags sit on CI commits off master, so take the next lower tag by version rather
 # than walking history.
-PREV_TAG=$(git tag -l 'v*' --sort=-v:refname | awk -v cur="v${VERSION}" 'seen {print; exit} $0 == cur {seen = 1}')
+PREV_TAG=${FROM_TAG:-}
+[ -n "$PREV_TAG" ] || PREV_TAG=$(git tag -l 'v*' --sort=-v:refname | awk -v cur="v${VERSION}" 'seen {print; exit} $0 == cur {seen = 1}')
 RANGE="${PREV_TAG:+${PREV_TAG}..}v${VERSION}"
 
 # "New — Title" / next line as text, from a PR body's "## Release notes" section.
