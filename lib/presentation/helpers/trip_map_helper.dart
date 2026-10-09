@@ -1,3 +1,6 @@
+import 'dart:math' show max;
+
+import 'package:geolocator/geolocator.dart' show Geolocator;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:wanderer_frontend/presentation/helpers/update_markers.dart';
@@ -378,6 +381,42 @@ class TripMapHelper {
       );
       return false;
     }
+  }
+
+  /// [data] with its route drawn from this phone's recorded [track], when
+  /// there is one (otherwise the trip's encoded polyline stays).
+  static MapData withTrack(MapData data, List<TrackPoint> track) {
+    if (track.length < 2) return data;
+    return MapData(markers: data.markers, polylines: {
+      ...data.polylines.where((p) => p.polylineId.value != 'route'),
+      Polyline(
+        polylineId: const PolylineId('route'),
+        points: [for (final p in track) LatLng(p.lat, p.lon)],
+        color: Colors.blue,
+        width: 5,
+        startCap: Cap.roundCap,
+        endCap: Cap.roundCap,
+        jointType: JointType.round,
+      ),
+    });
+  }
+
+  /// Length of [track] in km without GPS jitter, the way the backend counts
+  /// it: points with accuracy over 100 m, or closer than max(accuracy, 5 m)
+  /// to the previous kept point, are skipped.
+  static double trackDistanceKm(List<TrackPoint> track) {
+    TrackPoint? last;
+    var metres = 0.0;
+    for (final p in track) {
+      if ((p.accuracyM ?? 0) > 100) continue;
+      if (last != null) {
+        final d = Geolocator.distanceBetween(last.lat, last.lon, p.lat, p.lon);
+        if (d < max(p.accuracyM ?? 0, 5)) continue;
+        metres += d;
+      }
+      last = p;
+    }
+    return metres / 1000;
   }
 
   /// Adds a straight-line polyline connecting the waypoints.

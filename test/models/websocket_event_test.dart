@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/data/models/trip_models.dart';
 import 'package:wanderer_frontend/data/models/websocket/websocket_event.dart';
 
 void main() {
@@ -262,6 +264,103 @@ void main() {
           WebSocketEventType.notificationCreated,
         );
       });
+    });
+  });
+
+  group('WebSocketEvent - Live track events', () {
+    test('parses TRACK_UPDATED and TRIP_UPDATE_ENRICHED types', () {
+      expect(WebSocketEvent.parseEventType('TRACK_UPDATED'),
+          WebSocketEventType.trackUpdated);
+      expect(WebSocketEvent.parseEventType('TRIP_UPDATE_ENRICHED'),
+          WebSocketEventType.tripUpdateEnriched);
+    });
+
+    test('TrackUpdatedEvent.fromJson reads points and distance', () {
+      final event = TrackUpdatedEvent.fromJson({
+        'type': 'TRACK_UPDATED',
+        'payload': {
+          'tripId': 'trip-1',
+          'points': [
+            {'lat': 52.09, 'lon': 5.12, 'recordedAt': '2026-10-08T09:15:02Z'},
+            {'lat': 52.1, 'lon': 5.13, 'recordedAt': '2026-10-08T09:15:12Z'},
+          ],
+          'distanceKm': 3.4,
+        },
+      });
+
+      expect(event.tripId, 'trip-1');
+      expect(event.distanceKm, 3.4);
+      expect(event.points, hasLength(2));
+      expect(event.points.first.tripId, 'trip-1');
+      expect(event.points.first.lat, 52.09);
+      expect(event.points.first.lon, 5.12);
+      expect(
+          event.points.last.recordedAt, DateTime.utc(2026, 10, 8, 9, 15, 12));
+    });
+
+    test('TrackUpdatedEvent.fromJson tolerates missing points', () {
+      final event = TrackUpdatedEvent.fromJson({
+        'payload': {'tripId': 'trip-1'},
+      });
+      expect(event.points, isEmpty);
+      expect(event.distanceKm, isNull);
+    });
+
+    test('TripUpdateEnrichedEvent fills place and weather of its check-in', () {
+      final event = TripUpdateEnrichedEvent.fromJson({
+        'type': 'TRIP_UPDATE_ENRICHED',
+        'payload': {
+          'tripId': 'trip-1',
+          'tripUpdateId': 'u-1',
+          'city': 'Utrecht',
+          'country': 'Netherlands',
+          'temperatureCelsius': 14.5,
+          'weatherCondition': 'CLOUDY',
+        },
+      });
+      TripLocation update(String id) => TripLocation(
+          id: id,
+          latitude: 52,
+          longitude: 5,
+          timestamp: DateTime.utc(2026, 10, 8));
+
+      final enriched = event.applyTo(update('u-1'));
+      expect(enriched.city, 'Utrecht');
+      expect(enriched.country, 'Netherlands');
+      expect(enriched.temperatureCelsius, 14.5);
+      expect(enriched.weatherCondition, WeatherCondition.cloudy);
+
+      final other = update('u-2');
+      expect(event.applyTo(other), same(other));
+    });
+
+    test('TripUpdatedEvent uses the payload tripUpdateId and timestamp', () {
+      final event = TripUpdatedEvent.fromJson({
+        'type': 'TRIP_UPDATED',
+        'timestamp': '2026-10-08T10:00:00Z',
+        'payload': {
+          'tripId': 'trip-1',
+          'tripUpdateId': 'u-1',
+          'latitude': 52.0,
+          'longitude': 5.0,
+          'timestamp': '2026-10-08T09:30:00Z',
+        },
+      });
+
+      expect(event.tripUpdateId, 'u-1');
+      // Captured offline at 09:30, sent at 10:00.
+      expect(event.timestamp, DateTime.utc(2026, 10, 8, 9, 30));
+    });
+
+    test('TripUpdatedEvent from an older backend has no tripUpdateId', () {
+      final event = TripUpdatedEvent.fromJson({
+        'type': 'TRIP_UPDATED',
+        'timestamp': '2026-10-08T10:00:00Z',
+        'payload': {'tripId': 'trip-1', 'latitude': 52.0, 'longitude': 5.0},
+      });
+
+      expect(event.tripUpdateId, isNull);
+      expect(event.timestamp, DateTime.utc(2026, 10, 8, 10));
     });
   });
 }

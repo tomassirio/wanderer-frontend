@@ -13,6 +13,7 @@ export 'command/release_command_client.dart';
 export 'command/trip_command_client.dart';
 export 'command/trip_plan_command_client.dart';
 export 'command/trip_update_command_client.dart';
+export 'command/track_point_command_client.dart';
 
 // Export Query Clients
 export 'query/achievement_query_client.dart';

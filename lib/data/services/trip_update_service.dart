@@ -9,22 +9,44 @@ import 'package:wanderer_frontend/core/errors/app_exception.dart';
 import 'package:wanderer_frontend/data/client/command/trip_update_command_client.dart';
 import 'package:wanderer_frontend/data/models/domain/location_update_result.dart';
 import 'package:wanderer_frontend/data/models/requests/trip_update_request.dart';
+import 'package:wanderer_frontend/data/services/track_sync_service.dart';
+import 'package:wanderer_frontend/data/storage/track_store.dart';
+import 'package:uuid/uuid.dart';
 
 /// Service for sending trip updates (location, battery, message)
 /// Handles both automatic and manual updates
+///
+/// On Android a check-in goes through the offline outbox ([TrackStore]):
+/// it is saved with a client id and capture time, then [TrackSyncService]
+/// sends it — now or on a later sync. Web and iOS post directly.
 class TripUpdateService {
   final TripUpdateCommandClient _tripUpdateCommandClient;
   final Battery _battery;
+  final TrackStore _trackStore;
+  final TrackSyncService _trackSync;
+  final bool _useOutbox;
 
   TripUpdateService({
     TripUpdateCommandClient? tripUpdateCommandClient,
     Battery? battery,
+    TrackStore? trackStore,
+    TrackSyncService? trackSyncService,
+    bool? useOutbox,
   })  : _tripUpdateCommandClient =
             tripUpdateCommandClient ?? TripUpdateCommandClient(),
-        _battery = battery ?? Battery();
+        _battery = battery ?? Battery(),
+        _trackStore = trackStore ?? TrackStore(),
+        _trackSync = trackSyncService ??
+            TrackSyncService(
+                store: trackStore,
+                tripUpdateCommandClient: tripUpdateCommandClient),
+        _useOutbox = useOutbox ?? (!kIsWeb && Platform.isAndroid);
 
   /// Message used for automatic updates
   static const String automaticUpdateMessage = 'Automatic Update';
+
+  /// A recorded track point younger than this stands in for a new GPS fix.
+  static const Duration recentFixMaxAge = Duration(minutes: 2);
 
   /// Sends a trip update with current location and battery
   ///
@@ -44,37 +66,64 @@ class TripUpdateService {
     debugPrint(
         'TripUpdateService: 🚀 sendUpdate START (tripId=${tripId.substring(0, 8)}..., auto=$isAutomatic)');
 
-    // Get current location (returns failure reason if it fails)
-    final locationResult = await _getCurrentLocation();
+    final isMarker = updateType != null && updateType != TripUpdateType.regular;
+    final locationResult = await _fixFor(tripId);
     debugPrint(
         'TripUpdateService: 📍 Location fetch completed in ${sw.elapsedMilliseconds}ms '
         '— success=${locationResult.failureReason == null}');
 
-    if (locationResult.failureReason != null) {
+    // Lifecycle markers must not be lost to a missing fix (outbox only:
+    // older backends still require a location).
+    if (locationResult.failureReason != null && !(_useOutbox && isMarker)) {
       debugPrint(
           'TripUpdateService: ❌ Location failed: ${locationResult.failureReason}');
       return LocationUpdateResult.failure(locationResult.failureReason!);
     }
 
-    final position = locationResult.position!;
-    debugPrint(
-        'TripUpdateService: 📍 Position: ${position.latitude.toStringAsFixed(4)}, '
-        '${position.longitude.toStringAsFixed(4)}');
+    final latitude = locationResult.latitude;
+    final longitude = locationResult.longitude;
+    final batteryLevel = await _getBatteryLevel();
+    final updateMessage =
+        isAutomatic ? automaticUpdateMessage : (message ?? '');
+
+    if (_useOutbox) {
+      final id = const Uuid().v4();
+      final now = DateTime.now();
+      final request = TripUpdateRequest(
+        latitude: latitude,
+        longitude: longitude,
+        message: updateMessage.isNotEmpty ? updateMessage : null,
+        battery: batteryLevel,
+        updateType: updateType,
+        id: id,
+        recordedAt: now,
+      );
+      await _trackStore.addPendingCheckIn(PendingCheckIn(
+          id: id, tripId: tripId, json: request.toJson(), createdAt: now));
+      final flushed = await _trackSync.flush(tripId);
+      debugPrint('TripUpdateService: outbox flush done '
+          '(${sw.elapsedMilliseconds}ms) rejected=${flushed.rejectedStatus}');
+      final status = flushed.rejectedStatus;
+      if (status != null) {
+        return LocationUpdateResult.failureWithDetail(
+            LocationFailureReason.serverError, 'HTTP $status',
+            statusCode: status);
+      }
+      return await _trackStore.isPending(id)
+          ? LocationUpdateResult.queued(
+              latitude: latitude,
+              longitude: longitude,
+              batteryLevel: batteryLevel)
+          : LocationUpdateResult.success(
+              latitude: latitude,
+              longitude: longitude,
+              batteryLevel: batteryLevel);
+    }
 
     try {
-      // Get battery level
-      final batteryLevel = await _getBatteryLevel();
-      debugPrint(
-          'TripUpdateService: 🔋 Battery: $batteryLevel% (${sw.elapsedMilliseconds}ms)');
-
-      // Determine message
-      final updateMessage =
-          isAutomatic ? automaticUpdateMessage : (message ?? '');
-
-      // Create and send request
       final request = TripUpdateRequest(
-        latitude: position.latitude,
-        longitude: position.longitude,
+        latitude: latitude,
+        longitude: longitude,
         message: updateMessage.isNotEmpty ? updateMessage : null,
         battery: batteryLevel,
         updateType: updateType,
@@ -87,8 +136,8 @@ class TripUpdateService {
           'TripUpdateService: ✅ API call SUCCESS (${sw.elapsedMilliseconds}ms total)');
 
       return LocationUpdateResult.success(
-        latitude: position.latitude,
-        longitude: position.longitude,
+        latitude: latitude,
+        longitude: longitude,
         batteryLevel: batteryLevel,
       );
     } on SocketException catch (e) {
@@ -112,6 +161,22 @@ class TripUpdateService {
         statusCode: e is ApiException ? e.statusCode : null,
       );
     }
+  }
+
+  /// The trip's latest recorded point when it is fresh, else a GPS fix.
+  Future<_LocationFetchResult> _fixFor(String tripId) async {
+    if (_useOutbox) {
+      try {
+        final p = await _trackStore.latestPoint(tripId);
+        if (p != null &&
+            DateTime.now().difference(p.recordedAt) < recentFixMaxAge) {
+          return _LocationFetchResult._(latitude: p.lat, longitude: p.lon);
+        }
+      } catch (e) {
+        debugPrint('TripUpdateService: track lookup failed: $e');
+      }
+    }
+    return _getCurrentLocation();
   }
 
   /// Gets the current location **without** requesting permissions.
@@ -218,16 +283,18 @@ class TripUpdateService {
   }
 }
 
-/// Internal helper to carry either a [Position] or a failure reason
+/// Internal helper to carry either a fix or a failure reason
 /// out of [TripUpdateService._getCurrentLocation].
 class _LocationFetchResult {
-  final Position? position;
+  final double? latitude;
+  final double? longitude;
   final LocationFailureReason? failureReason;
 
-  const _LocationFetchResult._({this.position, this.failureReason});
+  const _LocationFetchResult._(
+      {this.latitude, this.longitude, this.failureReason});
 
-  factory _LocationFetchResult.ok(Position position) =>
-      _LocationFetchResult._(position: position);
+  factory _LocationFetchResult.ok(Position position) => _LocationFetchResult._(
+      latitude: position.latitude, longitude: position.longitude);
 
   factory _LocationFetchResult.fail(LocationFailureReason reason) =>
       _LocationFetchResult._(failureReason: reason);

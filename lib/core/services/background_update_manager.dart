@@ -1,8 +1,10 @@
+import 'dart:async' show unawaited;
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart'
     show kIsWeb, debugPrint, visibleForTesting;
 import 'package:flutter/services.dart' show MethodChannel;
-import 'package:flutter/widgets.dart' show WidgetsFlutterBinding;
+import 'package:flutter/widgets.dart'
+    show AppLifecycleListener, WidgetsFlutterBinding;
 import 'package:geolocator_android/geolocator_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
@@ -13,6 +15,7 @@ import 'package:wanderer_frontend/core/l10n/translation_loader.dart';
 import 'package:wanderer_frontend/core/services/notification_service.dart';
 import 'package:wanderer_frontend/data/models/domain/location_update_result.dart';
 import 'package:wanderer_frontend/data/models/trip_models.dart';
+import 'package:wanderer_frontend/data/services/track_sync_service.dart';
 import 'package:wanderer_frontend/data/services/trip_service.dart';
 import 'package:wanderer_frontend/data/services/trip_update_service.dart';
 import 'package:wanderer_frontend/data/storage/token_refresh_manager.dart';
@@ -32,6 +35,24 @@ const String _activeTripNameKey = 'active_trip_name_for_updates';
 
 /// Key for storing the desired update interval (seconds)
 const String _updateIntervalKey = 'update_interval_seconds';
+
+/// Wire name of the live trip's [RecordingProfile].
+/// NOTE: TripTrackingService reads it as "flutter.active_recording_profile".
+const String _activeProfileKey = 'active_recording_profile';
+
+/// Whether the live trip has automatic updates on; without them the chain
+/// only uploads the track, even in Battery saver.
+const String _autoCheckInKey = 'auto_check_in_enabled';
+
+/// Whether the chain posts an "Automatic Update" on each tick.
+bool _chainChecksIn(SharedPreferences prefs) =>
+    (RecordingProfile.fromWireName(prefs.getString(_activeProfileKey)) ??
+            RecordingProfile.saver)
+        .autoCheckIn &&
+    (prefs.getBool(_autoCheckInKey) ?? true);
+
+/// Per-trip profile the user picked; absent means the modality default.
+String _profileKey(String tripId) => 'recording_profile_$tripId';
 
 /// Key to signal the background isolate that chained updates are active
 const String _chainedUpdatesActiveKey = 'chained_updates_active';
@@ -56,20 +77,37 @@ Future<void> _scheduleNextChainedTask(SharedPreferences prefs) async {
     return;
   }
 
+  await _registerChainTask(prefs, intervalSeconds, ExistingWorkPolicy.keep);
+}
+
+/// Registers the next chain tick after the active profile's upload interval
+/// (the trip's [intervalSeconds] in Battery saver) and records when the next
+/// automatic check-in is due, if the profile makes one.
+Future<void> _registerChainTask(SharedPreferences prefs, int intervalSeconds,
+    ExistingWorkPolicy policy) async {
+  final profile =
+      RecordingProfile.fromWireName(prefs.getString(_activeProfileKey)) ??
+          RecordingProfile.saver;
+  final delaySeconds = profile.uploadSeconds(intervalSeconds);
+  if (_chainChecksIn(prefs)) {
+    await prefs.setInt(
+        _nextCheckInKey,
+        DateTime.now()
+            .add(Duration(seconds: delaySeconds))
+            .millisecondsSinceEpoch);
+  } else {
+    await prefs.remove(_nextCheckInKey);
+  }
+
   final taskId = 'trip_update_chain_${DateTime.now().millisecondsSinceEpoch}';
-  await prefs.setInt(
-      _nextCheckInKey,
-      DateTime.now()
-          .add(Duration(seconds: intervalSeconds))
-          .millisecondsSinceEpoch);
-  debugPrint('BG_CHAIN: Scheduling next task in ${intervalSeconds}s '
-      '(${(intervalSeconds / 60).toStringAsFixed(1)} min), taskId=$taskId');
+  debugPrint('BG_CHAIN: Scheduling next task in ${delaySeconds}s '
+      '(${profile.wireName}), taskId=$taskId');
 
   await Workmanager().registerOneOffTask(
     taskId,
     tripUpdateTaskName,
     tag: _chainedTaskTag,
-    initialDelay: Duration(seconds: intervalSeconds),
+    initialDelay: Duration(seconds: delaySeconds),
     constraints: Constraints(
       networkType: NetworkType.connected,
       requiresBatteryNotLow: false,
@@ -77,10 +115,21 @@ Future<void> _scheduleNextChainedTask(SharedPreferences prefs) async {
       requiresDeviceIdle: false,
       requiresStorageNotLow: false,
     ),
-    existingWorkPolicy: ExistingWorkPolicy.keep,
+    existingWorkPolicy: policy,
     backoffPolicy: BackoffPolicy.linear,
     backoffPolicyDelay: const Duration(minutes: 1),
   );
+}
+
+/// Clears the chain's preferences so no further tick schedules a successor.
+Future<void> _clearChain(SharedPreferences prefs) async {
+  await prefs.setBool(_chainedUpdatesActiveKey, false);
+  await prefs.remove(_activeTripIdKey);
+  await prefs.remove(_activeTripNameKey);
+  await prefs.remove(_updateIntervalKey);
+  await prefs.remove(_nextCheckInKey);
+  await prefs.remove(_activeProfileKey);
+  await prefs.remove(_autoCheckInKey);
 }
 
 /// Whether the chain should keep checking in: only while the backend says the
@@ -170,11 +219,22 @@ void callbackDispatcher() {
           debugPrint('$tag: Trip $tripId is not IN_PROGRESS — ending chain');
           // The foreground service can only be stopped from the UI isolate;
           // initialize() does that on the next app start.
-          await prefs.setBool(_chainedUpdatesActiveKey, false);
-          await prefs.remove(_activeTripIdKey);
-          await prefs.remove(_activeTripNameKey);
-          await prefs.remove(_updateIntervalKey);
-          await prefs.remove(_nextCheckInKey);
+          await _clearChain(prefs);
+          return true;
+        }
+
+        // Live (or automatic updates off): just upload what was recorded.
+        // Battery saver: also post the automatic check-in (which flushes the
+        // track first).
+        if (!_chainChecksIn(prefs)) {
+          final flushed = await TrackSyncService().flush(tripId);
+          debugPrint('$tag: synced track (rejected=${flushed.rejectedStatus}, '
+              'pending=${flushed.hasPending})');
+          if (flushed.rejectedStatus != null) {
+            await _clearChain(prefs);
+          } else {
+            await _scheduleNextChainedTask(prefs);
+          }
           return true;
         }
 
@@ -199,11 +259,7 @@ void callbackDispatcher() {
           if (result.statusCode == 403 ||
               result.statusCode == 404 ||
               result.statusCode == 409) {
-            await prefs.setBool(_chainedUpdatesActiveKey, false);
-            await prefs.remove(_activeTripIdKey);
-            await prefs.remove(_activeTripNameKey);
-            await prefs.remove(_updateIntervalKey);
-            await prefs.remove(_nextCheckInKey);
+            await _clearChain(prefs);
             return true;
           }
         }
@@ -299,6 +355,7 @@ class BackgroundUpdateManager {
   BackgroundUpdateManager._internal();
 
   bool _isInitialized = false;
+  AppLifecycleListener? _resumeListener;
 
   /// MethodChannel used to start/stop the native [TripTrackingService].
   static const MethodChannel _trackingChannel = MethodChannel(
@@ -327,6 +384,10 @@ class BackgroundUpdateManager {
         isInDebugMode: false,
       );
       _isInitialized = true;
+      // Upload whatever was recorded or queued while we were away.
+      _resumeListener ??=
+          AppLifecycleListener(onResume: () => TrackSyncService().flushAll());
+      unawaited(TrackSyncService().flushAll());
       // A chain the background task ended (trip no longer live) leaves the
       // tracking service running; stop it.
       final prefs = await SharedPreferences.getInstance();
@@ -345,8 +406,16 @@ class BackgroundUpdateManager {
   /// [tripId] - The ID of the trip to send updates for
   /// [tripName] - The name of the trip (shown in notifications)
   /// [intervalSeconds] - The interval between updates (any value, no 15 min minimum)
+  /// [modality] - Picks the default [RecordingProfile] when the user hasn't
+  /// chosen one for this trip.
+  /// [autoCheckIn] - Whether the trip has automatic updates on; off, the
+  /// chain only uploads the track.
+  ///
+  /// Also starts the native track recorder with that profile; the chain
+  /// then syncs at the profile's upload interval.
   Future<void> startAutoUpdates(
-      String tripId, String tripName, int intervalSeconds) async {
+      String tripId, String tripName, int intervalSeconds,
+      {TripModality? modality, bool autoCheckIn = true}) async {
     if (!_isSupported) {
       debugPrint('BackgroundUpdateManager: Not supported on this platform');
       return;
@@ -364,15 +433,13 @@ class BackgroundUpdateManager {
 
       // Store trip ID and interval in shared preferences for the background task
       final prefs = await SharedPreferences.getInstance();
+      final profile = await recordingProfileFor(tripId, modality);
       await prefs.setString(_activeTripIdKey, tripId);
       await prefs.setString(_activeTripNameKey, tripName);
       await prefs.setInt(_updateIntervalKey, intervalSeconds);
+      await prefs.setString(_activeProfileKey, profile.wireName);
+      await prefs.setBool(_autoCheckInKey, autoCheckIn);
       await prefs.setBool(_chainedUpdatesActiveKey, true);
-      await prefs.setInt(
-          _nextCheckInKey,
-          DateTime.now()
-              .add(Duration(seconds: intervalSeconds))
-              .millisecondsSinceEpoch);
 
       // Verify the writes
       debugPrint('BackgroundUpdateManager: 📝 Stored: tripId=$tripId, '
@@ -382,31 +449,14 @@ class BackgroundUpdateManager {
       // Schedule the first one-off task with the desired delay.
       // The foreground service is started AFTER scheduling succeeds so that it
       // is never left running if the WorkManager registration throws.
-      final taskId =
-          'trip_update_chain_${DateTime.now().millisecondsSinceEpoch}';
-
-      await Workmanager().registerOneOffTask(
-        taskId,
-        tripUpdateTaskName,
-        tag: _chainedTaskTag,
-        initialDelay: Duration(seconds: intervalSeconds),
-        constraints: Constraints(
-          networkType: NetworkType.connected,
-          requiresBatteryNotLow: false,
-          requiresCharging: false,
-          requiresDeviceIdle: false,
-          requiresStorageNotLow: false,
-        ),
-        existingWorkPolicy: ExistingWorkPolicy.replace,
-        backoffPolicy: BackoffPolicy.linear,
-        backoffPolicyDelay: const Duration(minutes: 1),
-      );
+      await _registerChainTask(
+          prefs, intervalSeconds, ExistingWorkPolicy.replace);
 
       // Start the foreground service AFTER WorkManager scheduling succeeds.
       // An active foreground service keeps the app process out of Doze mode,
       // ensuring the WorkManager tasks above fire at the configured interval
-      // even when the phone is locked.
-      await _startForegroundService(tripName);
+      // even when the phone is locked. It also records the track.
+      await _startForegroundService(tripName, tripId, profile);
 
       debugPrint(
           'BackgroundUpdateManager: ✅ Started auto updates for trip $tripId '
@@ -427,11 +477,7 @@ class BackgroundUpdateManager {
       final prefs = await SharedPreferences.getInstance();
       // Mark chained updates as inactive FIRST so any in-flight task
       // that completes won't schedule a successor.
-      await prefs.setBool(_chainedUpdatesActiveKey, false);
-      await prefs.remove(_activeTripIdKey);
-      await prefs.remove(_activeTripNameKey);
-      await prefs.remove(_updateIntervalKey);
-      await prefs.remove(_nextCheckInKey);
+      await _clearChain(prefs);
 
       // Stop the foreground service so the app can enter Doze when idle
       await _stopForegroundService();
@@ -453,6 +499,81 @@ class BackgroundUpdateManager {
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getString(_activeTripIdKey) == tripId) {
       await stopAutoUpdates(tripId);
+    }
+  }
+
+  /// Whether [trip] records its track while in progress: single-day trips
+  /// always, multi-day trips only with automatic updates on. Automatic
+  /// updates themselves only decide the automatic check-ins.
+  static bool recordsTrack(Trip trip) =>
+      trip.automaticUpdates || trip.tripModality == TripModality.simple;
+
+  /// Whether this phone is recording [tripId] right now.
+  static Future<bool> isRecording(String tripId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return (prefs.getBool(_chainedUpdatesActiveKey) ?? false) &&
+        prefs.getString(_activeTripIdKey) == tripId;
+  }
+
+  /// Starts (or restarts) recording [trip] when it is in progress and
+  /// [recordsTrack], otherwise stops its chain.
+  Future<void> syncRecording(Trip trip) async {
+    if (!_isSupported) return;
+    if (trip.status == TripStatus.inProgress && recordsTrack(trip)) {
+      await startAutoUpdates(trip.id, trip.name, trip.effectiveUpdateRefresh,
+          modality: trip.tripModality, autoCheckIn: trip.automaticUpdates);
+    } else {
+      await stopAutoUpdatesFor(trip.id);
+    }
+  }
+
+  /// Final flush before a rest / pause / finish: stops recording [tripId]
+  /// (so no point lands after the status change) and uploads the rest.
+  /// Call it before changing the status; offline, the data stays queued.
+  Future<void> stopAndFlush(String tripId) async {
+    if (!_isSupported) return;
+    await stopAutoUpdatesFor(tripId);
+    // Don't hold the status change hostage to a slow network.
+    await TrackSyncService().flush(tripId).timeout(const Duration(seconds: 15),
+        onTimeout: () => (rejectedStatus: null, hasPending: true));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Recording profile
+  // ---------------------------------------------------------------------------
+
+  /// The profile [tripId] records with: the user's choice for that trip, or
+  /// the default for its [modality].
+  static Future<RecordingProfile> recordingProfileFor(
+      String tripId, TripModality? modality) async {
+    final prefs = await SharedPreferences.getInstance();
+    return RecordingProfile.fromWireName(
+            prefs.getString(_profileKey(tripId))) ??
+        RecordingProfile.defaultFor(modality);
+  }
+
+  /// [recordingProfileFor] for [trip].
+  Future<RecordingProfile> recordingProfile(Trip trip) =>
+      recordingProfileFor(trip.id, trip.tripModality);
+
+  /// Stores the user's [profile] for [trip] and, if it is the live trip,
+  /// applies it right away (recorder and sync interval).
+  Future<void> setRecordingProfile(Trip trip, RecordingProfile profile) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_profileKey(trip.id), profile.wireName);
+    if (!_isSupported ||
+        !(prefs.getBool(_chainedUpdatesActiveKey) ?? false) ||
+        prefs.getString(_activeTripIdKey) != trip.id) {
+      return;
+    }
+    await prefs.setString(_activeProfileKey, profile.wireName);
+    try {
+      await _registerChainTask(prefs, prefs.getInt(_updateIntervalKey) ?? 900,
+          ExistingWorkPolicy.replace);
+      await _trackingChannel
+          .invokeMethod<void>('setProfile', {'profile': profile.wireName});
+    } catch (e) {
+      debugPrint('BackgroundUpdateManager: ⚠️ Could not apply profile: $e');
     }
   }
 
@@ -507,11 +628,7 @@ class BackgroundUpdateManager {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_chainedUpdatesActiveKey, false);
-      await prefs.remove(_activeTripIdKey);
-      await prefs.remove(_activeTripNameKey);
-      await prefs.remove(_updateIntervalKey);
-      await prefs.remove(_nextCheckInKey);
+      await _clearChain(prefs);
 
       await _stopForegroundService();
 
@@ -575,10 +692,12 @@ class BackgroundUpdateManager {
             await _showLive();
           }
         case NotificationService.actionPause:
+          await stopAndFlush(tripId);
           await TripService().changeStatus(
               tripId, ChangeStatusRequest(status: TripStatus.paused));
           await _endLive(tripId);
         case NotificationService.actionRest:
+          await stopAndFlush(tripId);
           await TripService().toggleDay(tripId);
           final day = _live?.trip.currentDay;
           await TripUpdateService().sendUpdate(
@@ -609,10 +728,14 @@ class BackgroundUpdateManager {
   /// keeps the app process active (i.e. not subject to Doze mode), which lets
   /// WorkManager tasks fire at their configured intervals even when the phone
   /// is locked and the screen is off.
-  Future<void> _startForegroundService(String tripName) async {
+  Future<void> _startForegroundService(
+      String tripName, String tripId, RecordingProfile profile) async {
     try {
-      await _trackingChannel
-          .invokeMethod<void>('startTracking', {'tripName': tripName});
+      await _trackingChannel.invokeMethod<void>('startTracking', {
+        'tripName': tripName,
+        'tripId': tripId,
+        'profile': profile.wireName,
+      });
       debugPrint(
           'BackgroundUpdateManager: 📱 Foreground service started (trip=$tripName)');
     } catch (e) {

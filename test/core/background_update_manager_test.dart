@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wanderer_frontend/core/constants/enums.dart';
+import 'package:wanderer_frontend/core/services/background_update_manager.dart';
 import 'package:wanderer_frontend/data/models/domain/trip.dart';
 
 void main() {
@@ -62,6 +64,39 @@ void main() {
           : intervalSeconds;
 
       expect(clampedInterval, Trip.minUpdateRefresh);
+    });
+  });
+
+  group('BackgroundUpdateManager.recordsTrack', () {
+    Trip trip(TripModality modality, {required bool auto}) => Trip(
+          id: 't',
+          userId: 'u',
+          name: 'Trip',
+          username: 'user',
+          visibility: Visibility.public,
+          status: TripStatus.inProgress,
+          tripModality: modality,
+          automaticUpdates: auto,
+          createdAt: DateTime(2026),
+          updatedAt: DateTime(2026),
+        );
+
+    test('single-day trips always record', () {
+      expect(
+          BackgroundUpdateManager.recordsTrack(
+              trip(TripModality.simple, auto: false)),
+          isTrue);
+    });
+
+    test('multi-day trips record only with automatic updates', () {
+      expect(
+          BackgroundUpdateManager.recordsTrack(
+              trip(TripModality.multiDay, auto: true)),
+          isTrue);
+      expect(
+          BackgroundUpdateManager.recordsTrack(
+              trip(TripModality.multiDay, auto: false)),
+          isFalse);
     });
   });
 }

@@ -1322,6 +1322,16 @@ class AppLocalizations {
       TranslationTemplate.format(_tr('homeAutoEvery'), {'interval': interval});
   String get homeCheckInNow => _tr('homeCheckInNow');
   String get homeCheckedIn => _tr('homeCheckedIn');
+  String get checkInQueued => _tr('checkInQueued');
+  String get recordingTitle => _tr('recordingTitle');
+  String get recordingLive => _tr('recordingLive');
+  String get recordingLiveCaption => _tr('recordingLiveCaption');
+  String get recordingSaver => _tr('recordingSaver');
+  String get recordingSaverCaption => _tr('recordingSaverCaption');
+  String recordingSaverCheckIns(Object interval) => TranslationTemplate.format(
+      _tr('recordingSaverCheckIns'), {'interval': interval});
+  String recordingStrip(Object profile) =>
+      TranslationTemplate.format(_tr('recordingStrip'), {'profile': profile});
   String get homeOpenMap => _tr('homeOpenMap');
   String get homeDrafts => _tr('homeDrafts');
   String get homeBadges => _tr('homeBadges');

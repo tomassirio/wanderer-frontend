@@ -148,6 +148,8 @@ class ApiEndpoints {
 
   // Trip Update Command endpoints (use commandBaseUrl)
   static String tripUpdates(String tripId) => '/trips/$tripId/updates';
+  static String tripTrackPoints(String tripId) =>
+      '/trips/$tripId/track-points';
 
   // Comment Command endpoints (use commandBaseUrl)
   static String tripComments(String tripId) => '/trips/$tripId/comments';

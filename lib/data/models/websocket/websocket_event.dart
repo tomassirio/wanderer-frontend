@@ -1,4 +1,6 @@
 import '../../../core/constants/enums.dart';
+import '../domain/track_point.dart';
+import '../domain/trip_location.dart';
 
 /// Types of WebSocket events
 enum WebSocketEventType {
@@ -13,6 +15,8 @@ enum WebSocketEventType {
   // Trip update events
   tripUpdateCreated,
   polylineUpdated,
+  trackUpdated,
+  tripUpdateEnriched,
 
   // Comment events
   commentAdded,
@@ -89,6 +93,10 @@ class WebSocketEvent {
         return WebSocketEventType.tripUpdateCreated;
       case 'POLYLINE_UPDATED':
         return WebSocketEventType.polylineUpdated;
+      case 'TRACK_UPDATED':
+        return WebSocketEventType.trackUpdated;
+      case 'TRIP_UPDATE_ENRICHED':
+        return WebSocketEventType.tripUpdateEnriched;
 
       // Comment events
       case 'COMMENT_ADDED':
@@ -214,8 +222,12 @@ class TripUpdatedEvent extends WebSocketEvent {
   final String? updateType;
   final double? distanceSoFarKm;
 
+  /// The check-in's id (newer backends); null on older ones.
+  final String? tripUpdateId;
+
   TripUpdatedEvent({
     required String tripId,
+    this.tripUpdateId,
     this.latitude,
     this.longitude,
     this.batteryLevel,
@@ -233,8 +245,13 @@ class TripUpdatedEvent extends WebSocketEvent {
   factory TripUpdatedEvent.fromJson(Map<String, dynamic> json) {
     final payload = json['payload'] as Map<String, dynamic>? ?? json;
 
+    // The check-in's own time (it may be sent long after it was captured)
+    // wins over the envelope's.
+    final timestamp = payload['timestamp'] ?? json['timestamp'];
+
     return TripUpdatedEvent(
       tripId: json['tripId'] as String? ?? payload['tripId'] as String? ?? '',
+      tripUpdateId: payload['tripUpdateId'] as String?,
       latitude: (payload['latitude'] as num?)?.toDouble(),
       longitude: (payload['longitude'] as num?)?.toDouble(),
       batteryLevel: payload['batteryLevel'] as int?,
@@ -246,9 +263,7 @@ class TripUpdatedEvent extends WebSocketEvent {
       updateType: payload['updateType'] as String?,
       distanceSoFarKm: (payload['distanceSoFarKm'] as num?)?.toDouble(),
       payload: payload,
-      timestamp: json['timestamp'] != null
-          ? DateTime.tryParse(json['timestamp'] as String)
-          : null,
+      timestamp: timestamp is String ? DateTime.tryParse(timestamp) : null,
     );
   }
 }
@@ -276,6 +291,90 @@ class PolylineUpdatedEvent extends WebSocketEvent {
           : null,
     );
   }
+}
+
+/// New track points of a trip (after an upload): extend the route.
+class TrackUpdatedEvent extends WebSocketEvent {
+  final List<TrackPoint> points;
+
+  /// The trip's whole track distance so far.
+  final double? distanceKm;
+
+  TrackUpdatedEvent({
+    required String tripId,
+    required this.points,
+    this.distanceKm,
+    required super.payload,
+    super.timestamp,
+  }) : super(type: WebSocketEventType.trackUpdated, tripId: tripId);
+
+  factory TrackUpdatedEvent.fromJson(Map<String, dynamic> json) {
+    final payload = json['payload'] as Map<String, dynamic>? ?? json;
+    final tripId =
+        json['tripId'] as String? ?? payload['tripId'] as String? ?? '';
+
+    return TrackUpdatedEvent(
+      tripId: tripId,
+      points: [
+        for (final p in payload['points'] as List? ?? const [])
+          TrackPoint.fromJson(p as Map<String, dynamic>, tripId),
+      ],
+      distanceKm: (payload['distanceKm'] as num?)?.toDouble(),
+      payload: payload,
+      timestamp: json['timestamp'] != null
+          ? DateTime.tryParse(json['timestamp'] as String)
+          : null,
+    );
+  }
+}
+
+/// City and weather of a check-in, looked up after it was saved.
+class TripUpdateEnrichedEvent extends WebSocketEvent {
+  final String tripUpdateId;
+  final String? city;
+  final String? country;
+  final double? temperatureCelsius;
+  final String? weatherCondition;
+
+  TripUpdateEnrichedEvent({
+    required String tripId,
+    required this.tripUpdateId,
+    this.city,
+    this.country,
+    this.temperatureCelsius,
+    this.weatherCondition,
+    required super.payload,
+    super.timestamp,
+  }) : super(type: WebSocketEventType.tripUpdateEnriched, tripId: tripId);
+
+  factory TripUpdateEnrichedEvent.fromJson(Map<String, dynamic> json) {
+    final payload = json['payload'] as Map<String, dynamic>? ?? json;
+
+    return TripUpdateEnrichedEvent(
+      tripId: json['tripId'] as String? ?? payload['tripId'] as String? ?? '',
+      tripUpdateId: payload['tripUpdateId'] as String? ?? '',
+      city: payload['city'] as String?,
+      country: payload['country'] as String?,
+      temperatureCelsius: (payload['temperatureCelsius'] as num?)?.toDouble(),
+      weatherCondition: payload['weatherCondition'] as String?,
+      payload: payload,
+      timestamp: json['timestamp'] != null
+          ? DateTime.tryParse(json['timestamp'] as String)
+          : null,
+    );
+  }
+
+  /// [u] with this place and weather if it is the enriched check-in.
+  TripLocation applyTo(TripLocation u) => u.id != tripUpdateId
+      ? u
+      : u.copyWith(
+          city: city,
+          country: country,
+          temperatureCelsius: temperatureCelsius,
+          weatherCondition: weatherCondition == null
+              ? null
+              : WeatherCondition.fromJson(weatherCondition!),
+        );
 }
 
 /// Event for new comments

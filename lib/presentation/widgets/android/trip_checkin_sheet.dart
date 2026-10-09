@@ -20,6 +20,19 @@ String? tripCheckInMessage(TripLocation u) =>
         ? u.message!.trim()
         : null;
 
+/// [updates] (newest first) with this phone's unsent check-ins on top,
+/// newest first. One the backend already has shows from [updates] only.
+List<TripLocation> withPendingCheckIns(
+    List<TripLocation> updates, List<TripLocation> pending) {
+  if (pending.isEmpty) return updates;
+  final sent = {for (final u in updates) u.id};
+  return [
+    ...pending.where((p) => !sent.contains(p.id)).toList()
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp)),
+    ...updates,
+  ];
+}
+
 /// Consecutive regular check-ins at the same place, each within [window] of
 /// the previous one, folded into one group (a lone check-in is a group of
 /// one). Check-ins with a user message and trip events always stand alone.
@@ -27,6 +40,7 @@ String? tripCheckInMessage(TripLocation u) =>
 List<List<TripLocation>> groupCheckIns(List<TripLocation> updates,
     {Duration window = const Duration(minutes: 15)}) {
   bool groupable(TripLocation u) =>
+      !u.pending &&
       u.updateType == TripUpdateType.regular &&
       tripCheckInMessage(u) == null &&
       tripCheckInPlace(u).isNotEmpty;

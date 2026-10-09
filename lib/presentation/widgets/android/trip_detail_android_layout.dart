@@ -14,6 +14,7 @@ import 'package:wanderer_frontend/presentation/helpers/update_markers.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/custom_info_window.dart';
 import 'package:wanderer_frontend/presentation/widgets/trip_detail/trip_duration.dart';
 import 'package:wanderer_frontend/presentation/widgets/android/trip_checkin_sheet.dart';
+import 'package:wanderer_frontend/presentation/widgets/android/trip_start_sheets.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/pill.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/user_avatar.dart';
 import 'package:wanderer_frontend/presentation/widgets/common/wanderer_sheet.dart';
@@ -47,6 +48,11 @@ class TripDetailAndroidLayout extends StatefulWidget {
   /// Closes the focused update's details (✕), keeping the map where it is.
   final VoidCallback? onClearFocus;
 
+  /// Owner, live trip recorded on this phone: its route recording and how
+  /// to switch it. Null hides the control.
+  final RecordingProfile? recordingProfile;
+  final ValueChanged<RecordingProfile>? onRecordingProfile;
+
   /// Map bottom padding: roughly the half sheet (canvas: 356).
   static const double mapBottomPadding = 360;
 
@@ -65,6 +71,8 @@ class TripDetailAndroidLayout extends StatefulWidget {
     this.onFocusUpdate,
     this.onWholeRoute,
     this.onClearFocus,
+    this.recordingProfile,
+    this.onRecordingProfile,
   });
 
   @override
@@ -672,9 +680,15 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
           if (_isOwner &&
               !_mobileWeb &&
               _trip.status == TripStatus.inProgress &&
-              _trip.automaticUpdates) ...[
+              _trip.automaticUpdates &&
+              widget.recordingProfile != RecordingProfile.live) ...[
             const SizedBox(height: 12),
             _buildAutoStrip(context),
+          ],
+          if (widget.recordingProfile != null &&
+              _trip.status == TripStatus.inProgress) ...[
+            const SizedBox(height: 8),
+            _buildRecordingStrip(context, widget.recordingProfile!),
           ],
           if (widget.donationButton != null) ...[
             const SizedBox(height: 12),
@@ -1064,6 +1078,54 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
     );
   }
 
+  /// "Recording: Live · Change" → Live / Battery saver sheet.
+  Widget _buildRecordingStrip(BuildContext context, RecordingProfile profile) {
+    final c = WandererTheme.of(context);
+    final l10n = context.l10n;
+    return Material(
+      key: const Key('trip_recording_strip'),
+      color: c.skyBg,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => showWandererSheet<void>(
+          context,
+          title: l10n.recordingTitle,
+          builder: (ctx) => RecordingProfilePicker(
+            selected: profile,
+            checkInMinutes: _trip.automaticUpdates
+                ? (_trip.effectiveUpdateRefresh / 60).round()
+                : null,
+            onSelect: (p) {
+              Navigator.of(ctx).pop();
+              widget.onRecordingProfile?.call(p);
+            },
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(children: [
+            Icon(
+                profile == RecordingProfile.live
+                    ? Icons.route
+                    : Icons.battery_saver,
+                size: 18,
+                color: c.skyFg),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                  l10n.recordingStrip(recordingProfileName(l10n, profile)),
+                  style: TextStyle(fontSize: 13, color: c.skyFg)),
+            ),
+            Text(l10n.tripChange,
+                style: TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w700, color: c.skyFg)),
+          ]),
+        ),
+      ),
+    );
+  }
+
   List<Widget> _timelineItems(BuildContext context) {
     final c = WandererTheme.of(context);
     final l10n = context.l10n;
@@ -1142,6 +1204,7 @@ class _TripDetailAndroidLayoutState extends State<TripDetailAndroidLayout>
                           if (!_mobileWeb &&
                               u.updateType == TripUpdateType.regular)
                             tripCheckInKind(l10n, u),
+                          if (u.pending) l10n.checkInQueued,
                         ].join(' · '),
                         style: TextStyle(fontSize: 13, color: c.textMuted),
                       ),
